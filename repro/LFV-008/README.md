@@ -10,20 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 With a soft-deletes field configured, you hard-delete a document and then clear its soft-delete value. You expect the document to stay deleted. Instead PendingSoftDeletes.applySoftDeletes sets its live bit again, so it becomes visible; softDelCount can reach -1, which wedges the writer and gives a corrupt commit or merge.
 
+The test shows that with a soft-deletes field (b soft-deleted), hard-deleting doc a and then removing a's soft value with `tryUpdateDocValue(reader, 0, null)` makes a live again.
+
 ## Expected vs actual
 
-- Expected: live docs `[c]` after the fresh NRT reader opens: `a` stays deleted (`testHardDeletedDocStaysDeleted`).
-- Actual: live docs `[a, c]` (`live docs expected:<[c]> but was:<[a, c]>`) and no exception; six more tests fail, including a merged commit with `a` live and CheckIndex clean.
+Expected: `count(id:a)` is 0 on the next NRT reader (a hard-deleted doc stays deleted, `IndexWriterConfig#setSoftDeletesField`). Actual (`-ea` and `-da`): `expected:<0> but was:<1>`.
 
 ## Files
 
-- [src/TestVerifySoftValueRemovalVsHardDelete.java](src/TestVerifySoftValueRemovalVsHardDelete.java) (JUnit test)
+- [src/org/apache/lucene/index/TestSoftValueRemovalRevivesHardDeletedDoc.java](src/org/apache/lucene/index/TestSoftValueRemovalRevivesHardDeletedDoc.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
-- Recorded outcome of run 1 on main a9779ef3c193: 9 test(s) run, 5 failed (testRemoveSoftValueOfHardDeletedDoc, testReviveThenHardDeleteSameDoc, testSilentResurrectionOfHardDeletedDoc, testTermRemoveSoftValueAutoFlushThenHardDelete, testWriterAftermath).
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -39,18 +39,12 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class TestVerifySoftValueRemovalVsHardDelete
+     execute --select-class org.apache.lucene.index.TestSoftValueRemovalRevivesHardDeletedDoc
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestSoftValueRemovalOfHardDeletedDoc.java](TestSoftValueRemovalOfHardDeletedDoc.java)
-- [fix-a-guard-hard-deletes.diff](fix-a-guard-hard-deletes.diff)
-- [TestSoftValueRemovalDefaultMergeProbe.java](TestSoftValueRemovalDefaultMergeProbe.java)
 
 ## Feedback
 

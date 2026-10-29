@@ -17,35 +17,25 @@
 package org.apache.lucene.index;
 
 import java.io.IOException;
-import org.apache.lucene.document.Document;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * IndexReader#decRef javadoc: "If the refCount drops to 0, then this reader is closed. If an
- * exception is hit, the refCount is unchanged." Since LUCENE-5553 decRef sets the reader closed and
- * keeps the count at 0 when doClose() or a closed listener throws.
- */
 public class TestDecRefExceptionRefCount extends LuceneTestCase {
 
-  public void testRefCountAfterFailedFinalDecRef() throws Exception {
-    Directory dir = new ByteBuffersDirectory();
-    IndexWriter w = new IndexWriter(dir, new IndexWriterConfig());
-    w.addDocument(new Document());
-    w.close();
-    DirectoryReader reader = DirectoryReader.open(dir);
-    reader
-        .getReaderCacheHelper()
-        .addClosedListener(
-            key -> {
-              throw new IOException("listener failure");
-            });
-    assertEquals(1, reader.getRefCount());
-
-    expectThrows(IOException.class, reader::decRef);
-
-    assertEquals("javadoc: if an exception is hit, the refCount is unchanged", 1, reader.getRefCount());
-    dir.close();
+  public void testRefCountUnchangedAfterFailedDecRef() throws Exception {
+    try (Directory dir = new ByteBuffersDirectory()) {
+      new IndexWriter(dir, new IndexWriterConfig()).close();
+      DirectoryReader reader = DirectoryReader.open(dir);
+      reader
+          .getReaderCacheHelper()
+          .addClosedListener(
+              key -> {
+                throw new IOException("closed listener failure");
+              });
+      expectThrows(IOException.class, reader::decRef);
+      // decRef javadoc: "If an exception is hit, the refCount is unchanged" (1); main leaves 0
+      assertEquals("refCount after the failed decRef", 1, reader.getRefCount());
+    }
   }
 }

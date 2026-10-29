@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build a chain of named expressions with SimpleBindings.add(String, Expression), each using the previous one (x1 = x0 + 1, x2 = x1 + 1,..., x2000 = x1999 + 1), and call bindings.validate, whose javadoc says it 'Traverses the graph of bindings, checking there are no cycles or missing references'. You expect a graph check that costs about as much as resolving every binding once, as on 8.5.2, where validate of these 2000 bindings took about 100 ms. Instead, since 8.6.0 validate starts a fresh walk from every binding, re-walks everything below it, and copies the whole current path into a new LinkedHashSet at every step, so its cost grows with the cube of the chain length: about 45 s for 2000 bindings and about 575 s for 4000 (at 1000 bindings it allocates 389.9 times the bytes of resolving every binding once), although the answer is still correct.
 
+The test shows that SimpleBindings.validate() on a plain chain of 500 expression bindings costs far more than resolving every binding once (its cost up to 8.5.2), because it copies the path at every step.
+
 ## Expected vs actual
 
-- Expected: You expect a graph check that costs about as much as resolving every binding once, as on 8.5.2, where validate of these 2000 bindings took about 100 ms.
-- Actual: Since 8.6.0 validate starts a fresh walk from every binding, re-walks everything below it, and copies the whole current path into a new LinkedHashSet at every step, so its cost grows with the cube of the chain length: about 45 s for 2000 bindings and about 575 s for 4000 (at 1000 bindings it allocates 389.9 times the bytes of resolving every binding once), although the answer is still correct.
+Expected validate() within 10x of resolving each binding once; actual about 70x (about 870 ms vs 12 ms on main; about 0.05x with the DFS fix).
 
 ## Files
 
-- [src/org/apache/lucene/expressions/TestSimpleBindingsValidateCost.java](src/org/apache/lucene/expressions/TestSimpleBindingsValidateCost.java) (JUnit test)
+- [src/org/apache/lucene/expressions/TestSimpleBindingsValidateChainCost.java](src/org/apache/lucene/expressions/TestSimpleBindingsValidateChainCost.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,7 +40,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.expressions.TestSimpleBindingsValidateCost
+     execute --select-class org.apache.lucene.expressions.TestSimpleBindingsValidateChainCost
 ```
 
 The module(s) expressions also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.

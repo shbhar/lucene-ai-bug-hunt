@@ -8,21 +8,21 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You compile a Lucene expression that tests a high bit of a long field, such as '(flags &amp; 0x100000000) ? 10: 1' over a NumericDocValuesField with flags = 2^32 + 1, and expect 10, because 'flags &amp; 0x100000000' evaluates to 4294967296 and '(flags &amp; 0x100000000) != 0' is 1. Instead you get 1: the compiler asks for the operand of !, &amp;&amp;, || and ?: as a 32-bit int and narrows a long-typed operand (the result of &amp; | ^ ~ &lt;&lt; &gt;&gt; &gt;&gt;&gt;, or a hex/octal literal) by keeping only its low 32 bits, so every non-zero value whose low 32 bits are zero counts as false. The same number is true when written as the decimal literal 4294967296, as a variable or as '((1 &lt;&lt; 32) + 0)', but false as '0x100000000' or '(1 &lt;&lt; 32)'.
 
+The test shows that a Lucene expression tests a long-typed condition by keeping only its low 32 bits, so the non-zero value `(1 << 32)` = 4294967296 counts as false.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: You get 1: the compiler asks for the operand of !, &amp;&amp;, || and ?: as a 32-bit int and narrows a long-typed operand (the result of &amp; | ^ ~ &lt;&lt; &gt;&gt; &gt;&gt;&gt;, or a hex/octal literal) by keeping only its low 32 bits, so every non-zero value whose low 32 bits are zero counts as false.
+Expected: `(1 << 32) ? 1: 0` = 1. Actual: 0 (`expected:<1.0> but was:<0.0>`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/expressions/TestBooleanOperandLongNarrowing.java](src/org/apache/lucene/expressions/TestBooleanOperandLongNarrowing.java) (JUnit test)
-- [src/BooleanOperandLongNarrowingMain.java](src/BooleanOperandLongNarrowingMain.java) (main() class)
+- [src/org/apache/lucene/expressions/js/TestBooleanOperandHighBits.java](src/org/apache/lucene/expressions/js/TestBooleanOperandHighBits.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 4 test(s) run, 1 failed.
+- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -40,11 +40,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.expressions.TestBooleanOperandLongNarrowing
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" BooleanOperandLongNarrowingMain
+     execute --select-class org.apache.lucene.expressions.js.TestBooleanOperandHighBits
 ```
 
 The module(s) expressions also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.

@@ -10,21 +10,21 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You analyse 'abc the' with a whitespace tokenizer, StopFilter and then NGramTokenFilter(3,3) or EdgeNGramTokenFilter(1,3); StopFilter reports the removed trailing 'the' as a final position increment of 1 in end, and because the n-gram filter drops nothing here you expect end to still report 1. Instead both filters call super.end and then replace that value with only the increments of tokens they dropped themselves, so end reports 0 ('abc x the' gives 1 instead of 2) and the trailing hole is lost. In a multi-valued field with Lucene's default gap 0, the second value 'def' of ['abc the', 'def'] is then indexed at position 1 instead of 2, and PhraseQuery('abc','def') matches the document (1 hit) where the same chain without the n-gram filter gives 0 hits (executed).
 
+The test shows that `NGramTokenFilter.end()` overwrites the final position increment of its input, so the trailing hole `StopFilter` leaves for a removed last word is lost.
+
 ## Expected vs actual
 
-- Expected: Final increments 1 for `abc the` and 2 for `abc x the`; over the values `abc the` and `def`, 0 hits for the phrase `abc def` and 1 for the hole-keeping phrase, as without the n-gram filter.
-- Actual: `end=0` and `end=1` for both filters, and 1 and 0 phrase hits: 3 of 3 tests fail, assertions on and off; the two controls pass.
+For whitespace -&gt; `StopFilter("the")` -&gt; `NGramTokenFilter(3, 3)` on `abc the`, expected a final position increment of 1 after `end()`; actual 0, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/ngram/TestNGramFiltersFinalPositionIncrement.java](src/org/apache/lucene/analysis/ngram/TestNGramFiltersFinalPositionIncrement.java) (JUnit test)
-- [src/repro/NGramEndPosIncMain.java](src/repro/NGramEndPosIncMain.java) (main() class)
+- [src/org/apache/lucene/analysis/ngram/TestNGramTokenFilterFinalPositionIncrement.java](src/org/apache/lucene/analysis/ngram/TestNGramTokenFilterFinalPositionIncrement.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -42,22 +42,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.ngram.TestNGramFiltersFinalPositionIncrement
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" repro.NGramEndPosIncMain
+     execute --select-class org.apache.lucene.analysis.ngram.TestNGramTokenFilterFinalPositionIncrement
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestNGramFiltersEndPositionIncrement.java](TestNGramFiltersEndPositionIncrement.java)
-- [fix.diff](fix.diff)
-- [TestNGramFiltersFinalPositionIncrement.java](TestNGramFiltersFinalPositionIncrement.java)
-- [TestNGramEndKeepsInputFinalPosInc.java](TestNGramEndKeepsInputFinalPosInc.java)
-- [NGramEndPosIncMain.java](NGramEndPosIncMain.java)
 
 ## Feedback
 

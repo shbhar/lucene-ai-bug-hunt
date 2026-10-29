@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You decode a.tvd chunk of the default term-vectors format by following its javadoc, which says the Flags Bit is 1 when all fields of the chunk have the same options, that FieldNums is a delta-encoded list, and that AvgCharsPerTerm is absent unless some field has both positions and offsets. The writer does the opposite on all three: it writes 0 for &#x27;same options&#x27; (then one flag per distinct field) and 1 otherwise, it stores the plain sorted field numbers (fields 1, 3, 6 are stored as 1, 3, 6, which summed as deltas give 1, 4, 10), and it writes one AvgCharsPerTerm value per distinct field whenever any field has offsets, so a parser built from the text misreads the chunk. Lucene&#x27;s own reader matches the writer, so nothing breaks at runtime; only the documentation is wrong, and it has been since it was written in 2013.</p>
+<p>The test shows that the <code>Lucene90TermVectorsFormat</code> javadoc inverts the.tvd Flags bit: a chunk whose fields all have the same options is written with Bit 0, not 1 (documentation defect; writer and reader agree).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> While the bug is present the test fails; the failure message states expected against actual.</li></ul>
+<p>Expected (javadoc): Bit 1 for a one-document, one-field chunk. Actual: <code>Flags Bit of a one-document, one-field chunk expected:&lt;1&gt; but was:&lt;0&gt;</code> (same with -ea and -da).</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/codecs/lucene90/TestTermVectorsFormatJavadocLayout.java"><code>src/org/apache/lucene/codecs/lucene90/TestTermVectorsFormatJavadocLayout.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/codecs/lucene90/TestTermVectorsFormatJavadocFlagsBit.java"><code>src/org/apache/lucene/codecs/lucene90/TestTermVectorsFormatJavadocFlagsBit.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -44,6 +45,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.codecs.lucene90.TestTermVectorsFormatJavadocLayout</code></pre>
+     execute --select-class org.apache.lucene.codecs.lucene90.TestTermVectorsFormatJavadocFlagsBit</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

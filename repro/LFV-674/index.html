@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You create a spatial context with Geo3dSpatialContextFactory and ask its distance calculator whether the point (1, 0) is within 10 degrees of (0, 0), with ctx.getDistCalc.within(from, 1, 0, 10), and expect true: distance returns 1.0 degree, and the spatial4j DistanceCalculator contract says within is true when the distance is &lt;= the limit. Instead it returns false, and within(from, 50, 0, 10) returns true although the distance is 50 degrees. The method body is &#x27;return (distance &lt; distance(from, toX, toY));&#x27;, the exact negation of the contract, so every answer with a finite distance is inverted, including within(p, p, 0).</p>
+<p>The test shows that <code>Geo3dDistanceCalculator.within</code>, the default <code>DistanceCalculator</code> of a Geo3d spatial context, returns the opposite of spatial4j&#x27;s &quot;distance &lt;= limit&quot; contract.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> It returns false, and within(from, 50, 0, 10) returns true although the distance is 50 degrees.</li></ul>
+<p>Expected: <code>within((0, 0), 1, 0, 10)</code> is true, because the point is 1 degree away. Actual (-ea and -da): false.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/spatial/spatial4j/TestGeo3dDistanceCalculatorWithin.java"><code>src/org/apache/lucene/spatial/spatial4j/TestGeo3dDistanceCalculatorWithin.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src2/org/apache/lucene/spatial/spatial4j/TestGeo3dDistanceCalculatorWithin.java"><code>src2/org/apache/lucene/spatial/spatial4j/TestGeo3dDistanceCalculatorWithin.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -41,15 +42,11 @@ CP=$CP:$LUCENE/lucene/spatial3d/build/libs/lucene-spatial3d-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
-javac -d classes-src -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
-javac -d classes-src2 -cp &quot;$CP&quot; $(find src2 -name &#x27;*.java&#x27;)
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.spatial.spatial4j.TestGeo3dDistanceCalculatorWithin
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src2:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.spatial.spatial4j.TestGeo3dDistanceCalculatorWithin</code></pre>
 <p class="small">The module(s) spatial-extras also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>

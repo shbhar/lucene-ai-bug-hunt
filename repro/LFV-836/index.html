@@ -22,14 +22,17 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You share one ByteBuffersDirectory between two threads: one renames file &#x27;a&#x27; to a new name while the other creates a new &#x27;a&#x27; (createOutput, write, close) or renames a temp file onto &#x27;a&#x27;, and you expect the new &#x27;a&#x27; to stay until someone deletes or renames it, as it does on FSDirectory. Instead, now and then the new file vanishes: rename has already moved its own entry with the checked files.remove(source, file) and then runs a leftover unconditional files.remove(source), which can only remove a different entry, the one the other thread has just put under &#x27;a&#x27;. Neither call reports an error; afterwards listAll lacks the file and openInput throws NoSuchFileException (stress tests lose between 1 and a few hundred files per 100,000 rounds on every run).</p>
+<p>The test shows that ByteBuffersDirectory.rename(&quot;a&quot;, &quot;b&quot;) deletes a new file &quot;a&quot; created right after its checked files.remove(source, file), through the leftover files.remove(source); the test forces that order by swapping the private files map for one that runs createOutput(&quot;a&quot;) at that point (what another thread&#x27;s createOutput does in the race).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect the new &#x27;a&#x27; to stay until someone deletes or renames it, as it does on FSDirectory.</li><li><b>Actual:</b> Now and then the new file vanishes: rename has already moved its own entry with the checked files.remove(source, file) and then runs a leftover unconditional files.remove(source), which can only remove a different entry, the one the other thread has just put under &#x27;a&#x27;.</li></ul>
+<p>Expected listAll() = [a, b] (nobody deleted the new &#x27;a&#x27;). Actual: [b].</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/store/TestByteBuffersDirectoryRenameRace.java"><code>src/org/apache/lucene/store/TestByteBuffersDirectoryRenameRace.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/store/TestByteBuffersDirectoryRenameDropsNewSource.java"><code>src/org/apache/lucene/store/TestByteBuffersDirectoryRenameDropsNewSource.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
+<li>This repro reads private Lucene state by reflection (setAccessible), so it depends on internals that may change.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
@@ -43,7 +46,7 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.store.TestByteBuffersDirectoryRenameRace</code></pre>
+     execute --select-class org.apache.lucene.store.TestByteBuffersDirectoryRenameDropsNewSource</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/bytebuffers-output-block-expansion-recycler-and-view-aliasing/index.html">bytebuffers-output-block-expansion-recycler-and-view-aliasing</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

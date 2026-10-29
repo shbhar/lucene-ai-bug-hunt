@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index 'the new york times' and run within(phrase(new, york), 1, times) and notWithin(phrase(new, york), 1, times), and you expect exactly one of them to match, because the javadoc says within returns source intervals that 'appear within a set number of positions' of the reference and notWithin those that 'do not appear within' it, and the fn:within / fn:notWithin docs give both the same 'maximum positions' parameter. Instead neither matches: within keeps an interval only if all of it lies inside the window [r.start-n, r.end+n] (here [2,4]), while notWithin drops it if any part touches that window, so 'new york' at [1,2], which touches the window without lying inside it, is in neither result (within needs n = 2 for a phrase directly next to the reference). In the same way, on 'new york' both within(phrase(new, york), 0, york) and notWithin(phrase(new, york), 0, york) return nothing, and no doc says that a partly-near interval matches neither.
 
+The test shows that `Intervals.within` and `Intervals.notWithin`, documented as "appear within" / "do not appear within" n positions, are not complements: on "the new york times", phrase(new, york) next to times (n = 1) matches neither (documentation / API-contract defect).
+
 ## Expected vs actual
 
-- Expected: You expect exactly one of them to match, because the javadoc says within returns source intervals that 'appear within a set number of positions' of the reference and notWithin those that 'do not appear within' it, and the fn:within / fn:notWithin docs give both the same 'maximum positions' parameter.
-- Actual: Neither matches: within keeps an interval only if all of it lies inside the window [r.start-n, r.end+n] (here [2,4]), while notWithin drops it if any part touches that window, so 'new york' at [1,2], which touches the window without lying inside it, is in neither result (within needs n = 2 for a phrase directly next to the reference).
+Expected exactly one of the two queries to match the document; actual neither (`within + notWithin expected:<1> but was:<0>`), with `-ea` and `-da`.
 
 ## Files
 
@@ -19,7 +20,8 @@ You index 'the new york times' and run within(phrase(new, york), 1, times) and n
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

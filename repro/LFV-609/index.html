@@ -22,12 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You format the passage &#x27;one two three&#x27; with two crossing markers, [0,7) written as &lt;a&gt;...&lt;/a&gt; and [4,13) as &lt;b&gt;...&lt;/b&gt;, using PassageFormatter&#x27;s Function constructor, or you highlight the crossing phrase queries &#x27;one two&#x27; and &#x27;two three&#x27; with MatchHighlighter.highlight(topDocs, q1, q2) and one tag per query. You expect well-nested output, &#x27;&lt;a&gt;one &lt;b&gt;two&lt;/b&gt;&lt;/a&gt;&lt;b&gt; three&lt;/b&gt;&#x27;, because when a marker ends the formatter closes and re-opens the markers opened after it precisely to resolve the overlap into nested markup (Passage javadoc: markers &#x27;can be overlapping or nested&#x27;). Instead it closes those markers in opening order rather than innermost first and returns &#x27;&lt;a&gt;one &lt;b&gt;two&lt;/a&gt;&lt;/b&gt;&lt;b&gt; three&lt;/b&gt;&#x27; (end to end &#x27;&lt;q1&gt;one &lt;q2&gt;two&lt;/q1&gt;&lt;/q2&gt;&lt;q2&gt; three&lt;/q2&gt;&#x27;), which an XML parser rejects.</p>
+<p>The test shows that matchhighlight PassageFormatter, with per-marker end strings, closes two crossing markers in opening order instead of innermost first, so the end tags come out mis-nested.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect well-nested output, &#x27;&lt;a&gt;one &lt;b&gt;two&lt;/b&gt;&lt;/a&gt;&lt;b&gt; three&lt;/b&gt;&#x27;, because when a marker ends the formatter closes and re-opens the markers opened after it precisely to resolve the overlap into nested markup (Passage javadoc: markers &#x27;can be overlapping or nested&#x27;).</li><li><b>Actual:</b> It closes those markers in opening order rather than innermost first and returns &#x27;&lt;a&gt;one &lt;b&gt;two&lt;/a&gt;&lt;/b&gt;&lt;b&gt; three&lt;/b&gt;&#x27; (end to end &#x27;&lt;q1&gt;one &lt;q2&gt;two&lt;/q1&gt;&lt;/q2&gt;&lt;q2&gt; three&lt;/q2&gt;&#x27;), which an XML parser rejects.</li></ul>
+<p>For &#x27;foo bar baz&#x27; with [0,7) as &lt;a&gt; and [4,11) as &lt;b&gt;: expected <code>&lt;a&gt;foo &lt;b&gt;bar&lt;/b&gt;&lt;/a&gt;&lt;b&gt; baz&lt;/b&gt;</code>; actual <code>&lt;a&gt;foo &lt;b&gt;bar&lt;/a&gt;&lt;/b&gt;&lt;b&gt; baz&lt;/b&gt;</code>, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/search/matchhighlight/TestPassageFormatterCrossingMarkers.java"><code>src/org/apache/lucene/search/matchhighlight/TestPassageFormatterCrossingMarkers.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

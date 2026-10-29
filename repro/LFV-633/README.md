@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You evaluate a classifier with ConfusionMatrixGenerator.getConfusionMatrix and one document's classification is slow (more than about 10 s) or hangs. You expect, as the code's own comment ('fail if classification takes more than 5s') and its skip-and-continue timeout branch intend, that only that document counts as a timeout and the other documents are still classified and counted. Instead the timed-out classification is never cancelled and keeps the generator's only worker thread, so the next documents wait behind it, their own 5 s waits expire while they are still queued, and they are dropped too: with a hung first document 0 of 2 instantly classifiable documents are counted (empty matrix, average time Infinity), with a 12 s one 1 of 2.
 
+The test shows that `ConfusionMatrixGenerator.getConfusionMatrix` does not cancel a classification that exceeded its 5 s limit, so the next document, whose own classification is instant, waits behind it on the single worker thread and is counted as timed out too (the test takes about 10 s: two hard-coded 5 s timeouts).
+
 ## Expected vs actual
 
-- Expected: You expect, as the code's own comment ('fail if classification takes more than 5s') and its skip-and-continue timeout branch intend, that only that document counts as a timeout and the other documents are still classified and counted.
-- Actual: The timed-out classification is never cancelled and keeps the generator's only worker thread, so the next documents wait behind it, their own 5 s waits expire while they are still queued, and they are dropped too: with a hung first document 0 of 2 instantly classifiable documents are counted (empty matrix, average time Infinity), with a 12 s one 1 of 2.
+With doc 0 stuck and doc 1 instant, expected `getNumberOfEvaluatedDocs() == 1`; actual: `evaluated documents expected:<1> but was:<0>`, with `-ea` and `-da`.
 
 ## Files
 
@@ -19,7 +20,8 @@ You evaluate a classifier with ConfusionMatrixGenerator.getConfusionMatrix and o
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

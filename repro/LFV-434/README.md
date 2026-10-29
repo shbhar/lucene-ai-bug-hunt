@@ -10,20 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build XYShape.newLineQuery(field, QueryRelation.WITHIN, line) with a valid XYLine and expect the IllegalArgumentException that LatLonShape.newLineQuery throws for the same relation ('does not support WITHIN queries with line geometries'), and that XYShape itself threw up to 8.4.1 ('XYShapeLineQuery does not support WITHIN queries'). Instead the query is accepted, because the XYShapeQuery constructor has validated nothing since LUCENE-9194 (8.5.0) folded the old XY line query into it. The search then returns indexed points that lie on the line but no indexed line, not even one identical to the query line, because Line2D.containsLine and containsTriangle always return false.
 
+The test shows that `XYShape.newLineQuery(field, QueryRelation.WITHIN, line)` accepts a WITHIN query with a line geometry (lost check since LUCENE-9194, 8.5.0).
+
 ## Expected vs actual
 
-- Expected: `XYShape.newLineQuery("shape", WITHIN, line)` throws `IllegalArgumentException`, as `LatLonShape.newLineQuery` does.
-- Actual: No exception: the query matches 1 of the 3 shapes, `[point (5,0)]`, and `newGeometryQuery(WITHIN, polygon, line)` is accepted too.
+Expected `IllegalArgumentException`, as `LatLonShape.newLineQuery` throws and XYShape threw up to 8.4.1; actual: no exception (-ea and -da).
 
 ## Files
 
-- [src/org/apache/lucene/document/TestXYShapeWithinLineQuery.java](src/org/apache/lucene/document/TestXYShapeWithinLineQuery.java) (JUnit test)
-- [src/org/apache/lucene/document/TestXYShapeWithinLineQuery8x.java](src/org/apache/lucene/document/TestXYShapeWithinLineQuery8x.java) (JUnit test)
+- [src/org/apache/lucene/document/TestXYShapeWithinLineRejected.java](src/org/apache/lucene/document/TestXYShapeWithinLineRejected.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,22 +41,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.document.TestXYShapeWithinLineQuery
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.document.TestXYShapeWithinLineQuery8x
+     execute --select-class org.apache.lucene.document.TestXYShapeWithinLineRejected
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestXYShapeWithinLine.java](TestXYShapeWithinLine.java)
-- [TestXYShapeWithinLineRejected.java](TestXYShapeWithinLineRejected.java)
-- [TestXYShapeWithinLineQuery.java](TestXYShapeWithinLineQuery.java)
-- [TestVerifyXYWithinLine.java](TestVerifyXYWithinLine.java)
 
 ## Feedback
 

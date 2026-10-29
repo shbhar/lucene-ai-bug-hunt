@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index the clockwise triangle (0,1) (1,2) (3,3) as an XYPolygon with XYShape.createIndexableFields and run XYShape.newPointQuery at each of its corners; you expect every corner to match the polygon (INTERSECTS) and none to be DISJOINT from it, as happens for the same triangle moved by (8,8) and for every point of its edges. Instead the INTERSECTS query at (1,2) finds nothing and the DISJOINT query at (1,2) returns the document: ShapeField.encodeTriangle checks the winding on the sortable-int encodings of the floats, which are ordered like the floats but not evenly spaced, so the stored triangle decodes clockwise, and Component2D.pointInTriangle reports the second vertex of a clockwise triangle as outside. The same happens with projected metre-like coordinates, for example at vertex (518885,4395432) of a hexagon whose x range crosses 2^19.
 
+The test shows that an `XYShape` INTERSECTS point query placed exactly on vertex (1,2) of the indexed clockwise triangle (0,1) (1,2) (3,3) does not find the polygon.
+
 ## Expected vs actual
 
-- Expected: INTERSECTS finds the polygon at all three corners, `[1, 1, 1]`, and DISJOINT at none, `[0, 0, 0]`, as for the same triangle moved by (8, 8).
-- Actual: INTERSECTS `[1, 0, 1]` and DISJOINT `[0, 1, 0]`: the corner (1,2) misses its own polygon; the hexagon gives `[1, 1, 1, 0, 1, 1]`.
+Expected: 1 hit (a polygon's vertices belong to it). Actual: 0 hits.
 
 ## Files
 
-- [src/org/apache/lucene/document/TestXYShapePointAtPolygonVertex.java](src/org/apache/lucene/document/TestXYShapePointAtPolygonVertex.java) (JUnit test)
+- [src/org/apache/lucene/document/TestXYShapePointQueryAtPolygonVertex.java](src/org/apache/lucene/document/TestXYShapePointQueryAtPolygonVertex.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -39,17 +41,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.document.TestXYShapePointAtPolygonVertex
+     execute --select-class org.apache.lucene.document.TestXYShapePointQueryAtPolygonVertex
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestXYShapePointAtPolygonVertex.java](TestXYShapePointAtPolygonVertex.java)
-- [TestXYShapeVertexPointQueryV1.java](TestXYShapeVertexPointQueryV1.java)
-- [PredicateDiff.java](PredicateDiff.java)
-- [TestXYShapeVertexWorkaroundProbe.java](TestXYShapeVertexWorkaroundProbe.java)
 
 ## Feedback
 

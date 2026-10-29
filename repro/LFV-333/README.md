@@ -10,20 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You add a document with FeatureField("features", "pagerank", 10f), or a tokenized DOCS_AND_FREQS field whose TokenStream sets TermFrequencyAttribute (for example DelimitedTermFrequencyTokenFilter on 'a|7'), to a MemoryIndex and expect its postings, statistics and scores to equal those of the same document in a one-document IndexWriter index, as they do for ordinary fields. Instead MemoryIndex.storeTerms never reads the attribute and counts every token as frequency 1: FeatureField.newLinearQuery scores 4.5918E-41 instead of 10.0, newSaturationQuery with the pivot 10 scores exactly 0.0 (MemoryIndex.search's 'no match' value) for a document that matches, and a term with custom frequency 7 reports freq 1, sumTotalTermFreq 1 and a lower BM25 score. Lucene Monitor inherits it (since 8.6.0): the same FeatureField document scores 10.0 in a two-document batch (IndexWriter path) and 4.5918E-41 when matched alone (MemoryIndex path).
 
+The test shows that `MemoryIndex` ignores `TermFrequencyAttribute`, so a `FeatureField("f", "pr", 10f)` is indexed with frequency 1 and `FeatureField.newLinearQuery("f", "pr", 1f)` scores it wrongly.
+
 ## Expected vs actual
 
-- Expected: The `MemoryIndex` reports what the one-document `IndexWriter` index reports: freq 33344 and score 10.0 for `FeatureField` 10f, saturation score 0.5, freq 7 and BM25 0.2456 for the custom frequency.
-- Actual: Freq 1 everywhere: linear score 4.5918E-41, saturation score 0.0 ("no match") for a matching document, and freq 1, `sumTotalTermFreq` 2, BM25 0.1308 for the custom frequency.
+Expected: `mi.search(...)` returns the feature value `10.0` (as a one-document IndexWriter index does). Actual: `4.5918E-41`.
 
 ## Files
 
-- [src/org/apache/lucene/index/memory/TestMemoryIndexCustomTermFrequency.java](src/org/apache/lucene/index/memory/TestMemoryIndexCustomTermFrequency.java) (JUnit test)
-- [src/org/apache/lucene/index/memory/TestMemoryIndexTermDocCustomFrequency.java](src/org/apache/lucene/index/memory/TestMemoryIndexTermDocCustomFrequency.java) (JUnit test)
+- [src/org/apache/lucene/index/memory/TestMemoryIndexFeatureField.java](src/org/apache/lucene/index/memory/TestMemoryIndexFeatureField.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -42,18 +42,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.memory.TestMemoryIndexCustomTermFrequency \
-       --select-class org.apache.lucene.index.memory.TestMemoryIndexTermDocCustomFrequency
+     execute --select-class org.apache.lucene.index.memory.TestMemoryIndexFeatureField
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestMemoryIndexCustomTermFrequencies.java](TestMemoryIndexCustomTermFrequencies.java)
-- [TestMonitorFeatureFieldSingleDocument.java](TestMonitorFeatureFieldSingleDocument.java)
-- [TestMemoryIndexCustomTermFrequency.java](TestMemoryIndexCustomTermFrequency.java)
-- [TestMemoryIndexCustomTermFreq.java](TestMemoryIndexCustomTermFreq.java)
 
 ## Feedback
 

@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index a document with point P through RecursivePrefixTreeStrategy over S2PrefixTree in the Geo3d spatial context and search with SpatialOperation.Contains and the same point P, expecting the document, because Contains is documented as the OGC 'Covers' predicate and its evaluate(P, P) is true, RecursivePrefixTreeStrategy builds a ContainsPrefixTreeQuery for it, a point query is resolved at full precision, and the geohash and quad trees do return the document. When P lies exactly on an S2 cell edge, for example Point(10, 0) on the equator, Contains finds 0 documents while Intersects finds 1. Indexing puts P in one cell per level (S2PrefixTree.getTreeCellIterator, from S2CellId.fromLatLng), but at query time S2PrefixTreeCell.getNextLevelCells has no point case and returns every child cell that touches P (2 on an edge, 4 at (0,0)), and ContainsPrefixTreeQuery requires the document to be in all of them.
 
+The test shows that with `RecursivePrefixTreeStrategy` over `S2PrefixTree` (Geo3d context), a `Contains` query with point P misses the document indexed with P when P is on an S2 cell edge (here `Point(10, 0)` on the equator).
+
 ## Expected vs actual
 
-- Expected: `Intersects` and `Contains` both find the document indexed at `Point(10, 0)`: 1 and 1.
-- Actual: `Intersects` finds 1, `Contains` finds 0: `expected:<1> but was:<0>` at the `Contains` assertion.
+Expected: 1 hit (Contains is OGC Covers, and `Contains.evaluate(p, p)` is true); actual (-ea and -da): 0 hits, "expected:&lt;1&gt; but was:&lt;0&gt;".
 
 ## Files
 
@@ -21,8 +22,8 @@ You index a document with point P through RecursivePrefixTreeStrategy over S2Pre
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -48,13 +49,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) spatial-extras also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestS2PointOnCellEdgeContains.java](TestS2PointOnCellEdgeContains.java)
-- [TestV1S2EdgePointContains.java](TestV1S2EdgePointContains.java)
-- [TestS2EdgePointPredicatesProbe.java](TestS2EdgePointPredicatesProbe.java)
-- [TestS2GridLinesProbe.java](TestS2GridLinesProbe.java)
 
 ## Feedback
 

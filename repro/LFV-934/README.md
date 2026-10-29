@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You decode a segment info (.si) file of the default codec by following the Lucene99SegmentInfoFormat javadoc, which gives the sequence Header, SegVersion, SegSize, IsCompoundFile, Diagnostics, Files, Attributes, IndexSort, Footer and types SegVersion (and SegMinVersion) as a String. The writer instead stores the version as three Int32s (major, minor, bugfix), then a flag byte and, when it is 1, the minimum version as three more Int32s, then SegSize, IsCompoundFile and a HasBlocks byte, so a parser built from the text reads the Int32 major version 11 as a string length and gets 11 NUL characters instead of '11.0.0', and every later field is misaligned. Lucene's own reader matches the writer, so nothing breaks at runtime; only the documentation is wrong, and it has been since 5.0.0.
 
+The test shows that reading a default-codec `.si` file with the `Lucene99SegmentInfoFormat` javadoc grammar fails at its first element, SegVersion, which the javadoc types as a `String`, while the writer stores it as three Int32s.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+Expected: `readString()` after the IndexHeader returns `11.0.0`. Actual: the Int32 major version 11 is read as the string length, so the result is 11 NUL characters (`SegVersion chars [0,...] expected:<[11.0.0]>`).
 
 ## Files
 
-- [src/org/apache/lucene/codecs/lucene99/TestLucene99SegmentInfoFormatJavadocGrammar.java](src/org/apache/lucene/codecs/lucene99/TestLucene99SegmentInfoFormatJavadocGrammar.java) (JUnit test)
+- [src/org/apache/lucene/codecs/lucene99/TestLucene99SegmentInfoFormatJavadoc.java](src/org/apache/lucene/codecs/lucene99/TestLucene99SegmentInfoFormatJavadoc.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -34,10 +36,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.codecs.lucene99.TestLucene99SegmentInfoFormatJavadocGrammar
+     execute --select-class org.apache.lucene.codecs.lucene99.TestLucene99SegmentInfoFormatJavadoc
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

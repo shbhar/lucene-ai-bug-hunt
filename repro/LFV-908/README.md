@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You enable caching for a grouped search (or wrap a first-pass collector in CachingCollector or CachingCollectorManager) with a negative limit, for example setCaching(-1, true) meant as 'no limit', and expect either an IllegalArgumentException or the documented fallback for a cache over its limit: isCached false and the query re-run. Instead the limit is accepted and nothing is cached (a negative count is the collector's own internal 'purged' marker), but isCached stays true, so replay delivers none of the collected documents and GroupingSearch returns its top groups with no documents and totalHitCount 0 instead of 20 in the repro, with no error. From 5.0.0 to 9.7.0 the same input failed at replay with an AssertionError (-ea) or IndexOutOfBoundsException (-da).
 
+The test shows that GroupingSearch.setCaching(-1, true) is accepted, caches nothing, still reports the cache as usable, and so replays no document into the second pass.
+
 ## Expected vs actual
 
-- Expected: `totalHitCount=20 [author0=7, author1=7, author2=6]`, as without caching (or an `IllegalArgumentException`), and `replay` delivers all 20 documents.
-- Actual: `totalHitCount=0 [author0=0, author1=0, author2=0]` for both setters, and `replay` delivers 0 of 20 with `isCached` true; no error, assertions on or off.
+Expected the grouped search over one matching document to report `totalHitCount` 1 (the documented fallback: cache purged, query re-run); actual: 0 (`expected:<1> but was:<0>`), silently, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/search/grouping/TestCachingNegativeLimit.java](src/org/apache/lucene/search/grouping/TestCachingNegativeLimit.java) (JUnit test)
+- [src/org/apache/lucene/search/grouping/TestGroupingNegativeCacheLimit.java](src/org/apache/lucene/search/grouping/TestGroupingNegativeCacheLimit.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,19 +40,13 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.grouping.TestCachingNegativeLimit
+     execute --select-class org.apache.lucene.search.grouping.TestGroupingNegativeCacheLimit
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestGroupingSearchNegativeCacheLimit.java](TestGroupingSearchNegativeCacheLimit.java)
-- [TestCachingNegativeLimit.java](TestCachingNegativeLimit.java)
-- [NegativeCacheLimitAcrossReleases.java](NegativeCacheLimitAcrossReleases.java)
 
 ## Feedback
 

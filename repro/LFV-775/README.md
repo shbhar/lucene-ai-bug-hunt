@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You store the value 'Hello U+1F600 world' (the emoji takes UTF-16 indexes 6 and 7), search for hello and highlight the hit with UnifiedHighlighter.builder(searcher, analyzer).withMaxLength(7), and expect a snippet made of whole characters, '&lt;b&gt;Hello&lt;/b&gt; ', just as maxLength 6 gives '&lt;b&gt;Hello&lt;/b&gt; ' and maxLength 8 gives the whole emoji. Instead LimitedStoredFieldVisitor keeps exactly 7 UTF-16 units, so the content and the snippet end with the first half of the emoji, '&lt;b&gt;Hello&lt;/b&gt; \uD83D', which String.getBytes(UTF_8) turns into '&lt;b&gt;Hello&lt;/b&gt; ?' and a strict UTF-8 encoder rejects. The same happens at the default maxLength 10,000 when a value's 10,000th unit is the first half of a supplementary character, and for a later value of a multi-valued field at its per-value budget.
 
+The test shows that with offsets in postings, `UnifiedHighlighter.withMaxLength(7)` cuts the stored value "Hello U+1F600 world" between the two UTF-16 halves of the emoji, so the snippet ends in an unpaired high surrogate.
+
 ## Expected vs actual
 
-- Expected: Every case returns `<b>hello</b> ` (the later value: `<b>world</b> `), as the cut just before the emoji does.
-- Actual: 5 of 6 fail: each case ends in the lone first half, `<b>hello</b> \uD83D` (the later value: `<b>world</b> \uD83D`); the control passes.
+Expected a well-formed snippet (whole characters only; maxLength 6 gives `<b>Hello</b> `). Actual: `<b>Hello</b> \uD83D`.
 
 ## Files
 
-- [src/org/apache/lucene/search/uhighlight/TestUHMaxLengthSurrogatePair.java](src/org/apache/lucene/search/uhighlight/TestUHMaxLengthSurrogatePair.java) (JUnit test)
+- [src/org/apache/lucene/search/uhighlight/TestUnifiedHighlighterMaxLengthSurrogatePair.java](src/org/apache/lucene/search/uhighlight/TestUnifiedHighlighterMaxLengthSurrogatePair.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -42,17 +44,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.uhighlight.TestUHMaxLengthSurrogatePair
+     execute --select-class org.apache.lucene.search.uhighlight.TestUnifiedHighlighterMaxLengthSurrogatePair
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestUnifiedHighlighterMaxLengthSurrogates.java](TestUnifiedHighlighterMaxLengthSurrogates.java)
-- [TestUHMaxLengthSurrogatePair.java](TestUHMaxLengthSurrogatePair.java)
-- [TestMaxLengthCutsSurrogatePair.java](TestMaxLengthCutsSurrogatePair.java)
-- [TestProbeEncodeSnippet.java](TestProbeEncodeSnippet.java)
 
 ## Feedback
 

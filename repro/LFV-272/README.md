@@ -8,20 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You run a SynonymQuery with three or more boosted terms, for example Synonym(a^0.2, b^0.2, c^0.3) over four identical documents 'a b c' with the default BM25, and expect identical documents to score the same and explain to report the hit's score, because the query scores 'the sum of all term frequencies for the document'. SynonymScorer.freq adds boost * freq in float, in the order of the disjunction's topList, and that order depends on how the iterator reached the document, so the rounding differs: docs 0 and 3 score 0.038817033, docs 1 and 2 score 0.038817026, and explain(doc 1) reports 0.038817033. The same float sum can also round above the exact integer sum that the merged impacts use as the max-score bound once a field holds more than 2^24 occurrences of the terms: under ClassicSimilarity a document scores 1.032795 while getMaxScore is 1.0327948, and a pruned top-1 search returns a different document than an exhaustive one.
 
+The test shows that `SynonymQuery` Synonym(a^0.2, b^0.2, c^0.3) over four identical documents "a b c" (default BM25) sums boosted freqs in float in iteration order, so `explain()` disagrees with the hit score.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+Expected: explain(doc) equals the hit's score. Actual: `doc 1 hit score vs explain() expected:<0.038817026> but was:<0.038817033>` (-ea and -da).
 
 ## Files
 
 - [src/org/apache/lucene/search/TestSynonymFreqSumOrder.java](src/org/apache/lucene/search/TestSynonymFreqSumOrder.java) (JUnit test)
-- [src/org/apache/lucene/search/TestSynonymMaxScoreFreqSumRounding.java](src/org/apache/lucene/search/TestSynonymMaxScoreFreqSumRounding.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,11 +40,6 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.search.TestSynonymFreqSumOrder
-
-# run 2: assertions on, seed DEADBEEF
-java -ea -esa -Xmx3g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestSynonymMaxScoreFreqSumRounding
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

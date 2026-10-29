@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You repair an index that has a broken segment with CheckIndex -exorcise, or checkIndex followed by exorciseIndex, on a multi-core machine, where threadCount defaults to the number of cores. You expect the same repaired commit that a sequential run (-threadCount 1) writes: the documentation describes the thread count and the executor overload only as ways to speed up the check, and exorcise only as removing the broken segments. Instead the concurrent path collects the segment results in ascending file-size order (a sort added so that small segments print first) and exorciseIndex commits that list as it is, so the surviving segments, and with them the relative order of their documents, are permuted; an index written in insertion order comes back reversed, so Sort.INDEXORDER returns the newest documents first instead of the oldest.
 
+The test shows that CheckIndex with threadCount 2 followed by exorciseIndex writes the surviving segments in ascending size order instead of commit order (3 segments of 10, 1 and 1 documents, with _1 corrupted).
+
 ## Expected vs actual
 
-- Expected: You expect the same repaired commit that a sequential run (-threadCount 1) writes: the documentation describes the thread count and the executor overload only as ways to speed up the check, and exorcise only as removing the broken segments.
-- Actual: The concurrent path collects the segment results in ascending file-size order (a sort added so that small segments print first) and exorciseIndex commits that list as it is, so the surviving segments, and with them the relative order of their documents, are permuted; an index written in insertion order comes back reversed, so Sort.INDEXORDER returns the newest documents first instead of the oldest.
+Expected: the new commit is [_0, _2] (only the broken _1 removed), as with threadCount 1. Actual (-ea and -da): [_2, _0].
 
 ## Files
 
-- [src/org/apache/lucene/index/TestCheckIndexConcurrentExorciseOrder.java](src/org/apache/lucene/index/TestCheckIndexConcurrentExorciseOrder.java) (JUnit test)
+- [src/org/apache/lucene/index/TestCheckIndexExorciseSegmentOrder.java](src/org/apache/lucene/index/TestCheckIndexExorciseSegmentOrder.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,7 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestCheckIndexConcurrentExorciseOrder
+     execute --select-class org.apache.lucene.index.TestCheckIndexExorciseSegmentOrder
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

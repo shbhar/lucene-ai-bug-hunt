@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You use soft deletes with SoftDeletesRetentionMergePolicy, open a new IndexWriter on an index whose last commit holds a fully soft-deleted segment that the retention query keeps, and call DirectoryReader.open(writer); the merge policy's keep check for that segment fails (one read error while the retention query reads the segment, or your retention-query supplier throws), so the open fails with that exception. You expect the failed open to release what it acquired, as StandardDirectoryReader.open's own catch block does for every reader already in its list (LUCENE-5262), so that closing the writer leaves no file open. Instead the SegmentReader obtained just before the keep check is neither in that list nor released, so after IndexWriter.close the segment stays open (MockDirectoryWrapper: 'there are still 4 open files: {_0.cfs=1, _0_1_Lucene90_0.dvp=1, _0_1_Lucene90_0.dvs=1, _0_1_Lucene90_0.dvd=1}'), while the writer itself stays open and a later NRT open works.
 
+The test shows that when SoftDeletesRetentionMergePolicy's keep check throws during the first NRT open of a new IndexWriter over a commit with a kept, fully soft-deleted segment, StandardDirectoryReader.open never releases that segment's SegmentReader.
+
 ## Expected vs actual
 
-- Expected: You expect the failed open to release what it acquired, as StandardDirectoryReader.open's own catch block does for every reader already in its list (LUCENE-5262), so that closing the writer leaves no file open.
-- Actual: The SegmentReader obtained just before the keep check is neither in that list nor released, so after IndexWriter.close the segment stays open (MockDirectoryWrapper: 'there are still 4 open files: {_0.cfs=1, _0_1_Lucene90_0.dvp=1, _0_1_Lucene90_0.dvs=1, _0_1_Lucene90_0.dvd=1}'), while the writer itself stays open and a later NRT open works.
+Expected no open files after the failed `DirectoryReader.open(writer)` and `IndexWriter.close()`; actual: `MockDirectoryWrapper: cannot close: there are still 4 open files: {_0.cfs=1,...}`, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/index/TestNrtOpenKeepFullyDeletedFailureLeaksReader.java](src/org/apache/lucene/index/TestNrtOpenKeepFullyDeletedFailureLeaksReader.java) (JUnit test)
+- [src/org/apache/lucene/index/TestNrtOpenKeepCheckFailureLeaksReader.java](src/org/apache/lucene/index/TestNrtOpenKeepCheckFailureLeaksReader.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,7 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestNrtOpenKeepFullyDeletedFailureLeaksReader
+     execute --select-class org.apache.lucene.index.TestNrtOpenKeepCheckFailureLeaksReader
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

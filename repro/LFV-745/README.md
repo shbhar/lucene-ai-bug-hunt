@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You add a document with an indexed-only field body (TextField, Store.NO) and a stored field tag with two values t1, t2 to a MemoryIndex and read it through storedFields.document(0, visitor), with a visitor that records its needsField calls or with LazyDocument's lazy-loading pattern from TestLazyDocument, expecting what an IndexWriter index gives for the same document: one needsField(tag) per stored value, never a question about body, and the lazy values tag=t1, tag=t2. Instead MemoryIndex asks about body, which has no stored value, asks about tag only once and then delivers both values on that single YES, because its loop calls needsField once per field name before it checks whether the field has stored values. So LazyDocument's lazy body field throws ArrayIndexOutOfBoundsException when read and tag=t2 is silently missing (with -ea LazyDocument's own inverted assertion, LFV-697, throws instead), and a visitor that wants only the first value of tag gets both.
 
+The test shows that MemoryIndex's `StoredFields.document(int, StoredFieldVisitor)` asks `needsField` about a field with no stored value and only once per field name, not once per stored value.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: MemoryIndex asks about body, which has no stored value, asks about tag only once and then delivers both values on that single YES, because its loop calls needsField once per field name before it checks whether the field has stored values.
+Expected `[tag, tag]` (body Store.NO, tag stored twice; what an IndexWriter index gives); actual `[body, tag]` (`expected:<[tag, tag]> but was:<[body, tag]>`), with `-ea` and `-da`; passes with the candidate MemoryIndex fix.
 
 ## Files
 
@@ -19,7 +20,8 @@ You add a document with an indexed-only field body (TextField, Store.NO) and a s
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -30,7 +32,6 @@ CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
 CP=$CP:$LUCENE/lucene/memory/build/libs/lucene-memory-$V.jar
-CP=$CP:$LUCENE/lucene/misc/build/libs/lucene-misc-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 

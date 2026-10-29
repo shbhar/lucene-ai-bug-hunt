@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You configure ProtectedTermFilterFactory with wrappedFilters=truncate and truncate.prefixLength=4 and pin luceneMatchVersion to 10.4.0 (in the factory args, or through CustomAnalyzer.withDefaultMatchVersion), on Lucene 10.5 or later. You expect the wrapped truncate to keep the legacy behaviour that the pinned version selects for back-compat, the first 4 UTF-16 chars, as an unwrapped truncate and the equivalent when/endwhen form do under the same version. Instead populateInnerFilters builds the wrapped factory from the &#x27;truncate.*&#x27; arguments only, so it runs at Version.LATEST and keeps 4 code points: the token &#x27;ab😀😀cd&#x27; becomes &#x27;ab😀😀&#x27; instead of &#x27;ab😀&#x27;, with no error.</p>
+<p>The test shows that <code>ProtectedTermFilterFactory</code> with <code>luceneMatchVersion=10.4.0</code>, <code>wrappedFilters=truncate</code> and <code>truncate.prefixLength=4</code> builds the wrapped truncate at <code>Version.LATEST</code>, so it truncates by code points instead of the legacy UTF-16 chars.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> Every configuration pinned to 10.4.0 cuts <code>ab😀😀cd</code> to the legacy <code>ab😀</code> (4 UTF-16 chars).</li><li><b>Actual:</b> Both <code>wrappedFilters</code> tests fail with <code>term 0 expected:&lt;ab😀&gt; but was:&lt;ab😀[😀]&gt;</code>; the 3 controls pass, assertions on and off.</li></ul>
+<p>Expected the token <code>ab😀😀cd</code> to become <code>ab😀</code> (4 UTF-16 chars, the 10.4.0 behaviour); actual <code>ab😀😀</code> (4 code points), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/analysis/miscellaneous/TestProtectedTermWrappedMatchVersion.java"><code>src/org/apache/lucene/analysis/miscellaneous/TestProtectedTermWrappedMatchVersion.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/analysis/miscellaneous/TestProtectedTermWrappedFiltersMatchVersion.java"><code>src/org/apache/lucene/analysis/miscellaneous/TestProtectedTermWrappedFiltersMatchVersion.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -45,7 +47,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.miscellaneous.TestProtectedTermWrappedMatchVersion</code></pre>
+     execute --select-class org.apache.lucene.analysis.miscellaneous.TestProtectedTermWrappedFiltersMatchVersion</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestProtectedTermFilterFactoryMatchVersion.java"><code>TestProtectedTermFilterFactoryMatchVersion.java</code></a></li><li><a href="fix-forward-match-version.diff"><code>fix-forward-match-version.diff</code></a></li><li><a href="TestLfv510Probe.java"><code>TestLfv510Probe.java</code></a></li><li><a href="TestProtectedTermWrappedMatchVersion.java"><code>TestProtectedTermWrappedMatchVersion.java</code></a></li><li><a href="TestWrappedFiltersMatchVersion.java"><code>TestWrappedFiltersMatchVersion.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

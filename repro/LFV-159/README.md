@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You take the level-0 node iterator of an HNSW graph (getNodesOnLevel(0), a DenseNodesIterator over the node ids [0, size)) and read it in chunks with consume(buf), expecting each call to hand out the next block of ids, as the javadoc ('Consume integers from the iterator') and the two sibling iterator classes do. Instead DenseNodesIterator.consume copies the block but never moves its cursor, so every call returns the same first block, hasNext stays true and the loop never ends; a nextInt after consume also starts again at 0. Lucene's own code never calls consume on level 0, so indexes and search results are not affected.
 
+The test shows that `HnswGraph.DenseNodesIterator.consume()` (the level-0 node iterator) does not advance its cursor, so a second `consume()` returns the first chunk again.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: DenseNodesIterator.consume copies the block but never moves its cursor, so every call returns the same first block, hasNext stays true and the loop never ends; a nextInt after consume also starts again at 0.
+Expected the second chunk of `new DenseNodesIterator(4)` read into an `int[2]` to be `[2, 3]`; actual `[0, 1]`, with `-ea` and `-da`.
 
 ## Files
 
@@ -19,8 +20,8 @@ You take the level-0 node iterator of an HNSW graph (getNodesOnLevel(0), a Dense
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

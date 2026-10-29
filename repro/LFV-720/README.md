@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You tokenize Myanmar-script text with ICUTokenizer in syllable mode (new DefaultICUTokenizerConfig(true, false), or ICUTokenizerFactory with myanmarAsWords="false"), whose only documented effect is that Myanmar text 'will be tokenized as syllables', and expect every letter to end up in some token, as in the default mode, where 'ကꧦ' (KA + U+A9E6 MYANMAR MODIFIER LETTER SHAN REDUPLICATION) gives [ကꧦ] and 'ကꩰ' (KA + U+AA70 MYANMAR MODIFIER LETTER KHAMTI REDUPLICATION) gives [ကꩰ]. Instead syllable mode gives [က] for both, a mark on its own gives no token, and 'ကောင်း µm' gives [ကောင်း, m] (the space and µ are Common script, so the script iterator keeps them in the Myanmar run), all without an error. The cause is the rule file: MyanmarSyllable.rbbi gives a non-zero rule status only to syllables built on a consonant, consonant placeholder or independent vowel ({200}) and to numbers ({100}), and ICUTokenizer skips every segment with status 0.
 
+The test shows that ICUTokenizer in Myanmar syllable mode (`DefaultICUTokenizerConfig(true, false)`) silently drops U+A9E6 MYANMAR MODIFIER LETTER SHAN REDUPLICATION, which word mode keeps.
+
 ## Expected vs actual
 
-- Expected: Every letter in some token, as in the default mode: ကꧦ → `[ကꧦ]` (or `[က, ꧦ]`), and ꧦ alone → one token.
-- Actual: ကꧦ → `[က]`, ကꩰ → `[က]`, ꧦ → no token: 4 of 6 tests fail ("U+A9E6 of "ကꧦ" is in no token"), with no exception.
+Expected the tokens of KA + U+A9E6 (`\u1000\uA9E6`) to contain both letters; actual only KA (`expected:<က[ꧦ]> but was:<က[]>`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/icu/segmentation/TestMyanmarSyllableDropsLetters.java](src/org/apache/lucene/analysis/icu/segmentation/TestMyanmarSyllableDropsLetters.java) (JUnit test)
+- [src/org/apache/lucene/analysis/icu/segmentation/TestMyanmarSyllableModifierLetter.java](src/org/apache/lucene/analysis/icu/segmentation/TestMyanmarSyllableModifierLetter.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,20 +42,12 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.icu.segmentation.TestMyanmarSyllableDropsLetters
+     execute --select-class org.apache.lucene.analysis.icu.segmentation.TestMyanmarSyllableModifierLetter
 ```
 
 The module(s) analysis-icu also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestMyanmarSyllableKeepsLetters.java](TestMyanmarSyllableKeepsLetters.java)
-- [TestMyanmarSyllableDropsLetters.java](TestMyanmarSyllableDropsLetters.java)
-- [TestSyllableModeKeepsLetters.java](TestSyllableModeKeepsLetters.java)
-- [MyanmarSyllableHistoryProbe.java](MyanmarSyllableHistoryProbe.java)
-- [Lfv720Probe.java](Lfv720Probe.java)
 
 ## Feedback
 

@@ -22,12 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You search with an IndriAndQuery of SHOULD clauses, for example IndriAndQuery(SHOULD f:a), and call IndexSearcher.explain for a document that contains none of the clause terms and is not a hit. You expect a no-match explanation (isMatch false), as TermQuery and a BooleanQuery over the same clauses give. Instead IndriAndWeight.explain advances its scorer to the document, checks the result only with &#x27;assert advanced == doc&#x27;, and returns Explanation.match(scorer.score,...) for wherever the scorer landed: a match carrying the next hit&#x27;s score, or, past the last match, an EOFException or IndexOutOfBoundsException from a norms read (AssertionError with -ea).</p>
+<p>The test shows that IndriAndWeight.explain does not check where its scorer landed, so a document that matches no clause of <code>IndriAndQuery(SHOULD f:a)</code> is explained as a match with the next hit&#x27;s score.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect a no-match explanation (isMatch false), as TermQuery and a BooleanQuery over the same clauses give.</li><li><b>Actual:</b> IndriAndWeight.explain advances its scorer to the document, checks the result only with &#x27;assert advanced == doc&#x27;, and returns Explanation.match(scorer.score,...) for wherever the scorer landed: a match carrying the next hit&#x27;s score, or, past the last match, an EOFException or IndexOutOfBoundsException from a norms read (AssertionError with -ea).</li></ul>
+<p>Expected: <code>explain(query, 0).isMatch()</code> is false (doc 0 has no <code>f:a</code>). Actual with <code>-da</code>: <code>expected no match for doc 0, got 0.13076457 = sum of:</code> (doc 1&#x27;s score); with <code>-ea</code>: AssertionError from <code>assert advanced == doc</code> at IndriAndWeight.java:99.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/search/TestIndriAndExplainNonMatch.java"><code>src/org/apache/lucene/search/TestIndriAndExplainNonMatch.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -40,8 +42,8 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.search.TestIndriAndExplainNonMatch</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>

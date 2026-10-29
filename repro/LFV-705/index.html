@@ -23,13 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index a point at longitude +180, for example Pt(180, 10), with RecursivePrefixTreeStrategy over PackedQuadPrefixTree(SpatialContext.GEO, 8) and query Intersects or Contains with that same point; the document must match, since a point intersects and contains itself and the prefix-tree approximation may only add matches (SpatialArgs: the error &#x27;should not shrink&#x27; the shape). Instead the query returns 0 hits, and so does CompositeSpatialStrategy&#x27;s Intersects: indexing keeps the first cell in Z order whose rectangle relates to the point, and a geo rectangle treats +180 as -180, so the point is stored in the cells at the -180 edge, while the point query&#x27;s cell lookup (PackedQuadPrefixTree.getCell, a mid-point walk since LUCENE-8755 in 8.3.0) sends x=+180 to the cells at the +180 edge. The same point at -180, QuadPrefixTree, and a rectangle query touching +180 still find the document.</p>
+<p>The test shows that a document indexed at longitude +180 with <code>RecursivePrefixTreeStrategy</code> over <code>PackedQuadPrefixTree(SpatialContext.GEO, 8)</code> is not found by an <code>Intersects</code> query with that same point (indexing stores it in the -180 edge cell, the point query looks in the +180 edge cell).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> Each of the three queries for <code>Pt(180, 10)</code> finds the document at <code>Pt(180, 10)</code>: 1 hit, as the three controls do.</li><li><b>Actual:</b> RPT Intersects, RPT Contains and <code>CompositeSpatialStrategy</code> Intersects each return 0 hits (<code>expected:&lt;1&gt; but was:&lt;0&gt;</code>); the controls return 1.</li></ul>
+<p>Expected 1 hit (a point intersects itself); actual 0 (<code>expected:&lt;1&gt; but was:&lt;0&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/spatial/prefix/TestPackedQuadPlus180Point.java"><code>src/org/apache/lucene/spatial/prefix/TestPackedQuadPlus180Point.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src2/org/apache/lucene/spatial/prefix/TestPackedQuadPlus180Point.java"><code>src2/org/apache/lucene/spatial/prefix/TestPackedQuadPlus180Point.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -42,18 +43,13 @@ CP=$CP:$LUCENE/lucene/spatial3d/build/libs/lucene-spatial3d-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
-javac -d classes-src -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
-javac -d classes-src2 -cp &quot;$CP&quot; $(find src2 -name &#x27;*.java&#x27;)
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.spatial.prefix.TestPackedQuadPlus180Point
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src2:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.spatial.prefix.TestPackedQuadPlus180Point</code></pre>
 <p class="small">The module(s) spatial-extras also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestPackedQuadPlus180Point.java"><code>TestPackedQuadPlus180Point.java</code></a></li><li><a href="Plus180CellProbe.java"><code>Plus180CellProbe.java</code></a></li><li><a href="TestPlus180FixNeighbours.java"><code>TestPlus180FixNeighbours.java</code></a></li><li><a href="TestPlus180CrossSignTable.java"><code>TestPlus180CrossSignTable.java</code></a></li></ul>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/spatial-extras-composite-and-prefix-tree-query-cross-check/index.html">spatial-extras-composite-and-prefix-tree-query-cross-check</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

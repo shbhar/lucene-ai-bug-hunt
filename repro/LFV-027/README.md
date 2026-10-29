@@ -8,20 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You parse a phrase with a fractional slop such as "a b"~30.5 with the flexible StandardQueryParser. You expect it to be accepted, as 9.0.0 did by truncating the slop to 30, or rejected with a parse error. Instead, since 9.1.0, parse throws NumberFormatException.
 
+The test shows that the flexible `StandardQueryParser` lets a `NumberFormatException` escape `parse()` for the phrase slop in `"a b"~30.5` (`StandardSyntaxParser.parseInt` calls `Integer.parseInt` on a `NUMBER` token that may contain a fraction).
+
 ## Expected vs actual
 
-- Expected: You expect it to be accepted, as 9.0.0 did by truncating the slop to 30, or rejected with a parse error.
-- Actual: Since 9.1.0, parse throws NumberFormatException.
+Expected a Query (9.0.0 truncated the slop to 30) or a `QueryNodeException`, the only exception `parse()` declares; actual `NumberFormatException: For input string: "30.5"`, with `-ea` and `-da`.
 
 ## Files
 
-- [src/TestVerifyFlexibleFractionalSlop.java](src/TestVerifyFlexibleFractionalSlop.java) (JUnit test)
+- [src/org/apache/lucene/queryparser/flexible/standard/TestFractionalPhraseSlop.java](src/org/apache/lucene/queryparser/flexible/standard/TestFractionalPhraseSlop.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
-- Recorded outcome of run 1 on main a9779ef3c193: 4 test(s) run, 2 failed (testFlexibleFractionalSlop, testOtherParseIntSites).
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,9 +41,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class TestVerifyFlexibleFractionalSlop
+     execute --select-class org.apache.lucene.queryparser.flexible.standard.TestFractionalPhraseSlop
 ```
 
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.

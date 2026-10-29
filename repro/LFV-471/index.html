@@ -18,18 +18,19 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>tryDeleteDocument / tryUpdateDocValue running while commit flushes returns a sequence number above the commit&#x27;s, yet its change is in that commit</h1>
-<p class="facts small"><span>Bug LFV-471</span><span>Area: index / IndexWriter sequence numbers (tryDeleteDocument, tryUpdateDocValue vs commit)</span><span>Priority: medium</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
+<p class="facts small"><span>Bug LFV-471</span><span>Area: index / IndexWriter sequence numbers (tryDeleteDocument, tryUpdateDocValue vs commit)</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
 <p><a href="../../bugs/LFV-471.html">Bug page for LFV-471</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You call tryDeleteDocument or tryUpdateDocValue with an NRT reader while another thread is inside commit, after the commit has fixed its sequence number and before it snapshots its segments. You expect what the commit javadoc promises (&#x27;All sequence numbers &lt;= this value will be reflected in the commit, and all others will not&#x27;): a change whose returned number is above the commit&#x27;s is not in that commit. Instead the call returns the commit&#x27;s number plus one (8 against 7), yet the delete or doc-values update is already in the commit point, while deleteDocuments(Term), deleteDocuments(Query) and updateNumericDocValue(Term) in the same window get 8 too and correctly stay out.</p>
+<p>The test shows that while <code>commit()</code> flushes a buffered segment (after it has fixed its sequence number), another thread calls <code>tryDeleteDocument(nrtReader, 0)</code>; the delete gets a number above the commit&#x27;s, yet it is in that commit (<code>tryUpdateDocValue</code> shares the code path).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> A change numbered 8 is not in commit 7: document <code>a</code> is still live with v=1 in the commit point, as it is for the term-based calls.</li><li><b>Actual:</b> Both try calls return 8, the commit returns 7, and commit 7 already has <code>a</code> deleted (or v=42); the three controls pass.</li></ul>
+<p>Expected, per the <code>commit()</code> javadoc (&quot;All sequence numbers &lt;= this value will be reflected in the commit, and all others will not&quot;): seqNo 7 &gt; commit 6, so not in the commit. Actual: <code>tryDeleteDocument seqNo=7, commit seqNo=6, in commit expected:&lt;false&gt; but was:&lt;true&gt;</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/index/TestTryDeleteDuringCommitSeqNo.java"><code>src/org/apache/lucene/index/TestTryDeleteDuringCommitSeqNo.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/index/TestTryDeleteDocumentDuringCommit.java"><code>src/org/apache/lucene/index/TestTryDeleteDocumentDuringCommit.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -45,8 +46,7 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestTryDeleteDuringCommitSeqNo</code></pre>
+     execute --select-class org.apache.lucene.index.TestTryDeleteDocumentDuringCommit</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestTryModifyDocumentCommitSeqNo.java"><code>TestTryModifyDocumentCommitSeqNo.java</code></a></li><li><a href="TestSeqNoCommitBoundaryControlV3.java"><code>TestSeqNoCommitBoundaryControlV3.java</code></a></li><li><a href="TestSecurityTryOpCommitRollback.java"><code>TestSecurityTryOpCommitRollback.java</code></a></li></ul>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/dw-flush-control-deletequeue-tla/index.html">dw-flush-control-deletequeue-tla</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

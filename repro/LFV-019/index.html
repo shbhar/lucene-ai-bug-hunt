@@ -23,15 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You write a RegexpQuery or RegExp whose character class starts a range with an escaped character, such as [\.-z]. You expect it to match the range from &#x27;.&#x27; to &#x27;z&#x27;, as in 10.1 and java.util.regex. Instead, since 10.2.0, it is parsed as the three characters &#x27;.&#x27;, &#x27;-&#x27; and &#x27;z&#x27;, so the query silently matches different terms.</p>
+<p>The test shows that <code>new RegExp(&quot;[\\.-z]&quot;)</code> (a character-class range whose start is escaped) is not parsed as the range &#x27;.&#x27;..&#x27;z&#x27; on main (regression since 10.2.0, #14227).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>[\.-z]</code> behaves like <code>[.-z]</code>: <code>a</code> and <code>/</code> match, <code>-</code> does not, and the tree is one range from <code>.</code> to <code>z</code> (as on 10.1.0).</li><li><b>Actual:</b> <code>a=false /=false -=true</code>: the tree is a class of three characters, <code>.</code>, <code>-</code> and <code>z</code>; a <code>RegexpQuery</code> over the six terms counts 3 hits instead of 5.</li></ul>
+<p>Expected: the automaton accepts &quot;a&quot; (javadoc grammar: charclass::= charexp &#x27;-&#x27; charexp, charexp::= &#x27;\&#x27; char). Actual: it rejects &quot;a&quot;; the class is parsed as the three characters &#x27;.&#x27;, &#x27;-&#x27;, &#x27;z&#x27;.</p>
 <h2>Files</h2><ul>
-<li><a href="src/TestEscapedRangeStartInCharClass.java"><code>src/TestEscapedRangeStartInCharClass.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/TestEscapedRangeStartSearch.java"><code>src/TestEscapedRangeStartSearch.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/util/automaton/TestRegExpEscapedRangeStart.java"><code>src/org/apache/lucene/util/automaton/TestRegExpEscapedRangeStart.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.</li>
-<li>Recorded outcome of run 1 on main a9779ef3c193: 9 test(s) run, 6 failed (testEscapedAndUnescapedStartSameLanguage, testEscapedRangeStart, testExhaustiveAsciiDifferential, testToStringRoundTripOfRange, testClassicQueryParserEscapedStart, testRegexpQueryEscapedStart).</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -39,21 +38,14 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
-CP=$CP:$LUCENE/lucene/facet/build/libs/lucene-facet-$V.jar
-CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
-CP=$CP:$LUCENE/lucene/queryparser/build/libs/lucene-queryparser-$V.jar
-CP=$CP:$LUCENE/lucene/sandbox/build/libs/lucene-sandbox-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class TestEscapedRangeStartInCharClass \
-       --select-class TestEscapedRangeStartSearch</code></pre>
-<p class="small">The module(s) facet also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
+     execute --select-class org.apache.lucene.util.automaton.TestRegExpEscapedRangeStart</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="EscapedRangeStart.java"><code>EscapedRangeStart.java</code></a></li><li><a href="TestRegExpEscapedRangeStart.java"><code>TestRegExpEscapedRangeStart.java</code></a></li><li><a href="test-parsing.diff"><code>test-parsing.diff</code></a></li><li><a href="EscapedRangeExamples.java"><code>EscapedRangeExamples.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

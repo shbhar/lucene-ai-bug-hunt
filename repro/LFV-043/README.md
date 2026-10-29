@@ -8,22 +8,21 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You sort about 1.09 billion or more elements with ArrayUtil.timSort or CollectionUtil.timSort, arranged in a specific pattern of 1,061 runs. You expect a sorted result. Instead TimSorter's fixed 49-entry run stack overflows and the sort throws ArrayIndexOutOfBoundsException.
 
+The test shows that `CollectionUtil.timSort` (TimSorter) throws on a legal 1,093,938,049-element input of 1,061 runs (each run &gt;= minRun(n) = 33 except the 1-element last run), because `TimSorter.ensureInvariants` lacks the fourth-run check and its 49-entry run stack overflows.
+
 ## Expected vs actual
 
-- Expected: You expect a sorted result.
-- Actual: TimSorter's fixed 49-entry run stack overflows and the sort throws ArrayIndexOutOfBoundsException.
+Expected: the list is sorted. Actual: `ArrayIndexOutOfBoundsException: Index 50 out of bounds for length 50` at `TimSorter.pushRunLen` (with -ea and -da, about 10 s, fits in 512 MB heap).
 
 ## Files
 
-- [src/org/apache/lucene/util/TestTimSorterStackOverflow.java](src/org/apache/lucene/util/TestTimSorterStackOverflow.java) (JUnit test)
-- [src/org/apache/lucene/util/TestTimSorterFixExperiment.java](src/org/apache/lucene/util/TestTimSorterFixExperiment.java) (JUnit test)
-- [src/org/apache/lucene/util/RealSortRunsFile.java](src/org/apache/lucene/util/RealSortRunsFile.java) (main() class)
+- [src/org/apache/lucene/util/TestTimSorterRunStackOverflow.java](src/org/apache/lucene/util/TestTimSorterRunStackOverflow.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
-- How to read the outcome: this test asserts the current, buggy behaviour: it passes while the bug is present and fails once the bug is fixed; a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -38,16 +37,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx4g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -XX:-OmitStackTraceInFastThrow -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.util.TestTimSorterStackOverflow
-
-# run 2: assertions on, seed DEADBEEF, default flags
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.util.TestTimSorterFixExperiment
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.apache.lucene.util.RealSortRunsFile
+     execute --select-class org.apache.lucene.util.TestTimSorterRunStackOverflow
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

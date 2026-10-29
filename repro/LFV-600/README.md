@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build a FreeTextSuggester with the default bigram model and separator U+001E over the single entry 'foo\u001ebar' (the upstream test input 'foo\u001ebar baz' without its neighbour 'baz'), using an analyzer that keeps it as one token such as UnicodeWhitespaceAnalyzer, and expect build to throw IllegalArgumentException, as the constructor javadoc promises and as it does for 'foo\u001ebar baz'. Instead build succeeds, because it only rejects an indexed shingle whose separator count implies more than grams words, so the token is stored as if it were the bigram (foo, bar) with no unigram 'foo'. A later lookup('foo ') then fails inside the suggester with AssertionError at FreeTextSuggester.java:576 (-ea) or NullPointerException in decodeWeight (-da), and lookup('f') returns the token itself with a wrong score.
 
+The test shows that `FreeTextSuggester.build` (default bigram model, separator U+001E, `KeywordAnalyzer`) accepts the single entry `"foo\u001ebar"`, whose only token contains the separator byte.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: build succeeds, because it only rejects an indexed shingle whose separator count implies more than grams words, so the token is stored as if it were the bigram (foo, bar) with no unigram 'foo'.
+Expected (constructor javadoc): `IllegalArgumentException`. Actual: build() succeeds (`Expected exception IllegalArgumentException but no exception was thrown`).
 
 ## Files
 
-- [src/org/apache/lucene/search/suggest/analyzing/TestFreeTextSeparatorInToken.java](src/org/apache/lucene/search/suggest/analyzing/TestFreeTextSeparatorInToken.java) (JUnit test)
+- [src/org/apache/lucene/search/suggest/analyzing/TestFreeTextSuggesterSeparatorInToken.java](src/org/apache/lucene/search/suggest/analyzing/TestFreeTextSuggesterSeparatorInToken.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -36,10 +38,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.suggest.analyzing.TestFreeTextSeparatorInToken
+     execute --select-class org.apache.lucene.search.suggest.analyzing.TestFreeTextSuggesterSeparatorInToken
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

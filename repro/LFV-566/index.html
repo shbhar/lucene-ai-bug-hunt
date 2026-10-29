@@ -23,14 +23,15 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You build an index-based SpellChecker with the shipped SuggestWordFrequencyComparator (&#x27;Frequency first, then score&#x27;) and ask for suggestions restricted to a field, expecting the most frequent qualifying words among the retrieved candidates. Once the queue holds numSug words, suggestSimilar raises its accuracy cutoff to the score of the queue&#x27;s head, which under this comparator is the least frequent queued word, so a later candidate that is more frequent but scores slightly lower is rejected before its frequency is even read. With &#x27;receive&#x27; in 50 documents and one-edit neighbours such as &#x27;relieve&#x27;, &#x27;reprieve&#x27; and &#x27;retrieve&#x27; in one document each, suggestSimilar(&#x27;recieve&#x27;, 1, reader, field, SUGGEST_WHEN_NOT_IN_INDEX) returns [relieve] instead of receive (numSug 1-3 all leave it out; numSug 4 ranks it first).</p>
+<p>The test shows that <code>SpellChecker.suggestSimilar</code> with <code>SuggestWordFrequencyComparator</code> (&quot;frequency first, then score&quot;) drops a more frequent word once the queue is full, because it raises the accuracy cutoff to the score of the least frequent queued word (receive in 50 docs, relieve in 1, query <code>recieve</code>, numSug 1).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>numSug=1</code> returns <code>[receive]</code>, the first entry of the <code>numSug=2</code> result <code>[receive, relieve]</code>; with <code>numSug=5</code>, <code>abcdfeg</code> (50 documents) comes first.</li><li><b>Actual:</b> <code>numSug=1</code> returns <code>[relieve]</code>, and <code>numSug=5</code> returns <code>[abcdefx, abcdefy, abcdefz, abcdexg, abcdeyg]</code> without <code>abcdfeg</code>; 2 of 3 tests fail, the default-comparator control passes.</li></ul>
+<p>Expected <code>[receive]</code>; actual <code>[relieve]</code> (<code>expected:&lt;[re[cei]ve]&gt; but was:&lt;[re[lie]ve]&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/search/spell/TestSpellCheckerFrequencyComparatorCutoff.java"><code>src/org/apache/lucene/search/spell/TestSpellCheckerFrequencyComparatorCutoff.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/SpellCheckerFrequencyComparatorCutoffMain.java"><code>src/SpellCheckerFrequencyComparatorCutoffMain.java</code></a> <span class="dim">(main() class)</span></li>
+<li><a href="src/org/apache/lucene/search/spell/TestSpellCheckerFrequencyComparator.java"><code>src/org/apache/lucene/search/spell/TestSpellCheckerFrequencyComparator.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
+<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
@@ -47,11 +48,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.spell.TestSpellCheckerFrequencyComparatorCutoff
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; SpellCheckerFrequencyComparatorCutoffMain</code></pre>
+     execute --select-class org.apache.lucene.search.spell.TestSpellCheckerFrequencyComparator</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestSpellCheckerFrequencyComparatorTopK.java"><code>TestSpellCheckerFrequencyComparatorTopK.java</code></a></li><li><a href="TestSpellCheckerFrequencyComparatorCutoff.java"><code>TestSpellCheckerFrequencyComparatorCutoff.java</code></a></li><li><a href="TestFrequencyComparatorTopKConsistency.java"><code>TestFrequencyComparatorTopKConsistency.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

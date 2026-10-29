@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You load a Hunspell dictionary, for example the stock en_US dictionary plus a custom list of 300 words through HunspellStemFilterFactory's documented dictionary="en_US.dic,custom.dic" pattern, and expect it to load as it does with 299 or 301 custom words. Instead the Dictionary constructor throws RuntimeException 'Too many collisions. Try a larger Dictionary#hashFactor (now 1.0). If this doesn't help, please report this to dev@lucene.apache.org', so the analyzer cannot be built. WordStorage puts every word into slot Math.abs(String.hashCode % tableSize) with tableSize = entry count x hashFactor (default 1.0); when that size is a multiple of 961 = 31*31, the slot of a short word depends almost only on its last two letters (31^2 divides every earlier term of the unmixed radix-31 hash), so short words with a common ending (six-letter '-er' words in en_US) pile into a few slots and one exceeds the hard limit of 20 entries.
 
+The test shows that a Hunspell `Dictionary` with 961 = 31*31 entries cannot load: `WordStorage` takes `String.hashCode() % 961`, which for short words keeps only the last two letters, so 21 short "-ing" words fill one slot past the 20-entry limit.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The Dictionary constructor throws RuntimeException 'Too many collisions.
+Expected: 940 three-letter words plus 21 "-ing" words (no flags, default hashFactor) load; actual: `RuntimeException: Too many collisions. Try a larger Dictionary#hashFactor (now 1.0)`, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/hunspell/TestWordStorageEntryCountMultipleOf961.java](src/org/apache/lucene/analysis/hunspell/TestWordStorageEntryCountMultipleOf961.java) (JUnit test)
+- [src/org/apache/lucene/analysis/hunspell/TestDictionary961Entries.java](src/org/apache/lucene/analysis/hunspell/TestDictionary961Entries.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -35,10 +37,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.hunspell.TestWordStorageEntryCountMultipleOf961
+     execute --select-class org.apache.lucene.analysis.hunspell.TestDictionary961Entries
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

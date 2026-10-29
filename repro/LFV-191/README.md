@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You copy segments into a new index with IndexSplitter (new IndexSplitter(src).split(dest, segments), or the command line 'IndexSplitter &lt;src&gt; &lt;dest&gt; &lt;segments&gt;'), and the machine crashes or loses power shortly after the call returns. You expect what every Lucene commit is built for (Directory.sync javadoc: Lucene syncs files 'to prevent a machine/OS crash from corrupting the index'; IndexWriter.commit syncs all referenced files first): the destination's commit only references files whose bytes are on stable storage. Instead split copies the segment files with Files.copy and never fsyncs them, and SegmentInfos.commit then fsyncs only the new segments_N and the directory, so the commit and the copied file names can survive the crash while the copied.si,.cfs and.cfe data does not, and opening the destination fails (CorruptSegmentInfoException on _1.si on main, CorruptIndexException on 10.5.2 and 9.12.3, in the simulated post-crash state).
 
+The test shows that `IndexSplitter.split` publishes a commit in the destination without fsyncing the segment files it copied (only `pending_segments_N` and the directory are forced).
+
 ## Expected vs actual
 
-- Expected: You expect what every Lucene commit is built for (Directory.sync javadoc: Lucene syncs files 'to prevent a machine/OS crash from corrupting the index'; IndexWriter.commit syncs all referenced files first): the destination's commit only references files whose bytes are on stable storage.
-- Actual: split copies the segment files with Files.copy and never fsyncs them, and SegmentInfos.commit then fsyncs only the new segments_N and the directory, so the commit and the copied file names can survive the crash while the copied.si,.cfs and.cfe data does not, and opening the destination fails (CorruptSegmentInfoException on _1.si on main, CorruptIndexException on 10.5.2 and 9.12.3, in the simulated post-crash state).
+Expected: every file the split's commit references has been fsynced (Directory.sync contract); actual: `segment files of the split's commit never fsynced: [_0.cfe, _0.cfs, _0.si]`, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/misc/index/TestIndexSplitterNotDurable.java](src/org/apache/lucene/misc/index/TestIndexSplitterNotDurable.java) (JUnit test)
+- [src/org/apache/lucene/misc/index/TestIndexSplitterFsync.java](src/org/apache/lucene/misc/index/TestIndexSplitterFsync.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -39,7 +40,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.misc.index.TestIndexSplitterNotDurable
+     execute --select-class org.apache.lucene.misc.index.TestIndexSplitterFsync
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

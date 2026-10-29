@@ -19,18 +19,19 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>JavascriptCompiler.compile(source, functions, Integer.MAX_VALUE) rejects every expression, even &#x27;1&#x27;, because maxNestingDepth + 1 overflows to Integer.MIN_VALUE</h1>
 <p class="facts small"><span>Bug LFV-182</span><span>Area: expressions / JavascriptCompiler nesting-depth guard (compile(String, Map, int maxNestingDepth), new in #16423, unreleased)</span><span>Priority: low</span><span>Impact: wrong error</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-182.html">Bug page for LFV-182</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You compile an expression with the new overload JavascriptCompiler.compile(source, functions, maxNestingDepth) and pass Integer.MAX_VALUE to ask for no practical nesting limit, and you expect it to accept at least everything that Integer.MAX_VALUE - 1 accepts, because the parameter is documented only as &#x27;the maximum depth of nesting&#x27;, with no bound. Instead every expression, even &#x27;1&#x27;, fails with ParseException &#x27;Nesting level too deep (&gt;-2147483648)&#x27;: the parse-time depth listener is created with maxNestingDepth + 1 to account for the root node, that int addition wraps to Integer.MIN_VALUE, and the depth check fails on the first parser rule. Integer.MAX_VALUE - 1 and the default limit of 1024 work, and the overload is in no release yet, so it can be fixed before 10.6.0 ships.</p>
+<p>The test shows that <code>JavascriptCompiler.compile(&quot;1&quot;, DEFAULT_FUNCTIONS, Integer.MAX_VALUE)</code> rejects even the trivial expression <code>1</code>, because the parse-time nesting listener is created with <code>maxNestingDepth + 1</code>, which wraps to <code>Integer.MIN_VALUE</code>.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect it to accept at least everything that Integer.MAX_VALUE - 1 accepts, because the parameter is documented only as &#x27;the maximum depth of nesting&#x27;, with no bound.</li><li><b>Actual:</b> Every expression, even &#x27;1&#x27;, fails with ParseException &#x27;Nesting level too deep (&gt;-2147483648)&#x27;: the parse-time depth listener is created with maxNestingDepth + 1 to account for the root node, that int addition wraps to Integer.MIN_VALUE, and the depth check fails on the first parser rule.</li></ul>
+<p>Expected: <code>1</code> compiles. Actual: <code>ParseException: Invalid expression &#x27;1&#x27;: Nesting level too deep (&gt;-2147483648)</code>, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/expressions/js/TestMaxNestingDepthOverflow.java"><code>src/org/apache/lucene/expressions/js/TestMaxNestingDepthOverflow.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/MaxNestingDepthOverflowMain.java"><code>src/MaxNestingDepthOverflowMain.java</code></a> <span class="dim">(main() class)</span></li>
+<li><a href="src/org/apache/lucene/expressions/js/TestMaxNestingDepthMaxValue.java"><code>src/org/apache/lucene/expressions/js/TestMaxNestingDepthMaxValue.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 4 test(s) run, 1 failed.</li>
+<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
@@ -46,11 +47,7 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.expressions.js.TestMaxNestingDepthOverflow
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; MaxNestingDepthOverflowMain</code></pre>
+     execute --select-class org.apache.lucene.expressions.js.TestMaxNestingDepthMaxValue</code></pre>
 <p class="small">The module(s) expressions also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

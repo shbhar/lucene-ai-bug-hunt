@@ -1,0 +1,414 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>LRUQueryCache on main gives one query only 1/16 of the cache, so a filter over more than 16 segments never hits</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.triage{margin:var(--s4) 0 0;padding:var(--s2) var(--s4);border-left:3px solid var(--info);background:var(--panel);
+max-width:var(--measure)}
+.triage p{margin:0;font-size:var(--step--1);line-height:1.5}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-054 &middot; lruquerycache-16-way-partitioning</p><h1 id='top'>LRUQueryCache on main gives one query only 1/16 of the cache, so a filter over more than 16 segments never hits</h1><p class='tldr'>On main, <code class='nw'>LRUQueryCache</code> puts all per-segment entries of a query into one of 16 partitions, each holding only <code>maxSize / 16</code> entries. With the class javadoc's 256-entry cache, a filter over 17 segments never hits while the cache stays almost empty; results stay correct, and no release is affected.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 624</span><span class='sub'>On main only, the opt-in query cache&#x27;s 16 hard partitions give a 0% hit rate with the documented 256- or 1000-entry configs once a filter spans more than 16 (or 63) segment entries, performance only and fixable before release.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>minor</span></dd></div><div><dt>Since</dt><dd>main only: #16657 (2026-09-29), on top of #15558 (2026-04-14)<span class='sub'>introduced 2026-04-14</span></dd></div><div><dt>Affected</dt><dd>main (future 11.0); no release, not 10.6.0</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>code reading while building a TLA+ model of LRUQueryCache, then a JUnit</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by code reading or testing and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-29.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'><code class='nw'>LRUQueryCache</code> keeps one cached DocIdSet per (segment, query) pair and, when it is full, evicts the least recently used ones.</p><div class='part' id='background'><div class="hd hd-3"><h3 id='background-h'>Background: how the query cache is laid out on main</h3><a class="hlink" href="#background" target="_self" aria-label="Link to this section" aria-describedby="background-h"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span>A cached filter is stored per segment: searching <code class='nw'>f:x</code> on a 17-segment index creates 17 entries, one DocIdSet each, keyed by (segment, query). <code class='nw'>maxSize</code> counts these entries.</span></li><li><span>#15558 split the cache into 16 partitions to reduce lock contention. Each partition has its own LRU list and evicts on its own once it holds <code>maxSize / 16</code> entries or <code>maxRamBytesUsed / 16</code> bytes.</span></li><li><span>#16657 picks the partition from the query alone, so that a partition can keep one shared copy of each query and count its memory once. Before it, a query's entries were spread over the partitions by a hash of (segment, query).</span></li></ol></div><figure class='visual' id='lruquerycache-16-way-partitioning-short-visual'><div class='frame'><a class='still' href='../assets/LFV-054/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-054/bug.png' alt='Summary card: on main, LRUQueryCache gives each of its 16 partitions a hard 1/16 of maxSize and routes by query, so one filter over 17 segments gets 0 cache hits with maxSize 256 (the class-javadoc value). Panels: the application code; one partition full and 15 empty; expected 17 of 17 hits versus 0 on main; the history (#15558: 17 of 17, #16657: 0 of 17, all releases 17 of 17).' width='1920' height='1080'></a></div><figcaption> Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><div class="hd hd-3"><h3 id='the-bug-step-by-step'>The bug, step by step</h3><a class="hlink" href="#the-bug-step-by-step" target="_self" aria-label="Link to this section" aria-describedby="the-bug-step-by-step"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span>Turn the query cache on (it is off by default on main) with the class javadoc's size, <code>new LRUQueryCache(256, ...)</code>, and search the filter <code class='nw'>f:x</code> twice on an index with 17 segments.</span></li><li><span>The filter needs one cache entry per segment: 17 entries, far below the 256 the constructor javadoc allows ("cache at most <code class='nw'>maxSize</code> cache entries (each entry being a segment-query pair)"). You expect the second search to hit the cache 17 times, as on 10.5.2.</span></li><li><span>Instead it gets 0 hits. The cache is 16 partitions of 256 / 16 = 16 entries each, and since #16657 all entries of one query go to the same partition, chosen by <code class='nw'>query.hashCode()</code>.</span></li><li><span>Inserting the 17th entry evicts the oldest one, segment 0's, which the next search needs first; that insert evicts segment 1's, and so on. When each search looks the segments up in the same order, as here, a 17-key cycle through a 16-slot LRU never hits, while the other 15 partitions stay empty.</span></li><li><span>Every search rebuilds every DocIdSet. The cliff is at 17 segments for 256 entries and at 63 for the 1,000 that MIGRATE.md recommends.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications on main (future 11.0) that turn the query cache on (it is off by default). The 2-arg and 4-arg constructors always use 16 partitions. A filter gets no caching once it spans more than <code>maxSize / 16</code> segment entries: 17 with 256, 63 with 1,000, counted across all readers sharing the cache. Performance only; results stay correct.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>752 words</span></summary><div class='body'><p>On Lucene main an <code class='nw'>LRUQueryCache</code> built with the public 2-arg or 4-arg constructor is split into 16 partitions, and each partition is limited to <code>maxSize / 16</code> entries and <code>maxRamBytesUsed / 16</code> bytes (#15558). Since #16657 the partition is chosen from <code class='nw'>query.hashCode()</code> alone, so every per-segment entry of one query lands in the same partition. A filter cached on more than <code>maxSize / 16</code> segments therefore evicts its own entries in LRU order and, when every search looks it up on the same segments in the same order (as in the repro: one thread, no executor), never hits: with <code class='nw'>maxSize</code> 256, the class javadoc's example, a <code class='nw'>TermQuery</code> over 17 one-document segments gets 0 hits on the second identical search, while the cache holds 16 of its 256 entries and 15 partitions are empty. Results stay correct, but the cache rebuilds every DocIdSet on every search. The verbatim javadoc configuration (2-arg constructor, <code>UsageTrackingQueryCachingPolicy</code>) shows the same over 20 and 34 segments of 10,000 documents. Main only (future 11.0) and opt-in: caching is off by default on main. 10.5.2 and the parent commit of #16657 get all 17 hits. A fix that enforces the budget for the cache as a whole and evicts the oldest entry across partitions passes the test and 2,340 tests of the search package.</p><div class="hd hd-3"><h3 id='what-the-bug-is-the-mechanism-main-645d4fe14a20-lruquerycache-java'>The mechanism (main <code class='nw'>645d4fe14a20</code>, <code>LRUQueryCache.java</code>)</h3><a class="hlink" href="#what-the-bug-is-the-mechanism-main-645d4fe14a20-lruquerycache-java" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-mechanism-main-645d4fe14a20-lruquerycache-java"><span aria-hidden="true">#</span></a></div><ol><li><strong>Sixteen hard shares.</strong> The 4-arg constructor always passes 16 partitions (<code class='nw'>:150</code>); the 2-arg constructor delegates to it (<code class='nw'>:252</code>). The 6-arg constructor gives each partition <code>maxSize / numberOfPartitions</code> entries and <code>maxRamBytesUsed / numberOfPartitions</code> bytes (<code class='nw'>:191-196</code>). From #15558 (<code class='nw'>d50fb36d9af</code>).</li><li><strong>Routing by query only.</strong> <code class='nw'>get</code> and <code class='nw'>putIfAbsent</code> pick the partition with <code>query.hashCode() &amp; (numberOfPartitions - 1)</code> (<code class='nw'>:424-426</code>, <code class='nw'>:435-437</code>), and so does <code>getPartitionNumber</code> (<code class='nw'>:1269-1279</code>, used by <code class='nw'>cleanUp</code>). The comment at <code class='nw'>:1273-1276</code> gives the reason: "so that every (segment, query) entry for a given query lands in the same partition. This lets each partition maintain a complete, cache-wide view of the queries it holds (see uniqueQueries), which is what makes per-partition query canonicalization and count-once RAM accounting correct." From #16657 (<code class='nw'>fadd63e0eb4</code>).</li><li><strong>Per-partition LRU eviction.</strong> After each insert, <code class='nw'>evictIfNecessary</code> (<code class='nw'>:1223-1248</code>) evicts in access order (<code>LinkedHashMap(16, 0.75f, true)</code>, <code class='nw'>:960</code>) while <code>requiresEviction()</code> holds, which compares the partition with its own share: <code>size &gt; maxSize || this.ramBytesUsed &gt; maxRamBytesUsed</code> (<code class='nw'>:1214-1221</code>).</li><li><strong>The cliff.</strong> All S per-segment entries of one filter compete for <code>maxSize / 16</code> slots (16 with 256). A search visits the segments in order; the 17th insert evicts the least recently used entry, the same filter's entry for segment 0. The next search misses there, re-inserts it and evicts segment 1's entry, and so on. Each miss builds the DocIdSet again. The zero holds when every search looks the filter up on all its segments in the same order and nothing else evicts from that partition (the repro: one thread, no executor, an always-cache policy); other visit orders, executor slices or policies that cache only some segments were not run.</li><li><strong>Before #16657</strong> the partition came from <code>QueryCacheKey.hashCode()</code>, then <code>31 * identityHashCode(segment key) + identityHashCode(query)</code>, so a query's 17 entries spread over the 16 partitions and all hit.</li><li><strong>The memory share works the same way.</strong> One query's entries must also fit in <code>maxRamBytesUsed / 16</code>. One cache shared by several readers, as the class javadoc allows (<code class='nw'>:80-81</code>), counts all readers' entries of a filter together. The same javadoc also advises "to not share this cache across too many indices" (<code class='nw'>:70-72</code>).</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-executed-variants-main-645d4fe14a20-unless-noted'>Executed variants (main <code class='nw'>645d4fe14a20</code> unless noted)</h3><a class="hlink" href="#what-the-bug-is-executed-variants-main-645d4fe14a20-unless-noted" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-executed-variants-main-645d4fe14a20-unless-noted"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>setup</th><th>second-search hits</th><th>entries kept</th><th>evictions</th></tr></thead><tbody><tr><td>the repro: 17 one-doc segments, <code>LRUQueryCache(256, 64 MB, ...)</code></td><td>0 of 17</td><td>16 (one partition; 15 empty)</td><td>18</td></tr><tr><td>16 segments, same cache</td><td>16 of 16</td><td>16</td><td>0</td></tr><tr><td>17 segments, 6-arg constructor with <code>numberOfPartitions = 1</code></td><td>17 of 17</td><td>17</td><td>0</td></tr><tr><td>17 segments, maxSize 271 / 272 (16 / 17 per partition)</td><td>0 / 17</td><td>16 / 17</td><td>18 / 0</td></tr><tr><td>one cache over two 9-segment indices, maxSize 256</td><td>0 of 18</td><td>16</td><td>20</td></tr><tr><td>the verbatim javadoc config (2-arg constructor, 50 MB, <code>UsageTrackingQueryCachingPolicy</code>), 40 searches, 20 segments of 10,000 docs</td><td>0 of 20 in the last search; 780 DocIdSets built</td><td>16 (22,560 bytes of 50 MB)</td><td>764</td></tr><tr><td>the same, 34 segments</td><td>0 of 34; 1,326 built</td><td>16</td><td>1,310</td></tr><tr><td><code class='nw'>MIGRATE.md</code>'s 1,000 entries: 62 / 63 segments (study sweep)</td><td>62 / 0</td><td></td><td></td></tr><tr><td>10.5.2 release jars, the repro and the javadoc config</td><td>full hits</td><td>17, 20, 34</td><td>0</td></tr></tbody></table></div></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>203 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Main only (future 11.0), and only applications that configure a query cache: caching is disabled by default on main (<code>IndexSearcher.java:82-84</code>, CHANGES #14187). Every cache built with the public 2-arg or 4-arg constructor has 16 partitions.</li><li><strong>What it takes.</strong> A filter cached on more than <code>floor(maxSize / 16)</code> segments, or on that many (reader, segment) pairs when one cache is shared by several readers: 17 with the class javadoc's 256, 63 with <code class='nw'>MIGRATE.md</code>'s 1,000. With the 2-arg constructor only segments that pass <code>MinSegmentSizePredicate(10000)</code> count: at least 10,000 docs and more than half the average docs per segment (<code>LRUQueryCache.java:278-296</code>); the javadoc-config runs use equal 10,000-doc segments, which pass both checks. Ordinary index shapes: #12140 was about a 34-segment index.</li><li><strong>Effect.</strong> The cache rebuilds every DocIdSet on every search and gives nothing back, while it holds a small fraction of its budget (16 of 256 entries, 22,560 of 52,428,800 bytes in the javadoc config). The study's indicative timing (shared machine, no JMH) put the 16-partition cache at about no-cache cost and a 1-partition cache 3-5x faster for 34 segments.</li><li><strong>Silent.</strong> No exception or log; only <code class='nw'>getHitCount()</code>, <code class='nw'>getCacheCount()</code> and <code>getEvictionCount()</code> show it.</li><li><strong>Results stay correct</strong> in every run.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>The test shows that on main an <code>LRUQueryCache(256, 64 MB, ctx -&gt; true, +inf)</code> never hits for one filter over 17 one-document segments: 16 partitions of 16 entries, and all of one query's entries go to the same partition.</p><figure class='code'><figcaption><span class='fname'>TestLRUQueryCacheManySegments.java (JUnit test)</span><span class='meta'>71 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.NoMergePolicy;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.search.DummyTotalHitCountCollector;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+public class TestLRUQueryCacheManySegments extends LuceneTestCase {
+
+  private static final QueryCachingPolicy ALWAYS_CACHE =
+      new QueryCachingPolicy() {
+        @Override
+        public void onUse(Query query) {}
+
+        @Override
+        public boolean shouldCache(Query query) {
+          return true;
+        }
+      };
+
+  public void testFilterOverSeventeenSegmentsIsCached() throws IOException {
+    try (Directory dir = new ByteBuffersDirectory()) {
+      IndexWriterConfig config = new IndexWriterConfig().setMergePolicy(NoMergePolicy.INSTANCE);
+      try (IndexWriter w = new IndexWriter(dir, config)) {
+        for (int i = 0; i &lt; 17; i++) {
+          Document doc = new Document();
+          doc.add(new StringField(&quot;f&quot;, &quot;x&quot;, Field.Store.NO));
+          w.addDocument(doc);
+          w.flush();
+        }
+      }
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        LRUQueryCache cache =
+            new LRUQueryCache(256, 64 &lt;&lt; 20, ctx -&gt; true, Float.POSITIVE_INFINITY);
+        IndexSearcher searcher = new IndexSearcher(reader);
+        searcher.setQueryCache(cache);
+        searcher.setQueryCachingPolicy(ALWAYS_CACHE);
+        Query filter = new TermQuery(new Term(&quot;f&quot;, &quot;x&quot;));
+        searcher.search(filter, DummyTotalHitCountCollector.createManager());
+        searcher.search(filter, DummyTotalHitCountCollector.createManager());
+        // expected 17 (17 of 256 entries); actual 0: one query&#x27;s entries share a 16-entry partition
+        assertEquals(&quot;cache hits on the second search&quot;, 17, cache.getHitCount());
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code># in a copy of this bug&#x27;s repro folder (repro/LFV-054/, which holds src/)
+# Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
+LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
+CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
+CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
+CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
+CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
+CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
+
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
+
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.search.TestLRUQueryCacheManySegments
+</code></pre></figure><dl class='outcome'><div><dt>Expected vs actual</dt><dd>Expected 17 cache hits when the same TermQuery is searched a second time (17 entries fit in maxSize 256). Actual: 0 hits; each insert evicts the entry that the next segment's lookup needs.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-054/'>repro/LFV-054/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>39 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>Lucene main 645d4fe14a20 (2026-10-28)</code></td></tr><tr><th scope='row'>jdk</th><td><code class='nw'>25.0.3+9-LTS</code></td></tr></tbody></table></div><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># Lucene main 645d4fe14a20, assertions on (-ea), seed DEADBEEF: 1 test(s) run, 1 failed
+    =&gt; java.lang.AssertionError: cache hits on the second search expected:&lt;17&gt; but was:&lt;0&gt;
+       org.junit.Assert.fail(Assert.java:89)
+       org.junit.Assert.failNotEquals(Assert.java:835)
+       org.junit.Assert.assertEquals(Assert.java:647)
+       org.apache.lucene.search.TestLRUQueryCacheManySegments.testFilterOverSeventeenSegmentsIsCached(TestLRUQueryCacheManySegments.java:67)</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The javadoc promises "at most <code class='nw'>maxSize</code> cache entries (each entry being a segment-query pair)" and LRU eviction to stay under that size; here it evicts at 16 of 256.</li><li>The class javadoc says a query's entries "may reside in different partitions"; since #16657 they never do.</li><li>The project's own examples hit it: the javadoc's 256 entries, MIGRATE.md's 1,000.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>422 words</span></summary><div class='body'><ul><li><strong>Contract.</strong> <code>LRUQueryCache.java:61-62</code> ("evicts queries using a LRU (least-recently-used) eviction policy in order to remain under a given maximum size and number of bytes used"); <code class='nw'>:138-139</code> and <code class='nw'>:244-245</code> ("cache at most <code class='nw'>maxSize</code> cache entries (each entry being a segment-query pair) with at most <code class='nw'>maxRamBytesUsed</code> bytes of memory").</li><li><strong>Stale placement sentence.</strong> <code class='nw'>:66-68</code>: "the same query cached against different segments results in separate cache entries that may reside in different partitions" (written by #15558, not updated by #16657).</li><li><strong>Example configurations.</strong> Class javadoc <code class='nw'>:76-86</code> (<code>maxNumberOfCachedQueries = 256</code>, 50 MB, 2-arg constructor, shareable "across several queries and readers"); <code>MIGRATE.md:227-236</code> (<code>new LRUQueryCache(1_000, 50 MB)</code> to turn caching back on).</li><li><strong>Intent record.</strong> In #16657 msfroh suggested moving the canonical <code class='nw'>uniqueQueries</code> map into the partitions (comment 5625039695). In the reply by the author, sgup432, throughput is the reason given for the earlier (segment, query) routing, and concentration is the trade-off named for routing by query: "the partition number is decided based on the composite key - (segment, query) for better throughput. Until unless we route to partition by queries only ... But the tradeoff being a hot-query segments concentrate in one partition" (comment 5625728241). msfroh noted that "eviction is managed on a per-partition basis" (comment 5626616110); the benchmarks posted on #16657 measure throughput only. In #15558 the author explained that "16 partitions, with each having 1 as maxSize" made a test miss a query's second segment entry, and enlarged the test cache (comment 3752469966). Nobody in #16657 (approved with no review comments), #15558 or #14222 stated what the concentration does to capacity or hit rate: that one query's entries are capped at <code>maxSize / 16</code>, or that a filter over one more segment gets zero hits. The evidence shows stale documentation and a real cliff, not that the maintainers rejected the cap; the issue should ask them.</li><li><strong>Why tests missed it.</strong> <code>TestLRUQueryCache</code> builds caches far larger than its indices, pads sizes by 16 since #15558 (<code class='nw'>:117-118</code>, <code class='nw'>:742</code>), or uses one partition (<code class='nw'>:2236-2238</code>, where the comment "160 so that each partition(total 16 by default) can hold 10 keys at max" sits over a cache built with 1 partition); #16657's three tests use 1- or 2-segment indices (maxSize 1,000,000 at <code class='nw'>:2859-2901</code>, 100 at <code class='nw'>:2918-2976</code>). No test asserts hits for one filter over more than <code>maxSize / 16</code> segments.</li><li><strong>Precedent.</strong> #12140 "LRUQueryCache disabled for indices with more than 33 segments" (type:bug, closed as completed in 2023): a cache that silently never helps on a realistic index was treated as a bug.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>197 words</span></summary><div class='body'><p>Strongest case (the cross-model refute reviewer, rated strong): "at most <code class='nw'>maxSize</code>" is an upper bound, not a promise that the whole budget is usable under skew; query-only routing is deliberate (<code class='nw'>:1273-1276</code>); the class is <code>@lucene.experimental</code> (<code class='nw'>:117</code>); #15558's author knowingly changed what <code class='nw'>maxSize</code> means, saw 1-entry shares cause a test miss and padded the tests by 16 (#15558 comment 3752469966: maxSize now "denotes the total keys a cache can hold"); #16657's author named the concentration of a hot query's segments in one partition as the trade-off (comment 5625728241); the cache is opt-in and off by default on main; and the repro uses one-document segments and an always-cache policy.</p><p>Why we still report it: these facts show that each design choice was deliberate, not that anyone accepted a per-query cap of <code>maxSize / 16</code> or zero hits beyond it. The cap is undocumented and the class javadoc describes the opposite placement; the documented example sizes hit it, including the verbatim 2-arg configuration on 10,000-doc segments; <code>@lucene.experimental</code> allows API changes, not a silent loss of the cache's benefit. This remains a judgement call: maintainers may choose to document the cap and raise the example sizes.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Cache-wide budget, evict the oldest entry across partitions (validated by the runs listed, not by a stress run or a benchmark)</strong></p><p class='short'>Enforce the size and memory budget for the cache as a whole: a partition may grow past its 1/16 share, and when the cache is over budget the oldest entry across all partitions is evicted (<code>LRUQueryCache.java</code>, +96/-25). The test, 2,340 search-package tests and <code class='nw'>check</code> pass; a full-cache probe behaves like a single-partition cache.</p><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 767 words</span></summary><div class='body'><p>Three code options were built and run in a scratch worktree of <code class='nw'>645d4fe14a20</code>; a documentation-only answer is listed last. If maintainers see the cap as an accepted trade-off, the cache-wide budget and documenting the cap are the two real choices; the issue can offer both.</p><div class="hd hd-3"><h3 id='fix-cache-wide-lru'>Cache-wide budget, evict the oldest entry across partitions (validated by the runs listed, not by a stress run or a benchmark) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-cache-wide-lru" target="_self" aria-label="Link to this section" aria-describedby="fix-cache-wide-lru"><span aria-hidden="true">#</span></a></div><p>Keeps #16657's query-only routing, canonicalization and count-once memory accounting, and #15558's per-partition locks. Each partition may use the whole budget; after each <code class='nw'>putIfAbsent</code>, <code>evictIfOverBudget()</code> (below) runs without holding any partition lock and, while the cache holds more than <code class='nw'>maxSize</code> entries or <code class='nw'>maxRamBytesUsed</code> bytes, evicts the least recently used entry of the partition whose least recently used entry is the oldest. To compare entries of different partitions, <code class='nw'>QueryMetadata</code> (a record today) becomes a small class with a <code>volatile long lastUsed</code> set to <code>System.nanoTime()</code> on insert and on each lookup; the partition gets <code class='nw'>eldest()</code> (read lock plus the map's monitor) and <code>evictLeastRecentlyUsed()</code> (the old eviction loop body, same <code>ConcurrentModificationException</code> check). The class javadoc sentence about partitions is corrected.</p><pre class='snippet' tabindex='0'><code>  private void evictIfOverBudget() {
+    while (getCacheSize() &gt; maxSize || ramBytesUsed() &gt; maxRamBytesUsed) {
+      LRUQueryCachePartition victim = null;
+      long oldestLastUsed = 0;
+      for (LRUQueryCachePartition partition : lruQueryCachePartition) {
+        final QueryMetadata eldest = partition.eldest();
+        if (eldest != null &amp;&amp; (victim == null || eldest.lastUsed - oldestLastUsed &lt; 0)) {
+          victim = partition;
+          oldestLastUsed = eldest.lastUsed;
+        }
+      }
+      if (victim == null || victim.evictLeastRecentlyUsed() == false) {
+        return;
+      }
+    }
+  }</code></pre><p class='k'>Trade-offs</p><ul><li>One <code>System.nanoTime()</code> and a volatile write per lookup; when the cache is over budget, each eviction round peeks 16 partitions (16 read-lock acquisitions). No benchmark was run (<code>LRUQueryCacheBenchmark</code> exists in <code>lucene/benchmark-jmh</code>).</li><li>The totals are read without a global lock, so under concurrent inserts the cache can briefly exceed the budget or evict one entry too many: close to, not exactly, a single cache-wide LRU.</li><li>Side effect: a cache with <code>maxSize &lt; 16</code> now caches, which changes small-cache behaviour the #15558 author knew of and accepted. Not changed: the memory eligibility guard <code>maxRamBytesUsed / numberOfPartitions</code> (<code class='nw'>:800</code>), a separate question.</li></ul><p class='k'>What the checks validated</p><ul><li>The test: stock fails, + fix passes, with assertions on and off, through gradle and the standalone runner.</li><li>+ fix, gradle, seed DEADBEEF: <code>TestLRUQueryCache</code>, the new test, <code>TestUsageTrackingFilterCachingPolicy</code>, <code>TestBooleanScorer</code>, <code>TestDocValuesOrdinalSetIterator</code>: 89 tests, 3 skipped (<code class='nw'>@AwaitsFix</code>, skipped on stock too), 0 failures, assertions on and off; <code>TestLRUQueryCache</code> also with seeds 5EED1234 and C0FFEE; the whole <code>org.apache.lucene.search.*</code> package: 2,340 tests, 49 skipped, 0 failures (the test framework installs an <code class='nw'>LRUQueryCache</code> as the default cache); <code>:lucene:core:check -x test</code> passes.</li><li>Shadowed into the stock jars: the verbatim javadoc config gets full hits on 12, 20 and 34 segments with 0 evictions; the tie-break probe's 5 tests pass (shared cache 18 of 18, scored MUST + FILTER 17 of 17).</li><li>Full-cache probe (8 segments, maxSize 64, each round one hot filter then a new one-off filter, 40 rounds): hot-filter hits in rounds 20-39 are 0 of 160 on stock and 160 of 160 with the fix, the same as a 1-partition cache (also 264 evictions). Not run: the full test suite, nightly tests, a concurrency stress run, a benchmark.</li></ul><div class="hd hd-3"><h3 id='fix-largest-partition'>Cache-wide budget, evict from the partition with the most entries (built, not recommended)</h3><a class="hlink" href="#fix-largest-partition" target="_self" aria-label="Link to this section" aria-describedby="fix-largest-partition"><span aria-hidden="true">#</span></a></div><p>The same budget change, but the victim is the partition that holds the most entries (or bytes). The repro and the same suites pass.</p><p class='k'>Trade-offs</p><p>In the full-cache probe the hot filter gets 0 of 160 hits in three runs: its partition is the largest, and its least recently used entry is the next one it needs, so the cyclic scan comes back once the cache is full.</p><div class="hd hd-3"><h3 id='fix-route-by-segment'>Route by (segment, query) again (built, not recommended alone)</h3><a class="hlink" href="#fix-route-by-segment" target="_self" aria-label="Link to this section" aria-describedby="fix-route-by-segment"><span aria-hidden="true">#</span></a></div><p>Use <code>QueryCacheKey.hashCode()</code> for the partition, as before #16657 (+6/-11). The repro passes.</p><p class='k'>Trade-offs</p><p>#16657's own tests <code>testQueryRamAccountedOncePerDistinctQuery</code> ("8656 should be &lt; 2x 4168") and <code>testCanonicalQueryInstanceSharedAcrossSegments</code> fail: a query is canonicalized and its memory counted once per partition, which #16657 fixed. The hard 1/16 shares stay, so an uneven spread can still evict early. It could be combined with a cache-wide canonical-query map, which the #16657 author discussed (reference counts or weak references).</p><div class="hd hd-3"><h3 id='fix-document'>Document the cap (not recommended alone)</h3><a class="hlink" href="#fix-document" target="_self" aria-label="Link to this section" aria-describedby="fix-document"><span aria-hidden="true">#</span></a></div><p>State that one query's entries are limited to <code>maxSize / numberOfPartitions</code> entries and bytes, correct the class javadoc's partition sentence, and raise the example sizes in the javadoc and <code class='nw'>MIGRATE.md</code>; or use fewer partitions for small caches.</p><p class='k'>Trade-offs</p><p>Leaves the cliff for anyone who sizes the cache by the entries a workload actually needs.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Servers that share one cache across all shards of a node, as the class javadoc allows, would cap each filter at 1/16 of that cache across all shards together (inferred from the shared-cache probe; not run downstream).</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Code reading while building a TLA+ model of <code class='nw'>LRUQueryCache</code> in the 2026-10-22 study flagged the per-partition split. The study's verifier then found, with its own tests, that since #16657 one filter over more than <code>maxSize / 16</code> segments never hits; the hunt reduced that to one JUnit test.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>113 words</span></summary><div class='body'><p><strong>Method: code reading (non-formal tier).</strong> The study's "search-concurrency-model" unit was building a TLA+ model of the cache's concurrency; while reading the code it noted that <code>maxSize &lt; 16</code> caches nothing and that each partition gets 1/16 of the memory. A verifier (search concurrency model) reproduced those claims and found the larger one: since #16657 one filter over more than <code>maxSize / 16</code> segments never hits, using the verbatim class-javadoc configuration, a shared cache, a sweep of the cliff, and older <code class='nw'>LRUQueryCache</code> sources on the main classpath to attribute it to #16657. The hunt then kept only that claim, wrote the one-test repro (<code class='nw'>repro-minimal/</code>), bisected it with single-commit builds and re-verified it.</p></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report: 99 queries on 2026-10-29 over GitHub issues, PRs and commits, four mailing lists, the JIRA archive, downstream repositories and the web, plus every open PR's file list. The #15558 author noted in public that 1-entry partition shares made a small test cache miss, a smaller case of the same mechanism before query-only routing.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>6 searches</span></summary><div class='body'><p>Closest items: #15558 (partial: its author explained that a test missed a query's second segment entry because "16 partitions, with each having 1 as maxSize" meant "a specific partition can hold 1 key at max", and enlarged the test cache; a small test cache, before query-only routing, with no many-segment filter); #16657 (introduced the routing; its author named the concentration of a hot query's segments in one partition as the trade-off, its benchmarks measure throughput only, and nobody discussed capacity or hit rate); Elasticsearch #163523 (open, 2026-10-27; its body says the new cache "is partitioned (separate locks per partition) and keyed by <code>(query, segment)</code> so a lookup hashes to one partition", that "One query on N segments is N entries, not one", and calls the new <code class='nw'>maxSize</code> "a tighter, different limit"; its muted tests, where <code class='nw'>getHitCount</code> stays 0 with <code>new LRUQueryCache(10, ...)</code>, are by our reading the <code>maxSize &lt; 16</code> case; it does not mention the per-partition size share, routing by query alone or the many-segment cliff, and attributes the 0-hit tests to the old hooks); #12140 (precedent, different cause); #14222 and #10081 (concurrency); open PRs #16306, #16757 and #16847 change other parts.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues and PRs (apache/lucene)</th><td class='when'>2026-10-29</td><td>scripted prior-report search: 45 issue/PR queries (LRUQueryCache, LRUQueryCachePartition, numberOfPartitions, getPartitionNumber, query cache partition, eviction, hit rate) plus manual searches; every issue and PR updated since 2026-10-15 with their comments</td><td>no report of this bug</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-10-29</td><td>file lists of all 415 open PRs</td><td>#16757 and #16847 touch LRUQueryCache.java, neither changes sizing or routing</td></tr><tr><th scope='row'>Commits</th><td class='when'>2026-10-29</td><td>scripted prior-report search: 6 commit queries; git log -S numberOfPartitions</td><td>only #15558 and #16657</td></tr><tr><th scope='row'>Mailing lists</th><td class='when'>2026-10-29</td><td>scripted prior-report search: 32 queries, 8 each over dev@, java-user@, issues@, commits@</td><td>no discussion of partition capacity</td></tr><tr><th scope='row'>JIRA archive</th><td class='when'>2026-10-29</td><td>scripted prior-report search: 6 queries</td><td>nothing on partitions (the code is from 2026)</td></tr><tr><th scope='row'>Downstream and web</th><td class='when'>2026-10-29</td><td>scripted prior-report search: 4 downstream-repository queries and 6 web queries</td><td>Elasticsearch #163523 (a different sub-case, by our reading)</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced on main by #16657 (<code class='nw'>fadd63e0eb4</code>, 2026-09-29), which routes by query, on top of #15558's 16 hard shares (<code class='nw'>d50fb36d9af</code>, 2026-04-14). Bisected by execution; no release or release branch has either change.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>5 rows</span></summary><div class='body'><p>#15558 (sgup432, merged 2026-04-14) replaced the single cache-wide LRU with 16 partitions, each limited to 1/16 of the budget, and routed entries by a hash of (segment, query); a query's entries spread over the partitions, so the repro scenario still gets 17 hits there. #16657 (sgup432, approved by msfroh, merged 2026-09-29; commit body "Also route to partition by query only") fixed the cache key's hashCode/equals and counted a query's memory once per distinct query, and for that routed by <code class='nw'>query.hashCode()</code> alone. Both are listed under 11.0.0 in CHANGES; #15558 was deliberately not backported to 10.x.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>645d4fe14a20</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>0 of 17 hits; the test fails with assertions on and off</td></tr><tr><th scope='row'>main <code class='nw'>fadd63e0eb4</code> (#16657) vs its parent <code class='nw'>1adb280101d</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> bisect</span></td><td>#16657: 0 of 17; its parent: 17 of 17 (-ea and -da)</td></tr><tr><th scope='row'>main <code class='nw'>d50fb36d9af</code> (#15558) and its parent <code class='nw'>55b4574a20d</code></th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>17 of 17 (entries spread by (segment, query) hash)</td></tr><tr><th scope='row'>10.6.0 RC1 revision <code class='nw'>4ae946e5a9b</code></th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>17 of 17; no partitions on branch_10_6</td></tr><tr><th scope='row'>9.12.3, 10.0.0 to 10.5.2 (13 releases)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>17 of 17 (one cache-wide LRU)</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>The study's verifier, the verify step and a tie-break re-ran it on main and 10.5.2; a cross-model refute reviewer could not run Java itself (a separate run ran the repro: 1 failure), agreed on the root cause and argued "intended", which the second adjudication weighed and rejected.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>259 words</span></summary><div class='body'><p>Each check re-ran the repro or its own tests; every number matched.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>study verifier</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> new bug (performance)</span></td><td>Own tests on main and 10.5.2, including the verbatim javadoc config, a shared cache, a cliff sweep and older sources on the main classpath; attributed the thrash to #16657.</td></tr><tr><th scope='row'>verify</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Fails on main with -ea and -da (one run each), plus 10 of 10 derived seeds with -da; passes on 10.5.2. The tie-break added 5 of 5 derived seeds with -ea.</td></tr><tr><th scope='row'>cross-model refute review</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> not_real, low confidence (procedural)</span></td><td>An independent reviewer from another model family (OpenAI GPT-5.6). It could not run Java itself in either attempt; a separate run ran the candidate repro on main (1 test, 1 failure, the expected assertion), and a re-run gave the same with -ea and -da and a pass on 10.5.2. On substance it agreed with the root cause and that the inputs are in contract, and rated the intended-behaviour case strong.</td></tr><tr><th scope='row'>Second adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>High confidence on mechanism and reproduction, medium-high on bug versus accepted trade-off; its own probe shows that one query keeps at most floor(maxSize / 16) entries, that zero hits start at floor(maxSize / 16) + 1 cacheable entries (maxSize 271: 0 of 17; 272: 17 of 17), and the shared-cache and scored-query forms.</td></tr><tr><th scope='row'>history</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> introduced by #16657</span></td><td>Single-commit builds bisect the cliff to fadd63e0eb4; every release passes.</td></tr><tr><th scope='row'>brief</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; fix validated</span></td><td>Re-ran the test on main and 10.5.2 and built three fix options.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-054/bug.png' download='lruquerycache-16-way-partitioning-bug.png' target='_self'>PNG</a> <span class='n'>611 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>548 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-054, snapshot of 2026-10-29</p><dl class='card'><div><dt>Registry title</dt><dd>LRUQueryCache's 16 hard partitions give a 0% hit rate with the class-javadoc configuration (main only)</dd></div><div><dt>Area</dt><dd>search / query cache</dd></div><div><dt>Priority</dt><dd>Low, rank 624: On main only, the opt-in query cache&#x27;s 16 hard partitions give a 0% hit rate with the documented 256- or 1000-entry configs once a filter spans more than 16 (or 63) segment entries, performance only and fixable before release.</dd></div><div><dt>Impact class</dt><dd>minor</dd></div><div><dt>Impact note</dt><dd>Main only (unreleased); the query cache is opt-in on main (#14187) and every cache built with the public constructors has 16 partitions; performance only, results stay correct.</dd></div><div><dt>Summary</dt><dd>On main, you build an LRUQueryCache with the configuration from its class javadoc (maxSize 256, 50 MB) and run one filter over more than 16 segments. You expect the filter to be cached. Instead maxSize and RAM are hard-split across 16 partitions routed by query, so it gets a 0% hit rate forever; maxSize &lt; 16 caches nothing, and partition counts that are 0, negative or not a power of two crash or waste capacity.</dd></div><div><dt>Introduced</dt><dd>#15558 (d50fb36d9af) and #16657 (fadd63e0eb4) (2026-04-14 (#15558 merged); 2026-09-29 (#16657))</dd></div><div><dt>First affected version</dt><dd>unreleased (main only; #15558 not backported to 10.x)</dd></div><div><dt>Affected versions</dt><dd>main [exec]</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed in the earlier formal verification study by independent AI checks and a rerun on Lucene main; also a cross-model review that could only read the code (its low-confidence “not real” is procedural); not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>non-formal: code reading</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (study searches 2026-10-22; public-list check 2026-10-20..23)</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>645d4fe14a20</code> (commit of 2026-10-28, upstream main on 2026-10-29): the repro test through gradle in a scratch worktree and through the standalone runner, assertions on and off, stock and with three fix variants; the 10.5.2 release jars (passes). The hunt's history runs (follow-up) also ran a probe of the same scenario on 9.12.3, every release from 10.0.0 to 10.5.2, the 10.6.0 RC1 revision <code class='nw'>4ae946e5a9b</code>, <code class='nw'>55b4574a20d</code> (parent of #15558), <code class='nw'>d50fb36d9af</code> (#15558), <code class='nw'>1adb280101d</code> (parent of #16657) and <code class='nw'>fadd63e0eb4</code> (#16657); the study ran its tests on main <code class='nw'>7cecf79523</code>, where <code>LRUQueryCache.java</code> is byte-identical.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>a Lucene main checkout (645d4fe14a20) lucene/core/src/java/org/apache/lucene/search/LRUQueryCache.java:61-86, :145-151, :169-196, :243-253, :420-440, :960, :1214-1248, :1269-1279, :1327, :1392-1413</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>a Lucene main checkout (645d4fe14a20) lucene/core/src/java/org/apache/lucene/search/IndexSearcher.java:82-84; lucene/CHANGES.txt:343 (#14187)</code></li><li><code>a Lucene main checkout (645d4fe14a20) lucene/MIGRATE.md:227-236</code></li><li><code>a Lucene main checkout (645d4fe14a20) lucene/core/src/java/org/apache/lucene/search/LRUQueryCache.java:243-253, :278-296 (2-arg constructor, MinSegmentSizePredicate)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>a Lucene main checkout (645d4fe14a20) lucene/core/src/java/org/apache/lucene/search/LRUQueryCache.java:61-62, :66-68, :76-86, :117, :137-139, :243-245, :278-296, :1273-1276</code></li><li><code>a Lucene main checkout (645d4fe14a20) lucene/MIGRATE.md:227-236</code></li><li><code>a Lucene main checkout (645d4fe14a20) lucene/core/src/test/org/apache/lucene/search/TestLRUQueryCache.java:117-118, :742, :2236-2238, :2859-2901, :2918-2976</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>a Lucene main checkout (645d4fe14a20) lucene/core/src/java/org/apache/lucene/search/LRUQueryCache.java:792-801 (memory eligibility guard)</code></li></ul></dd></div><div><dt>History</dt><dd><ul class='paths'><li><code>a Lucene main checkout (645d4fe14a20) lucene/CHANGES.txt:212, :281-282</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestLRUQueryCacheManySegments.java (JUnit test): <a href='../repro/LFV-054/src/org/apache/lucene/search/TestLRUQueryCacheManySegments.java'><code>repro/LFV-054/src/org/apache/lucene/search/TestLRUQueryCacheManySegments.java</code></a> (71 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>It is made in parallel with this doc; its values come from the code at <code class='nw'>645d4fe14a20</code>, the diagram's executed trace probe and the follow-up.</p><ul class='paths'><li><a href='../assets/LFV-054/bug.png'><code>assets/LFV-054/bug.png</code></a> (611 KB)</li></ul><p class='meta built'>Built 2026-10-29 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-29. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

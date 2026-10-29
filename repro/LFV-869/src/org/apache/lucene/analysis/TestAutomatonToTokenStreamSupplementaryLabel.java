@@ -16,55 +16,20 @@
  */
 package org.apache.lucene.analysis;
 
-import java.io.IOException;
-import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.apache.lucene.util.automaton.Automata;
-import org.apache.lucene.util.automaton.Automaton;
-import org.apache.lucene.util.automaton.Operations;
-import org.apache.lucene.util.automaton.RegExp;
 
-/**
- * AutomatonToTokenStream releases every edge of the automaton as a token, but the token text is
- * {@code (char) label}: a label above U+FFFF loses its high bits and becomes a different character.
- */
-public class TestAutomatonToTokenStreamSupplementaryLabel extends BaseTokenStreamTestCase {
+public class TestAutomatonToTokenStreamSupplementaryLabel extends LuceneTestCase {
 
-  /** U+10400 DESERET CAPITAL LETTER LONG I, a letter outside the BMP (two UTF-16 chars). */
-  private static final String LONG_I = new String(Character.toChars(0x10400));
-
-  public void testSupplementaryLabel() throws IOException {
-    // Automata.makeString labels its transitions with code points: one transition, label 0x10400
-    Automaton a = Automata.makeString(LONG_I);
-    TokenStream ts = AutomatonToTokenStream.toTokenStream(a);
-    // expected: one token whose text is the label; actual: U+0400 (CYRILLIC CAPITAL LETTER IE WITH
-    // GRAVE), the label with its high bits cut off
-    assertTokenStreamContents(
-        ts, new String[] {LONG_I}, new int[] {0}, new int[] {1}, new int[] {1}, new int[] {1}, 1);
-  }
-
-  public void testSupplementaryLabelFromRegExp() throws IOException {
-    Automaton a = Operations.determinize(new RegExp("a" + LONG_I).toAutomaton(), 10_000);
-    TokenStream ts = AutomatonToTokenStream.toTokenStream(a);
-    assertTokenStreamContents(
-        ts,
-        new String[] {"a", LONG_I},
-        new int[] {0, 1},
-        new int[] {1, 2},
-        new int[] {1, 1},
-        new int[] {1, 1},
-        2);
-  }
-
-  public void testRoundTripKeepsTheLanguage() throws IOException {
-    Automaton a = Automata.makeString("a" + LONG_I);
-    TokenStreamToAutomaton tsa = new TokenStreamToAutomaton();
-    tsa.setUnicodeArcs(true);
-    Automaton back =
-        Operations.determinize(
-            tsa.toAutomaton(AutomatonToTokenStream.toTokenStream(a)), 10_000);
-    String withSep = "a" + (char) TokenStreamToAutomaton.POS_SEP;
-    // actual: the round trip accepts "a" POS_SEP U+0400 and rejects "a" POS_SEP U+10400
-    assertFalse(Operations.run(back, withSep + "\u0400"));
-    assertTrue(Operations.run(back, withSep + LONG_I));
+  public void testSupplementaryLabel() throws Exception {
+    String longI = new String(Character.toChars(0x10400));
+    try (TokenStream ts = AutomatonToTokenStream.toTokenStream(Automata.makeString(longI))) {
+      CharTermAttribute term = ts.addAttribute(CharTermAttribute.class);
+      ts.reset();
+      assertTrue(ts.incrementToken());
+      // expected: token text U+10400 (the edge label); actual: U+0400 (the label cast to char)
+      assertEquals(longI, term.toString());
+    }
   }
 }

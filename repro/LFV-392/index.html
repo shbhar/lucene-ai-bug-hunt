@@ -22,15 +22,15 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You append two or more values (for example c, a, b) to a BytesRefArray and call iterator((Comparator&lt;BytesRef&gt;) null), expecting the values back in append order, as the method&#x27;s javadoc promises (&#x27;Otherwise the order is the same as the values were appended&#x27;) and as Lucene 8.4.1 and earlier do. Instead the call throws NullPointerException (&#x27;Cannot invoke Comparator.compare... because this.val$cmp is null&#x27;, from StringSorter$1.compare via BytesRefArray.sort), because the method now always sorts with the given comparator; with 0 or 1 values, or with the no-arg iterator, append order still comes back. The one-line fix restores the pre-8.5 null check (&#x27;return iterator(comp == null ? null: sort(comp, false));&#x27;); a maintainer may instead prefer to correct the javadoc.</p>
+<p>The test shows that <code>BytesRefArray.iterator((Comparator&lt;BytesRef&gt;) null)</code> on an array holding two values (b, a) throws NullPointerException instead of iterating in append order, because <code>iterator(Comparator)</code> always sorts with the given comparator.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> The call throws NullPointerException (&#x27;Cannot invoke Comparator.compare... because this.val$cmp is null&#x27;, from StringSorter$1.compare via BytesRefArray.sort), because the method now always sorts with the given comparator; with 0 or 1 values, or with the no-arg iterator, append order still comes back.</li></ul>
+<p>Expected: b, then a (javadoc: &quot;Otherwise the order is the same as the values were appended&quot;). Actual on main with -ea and with -da: NullPointerException (&quot;this.val$cmp&quot; is null) at StringSorter$1.compare (StringSorter.java:102).</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/util/TestBytesRefArrayNullComparator.java"><code>src/org/apache/lucene/util/TestBytesRefArrayNullComparator.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/BytesRefArrayNullComparatorMain.java"><code>src/BytesRefArrayNullComparatorMain.java</code></a> <span class="dim">(main() class)</span></li>
+<li><a href="src/org/apache/lucene/util/TestBytesRefArrayIteratorNullComparator.java"><code>src/org/apache/lucene/util/TestBytesRefArrayIteratorNullComparator.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
+<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
@@ -45,10 +45,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.util.TestBytesRefArrayNullComparator
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; BytesRefArrayNullComparatorMain</code></pre>
+     execute --select-class org.apache.lucene.util.TestBytesRefArrayIteratorNullComparator</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

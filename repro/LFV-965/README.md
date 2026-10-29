@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You give the XML query parser a well-formed query whose elements nest a few thousand levels deep, for example &lt;BooleanQuery&gt;&lt;Clause occurs="must"&gt; repeated 3,000 times around one &lt;TermQuery&gt; (about 180 KB; enough on a 1 MB thread stack, while the 2 MB aarch64 default needs 5,000 or more levels), which the shipped DTD allows ('queries/filters of an arbitrary depth and complexity') and which parses fine at 40 levels, and you expect a Query or the ParserException that CoreParser.parse(InputStream), getQuery(Element) and getSpanQuery(Element) declare. Instead java.lang.StackOverflowError escapes, because each compound builder (BooleanQuery, DisjunctionMaxQuery, ConstantScoreQuery and the span builders) calls back into QueryBuilderFactory or SpanQueryBuilderFactory once per nesting level and nothing counts the depth or turns the Error into a ParserException. Whether the plain text path fails depends on the JDK, not on Lucene: JDK 21, the minimum for 10.x including the 10.6.0 RC, has no XML element-depth limit by default and overflows, while JDK 25 (main's minimum) rejects more than 100 nested elements with a ParserException; the DOM entries overflow on every JDK.
 
+The test shows that `CoreParser.getQuery(Element)` on an application-built DOM of 100,000 nested `<BooleanQuery><Clause occurs="must">` levels around one `<TermQuery>` lets `StackOverflowError` escape (BooleanQueryBuilder.getQuery:57 -&gt; QueryBuilderFactory.getQuery:34 once per level).
+
 ## Expected vs actual
 
-- Expected: You expect a Query or the ParserException that CoreParser.parse(InputStream), getQuery(Element) and getSpanQuery(Element) declare.
-- Actual: java.lang.StackOverflowError escapes, because each compound builder (BooleanQuery, DisjunctionMaxQuery, ConstantScoreQuery and the span builders) calls back into QueryBuilderFactory or SpanQueryBuilderFactory once per nesting level and nothing counts the depth or turns the Error into a ParserException.
+Expected a `Query` or the declared `ParserException`; actual: `java.lang.StackOverflowError`, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/queryparser/xml/TestXmlQueryParserDeepNesting.java](src/org/apache/lucene/queryparser/xml/TestXmlQueryParserDeepNesting.java) (JUnit test)
+- [src/org/apache/lucene/queryparser/xml/TestCoreParserDeepNesting.java](src/org/apache/lucene/queryparser/xml/TestCoreParserDeepNesting.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,10 +40,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queryparser.xml.TestXmlQueryParserDeepNesting
+     execute --select-class org.apache.lucene.queryparser.xml.TestCoreParserDeepNesting
 ```
 
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.

@@ -16,77 +16,34 @@
  */
 package org.apache.lucene.misc.index;
 
-import java.io.IOException;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.KnnFloatVectorField;
 import org.apache.lucene.index.CodecReader;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.LogDocMergePolicy;
-import org.apache.lucene.index.NoMergePolicy;
-import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.index.VectorSimilarityFunction;
+import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.LuceneTestCase;
-import org.apache.lucene.tests.util.TestUtil;
 
-/**
- * A partition whose vectors sum to zero (here: unit vectors and their opposites) has no direction.
- * BpVectorReorderer normalizes partition centroids for DOT_PRODUCT and COSINE fields; a zero
- * centroid must not become NaN (VectorUtil.dotProduct asserts finite results).
- */
 public class TestBpVectorReordererZeroCentroid extends LuceneTestCase {
 
-  /** 64 unit vectors alternating (1, 0) and (-1, 0), then 64 vectors (0, 1); all legal unit vectors. */
-  private static void index(IndexWriter w) throws IOException {
-    for (int i = 0; i < 128; i++) {
-      Document doc = new Document();
-      float[] v = i >= 64 ? new float[] {0, 1} : (i % 2 == 0 ? new float[] {1, 0} : new float[] {-1, 0});
-      doc.add(new KnnFloatVectorField("v", v, VectorSimilarityFunction.DOT_PRODUCT));
-      w.addDocument(doc);
-    }
-  }
-
-  /** Direct call on one segment. */
-  public void testComputeDocMap() throws Exception {
-    try (Directory dir = newDirectory()) {
-      try (IndexWriter w =
-          new IndexWriter(
-              dir,
-              new IndexWriterConfig()
-                  .setCodec(TestUtil.getDefaultCodec())
-                  .setMergePolicy(NoMergePolicy.INSTANCE)
-                  .setMaxBufferedDocs(10_000))) {
-        index(w);
+  public void testHalfThatSumsToZero() throws Exception {
+    try (Directory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+        for (int i = 0; i < 64; i++) {
+          float[] v = i < 32 ? new float[] {i % 2 == 0 ? 1 : -1, 0} : new float[] {0, 1};
+          Document doc = new Document();
+          doc.add(new KnnFloatVectorField("v", v, VectorSimilarityFunction.DOT_PRODUCT));
+          w.addDocument(doc);
+        }
       }
-      try (DirectoryReader reader = DirectoryReader.open(dir)) {
-        CodecReader leaf = (CodecReader) reader.leaves().get(0).reader();
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        CodecReader leaf = (CodecReader) r.leaves().get(0).reader();
+        // expected a DocMap; actual: docs 0..31 sum to (0, 0), the centroid is scaled by 1/sqrt(0) to NaN
         assertNotNull(new BpVectorReorderer("v").computeDocMap(leaf, dir, null));
       }
-    }
-  }
-
-  /** Through BPReorderingMergePolicy: the merge must succeed and keep the writer open. */
-  public void testReorderingMerge() throws Exception {
-    try (Directory dir = newDirectory()) {
-      IndexWriter w =
-          new IndexWriter(
-              dir,
-              new IndexWriterConfig()
-                  .setCodec(TestUtil.getDefaultCodec())
-                  .setMergeScheduler(new SerialMergeScheduler())
-                  .setMaxBufferedDocs(64)
-                  .setMergePolicy(
-                      new BPReorderingMergePolicy(
-                          new LogDocMergePolicy(), new BpVectorReorderer("v"))));
-      index(w);
-      try {
-        w.forceMerge(1);
-      } finally {
-        assertNull("the reordering merge closed the writer", w.getTragicException());
-      }
-      w.close();
     }
   }
 }

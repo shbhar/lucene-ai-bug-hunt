@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index some words and call WordBreakSpellChecker.suggestWordBreaks with setMaxChanges(3) or more, and you expect the maxSuggestions splits of the term that rank best by Lucene's own order (fewest breaks, then highest frequency). Instead, once an earlier branch of the search has filled the queue, a later branch returns before it looks for its own splits, so a better split can be missing: with the index {a, ab, b, c, d, e}, the term 'abcde', maxChanges=4 and maxSuggestions=1 the method returns [a b c d e] (4 breaks) instead of [ab c d e] (3 breaks), while asking for 2 suggestions returns both in the right order. No error is raised, raising maxChanges from 3 to 4 makes the answer worse, and 9.11.1 returns the right split.
 
+The test shows that `WordBreakSpellChecker.suggestWordBreaks` with `setMaxChanges(4)` and maxSuggestions 1 returns a split with more breaks than the best one, because the full-queue early return fires in a later sibling branch (index {a, ab, b, c, d, e}, term `abcde`).
+
 ## Expected vs actual
 
-- Expected: `[ab c d e]` as the top 1 in both minimal tests, and `thousand one hundred eight` among the top 3 number-word splits.
-- Actual: `[a b c d e]` and `[a bc d e]`, and the top 3 holds the 4-break `thou sand one hundred eight` instead: all 3 tests fail.
+Expected the 3-break split `ab c d e` (fewest breaks first); actual the 4-break `a b c d e` (`expected:<a[]b c d e> but was:<ab c d e>`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/search/spell/TestWordBreakPruneDeeperQueued.java](src/org/apache/lucene/search/spell/TestWordBreakPruneDeeperQueued.java) (JUnit test)
+- [src/org/apache/lucene/search/spell/TestWordBreakFullQueue.java](src/org/apache/lucene/search/spell/TestWordBreakFullQueue.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,16 +43,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.spell.TestWordBreakPruneDeeperQueued
+     execute --select-class org.apache.lucene.search.spell.TestWordBreakFullQueue
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestWordBreakSpellCheckerFullQueue.java](TestWordBreakSpellCheckerFullQueue.java)
-- [TestWordBreakPruneDeeperQueued.java](TestWordBreakPruneDeeperQueued.java)
-- [TestWordBreakTopNConsistency.java](TestWordBreakTopNConsistency.java)
 
 ## Feedback
 

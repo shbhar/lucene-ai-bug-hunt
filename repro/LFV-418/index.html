@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>A custom doc-values codec receives, at flush, the iterator over a field&#x27;s buffered values; it calls nextDoc, bulk-loads the next documents into a bit set with intoBitSet, and then reads the value of the current document, expecting what the documented nextDoc loop gives. Instead the five flush-time iterators (one per doc-values type) move only their doc-ID cursor in intoBitSet, so the value read belongs to an earlier document, and every later value of the field in that segment stays shifted by the same number of documents (doc 2 reports doc 0&#x27;s value, doc 3 reports doc 1&#x27;s). Lucene&#x27;s own doc-values consumer never reads values after intoBitSet on the same iterator, so indexes written by stock Lucene are correct.</p>
+<p>The test shows that at flush, a pass-through doc-values consumer calls <code>nextDoc()</code> and then <code>intoBitSet(2, bits, 0)</code> on the buffered NUMERIC iterator (docs 0-2 hold 10, 11, 12). The doc cursor moves to doc 2, but the value cursor stays on doc 0. The Binary, Sorted, SortedNumeric and SortedSet flush iterators have the same override.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> The five flush-time iterators (one per doc-values type) move only their doc-ID cursor in intoBitSet, so the value read belongs to an earlier document, and every later value of the field in that segment stays shifted by the same number of documents (doc 2 reports doc 0&#x27;s value, doc 3 reports doc 1&#x27;s).</li></ul>
+<p>Expected, as after the documented <code>nextDoc()</code> loop: <code>doc=2 value=12</code>. Actual: <code>doc=2 value=10</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/index/TestFlushDocValuesIntoBitSetValues.java"><code>src/org/apache/lucene/index/TestFlushDocValuesIntoBitSetValues.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/index/TestFlushNumericDocValuesIntoBitSet.java"><code>src/org/apache/lucene/index/TestFlushNumericDocValuesIntoBitSet.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -44,7 +45,7 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestFlushDocValuesIntoBitSetValues</code></pre>
+     execute --select-class org.apache.lucene.index.TestFlushNumericDocValuesIntoBitSet</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/dv-norms-cursor-coherence/index.html">dv-norms-cursor-coherence</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

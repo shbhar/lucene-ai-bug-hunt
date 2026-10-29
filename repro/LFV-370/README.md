@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You score documents with BBoxStrategy.makeOverlapRatioValueSource and call explain, and you expect the tree to show the terms of the documented formula, queryFactor = queryRatio * queryTargetProportion and targetFactor = targetRatio * (1 - queryTargetProportion). Instead the 'ratio' child of the 'queryFactor' node, printed next to 'area of &lt;query box&gt;', is targetRatio, the same number as under 'targetFactor': for the query box x[0,20] y[0,10] and the document box x[10,40] y[5,15] at proportion 0.3 it shows 0.16666667 (50/300) where queryRatio is 0.25 (50/200). The score (0.19166666) and the queryFactor value (0.075) are right; one token on line 255 is wrong, a slip from the 2015 LUCENE-6446 Explanation API rewrite, and 5.1.0 still showed queryRatio.
 
+The test shows that `BBoxStrategy.makeOverlapRatioValueSource(...).explain(...)` lists the target ratio as the "ratio" under "queryFactor" (one 20x10 document box inside a 40x40 query box, proportion 0.5).
+
 ## Expected vs actual
 
-- Expected: You expect the tree to show the terms of the documented formula, queryFactor = queryRatio * queryTargetProportion and targetFactor = targetRatio * (1 - queryTargetProportion).
-- Actual: The 'ratio' child of the 'queryFactor' node, printed next to 'area of &lt;query box&gt;', is targetRatio, the same number as under 'targetFactor': for the query box x[0,20] y[0,10] and the document box x[10,40] y[5,15] at proportion 0.3 it shows 0.16666667 (50/300) where queryRatio is 0.25 (50/200).
+Expected: queryRatio 200/1600 = 0.125; actual (-ea and -da): targetRatio 1.0 ("queryFactor ratio expected:&lt;0.125&gt; but was:&lt;1.0&gt;"); the score itself is correct.
 
 ## Files
 
-- [src/org/apache/lucene/spatial/bbox/TestOverlapRatioExplainQueryRatio.java](src/org/apache/lucene/spatial/bbox/TestOverlapRatioExplainQueryRatio.java) (JUnit test)
+- [src/org/apache/lucene/spatial/bbox/TestBBoxOverlapRatioExplainQueryRatio.java](src/org/apache/lucene/spatial/bbox/TestBBoxOverlapRatioExplainQueryRatio.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,7 +41,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.spatial.bbox.TestOverlapRatioExplainQueryRatio
+     execute --select-class org.apache.lucene.spatial.bbox.TestBBoxOverlapRatioExplainQueryRatio
 ```
 
 The module(s) spatial-extras also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.

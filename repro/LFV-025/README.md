@@ -8,20 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You compare two FixedBitSet (or LongBitSet) objects with the same length and bits that were built with different backing-array capacities. You expect equals to return true. Instead it returns false.
 
+The test shows that `FixedBitSet.equals` also compares the backing `long[]` length, so two sets with the same length and bits built over different array sizes are unequal (`LongBitSet.equals` has the same line).
+
 ## Expected vs actual
 
-- Expected: You expect equals to return true.
-- Actual: It returns false.
+Expected: `new FixedBitSet(64)` equals `new FixedBitSet(new long[2], 64)` (both empty, same hashCode). Actual (-ea and -da): `equals` returns false.
 
 ## Files
 
-- [src/sa3verify/TestBitSetEqualsBackingCapacity.java](src/sa3verify/TestBitSetEqualsBackingCapacity.java) (JUnit test)
+- [src/org/apache/lucene/util/TestFixedBitSetEqualsBackingCapacity.java](src/org/apache/lucene/util/TestFixedBitSetEqualsBackingCapacity.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
-- Recorded outcome of run 1 on main a9779ef3c193: 7 test(s) run, 4 failed (testFixedBitSetContract, testFixedBitSetEmptyContract, testFixedBitSetHashSetContract, testLongBitSetContract).
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -39,7 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class sa3verify.TestBitSetEqualsBackingCapacity
+     execute --select-class org.apache.lucene.util.TestFixedBitSetEqualsBackingCapacity
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

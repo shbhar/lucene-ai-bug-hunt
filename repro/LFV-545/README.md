@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You tokenize 'E x', where E is an emoji such as U+1F525, with SimplePatternTokenizer and the pattern E[a-z]+|[^E ]+ (E followed by letters, or a run of characters other than E and space) and expect the single token 'x' [3,4): the attempt at E dies at the space, and the tokenizer, which steps its automaton over code points, should move on to the next code point (PatternTokenizer and java.util.regex give exactly [x]). Instead it also emits a token made of E's lone low surrogate U+DD25 at offsets [1,2), which the index stores as U+FFFD, because the failed-attempt branch pushes back all but one UTF-16 unit and so restarts in the middle of the pair. SimplePatternSplitTokenizer has the same step: separator Ea|[^Ea ]+ on 'Eb' yields the lone high surrogate [0,1) instead of the token 'E' [0,2), and with separator [^a-zE]+|E! the text 'abEcd' becomes 'ab' plus a lone high surrogate, then 'cd', instead of the one token 'abEcd'; nothing throws.
 
+The test shows that SimplePatternTokenizer and SimplePatternSplitTokenizer restart a failed match one UTF-16 unit after a supplementary character E (U+1F525), i.e. inside its surrogate pair.
+
 ## Expected vs actual
 
-- Expected: `🔥hot deal` gives `hot` [2,5), `deal`; `🔥 x` gives `x` [3,4); split `so🔥hot now` gives `so🔥hot` [0,7), `now`.
-- Actual: `\uDD25hot` [1,5), `deal` (`expected:<hot> but was:<[?]hot>`); `\uDD25` [1,2), `x` (`expected:<[x]> but was:<[?]>`); split `so\uD83D` [0,3), `hot`, `now` (`expected:<so?[?hot]> but was:<so?>`).
+Expected `[x]` at [3,4) for `E[0-9]+|[^E ]+` on `E x`, and `[Eb]` at [0,3) for the separator pattern `E[0-9]+|[^Ea-z]+` on `Eb`; actual `[U+DD25, x]` and `[U+D83D, b]` (lone surrogates), with `-ea` and `-da`.
 
 ## Files
 
@@ -21,7 +22,8 @@ You tokenize 'E x', where E is an emoji such as U+1F525, with SimplePatternToken
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 2 test(s) run, 2 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -44,11 +46,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestSimplePatternSupplementaryRetry.java](TestSimplePatternSupplementaryRetry.java)
-- [test-upstream.diff](test-upstream.diff)
 
 ## Feedback
 

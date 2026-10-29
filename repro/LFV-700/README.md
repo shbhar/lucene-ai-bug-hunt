@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build a BlendedInfixSuggester with its default settings (POSITION_LINEAR, numFactor 10) from {the lake:1000, lake:950, lake:950, my lake:920} and call lookup("lake", false, 2); blending gives lake 950, the lake 900 and my lake 828, num=3 returns [lake/950, the lake/900, my lake/828], so you expect [lake/950, the lake/900]. Instead you get [lake/950, my lake/828], and without 'my lake' only [lake/950]. When the bounded result set is full, boundedTreeAdd (BlendedInfixSuggester.java:294-306) removes the lowest result with pollFirst before it calls results.add(result), and that add does nothing for the second 'lake' because LookUpComparator (:383-407) already holds an equal element, so 'the lake' is lost and a later, lower-ranked hit takes its slot.
 
+The test shows that a default `BlendedInfixSuggester` drops a distinct suggestion when a duplicate arrives while its result set is full: `boundedTreeAdd` evicts the lowest result before `TreeSet.add` rejects the duplicate.
+
 ## Expected vs actual
 
-- Expected: `[lake/950, the lake/900]` for both lake cases, and `[the apple/9, the big apple/8]` without a weight field.
-- Actual: `[lake/950, my lake/828]`, `[lake/950]` and `[the apple/9, a big red apple/7]`; the larger-`num` lookups and the control are right.
+For {the lake:1000, lake:950, lake:950, my lake:920}, `lookup("lake", false, 2)` should be the top 2 of the num=3 result, `[lake/950, the lake/900]`; actual `[lake/950, my lake/828]`, with `-ea` and `-da`.
 
 ## Files
 
@@ -21,7 +22,8 @@ You build a BlendedInfixSuggester with its default settings (POSITION_LINEAR, nu
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -45,11 +47,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestBlendedInfixSuggesterDuplicateEviction.java](TestBlendedInfixSuggesterDuplicateEviction.java)
-- [TestBlendedInfixDuplicateEviction.java](TestBlendedInfixDuplicateEviction.java)
 
 ## Feedback
 

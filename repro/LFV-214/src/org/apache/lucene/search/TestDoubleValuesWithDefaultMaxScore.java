@@ -21,40 +21,34 @@ import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
 
-/**
- * DoubleValues.withDefault returns missingValue for documents without a value, but since #16431
- * its getMaxScore forwards the wrapped instance's bound, which does not cover missingValue.
- */
 public class TestDoubleValuesWithDefaultMaxScore extends LuceneTestCase {
 
   public void testMaxScoreCoversMissingValue() throws Exception {
-    try (Directory dir = newDirectory()) {
-      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
-        for (int i = 0; i < 10; i++) {
-          Document doc = new Document();
-          if (i != 5) { // doc 5 has no value
-            doc.add(NumericDocValuesField.indexedField("price", i));
-          }
-          w.addDocument(doc);
-        }
+    try (Directory dir = new ByteBuffersDirectory()) {
+      IndexWriterConfig iwc = new IndexWriterConfig().setCodec(TestUtil.getDefaultCodec());
+      try (IndexWriter w = new IndexWriter(dir, iwc)) {
+        w.addDocument(new Document()); // doc 0: no price
+        Document doc1 = new Document();
+        doc1.add(NumericDocValuesField.indexedField("price", 1));
+        w.addDocument(doc1);
       }
       try (DirectoryReader reader = DirectoryReader.open(dir)) {
-        LeafReaderContext leaf = reader.leaves().get(0);
         DoubleValues values =
             DoubleValues.withDefault(
-                DoubleValuesSource.fromLongField("price").getValues(leaf, null), 100);
+                DoubleValuesSource.fromLongField("price").getValues(reader.leaves().get(0), null),
+                100);
         int upTo = values.advanceShallow(0);
         float maxScore = values.getMaxScore(upTo);
-        assertTrue(values.advanceExact(5));
-        double value = values.doubleValue();
-        assertEquals(100, value, 0d);
+        values.advanceExact(0);
+        // expected: getMaxScore(upTo) >= 100, the value withDefault produces for doc 0; actual: 1.0
         assertTrue(
-            "value " + value + " of doc 5 > getMaxScore(" + upTo + ") = " + maxScore,
-            value <= maxScore);
+            "doc 0 value " + values.doubleValue() + " > getMaxScore(" + upTo + ") = " + maxScore,
+            values.doubleValue() <= maxScore);
       }
     }
   }

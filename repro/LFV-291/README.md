@@ -10,19 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index 'i love new york', 'york city is big' and 'york is here' and search notContainedBy(york, or(phrase(new, york), phrase(york, city))), meaning 'york that is not part of new york or york city'; you expect only the third document, which is what or(false,...) and the nested form notContainedBy(notContainedBy(york, 'new york'), 'york city') return. Instead all three documents match: the default disjunction rewrite (LUCENE-8477) pulls the OR out of the excluded operand and builds or(NOT_CONTAINED_BY(york, 'new york'), NOT_CONTAINED_BY(york, 'york city')), which computes 'not inside B1 or not inside B2' where the javadoc promises 'not inside (B1 or B2)'. So adding a clause to the exclusion adds hits: notContainedBy(a, or(phrase(c, a), b)) matches 'c a' although notContainedBy(a, phrase(c, a)) does not.
 
+The test shows that Intervals.notContainedBy(a, or(phrase(c, a), b)) returns the "a" of the document "c a", although that "a" lies inside "c a", one clause of the excluded OR (the default rewrite ORs one filter per clause).
+
 ## Expected vs actual
 
-- Expected: `testOrOfPhrasesAsBigSource`: 1 hit (doc 2, "york is here"), as the chained and `or(false,...)` controls give; `testAddingClauseToBigSourceAddsNoHits`: 0 hits.
-- Actual: 3 hits, then 1 hit: the query is built as `or(NOT_CONTAINED_BY(york,BLOCK(new,york)),NOT_CONTAINED_BY(york,BLOCK(york,city)))`, one filter per phrase.
+Expected: 0 hits. Actual (-ea and -da): 1 hit, from the rewritten source or(NOT_CONTAINED_BY(a,BLOCK(c,a)),NOT_CONTAINED_BY(a,b)).
 
 ## Files
 
-- [src/org/apache/lucene/queries/intervals/TestNotContainedByDisjunction.java](src/org/apache/lucene/queries/intervals/TestNotContainedByDisjunction.java) (JUnit test)
+- [src/org/apache/lucene/queries/intervals/TestNotContainedByOrRewrite.java](src/org/apache/lucene/queries/intervals/TestNotContainedByOrRewrite.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,16 +42,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queries.intervals.TestNotContainedByDisjunction
+     execute --select-class org.apache.lucene.queries.intervals.TestNotContainedByOrRewrite
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestNotContainedByDisjunction.java](TestNotContainedByDisjunction.java)
-- [fix-with-test.diff](fix-with-test.diff)
-- [TestNotContainedByNestedClauses.java](TestNotContainedByNestedClauses.java)
 
 ## Feedback
 

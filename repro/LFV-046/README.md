@@ -1,6 +1,6 @@
 # COSINE vectors whose float32 squared norm underflows pass validation and give Inf/NaN scores or poison OSQ segments
 
-Bug LFV-046 · Area: codecs / vectors · Priority: medium · Impact: silent wrong results · Novelty: new
+Bug LFV-046 · Area: codecs / vectors · Priority: low · Impact: silent wrong results · Novelty: new
 
 Bug page: [../../bugs/LFV-046.html](../../bugs/LFV-046.html)
 
@@ -10,19 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index, or query with, a non-zero COSINE float vector whose float32 squared norm is 0 or subnormal. You expect it to be rejected like an all-zero vector or to score sensibly. Instead it is accepted: on the default codec it scores +Inf/NaN, a NaN batch maximum hides 64 neighbouring documents and CheckIndex falsely fails; on OSQ one such vector makes the segment centroid NaN, so kNN returns 0 hits and every merge fails.
 
+The test shows that `KnnFloatVectorField` accepts the non-zero COSINE vector {1e-30, 0}, whose float32 squared norm underflows to 0, and that it then scores +Inf, so a kNN query for {0.6, 0.8} on the default codec ranks it above the identical vector.
+
 ## Expected vs actual
 
-- Expected: `{1e-30, 0}` is rejected like `{0, 0}`, or every COSINE score stays in [0, 1] and kNN, `CheckIndex` and merges work.
-- Actual: accepted; scores +Infinity, NaN and 1.1103; tiny is the top hit; 0 hits for `{0, 1}`; `CheckIndex` (level 2) fails; OSQ returns 0 hits and `forceMerge` closes the writer.
+Expected: the identical vector (doc 0) is the top hit, or the tiny vector is rejected like the zero vector. Actual: doc 1 is the top hit with score Infinity (-da: `top hit (score Infinity) expected:<0> but was:<1>`; -ea: Lucene's own `assert Float.isFinite(r)` in `VectorUtil.cosine` fires).
 
 ## Files
 
-- [src/TestF5CosineUnderflow.java](src/TestF5CosineUnderflow.java) (JUnit test)
+- [src/org/apache/lucene/document/TestCosineTinyNormTopHit.java](src/org/apache/lucene/document/TestCosineTinyNormTopHit.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,19 +38,13 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Df5.dir=mmap -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class TestF5CosineUnderflow
+     execute --select-class org.apache.lucene.document.TestCosineTinyNormTopHit
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestCosineTinyNormValidation.java](TestCosineTinyNormValidation.java)
-- [cosine-tiny-norm-validation.diff](cosine-tiny-norm-validation.diff)
-- [test.diff](test.diff)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/study-quantization-smt/](../../models/study-quantization-smt/)
 

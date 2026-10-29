@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You run an ordinary top-k search, for example IndexSearcher#search(query, 1), with a two-clause conjunction or disjunction whose scores can overflow to +Infinity (two FeatureField linear queries over very large feature values, or two clauses with very large finite boosts). You expect the best documents first, +Infinity before Float.MAX_VALUE and ties by ascending doc id, as Lucene 10.2.2 returns them. Instead, once the minimum competitive score reaches +Infinity, ScorerUtil.minRequiredScore returns NaN and filterCompetitiveHits discards every remaining candidate, so the search silently returns doc 0 scoring Float.MAX_VALUE instead of doc 3000 scoring +Infinity (one thread, one segment), or docs 100, 101, 102 instead of the equally scored docs 0, 1, 2 (a concurrent search in which the slice with the higher doc ids finishes first).
 
+The test shows that a plain top-1 `IndexSearcher#search(q, 1)` over a two-clause FeatureField conjunction drops the document that scores +Infinity once the 1000-hit threshold sets the minimum competitive score to nextUp(Float.MAX_VALUE) = +Infinity, because `ScorerUtil.minRequiredScore` returns NaN.
+
 ## Expected vs actual
 
-- Expected: You expect the best documents first, +Infinity before Float.MAX_VALUE and ties by ascending doc id, as Lucene 10.2.2 returns them.
-- Actual: Once the minimum competitive score reaches +Infinity, ScorerUtil.minRequiredScore returns NaN and filterCompetitiveHits discards every remaining candidate, so the search silently returns doc 0 scoring Float.MAX_VALUE instead of doc 3000 scoring +Infinity (one thread, one segment), or docs 100, 101, 102 instead of the equally scored docs 0, 1, 2 (a concurrent search in which the slice with the higher doc ids finishes first).
+Expected: top hit doc 1001 (score +Infinity). Actual: doc 0 (score Float.MAX_VALUE), `expected:<1001> but was:<0>`, with -ea and -da.
 
 ## Files
 
@@ -19,8 +20,8 @@ You run an ordinary top-k search, for example IndexSearcher#search(query, 1), wi
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -35,8 +36,8 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.search.TestMinRequiredScoreInfinite
 ```

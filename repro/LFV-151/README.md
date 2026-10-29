@@ -1,6 +1,6 @@
 # Range facet counters add every hit the fastMatchQuery rejects to FacetResult.value, so the dimension total is too high and depends on the segment layout
 
-Bug LFV-151 · Area: facet / range and range-on-range facet counts (FacetResult.value with a fastMatchQuery) · Priority: medium · Impact: silent wrong results · Novelty: new
+Bug LFV-151 · Area: facet / range and range-on-range facet counts (FacetResult.value with a fastMatchQuery) · Priority: low · Impact: silent wrong results · Novelty: new
 
 Bug page: [../../bugs/LFV-151.html](../../bugs/LFV-151.html)
 
@@ -10,19 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build a range facet counter (LongRangeFacetCounts or DoubleRangeFacetCounts on a single-valued field or values source, or a range-on-range counter) with a fastMatchQuery that removes only hits outside every range, which is what it is for, and read FacetResult.value. You expect the same dimension total as without the fastMatchQuery: the number of hits that fall into at least one range. Instead each segment adds all of its hits up front but subtracts only the documents the fastMatchQuery let through, so the hits it rejected stay in the total (3 instead of 1 in the minimal repro, while the range count is 1), and the same documents and query give 3 in one segment and 1 in two.
 
+The test shows that LongRangeFacetCounts with a fastMatchQuery that only rejects documents outside the range counts those rejected hits in FacetResult.value (one segment, v = 0, 10, 20, range [0,5]).
+
 ## Expected vs actual
 
-- Expected: `FacetResult.value` is 1 for every counter, with or without the `fastMatchQuery`, in one segment or two.
-- Actual: With the `fastMatchQuery` in one segment the totals are `[3, 3, 3, 3, 3, 3, 1]` (only the multi-valued control is right), in two segments 1; every range count is 1.
+Expected total 1 (only v=0 is in a range, the same as without the fastMatchQuery); actual 3 (`expected:<1> but was:<3>`).
 
 ## Files
 
-- [src/org/apache/lucene/facet/rangeonrange/TestRangeOnRangeFastMatchTotalCount.java](src/org/apache/lucene/facet/rangeonrange/TestRangeOnRangeFastMatchTotalCount.java) (JUnit test)
+- [src/org/apache/lucene/facet/range/TestLongRangeFacetFastMatchTotal.java](src/org/apache/lucene/facet/range/TestLongRangeFacetFastMatchTotal.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,19 +42,12 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.facet.rangeonrange.TestRangeOnRangeFastMatchTotalCount
+     execute --select-class org.apache.lucene.facet.range.TestLongRangeFacetFastMatchTotal
 ```
 
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestRangeFacetFastMatchTotal.java](TestRangeFacetFastMatchTotal.java)
-- [TestRangeOnRangeFastMatchTotalCount.java](TestRangeOnRangeFastMatchTotalCount.java)
-- [TestRangeFacetTotalFastMatchV1.java](TestRangeFacetTotalFastMatchV1.java)
-- [TestRangeFacetTotalSegmentDependence.java](TestRangeFacetTotalSegmentDependence.java)
 
 ## Feedback
 

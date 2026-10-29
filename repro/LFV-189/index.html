@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index doubles as raw IEEE bits in a NUMERIC doc-values field with a skip index (NumericDocValuesField.indexedField(&#x27;rating&#x27;, Double.doubleToRawLongBits(v))) and search BooleanQuery(SHOULD FunctionScoreQuery(MatchAllDocsQuery, DoubleValuesSource.fromDoubleField(&#x27;rating&#x27;)), SHOULD TermQuery) for the top hit, expecting the same top hit as an exhaustive search (a NaN value simply scores 0, as upstream TestFunctionScoreQuery#testNaN expects). Instead, with 5,000 docs valued 0.5, one NaN at doc 4500 and 50.0 at doc 4999, TOP_SCORES returns doc 1 (score 4.19) instead of doc 4999 (score 50). The cause is that fromDoubleField declares Double::longBitsToDouble INCREASING, so a block&#x27;s maximum is read as the decoded largest raw long: NaN&#x27;s raw bits are above every number&#x27;s, giving a NaN bound, and negative values are in reverse raw order, so a block holding {-1.0, -2.0} reports getMaxScore -2.0 and getMinScore -1.0.</p>
+<p>The test shows that <code>DoubleValuesSource.fromDoubleField</code> reads skip-index bounds as if raw IEEE bits were ordered like doubles, so a block of {-1.0, -2.0} gets a max bound of -2.0, and one NaN in a block makes <code>FunctionScoreQuery</code> in a disjunction lose the true top hit.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> With 5,000 docs valued 0.5, one NaN at doc 4500 and 50.0 at doc 4999, TOP_SCORES returns doc 1 (score 4.19) instead of doc 4999 (score 50).</li></ul>
+<p>Expected: <code>getMaxScore &gt;= -1.0</code>, and doc 4097 (rating 50) as the top hit of <code>search(q, 1)</code>. Actual: <code>getMaxScore = -2.0</code>, and doc 1 as the top hit.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/queries/function/TestDoubleFieldSkipperBounds.java"><code>src/org/apache/lucene/queries/function/TestDoubleFieldSkipperBounds.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/queries/function/TestRawBitsDoubleFieldBounds.java"><code>src/org/apache/lucene/queries/function/TestRawBitsDoubleFieldBounds.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 2 test(s) run, 2 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -45,7 +46,7 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queries.function.TestDoubleFieldSkipperBounds</code></pre>
+     execute --select-class org.apache.lucene.queries.function.TestRawBitsDoubleFieldBounds</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/function-queries-bmw/index.html">function-queries-bmw</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

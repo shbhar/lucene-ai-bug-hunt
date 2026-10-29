@@ -22,14 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You use HnswBitVectorsFormat, which accepts only byte vectors, and by mistake add a document with a float vector field (KnnFloatVectorField) that is new to the index. You expect addDocument to reject that one document with IllegalArgumentException and the writer to stay open, as the format&#x27;s own test TestHnswBitVectorsFormat#testFloatVectorFails expects the exception and as happens for the same codec&#x27;s dimension limit and for a vector dimension mismatch. Instead the check sits in KnnVectorsWriter#addField, which IndexingChain calls after registering the field and treats as an aborting step, so the exception also becomes the writer&#x27;s tragic exception: IndexWriter closes itself, the next call throws AlreadyClosedException, and the documents added since the last commit are gone (the repro ends with 1 committed document instead of 3).</p>
+<p>The test shows that with <code>HnswBitVectorsFormat</code> (byte vectors only), <code>addDocument</code> of one <code>KnnFloatVectorField</code> throws the expected <code>IllegalArgumentException</code>, but the same exception also becomes the <code>IndexWriter</code>&#x27;s tragic exception, so the writer closes itself (and drops everything since the last commit).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect addDocument to reject that one document with IllegalArgumentException and the writer to stay open, as the format&#x27;s own test TestHnswBitVectorsFormat#testFloatVectorFails expects the exception and as happens for the same codec&#x27;s dimension limit and for a vector dimension mismatch.</li><li><b>Actual:</b> The check sits in KnnVectorsWriter#addField, which IndexingChain calls after registering the field and treats as an aborting step, so the exception also becomes the writer&#x27;s tragic exception: IndexWriter closes itself, the next call throws AlreadyClosedException, and the documents added since the last commit are gone (the repro ends with 1 committed document instead of 3).</li></ul>
+<p>Expected <code>getTragicException()</code> to be null after the rejected document; actual: <code>IllegalArgumentException: HnswBitVectorsFormat only supports BYTE encoding</code>, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/codecs/bitvectors/TestBitVectorsFloatFieldClosesWriter.java"><code>src/org/apache/lucene/codecs/bitvectors/TestBitVectorsFloatFieldClosesWriter.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/org/apache/lucene/codecs/bitvectors/TestBitVectorsFloatFieldClosesWriterPortable.java"><code>src/org/apache/lucene/codecs/bitvectors/TestBitVectorsFloatFieldClosesWriterPortable.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/codecs/bitvectors/TestBitVectorsRejectedFloatField.java"><code>src/org/apache/lucene/codecs/bitvectors/TestBitVectorsRejectedFloatField.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -45,11 +45,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.codecs.bitvectors.TestBitVectorsFloatFieldClosesWriter
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.codecs.bitvectors.TestBitVectorsFloatFieldClosesWriterPortable</code></pre>
+     execute --select-class org.apache.lucene.codecs.bitvectors.TestBitVectorsRejectedFloatField</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

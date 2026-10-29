@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You add a document whose 8-dimensional KnnFloatVectorField (built from one shared frozen FieldType) does not match the field's 4 dimensions, and Lucene correctly rejects it; you then index an IndexWriter#addBatch with a 4-dimensional vector column for the same field and add the same kind of 8-dimensional document again. You expect the same IllegalArgumentException, because Lucene requires a field to keep the same data structures in every document and checks each document against them. Instead the batch marks the rejected document's FieldType as already validated, so until the next flush every document with that FieldType instance skips the check: the 8-dimensional vector is accepted and stored as its first 4 values (CheckIndex clean), and a SORTED value for a NUMERIC doc-values field fails with ClassCastException instead of the schema error.
 
+The test shows that after a document with an 8-dim `KnnFloatVectorField` (one frozen `FieldType`) is rejected on a 4-dim field, an `IndexWriter#addBatch` with a 4-dim vector column for that field makes the writer accept the same 8-dim document (its vector is stored truncated to 4 values).
+
 ## Expected vs actual
 
-- Expected: You expect the same IllegalArgumentException, because Lucene requires a field to keep the same data structures in every document and checks each document against them.
-- Actual: The batch marks the rejected document's FieldType as already validated, so until the next flush every document with that FieldType instance skips the check: the 8-dimensional vector is accepted and stored as its first 4 values (CheckIndex clean), and a SORTED value for a NUMERIC doc-values field fails with ClassCastException instead of the schema error.
+Expected `IllegalArgumentException` on the second add, as on the first; actual: `Expected exception IllegalArgumentException but no exception was thrown`, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/index/TestAddBatchCachesRejectedFieldType.java](src/org/apache/lucene/index/TestAddBatchCachesRejectedFieldType.java) (JUnit test)
+- [src/org/apache/lucene/index/TestAddBatchRejectedFrozenType.java](src/org/apache/lucene/index/TestAddBatchRejectedFrozenType.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,7 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestAddBatchCachesRejectedFieldType
+     execute --select-class org.apache.lucene.index.TestAddBatchRejectedFrozenType
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

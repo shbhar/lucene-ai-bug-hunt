@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 The javadoc of IndexReader#decRef says 'If an exception is hit, the refCount is unchanged', so after a final decRef that throws (for example because a reader-closed listener or the reader's doClose throws IOException) getRefCount should still be 1. Instead the count is 0, the reader is closed, and a retried decRef throws AlreadyClosedException. The code is the intended side: LUCENE-5553 (2014) deliberately made a failing close really close the reader and still notify every listener, and removed the old put-back-on-failure code that the sentence described, so the fix is javadoc-only.
 
+The test shows (LFV-497, documentation defect) that a final `IndexReader.decRef()` whose reader-closed listener throws IOException leaves the reader closed at refCount 0, contradicting the decRef javadoc "If an exception is hit, the refCount is unchanged".
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The count is 0, the reader is closed, and a retried decRef throws AlreadyClosedException.
+Expected (per javadoc): getRefCount() == 1 after the failed decRef; actual (-ea and -da): 0 ("refCount after the failed decRef expected:&lt;1&gt; but was:&lt;0&gt;"); the code is intended (LUCENE-5553), the fix is javadoc-only.
 
 ## Files
 
@@ -19,7 +20,8 @@ The javadoc of IndexReader#decRef says 'If an exception is hit, the refCount is 
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

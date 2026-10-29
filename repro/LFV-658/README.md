@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You add a noun such as 학교 ('school') to a nori user dictionary, or a new word such as 깃허브, and analyze '학교가' or '깃허브가 있다' with KoreanTokenizer or KoreanAnalyzer, and expect the noun to connect to the following particle like a plain common noun (NNG) with the same final syllable, which is what the constants' own comments say ('NNG left', 'NNG right with hangul and a coda on the last char', '... no coda') and what 9.x does. Instead the four hard-coded user-noun context ids are still the numbers of mecab-ko-dic 2.0.3, while 10.0.0 switched the bundled dictionary to mecab-ko-dic 2.1.1, in which those numbers name other contexts (the coda flag is inverted and the left id is a 'state change' noun subclass), so the subject particle 가 is analyzed as the verb 가 'go' (VV) and 이 as the copula (VCP) or a complement particle, and KoreanAnalyzer indexes [학교, 가] instead of [학교] and [깃허브, 가, 있] instead of [깃허브, 있]. Setting the constants to the 2.1.1 ids (LEFT_ID 1780, RIGHT_ID 3532, RIGHT_ID_T 3534, RIGHT_ID_F 3533) restores the analysis the bundled dictionary gives the same noun.
 
+The test shows that adding the plain noun `학교` to a nori user dictionary changes how `KoreanAnalyzer` analyses `학교가`, because the user-noun context ids are still those of mecab-ko-dic 2.0.3 while the bundled dictionary is 2.1.1.
+
 ## Expected vs actual
 
-- Expected: The user entry 학교 gets the bundled ids `1780/3533`, `학교가` is tagged `가/JKS`, and `KoreanAnalyzer` indexes `[학교]`.
-- Actual: User 학교 gets `1781/3534`, `학교가` is tagged `가/VV`, and `KoreanAnalyzer` indexes `[학교, 가]`: 3 of 3 tests fail, with assertions on and off.
+Expected `[학교]`, the terms without the user entry; actual: `[학교, 가]` (`expected:<[학교]> but was:<[학교, 가]>`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/ko/TestUserDictionaryContextIds.java](src/org/apache/lucene/analysis/ko/TestUserDictionaryContextIds.java) (JUnit test)
+- [src/org/apache/lucene/analysis/ko/TestUserNounParticle.java](src/org/apache/lucene/analysis/ko/TestUserNounParticle.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,22 +39,15 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.ko.TestUserDictionaryContextIds
+     execute --select-class org.apache.lucene.analysis.ko.TestUserNounParticle
 ```
 
 The module(s) analysis-nori also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestUserNounContextIds.java](TestUserNounContextIds.java)
-- [Lfv658Probe.java](Lfv658Probe.java)
-- [TestUserDictionaryContextIds.java](TestUserDictionaryContextIds.java)
-- [TestUserNounParticleV1.java](TestUserNounParticleV1.java)
 
 ## Feedback
 

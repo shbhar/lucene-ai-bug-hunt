@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You merge two shards' results (5 hits in total) with TopDocs.merge(1, Integer.MAX_VALUE, shards) to get every hit after the first, and expect the 4 remaining hits in score order, the same as TopDocs.merge(1, 4, shards) returns. Instead you get an array of length 4 in which every entry is null, and no exception: merge adds start + topN in int, the sum wraps to a negative number, and the loop that copies hits never runs. The Sort and tie-breaker overloads behave the same way; start + topN = 2^31 - 1 still works and 2^31 fails.
 
+The test shows that `TopDocs.merge(start, topN, shardHits)` returns null hits when `start + topN` overflows int, here `merge(1, Integer.MAX_VALUE,...)` over one TopDocs with 2 hits.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: You get an array of length 4 in which every entry is null, and no exception: merge adds start + topN in int, the sum wraps to a negative number, and the loop that copies hits never runs.
+Expected: the page `[second hit]`. Actual: `[null]` (`expected:<doc=1 score=1.0 shardIndex=-1> but was:<null>`), with `-ea` and `-da`.
 
 ## Files
 
@@ -19,8 +20,8 @@ You merge two shards' results (5 hits in total) with TopDocs.merge(1, Integer.MA
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

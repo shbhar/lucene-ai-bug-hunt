@@ -10,19 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index Thai text such as 'ประชุมวันที่ 1 ม.ค.2567' or 'ราคา ฿1,500' with the stock ThaiAnalyzer and expect the year 2567 or the amount 1,500 to be searchable, as they are when written 'พ.ศ. 2567' or 'ราคา 1,500 บาท'. Instead the number never reaches the index: the JDK word BreakIterator returns it together with its leading period or currency sign as one segment ('.2567', '฿1,500'), and ThaiTokenizer skips any segment whose first character is not a letter or digit, so the whole number is thrown away. A TermQuery for 2567 then finds 0 documents instead of 1, with no error.
 
+The test shows that the stock `ThaiAnalyzer` drops the year in 'พ.ศ.2567' (Buddhist Era 2567), because `ThaiTokenizer` skips the whole word segment '.2567' when its first character is not a letter or digit.
+
 ## Expected vs actual
 
-- Expected: `ราคา ฿1,500` -&gt; `[ราคา, 1,500]`, `พ.ศ.2567` -&gt; `[พ, ศ, 2567]`, and `TermQuery(f:2567)` on `ประชุมวันที่ 1 ม.ค.2567` -&gt; 1 hit.
-- Actual: `[ราคา]`, `[พ, ศ]` and 0 hits; the controls `ราคา 1,500 บาท` and `พ.ศ. 2567` keep their numbers.
+Expected tokens: [พ, ศ, 2567]. Actual: [พ, ศ] (`AssertionError: token 2 does not exist`).
 
 ## Files
 
-- [src/org/apache/lucene/analysis/th/TestThaiTokenizerNumberAfterPeriod.java](src/org/apache/lucene/analysis/th/TestThaiTokenizerNumberAfterPeriod.java) (JUnit test)
+- [src/org/apache/lucene/analysis/th/TestThaiAnalyzerNumberAfterPeriod.java](src/org/apache/lucene/analysis/th/TestThaiAnalyzerNumberAfterPeriod.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,16 +42,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.th.TestThaiTokenizerNumberAfterPeriod
+     execute --select-class org.apache.lucene.analysis.th.TestThaiAnalyzerNumberAfterPeriod
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestThaiNumberAfterPrefix.java](TestThaiNumberAfterPrefix.java)
-- [TestThaiTokenizerPrefixedNumbers.java](TestThaiTokenizerPrefixedNumbers.java)
-- [ThaiPrefixProbe.java](ThaiPrefixProbe.java)
 
 ## Feedback
 

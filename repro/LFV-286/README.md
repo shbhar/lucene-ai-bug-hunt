@@ -10,19 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index 'a b' and read the intervals of Intervals.atLeast(1, term a, term b), or search ordered(c, atLeast(1, a, b)) over 'a c b'; you expect [0,0] and [1,1], exactly what or(a, b) returns, and one hit. Instead atLeast returns only [0,0] and the ordered query finds nothing: when the sub-iterator just popped from atLeast's proximity queue has no further interval, nextInterval does not pull a replacement from its background queue and ends, although the other source still has intervals. The same hand-over never advances waiting sub-iterators past the current start, so atLeast(1, b, phrase(a, b)) on 'a b b' returns [1,1] then [0,1] (out of order, and [0,1] contains [1,1]) and loses [2,2].
 
+The test shows that Intervals.atLeast(1, term a, term b) over the text "a b" stops after the first interval (TestAtLeastOneLosesLastInterval#testAtLeastOneOfTwoTerms).
+
 ## Expected vs actual
 
-- Expected: `[0,0], [1,1]` on "a b"; 1 hit for the nested query on "a c b"; `[0,2], [1,3]` for k = 2 on "a b c d"; `[1,1], [2,2]` on "a b b".
-- Actual: `[0,0]`; 0 hits; `[0,2]`; `[1,1], [0,1]` (out of order, not minimal): every case loses intervals.
+Expected intervals [0,0] and [1,1] (what or(a, b) returns); actual only [0,0], with -ea and -da.
 
 ## Files
 
-- [src/org/apache/lucene/queries/intervals/TestAtLeastExhaustedSource.java](src/org/apache/lucene/queries/intervals/TestAtLeastExhaustedSource.java) (JUnit test)
+- [src/org/apache/lucene/queries/intervals/TestAtLeastOneLosesLastInterval.java](src/org/apache/lucene/queries/intervals/TestAtLeastOneLosesLastInterval.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,18 +39,13 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions on, seed DEADBEEF
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed 5EED0286
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=5EED0286 \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queries.intervals.TestAtLeastExhaustedSource
+     execute --select-class org.apache.lucene.queries.intervals.TestAtLeastOneLosesLastInterval
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestAtLeastLostIntervals.java](TestAtLeastLostIntervals.java)
-- [hand-over.diff](hand-over.diff)
 
 ## Feedback
 

@@ -23,14 +23,15 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>Query q = apple OR banana is registered in a Monitor; one thread re-registers q as cherry OR apple while another thread matches a document that contains apple. You expect the match to report q, because both versions of q match the document and every serial order of the two calls reports it. Instead the match can return no queries: register has already replaced the cache entry q_0 with the new first clause (cherry) while the searcher still holds the old index documents, so the old document for apple resolves to the cherry clause, which does not match, and the new apple clause is not searchable yet; once register returns, the same match reports q again.</p>
+<p>The test shows that a Monitor.match on another thread while Monitor.register re-registers q (apple OR banana -&gt; cherry OR apple) and is inside IndexWriter.commit() misses q (<code>TestMonitorMatchDuringReRegister#testMatchOnOtherThreadWhileReRegisterCommits</code>, one document).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> Every match of the document <code>apple</code> reports <code>q</code>: before, during and after the <code>register</code> call.</li><li><b>Actual:</b> During <code>register</code> the match returns no queries (<code>before=true during=false after=true</code>); the control edit keeps matching.</li></ul>
+<p>Expected: the match of &#x27;apple&#x27; reports q, since both versions match it. Actual: no match (the cache already maps q_0 to cherry while the searcher still has the old apple document); fails with -ea and -da.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/monitor/TestMonitorUpdateWindow.java"><code>src/org/apache/lucene/monitor/TestMonitorUpdateWindow.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/org/apache/lucene/monitor/MonitorUpdateWindowMain.java"><code>src/org/apache/lucene/monitor/MonitorUpdateWindowMain.java</code></a> <span class="dim">(main() class)</span></li>
+<li><a href="src/org/apache/lucene/monitor/TestMonitorMatchDuringReRegister.java"><code>src/org/apache/lucene/monitor/TestMonitorMatchDuringReRegister.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
+<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
@@ -48,11 +49,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.monitor.TestMonitorUpdateWindow
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; org.apache.lucene.monitor.MonitorUpdateWindowMain</code></pre>
+     execute --select-class org.apache.lucene.monitor.TestMonitorMatchDuringReRegister</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestMonitorReRegisterDuringMatch.java"><code>TestMonitorReRegisterDuringMatch.java</code></a></li><li><a href="TestRegisterMatchStressV1.java"><code>TestRegisterMatchStressV1.java</code></a></li><li><a href="TestMonitorUpdateWindow.java"><code>TestMonitorUpdateWindow.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

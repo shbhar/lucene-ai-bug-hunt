@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index a valid polygon whose three holes meet only at one corner P, for example the triangle (0,0) (7,12) (12,2) with the holes A (8,8) (6,7) (7,6), B (9,3) (10,4) (7,6) and C (6,6) (6,4) (7,4) (7,6), which all touch at P=(7,6) (the Tessellator javadoc allows 'Holes may only touch at one vertex'), and you expect XYShape.createIndexableFields or LatLonShape.createIndexableFields to return its triangles, as 10.3.x does for every hole order. Since #15700 (first released in 10.4.0), once the first holes are joined at P the ring holds several copies of P, each bounding a different wedge around P, and when hole B (whose left-most vertex is P) is joined, the Tessellator takes the first copy of P in ring order, through an index comparison that depends on the input order of the holes, without checking that B lies in that copy's wedge. For the hole orders ABC, ACB and BAC this picks a wrong copy and both calls throw IllegalArgumentException 'Unable to Tessellate shape', and upstream's own LUCENE-9400 regression polygon (TestTessellator.testComplexPolygon41) is likewise rejected in 3 of its 6 hole orders.
 
+The test shows that upstream's own LUCENE-9400 polygon (TestTessellator#testComplexPolygon41), with its third hole listed first, is rejected by `LatLonShape.createIndexableFields`, although the original hole order is accepted.
+
 ## Expected vs actual
 
-- Expected: Every hole order is accepted: 13 triangles with area 59 for the small polygon, as on 9.11.1 to 10.3.2.
-- Actual: Orders ABC, ACB and BAC of the small polygon, and (1,2,0), (2,0,1) and (2,1,0) of the LUCENE-9400 polygon, throw `IllegalArgumentException: Unable to Tessellate shape. Possible malformed shape detected.`
+Expected the polygon to index as with the original hole order; actual `IllegalArgumentException: Unable to Tessellate shape. Possible malformed shape detected.` (-ea and -da).
 
 ## Files
 
@@ -21,7 +22,8 @@ You index a valid polygon whose three holes meet only at one corner P, for examp
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -43,14 +45,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestShapeHolesMeetingAtOneVertex.java](TestShapeHolesMeetingAtOneVertex.java)
-- [test-tessellator.diff](test-tessellator.diff)
-- [TestTessellatorThreeHolesSharedVertex.java](TestTessellatorThreeHolesSharedVertex.java)
-- [TestThreeHolesMeetAtOneVertexV1.java](TestThreeHolesMeetAtOneVertexV1.java)
-- [TestThreeHolesPermutations.java](TestThreeHolesPermutations.java)
 
 ## Feedback
 

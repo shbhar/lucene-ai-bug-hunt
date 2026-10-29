@@ -1,6 +1,6 @@
 # Classic Highlighter counts the unused positions before a MultiPhraseQuery's first position as gaps, so a phrase that starts at position 1 or later (a leading stop word plus a synonym) is highlighted with extra slop and non-matching pairs get marked
 
-Bug LFV-829 · Area: highlighter / original Highlighter, QueryScorer and WeightedSpanTermExtractor (MultiPhraseQuery-to-span conversion) · Priority: medium · Impact: silent wrong results · Novelty: new
+Bug LFV-829 · Area: highlighter / original Highlighter, QueryScorer and WeightedSpanTermExtractor (MultiPhraseQuery-to-span conversion) · Priority: low · Impact: silent wrong results · Novelty: new
 
 Bug page: [../../bugs/LFV-829.html](../../bugs/LFV-829.html)
 
@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You search for the quoted phrase "the dogs bark" with an analyzer that removes the stop word 'the' and adds the synonym dog for dogs (QueryParser and QueryBuilder build a MultiPhraseQuery [dogs|dog] at position 1, bark at position 2, slop 0), and highlight the text 'dogs often bark but my dogs bark' with Highlighter and QueryScorer, expecting 'dogs often bark but my &lt;B&gt;dogs&lt;/B&gt; &lt;B&gt;bark&lt;/B&gt;' (Weight#matches reports only positions 5-6, and the same query starting at position 0, or a PhraseQuery at positions 1 and 2, is highlighted that way). Instead you get '&lt;B&gt;dogs&lt;/B&gt; often &lt;B&gt;bark&lt;/B&gt; but my &lt;B&gt;dogs&lt;/B&gt; &lt;B&gt;bark&lt;/B&gt;', with no error. WeightedSpanTermExtractor counts every empty slot from index 0 up to the last position as a position gap, including the unused slot 0 below the first position, so the phrase becomes an ordered SpanNearQuery with slop 1 instead of 0 (one extra unit per leading slot, also for sloppy phrases), while its PhraseQuery branch measures gaps from the first position.
 
+The test shows that the classic `Highlighter` with `QueryScorer` adds one unit of slop for each unused position before a `MultiPhraseQuery`'s first position, so `[dogs|dog]@1 bark@2` (slop 0, what `QueryBuilder` builds for "the dogs bark" with a stop word and a synonym) also marks the non-adjacent "dogs often bark".
+
 ## Expected vs actual
 
-- Expected: `dogs often bark but my <B>dogs</B> <B>bark</B>`, as for the same query at positions 0,1 and for the `PhraseQuery` at 1,2.
-- Actual: `<B>dogs</B> often <B>bark</B> but my <B>dogs</B> <B>bark</B>`: the non-matching pair one word apart is marked too; no error.
+Expected `dogs often bark but my <B>dogs</B> <B>bark</B>`; actual `<B>dogs</B> often <B>bark</B> but my <B>dogs</B> <B>bark</B>`, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/search/highlight/TestHighlighterMultiPhraseLeadingPosition.java](src/org/apache/lucene/search/highlight/TestHighlighterMultiPhraseLeadingPosition.java) (JUnit test)
+- [src/org/apache/lucene/search/highlight/TestMultiPhraseLeadingPositionHighlight.java](src/org/apache/lucene/search/highlight/TestMultiPhraseLeadingPositionHighlight.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -42,16 +44,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.highlight.TestHighlighterMultiPhraseLeadingPosition
+     execute --select-class org.apache.lucene.search.highlight.TestMultiPhraseLeadingPositionHighlight
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestHighlighterMultiPhraseLeadingPosition.java](TestHighlighterMultiPhraseLeadingPosition.java)
-- [TestMultiPhraseFirstPositionAboveZero.java](TestMultiPhraseFirstPositionAboveZero.java)
-- [TestMpqOffsetInvariance.java](TestMpqOffsetInvariance.java)
 
 ## Feedback
 

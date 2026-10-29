@@ -23,13 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You take a geo3d box whose east edge is near the dateline, for example longitudes [2.5, 3.0] radians, and call expand(0.3), or in a Geo3D spatial context you search &#x27;Intersects(BUFFER(ENVELOPE(172, 178, 4, -4), 4))&#x27;. You expect each bound to move out by the angle, so the box now crosses the dateline and reaches -2.983 radians (-178 degrees), as the same code already does for a box that crosses the dateline and as spatial4j&#x27;s own geo rectangle buffer does. Instead expand passes the unwrapped bound 3.3 to GeoBBoxFactory.makeGeoBBox, which clamps it to PI, so the box stops at 180 degrees and a document at (-179.5, 1) is not found (0 hits instead of 1); the west edge and all 13 GeoBBox classes with a longitude range behave the same way.</p>
+<p>The test shows that <code>GeoBBox.expand</code> clamps a longitude bound moved past the dateline at PI instead of wrapping it: a SPHERE box with lon [2.5, 3.0] expanded by 0.3 stops at 180 degrees.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>[2.5, 3.0].expand(0.3)</code> reaches -2.983 rad across the dateline, and the Geo3D <code>Intersects(BUFFER(ENVELOPE(172, 178, 4, -4), 4))</code> query finds the point at (-179.5, 1): 1 hit.</li><li><b>Actual:</b> The expanded box stops at <code>rightlon = π (180°)</code>, and the Geo3D query returns 0 hits; the plain geo context returns 1.</li></ul>
+<p>Expected the expanded box to reach lon 3.3 - 2 PI and contain the point at lon 3.2 - 2 PI; actual <code>isWithin</code> false, box <code>leftlon=2.2, rightlon=3.141592653589793(180.0)</code>, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/spatial3d/geom/TestGeoBBoxExpandAcrossDateline.java"><code>src/org/apache/lucene/spatial3d/geom/TestGeoBBoxExpandAcrossDateline.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/org/apache/lucene/spatial/spatial4j/TestGeo3dRectangleBufferedAcrossDateline.java"><code>src/org/apache/lucene/spatial/spatial4j/TestGeo3dRectangleBufferedAcrossDateline.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -37,7 +38,6 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
-CP=$CP:$LUCENE/lucene/spatial-extras/build/libs/lucene-spatial-extras-$V.jar
 CP=$CP:$LUCENE/lucene/spatial3d/build/libs/lucene-spatial3d-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
@@ -47,9 +47,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.spatial3d.geom.TestGeoBBoxExpandAcrossDateline \
-       --select-class org.apache.lucene.spatial.spatial4j.TestGeo3dRectangleBufferedAcrossDateline</code></pre>
-<p class="small">The module(s) spatial-extras also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
+     execute --select-class org.apache.lucene.spatial3d.geom.TestGeoBBoxExpandAcrossDateline</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestGeoBBoxExpandAcrossDateline.java"><code>TestGeoBBoxExpandAcrossDateline.java</code></a></li><li><a href="TestGeo3dBufferQueryAcrossDateline.java"><code>TestGeo3dBufferQueryAcrossDateline.java</code></a></li><li><a href="TestExpandRotationInvariance.java"><code>TestExpandRotationInvariance.java</code></a></li><li><a href="4-TestGeoBBoxExpandAcrossDateline.java"><code>4-TestGeoBBoxExpandAcrossDateline.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

@@ -22,12 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You run CheckIndex with more than one thread (the default checkIndex on a multi-core machine, or checkIndex(onlySegments, executor)) and your application interrupts the checking thread while it waits for a segment&#x27;s result, for example to cancel the check. You expect either the outcome the code&#x27;s own handler is written for (it logs &#x27;ERROR: Interrupted exception occurred when getting segment check result for segment...&#x27; and goes on) or an interrupt-type exception such as ThreadInterruptedException, the convention IndexWriter documents. Instead the handler logs and then passes the still-null segment status to processSegmentInfoStatusResult, which throws NullPointerException (&#x27;Cannot read field &quot;error&quot; because &quot;segmentInfoStatus&quot; is null&#x27;), with the interrupt flag cleared and, on a caller-owned pool, the remaining segment checks still running.</p>
+<p>The test shows that <code>CheckIndex.checkIndex(onlySegments, executor)</code> throws NullPointerException when the calling thread is interrupted while a segment check is still pending: the <code>InterruptedException</code> handler logs and then processes the null segment status.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect either the outcome the code&#x27;s own handler is written for (it logs &#x27;ERROR: Interrupted exception occurred when getting segment check result for segment...&#x27; and goes on) or an interrupt-type exception such as ThreadInterruptedException, the convention IndexWriter documents.</li><li><b>Actual:</b> The handler logs and then passes the still-null segment status to processSegmentInfoStatusResult, which throws NullPointerException (&#x27;Cannot read field &quot;error&quot; because &quot;segmentInfoStatus&quot; is null&#x27;), with the interrupt flag cleared and, on a caller-owned pool, the remaining segment checks still running.</li></ul>
+<p>Expected a <code>Status</code> or <code>ThreadInterruptedException</code>; actual: <code>NullPointerException: Cannot read field &quot;error&quot; because &quot;segmentInfoStatus&quot; is null</code>, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/index/TestCheckIndexInterruptedCaller.java"><code>src/org/apache/lucene/index/TestCheckIndexInterruptedCaller.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

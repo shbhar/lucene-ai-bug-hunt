@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You format the passage 'one two three' with two crossing markers, [0,7) written as &lt;a&gt;...&lt;/a&gt; and [4,13) as &lt;b&gt;...&lt;/b&gt;, using PassageFormatter's Function constructor, or you highlight the crossing phrase queries 'one two' and 'two three' with MatchHighlighter.highlight(topDocs, q1, q2) and one tag per query. You expect well-nested output, '&lt;a&gt;one &lt;b&gt;two&lt;/b&gt;&lt;/a&gt;&lt;b&gt; three&lt;/b&gt;', because when a marker ends the formatter closes and re-opens the markers opened after it precisely to resolve the overlap into nested markup (Passage javadoc: markers 'can be overlapping or nested'). Instead it closes those markers in opening order rather than innermost first and returns '&lt;a&gt;one &lt;b&gt;two&lt;/a&gt;&lt;/b&gt;&lt;b&gt; three&lt;/b&gt;' (end to end '&lt;q1&gt;one &lt;q2&gt;two&lt;/q1&gt;&lt;/q2&gt;&lt;q2&gt; three&lt;/q2&gt;'), which an XML parser rejects.
 
+The test shows that matchhighlight PassageFormatter, with per-marker end strings, closes two crossing markers in opening order instead of innermost first, so the end tags come out mis-nested.
+
 ## Expected vs actual
 
-- Expected: You expect well-nested output, '&lt;a&gt;one &lt;b&gt;two&lt;/b&gt;&lt;/a&gt;&lt;b&gt; three&lt;/b&gt;', because when a marker ends the formatter closes and re-opens the markers opened after it precisely to resolve the overlap into nested markup (Passage javadoc: markers 'can be overlapping or nested').
-- Actual: It closes those markers in opening order rather than innermost first and returns '&lt;a&gt;one &lt;b&gt;two&lt;/a&gt;&lt;/b&gt;&lt;b&gt; three&lt;/b&gt;' (end to end '&lt;q1&gt;one &lt;q2&gt;two&lt;/q1&gt;&lt;/q2&gt;&lt;q2&gt; three&lt;/q2&gt;'), which an XML parser rejects.
+For 'foo bar baz' with [0,7) as &lt;a&gt; and [4,11) as &lt;b&gt;: expected `<a>foo <b>bar</b></a><b> baz</b>`; actual `<a>foo <b>bar</a></b><b> baz</b>`, with `-ea` and `-da`.
 
 ## Files
 
@@ -19,7 +20,8 @@ You format the passage 'one two three' with two crossing markers, [0,7) written 
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

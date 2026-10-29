@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You run an ordinary top-k search such as searcher.search(query, 10) with a BayesianScoreQuery whose calibrated scores (probabilities) are all below 1e-7, and more than 1,000 documents match. You expect the same top hits as an exhaustive search, because the scores are a monotone transform of the inner BM25 scores and explain reports exactly those scores. Instead, once the collector starts pruning, BayesianScoreQuery rounds the requested minimum score up to 1e-7 before turning it into a BM25 threshold for the inner query, so the inner query skips documents that are still competitive and the search returns weaker hits (in the repros, in effect the first matches in doc-id order) with no error.
 
+The test shows that `BayesianScoreQuery` raises the minimum competitive score to 1e-7 before passing it to its inner query, so a default top-k search drops the best hit when every calibrated score is below 1e-7 and more than 1,000 documents match.
+
 ## Expected vs actual
 
-- Expected: You expect the same top hits as an exhaustive search, because the scores are a monotone transform of the inner BM25 scores and explain reports exactly those scores.
-- Actual: Once the collector starts pruning, BayesianScoreQuery rounds the requested minimum score up to 1e-7 before turning it into a BM25 threshold for the inner query, so the inner query skips documents that are still competitive and the search returns weaker hits (in the repros, in effect the first matches in doc-id order) with no error.
+Expected `search(q, 1)` to return the exhaustive top hit, doc 5000 (1.8876845E-8); actual: doc 3900 (1.16228565E-8) (`expected:<5000> but was:<3900>`), with `-ea` and `-da`.
 
 ## Files
 
@@ -19,8 +20,8 @@ You run an ordinary top-k search such as searcher.search(query, 10) with a Bayes
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

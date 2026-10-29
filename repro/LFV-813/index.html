@@ -22,12 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You run a RegexpQuery, or a classic QueryParser query /&lt;+1-+9&gt;/, on a field with the terms 5 and 05. The RegExp javadoc says interval bounds are non-negative decimal integers and that bounds with the same number of digits fix the length of the matching strings, so you expect either an &#x27;interval syntax error&#x27; (as for &#x27;-1&#x27;, &#x27; 1&#x27; or an overflowing bound) or the meaning of &lt;1-9&gt;, which matches 5. Instead the parser accepts the &#x27;+&#x27; and counts it as a digit, so &lt;+1-+9&gt; matches only 01 to 09 and returns 05; &lt;+1-9&gt; and &lt;+100-999&gt; lose their fixed width and accept any number of leading zeros, and &lt;+100-+999&gt; means 0100 to 0999.</p>
+<p>RegExp accepts a leading &#x27;+&#x27; on a numeric-interval bound and counts it as a digit, so &lt;+1-+9&gt; means &lt;01-09&gt;.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect either an &#x27;interval syntax error&#x27; (as for &#x27;-1&#x27;, &#x27; 1&#x27; or an overflowing bound) or the meaning of &lt;1-9&gt;, which matches 5.</li><li><b>Actual:</b> The parser accepts the &#x27;+&#x27; and counts it as a digit, so &lt;+1-+9&gt; matches only 01 to 09 and returns 05; &lt;+1-9&gt; and &lt;+100-999&gt; lose their fixed width and accept any number of leading zeros, and &lt;+100-+999&gt; means 0100 to 0999.</li></ul>
+<p>Expected rejection or the meaning of &lt;1-9&gt; (matches &quot;5&quot;), actual: &quot;5&quot; is not matched and &quot;05&quot; is.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/util/automaton/TestRegExpIntervalBoundSyntax.java"><code>src/org/apache/lucene/util/automaton/TestRegExpIntervalBoundSyntax.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/util/automaton/TestRegExpIntervalPlusSign.java"><code>src/org/apache/lucene/util/automaton/TestRegExpIntervalPlusSign.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -35,10 +37,6 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
-CP=$CP:$LUCENE/lucene/facet/build/libs/lucene-facet-$V.jar
-CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
-CP=$CP:$LUCENE/lucene/queryparser/build/libs/lucene-queryparser-$V.jar
-CP=$CP:$LUCENE/lucene/sandbox/build/libs/lucene-sandbox-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
@@ -47,7 +45,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.util.automaton.TestRegExpIntervalBoundSyntax</code></pre>
-<p class="small">The module(s) facet also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
+     execute --select-class org.apache.lucene.util.automaton.TestRegExpIntervalPlusSign</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

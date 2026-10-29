@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You configure an IndexWriter with NoMergeScheduler (also with NoMergePolicy, the pairing the NoMergeScheduler javadoc recommends) and call addIndexes(CodecReader...). You expect the call to add the readers, as it did up to 9.3.0, or at least to return or throw. Instead, since 9.4.0 (LUCENE-10216) the call hands its reader merge to the merge scheduler and then waits for it with no time limit; NoMergeScheduler.merge does nothing, so the call blocks until another thread interrupts it or rolls the writer back.
 
+The test shows that with `NoMergeScheduler` + `NoMergePolicy`, `IndexWriter.addIndexes(CodecReader...)` of one 1-document reader hands its merge to the scheduler, which never runs it, and parks in `MergeSpecification.await()` with no time limit.
+
 ## Expected vs actual
 
-- Expected: You expect the call to add the readers, as it did up to 9.3.0, or at least to return or throw.
-- Actual: Since 9.4.0 (LUCENE-10216) the call hands its reader merge to the merge scheduler and then waits for it with no time limit; NoMergeScheduler.merge does nothing, so the call blocks until another thread interrupts it or rolls the writer back.
+Expected: the call returns or throws. Actual: `addIndexes must return or throw, but was still blocked after 10 s` (the test then calls `rollback()` to release it).
 
 ## Files
 
@@ -19,7 +20,8 @@ You configure an IndexWriter with NoMergeScheduler (also with NoMergePolicy, the
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

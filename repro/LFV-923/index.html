@@ -22,12 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You search FunctionScoreQuery.boostByQuery(in, boostMatch, 2f), where in and boostMatch are each a 600-term disjunction (1,200 term clauses that all run), with the default maxClauseCount of 1024. You expect TooManyNestedClauses, which you do get for a BooleanQuery holding the same clauses (even when half of them are scoring-only SHOULD or MUST_NOT clauses), because the check counts &#x27;total clauses cumulatively in all of its children&#x27; and LUCENE-8811 made it cumulative so that splitting clauses over sub-queries no longer bypasses it. Instead the search runs with correct hits: FunctionScoreQuery.visit visits only <code>in</code>, FunctionMatchQuery, FunctionRangeQuery and FunctionQuery.visit call visitLeaf(this), DoubleValuesSource and ValueSource have no visit hook, and the embedded query is rewritten later with searcher.rewrite, which checks it alone with a fresh count; FunctionScoreQuery(fromQuery), FunctionMatchQuery(fromQuery) and FunctionQuery/FunctionRangeQuery over QueryValueSource behave the same.</p>
+<p>The test shows that <code>FunctionScoreQuery.boostByQuery(in, boostMatch, 2f)</code> with two 600-term disjunctions (1200 term clauses) is not rejected by IndexSearcher&#x27;s cumulative clause limit, because the boost query is never visited.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect TooManyNestedClauses, which you do get for a BooleanQuery holding the same clauses (even when half of them are scoring-only SHOULD or MUST_NOT clauses), because the check counts &#x27;total clauses cumulatively in all of its children&#x27; and LUCENE-8811 made it cumulative so that splitting clauses over sub-queries no longer bypasses it.</li><li><b>Actual:</b> The search runs with correct hits: FunctionScoreQuery.visit visits only <code>in</code>, FunctionMatchQuery, FunctionRangeQuery and FunctionQuery.visit call visitLeaf(this), DoubleValuesSource and ValueSource have no visit hook, and the embedded query is rewritten later with searcher.rewrite, which checks it alone with a fresh count; FunctionScoreQuery(fromQuery), FunctionMatchQuery(fromQuery) and FunctionQuery/FunctionRangeQuery over QueryValueSource behave the same.</li></ul>
+<p>Expected <code>IndexSearcher.TooManyNestedClauses</code> (default maxClauseCount 1024); actual: the search runs, <code>Expected exception TooManyNestedClauses but no exception was thrown</code> (-ea and -da).</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/queries/function/TestFunctionQueriesVisitEmbeddedQuery.java"><code>src/org/apache/lucene/queries/function/TestFunctionQueriesVisitEmbeddedQuery.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/queries/function/TestBoostByQueryClauseLimit.java"><code>src/org/apache/lucene/queries/function/TestBoostByQueryClauseLimit.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -41,9 +43,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queries.function.TestFunctionQueriesVisitEmbeddedQuery</code></pre>
+     execute --select-class org.apache.lucene.queries.function.TestBoostByQueryClauseLimit</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

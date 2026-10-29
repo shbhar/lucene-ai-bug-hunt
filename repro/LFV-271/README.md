@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build a path with GeoPathFactory.makeGeoPath and a width &gt; 0 and call computeDistance with DistanceStyle.LINEAR_SQUARED (or NORMAL_SQUARED), expecting the square of the LINEAR (or NORMAL) path distance, which is what DistanceStyle's 'convert to aggregation form, aggregate, convert back' contract gives and what end-cap points, the zero-width path and Lucene 9.4.2 return. For a point inside a path segment you get the square of that value instead: 0.00803 rather than 0.0896 for a point whose LINEAR distance is 0.299, so the value jumps about 6x across a segment's end cutoff plane and can rank a farther point ahead of a nearer one. The cause is a leftover conversion from the 2022 path refactor: PathSegment.distance already converts its result back from aggregation form, and GeoStandardPath.distance converts the component tree's result back a second time.
 
+The test shows that `GeoPath.computeDistance(DistanceStyle.LINEAR_SQUARED, p)` on a width-0.1 path (a `GeoStandardPath`) for a point inside the path segment.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+Expected: LINEAR^2 = 0.0896. Actual (-ea and -da): 0.00803 = LINEAR^4, the result is converted back from aggregation form twice.
 
 ## Files
 
@@ -19,8 +20,8 @@ You build a path with GeoPathFactory.makeGeoPath and a width &gt; 0 and call com
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

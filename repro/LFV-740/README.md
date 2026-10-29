@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build a geo3d circle or path on PlanetModel.WGS84 (or call Vector.normalDistance or DistanceStyle.NORMAL.computeDistance on two GeoPoints) and ask for the NORMAL or NORMAL_SQUARED distance, which Vector's javadoc defines as 'the normal (perpendicular) distance to a vector described by a vector taken from the origin', and expect 0 for a point and itself and about 7.85e-6 planet units for a point 50 m from a circle's centre. Instead both come out as 0.00165 (about 10.5 km) at latitude 0.3 rad, because Vector.normalDistanceSquared projects onto the receiver with t = dotProduct(v) and never divides by |this|^2, which is exact only for unit vectors, while WGS84 surface points have lengths between about 0.998 and 1.0011. The same offset enters every NORMAL and NORMAL_SQUARED circle and path distance on non-spherical planet models, with no error; on SPHERE the values are exact.
 
+The test shows that geo3d `Vector.normalDistance` assumes a unit-length receiver, so on WGS84 the normal distance from a point to itself is not 0.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Both come out as 0.00165 (about 10.5 km) at latitude 0.3 rad, because Vector.normalDistanceSquared projects onto the receiver with t = dotProduct(v) and never divides by |this|^2, which is exact only for unit vectors, while WGS84 surface points have lengths between about 0.998 and 1.0011.
+Expected 0 for `p.normalDistance(p)` (WGS84 point at latitude 0.3 rad); actual `expected:<0.0> but was:<0.0016507737062451833>` (-ea and -da).
 
 ## Files
 
@@ -19,7 +20,8 @@ You build a geo3d circle or path on PlanetModel.WGS84 (or call Vector.normalDist
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

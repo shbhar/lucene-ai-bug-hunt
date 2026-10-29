@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index Serbian text with SerbianAnalyzer, which lower-cases, stems and then maps Cyrillic to Latin and removes diacritics (SerbianNormalizationFilter), so &#x27;Београд&#x27; is stored as &#x27;beograd&#x27; and &#x27;Čačak&#x27; as &#x27;cack&#x27;, and you search with a prefix, wildcard, fuzzy, regexp or range query through a query parser, which passes the term through Analyzer.normalize, documented to give &#x27;the representation that it would have in the index&#x27;. SerbianAnalyzer.normalize only lower-cases, so &#x27;Беогр*&#x27; becomes the prefix &#x27;беогр&#x27; and &#x27;Čač*&#x27; becomes &#x27;čač&#x27;, and both find nothing while &#x27;Beogr*&#x27; and &#x27;Cac*&#x27; find the documents. Directly, normalize(&quot;Ђак&quot;) returns &#x27;ђак&#x27; while the index holds &#x27;djak&#x27;, even with stemming switched off.</p>
+<p><code>SerbianAnalyzer.normalize</code> only lower-cases and skips <code>SerbianNormalizationFilter</code>, so it does not return the form the analyzer indexes (which the query parsers rely on for prefix, wildcard, fuzzy, regexp and range terms).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>normalize(&quot;Ђак&quot;)</code> returns <code>djak</code>, and <code>Беогр*</code>, <code>Čač*</code> and <code>Београд~1</code> each find the document, as the controls <code>Beogr*</code> and <code>Cac*</code> do.</li><li><b>Actual:</b> <code>normalize(&quot;Ђак&quot;)</code> returns <code>ђак</code>, and <code>body:беогр*</code>, <code>body:čač*</code> and <code>body:београд~1</code> find 0 documents; the controls find 1.</li></ul>
+<p>Expected: <code>normalize(&quot;f&quot;, &quot;Ђак&quot;)</code> = <code>djak</code> (the indexed term); actual: <code>ђак</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/analysis/sr/TestSerbianAnalyzerNormalize.java"><code>src/org/apache/lucene/analysis/sr/TestSerbianAnalyzerNormalize.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -37,10 +39,6 @@ CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
 CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
-CP=$CP:$LUCENE/lucene/facet/build/libs/lucene-facet-$V.jar
-CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
-CP=$CP:$LUCENE/lucene/queryparser/build/libs/lucene-queryparser-$V.jar
-CP=$CP:$LUCENE/lucene/sandbox/build/libs/lucene-sandbox-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
@@ -50,7 +48,5 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.analysis.sr.TestSerbianAnalyzerNormalize</code></pre>
-<p class="small">The module(s) facet also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestSerbianNormalize.java"><code>TestSerbianNormalize.java</code></a></li><li><a href="TestSerbianAnalyzerNormalize.java"><code>TestSerbianAnalyzerNormalize.java</code></a></li><li><a href="TestSerbianNormalizeRuleProbe.java"><code>TestSerbianNormalizeRuleProbe.java</code></a></li><li><a href="TestFactCheckSerbian534.java"><code>TestFactCheckSerbian534.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

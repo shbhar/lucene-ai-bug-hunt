@@ -1,6 +1,6 @@
 # LongRange/DoubleRange#getQuery(fastMatchQuery, valueSource) reports its Weight as cacheable without asking the fast-match query, so after an in-place doc-values update the query cache keeps returning the old matches
 
-Bug LFV-320 · Area: facet / range drill-down queries (LongRange and DoubleRange ValueSourceQuery and MultiValueSourceQuery) and the query cache · Priority: medium · Impact: silent wrong results · Novelty: new
+Bug LFV-320 · Area: facet / range drill-down queries (LongRange and DoubleRange ValueSourceQuery and MultiValueSourceQuery) and the query cache · Priority: low · Impact: silent wrong results · Novelty: new
 
 Bug page: [../../bugs/LFV-320.html](../../bugs/LFV-320.html)
 
@@ -10,22 +10,21 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build a range filter or drill-down with LongRange or DoubleRange#getQuery(fastMatchQuery, valueSource) whose fast-match query reads a doc-values field (for example NumericDocValuesField.newSlowExactQuery("inStock", 1)), run it through a query cache, then change that field for one document in place with IndexWriter#updateNumericDocValue and reopen the reader. You expect the reopened searcher to use the new value, because a query that depends on updated doc values must report itself not cacheable (SegmentCacheable), and the fast-match query alone does. Instead the range query's Weight#isCacheable asks only the value source, the segment keeps its core cache key, and the cache keeps serving the pre-update result (5 hits instead of 4 in the repro) until the segment is merged away or the entry is evicted.
 
+The test shows that a `LongRange#getQuery(fastMatch, valueSource)` query whose fast match reads doc values (`inStock`) keeps its query-cache entry after `updateNumericDocValue` changes `inStock` and the reader is reopened.
+
 ## Expected vs actual
 
-- Expected: After doc 0 sells out and the reader is reopened, every range query counts 4, through the cache as without it, and the range Weight reports itself not cacheable.
-- Actual: Through the cache each of the five range queries still counts 5 (doc 0 included), and the range Weight reports cacheable.
+Expected: 0 hits (the only document is no longer in stock). Actual (-ea and -da): 1 hit, the cached pre-update result, because the range Weight's `isCacheable` ignores the fast-match Weight.
 
 ## Files
 
-- [src/org/apache/lucene/facet/range/TestRangeQueryFastMatchCaching.java](src/org/apache/lucene/facet/range/TestRangeQueryFastMatchCaching.java) (JUnit test)
-- [src/zeroconfig/ZeroConfigRangeFastMatch.java](src/zeroconfig/ZeroConfigRangeFastMatch.java) (main() class)
-- [src/org/apache/lucene/facet/range/TestRangeQueryFastMatchCachingPre9.java](src/org/apache/lucene/facet/range/TestRangeQueryFastMatchCachingPre9.java) (JUnit test)
+- [src/org/apache/lucene/facet/range/TestRangeFastMatchQueryCache.java](src/org/apache/lucene/facet/range/TestRangeFastMatchQueryCache.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -43,28 +42,12 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.facet.range.TestRangeQueryFastMatchCaching
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.facet.range.TestRangeQueryFastMatchCachingPre9
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" zeroconfig.ZeroConfigRangeFastMatch
+     execute --select-class org.apache.lucene.facet.range.TestRangeFastMatchQueryCache
 ```
 
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestRangeQueryFastMatchCacheability.java](TestRangeQueryFastMatchCacheability.java)
-- [MigrateDefaultCacheRangeFastMatch.java](MigrateDefaultCacheRangeFastMatch.java)
-- [ZeroConfigRangeFastMatch.java](ZeroConfigRangeFastMatch.java)
-- [TestRangeQueryFastMatchCaching.java](TestRangeQueryFastMatchCaching.java)
-- [TestRangeGetQueryCacheV1.java](TestRangeGetQueryCacheV1.java)
-- [TestRangeFastMatchSecurityProbe.java](TestRangeFastMatchSecurityProbe.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/query-cache-correctness/](../../models/query-cache-correctness/)
 

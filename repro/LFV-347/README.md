@@ -10,19 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build a Monitor whose presearcher uses RegexpQueryHandler, register the query /hel.*/ and match a document whose text is 'hello😀' (WhitespaceAnalyzer, one token). You expect a match, because the regexp matches that token and the presearcher may only skip queries that cannot match. Instead SuffixingNGramTokenFilter, which should emit every substring of the token with the suffix 'XX' so that the query's index term 'helXX' is found, starts its gram size at the token's UTF-16 length (7) but checks it against the token's code-point count (6), gives up on the token without emitting a single ngram, and the query is silently never run.
 
+The test shows that a Monitor with RegexpQueryHandler never runs a regexp query against a token that contains a supplementary character, because SuffixingNGramTokenFilter emits no ngrams for that token.
+
 ## Expected vs actual
 
-- Expected: `Monitor.match` reports `/hel.*/` for `hello😀` as it does for `hello` and as a Monitor without filtering does; `a😀` gives `{a😀, a😀XX, aXX, 😀XX, XX}`.
-- Actual: `/hel.*/` is not reported for `hello😀` (0 queries run, no error), `/𞤢.*/` is not reported for an Adlam word, and `a😀` gives only `[a😀]`.
+Expected: /hel.*/ matches the document whose only token is "hello" + U+1F600 (1 match). Actual (-ea and -da): 0 matches, and 0 queries are run by the presearcher.
 
 ## Files
 
-- [src/org/apache/lucene/monitor/TestSuffixingNGramSupplementaryChars.java](src/org/apache/lucene/monitor/TestSuffixingNGramSupplementaryChars.java) (JUnit test)
+- [src/org/apache/lucene/monitor/TestRegexpQueryHandlerSupplementaryChar.java](src/org/apache/lucene/monitor/TestRegexpQueryHandlerSupplementaryChar.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -43,16 +44,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.monitor.TestSuffixingNGramSupplementaryChars
+     execute --select-class org.apache.lucene.monitor.TestRegexpQueryHandlerSupplementaryChar
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestRegexpQueryHandlerSupplementaryChars.java](TestRegexpQueryHandlerSupplementaryChars.java)
-- [fix-with-test.diff](fix-with-test.diff)
-- [TestRegexpHandlerDefaultAnalyzersV3.java](TestRegexpHandlerDefaultAnalyzersV3.java)
 
 ## Feedback
 

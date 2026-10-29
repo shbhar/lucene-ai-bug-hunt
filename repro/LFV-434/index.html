@@ -23,14 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You build XYShape.newLineQuery(field, QueryRelation.WITHIN, line) with a valid XYLine and expect the IllegalArgumentException that LatLonShape.newLineQuery throws for the same relation (&#x27;does not support WITHIN queries with line geometries&#x27;), and that XYShape itself threw up to 8.4.1 (&#x27;XYShapeLineQuery does not support WITHIN queries&#x27;). Instead the query is accepted, because the XYShapeQuery constructor has validated nothing since LUCENE-9194 (8.5.0) folded the old XY line query into it. The search then returns indexed points that lie on the line but no indexed line, not even one identical to the query line, because Line2D.containsLine and containsTriangle always return false.</p>
+<p>The test shows that <code>XYShape.newLineQuery(field, QueryRelation.WITHIN, line)</code> accepts a WITHIN query with a line geometry (lost check since LUCENE-9194, 8.5.0).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>XYShape.newLineQuery(&quot;shape&quot;, WITHIN, line)</code> throws <code>IllegalArgumentException</code>, as <code>LatLonShape.newLineQuery</code> does.</li><li><b>Actual:</b> No exception: the query matches 1 of the 3 shapes, <code>[point (5,0)]</code>, and <code>newGeometryQuery(WITHIN, polygon, line)</code> is accepted too.</li></ul>
+<p>Expected <code>IllegalArgumentException</code>, as <code>LatLonShape.newLineQuery</code> throws and XYShape threw up to 8.4.1; actual: no exception (-ea and -da).</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/document/TestXYShapeWithinLineQuery.java"><code>src/org/apache/lucene/document/TestXYShapeWithinLineQuery.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/org/apache/lucene/document/TestXYShapeWithinLineQuery8x.java"><code>src/org/apache/lucene/document/TestXYShapeWithinLineQuery8x.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/document/TestXYShapeWithinLineRejected.java"><code>src/org/apache/lucene/document/TestXYShapeWithinLineRejected.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -46,12 +46,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.document.TestXYShapeWithinLineQuery
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.document.TestXYShapeWithinLineQuery8x</code></pre>
+     execute --select-class org.apache.lucene.document.TestXYShapeWithinLineRejected</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestXYShapeWithinLine.java"><code>TestXYShapeWithinLine.java</code></a></li><li><a href="TestXYShapeWithinLineRejected.java"><code>TestXYShapeWithinLineRejected.java</code></a></li><li><a href="TestXYShapeWithinLineQuery.java"><code>TestXYShapeWithinLineQuery.java</code></a></li><li><a href="TestVerifyXYWithinLine.java"><code>TestVerifyXYWithinLine.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

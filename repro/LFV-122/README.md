@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You follow the SortedNumericSortField class javadoc on main ('Like sorting by string, this also supports sorting missing values as first or last, via SortField#STRING_FIRST or SortField#STRING_LAST') and build new SortedNumericSortField("f", SortField.Type.LONG, false, SortedNumericSelector.Type.MIN, SortField.STRING_LAST). You expect documents without a value to sort last, or, if the sentinels are not supported, the constructor to reject them. Instead the constructor accepts the sentinel, and IndexSearcher.search with that sort, or IndexWriterConfig.setIndexSort with it, throws ClassCastException 'SortField$2 cannot be cast to class java.lang.Long', because a numeric sort needs a missing value of its own numeric type (for example Long.MAX_VALUE to sort missing documents last), as MIGRATE.md and the upstream tests show.
 
+The test shows (javadoc defect) that the `SortedNumericSortField` class javadoc says missing values can sort last via `SortField.STRING_LAST`, but a LONG sort built with it fails at search time.
+
 ## Expected vs actual
 
-- Expected: You expect documents without a value to sort last, or, if the sentinels are not supported, the constructor to reject them.
-- Actual: The constructor accepts the sentinel, and IndexSearcher.search with that sort, or IndexWriterConfig.setIndexSort with it, throws ClassCastException 'SortField$2 cannot be cast to class java.lang.Long', because a numeric sort needs a missing value of its own numeric type (for example Long.MAX_VALUE to sort missing documents last), as MIGRATE.md and the upstream tests show.
+Expected: the search sorts the document that has no value (or the constructor rejects the sentinel). Actual: the constructor accepts it and `IndexSearcher.search` throws `ClassCastException` (`SortField$2` cannot be cast to `Long`).
 
 ## Files
 
@@ -19,8 +20,8 @@ You follow the SortedNumericSortField class javadoc on main ('Like sorting by st
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You configure an index sort, and while a flush is creating the final sorted stored-fields (or term-vectors) files, creating or opening a file fails with an IOException, for example because the process has too many open files. You expect IndexWriter to close itself, as it does after any failed flush, and to release every file it opened. Instead the reader that the flush had just opened on the temporary.fdt/.fdx (or.tvd/.tvx) files is never closed, because it is opened one statement before the try whose finally closes it, so two inputs on already-deleted temporary files stay open (on MMapDirectory, mapped) after IndexWriter and the Directory are closed.
 
+The test shows that with an index sort, when creating the final sorted stored-fields writer fails during flush (`createOutput` of `.fdm` throws), IndexWriter closes itself but the reader on the temporary `.fdt`/`.fdx` files stays open.
+
 ## Expected vs actual
 
-- Expected: You expect IndexWriter to close itself, as it does after any failed flush, and to release every file it opened.
-- Actual: The reader that the flush had just opened on the temporary.fdt/.fdx (or.tvd/.tvx) files is never closed, because it is opened one statement before the try whose finally closes it, so two inputs on already-deleted temporary files stay open (on MMapDirectory, mapped) after IndexWriter and the Directory are closed.
+Expected: no open file handles after the failed `commit()` and `close()`. Actual: `open file handles after IndexWriter closed expected:<0> but was:<2>`.
 
 ## Files
 
-- [src/org/apache/lucene/index/TestSortingFlushTempReaderLeak.java](src/org/apache/lucene/index/TestSortingFlushTempReaderLeak.java) (JUnit test)
+- [src/org/apache/lucene/index/TestSortedFlushTempReaderLeak.java](src/org/apache/lucene/index/TestSortedFlushTempReaderLeak.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,7 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestSortingFlushTempReaderLeak
+     execute --select-class org.apache.lucene.index.TestSortedFlushTempReaderLeak
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

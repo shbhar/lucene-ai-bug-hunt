@@ -10,19 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You add a batch with IndexWriter#addBatch whose dense points column (a LongColumn, or a BinaryColumn with point dimensions) has more values than fit in one 4 KiB chunk, and the batch fails after the first chunk, because Lucene's own length check rejects a value of the wrong width or because your cursor throws; Lucene rejects the batch with a non-aborting exception, the writer stays open, and you keep indexing. You expect the rejected batch to leave no trace, as Lucene promises for non-aborting exceptions and as its own ThrowMidBatchRecovers tests assert, so a document you add next with IntPoint p=7 matches p == 7. Instead the dense path had already copied the first chunk's point bytes into the field's buffer without recording doc IDs for them, so the next document is paired with the rejected batch's first value (the only live document, added with p=7, matches p == 1000 instead), every later point of that field in the segment is shifted, CheckIndex stays clean and the wrong values survive merges.
 
+The test shows that when `IndexWriter#addBatch` rejects a 1025-value dense points `BinaryColumn` because the last value is 3 bytes instead of 4, the first chunk's 1024 point values stay in the in-memory points buffer, so a document added next gets the rejected batch's value.
+
 ## Expected vs actual
 
-- Expected: The 3 documents added after the rejected batch read back `[7, 8, 9]`, as in the control, where the failure hits value 1024.
-- Actual: They read back `[1000, 1001, 1002]`, the rejected batch's first values, in both bug tests; the control passes.
+Expected the only live document (added with `IntPoint` p=7) to match p=7 and not p=1000; actual: `live docs matching p=7, p=1000 expected:<[1, 0]> but was:<[0, 1]>`, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/index/TestColumnBatchDensePointsFailure.java](src/org/apache/lucene/index/TestColumnBatchDensePointsFailure.java) (JUnit test)
+- [src/org/apache/lucene/index/TestRejectedDensePointsBatch.java](src/org/apache/lucene/index/TestRejectedDensePointsBatch.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,16 +41,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestColumnBatchDensePointsFailure
+     execute --select-class org.apache.lucene.index.TestRejectedDensePointsBatch
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestColumnBatchDensePointsFailure.java](TestColumnBatchDensePointsFailure.java)
-- [2-TestColumnBatchDensePointsFailure.java](2-TestColumnBatchDensePointsFailure.java)
-- [TestDensePointsPartialFailure.java](TestDensePointsPartialFailure.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/columnar-addbatch/](../../models/columnar-addbatch/)
 

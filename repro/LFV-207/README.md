@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You use LogDocMergePolicy or LogByteSizeMergePolicy (or a custom merge policy), call IndexWriter.forceMergeDeletes(false) while another merge is already running on one of the segments with deletes, and wait on the returned MergeObserver, whose javadoc says it lets you 'monitor merge progress and wait for completion'. IndexWriter refuses to register the conflicting forced-deletes merge (it only logs 'reject merge'), so that merge never runs, but it still puts the merge into the observer. The observer then reports 0 of 1 merges complete forever: await blocks forever even after the writer is closed, await(timeout) returns false, and the blocking forceMergeDeletes returns at once with an incomplete observer although its javadoc says 'merges will already be complete when it returns'.
 
+The test shows that `IndexWriter.forceMergeDeletes()` (blocking) returns a `MergeObserver` that includes a merge IndexWriter refused to register because its segment is already being merged (`LogDocMergePolicy`, a held background `forceMerge(1, false)`), so that merge never runs or completes.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+Expected `numCompletedMerges() == numMerges()` on return (javadoc: merges will already be complete); actual: `completed merges expected:<1> but was:<0>`, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/index/TestMergeObserverRejectedMerge.java](src/org/apache/lucene/index/TestMergeObserverRejectedMerge.java) (JUnit test)
+- [src/org/apache/lucene/index/TestForceMergeDeletesRejectedMerge.java](src/org/apache/lucene/index/TestForceMergeDeletesRejectedMerge.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,7 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestMergeObserverRejectedMerge
+     execute --select-class org.apache.lucene.index.TestForceMergeDeletesRejectedMerge
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

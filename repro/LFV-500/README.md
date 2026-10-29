@@ -8,20 +8,21 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You call removeAllAttributes on an AttributeSource (for example a token stream you reuse with a different set of attributes) after it has been used, for example by clearAttributes, which every Tokenizer calls for each token. You expect it to behave like a new, empty source until you add attributes again, as hasAttributes (false) and equals (equal to a new AttributeSource) already say. Instead the method clears its two maps but not the cached chain of attribute instances that captureState, copyTo, hashCode, the impls iterator, reflection and clearAttributes/endAttributes walk, so until the next addAttribute they still see the removed attributes: restoreState(captureState) on the same source throws IllegalArgumentException, hashCode differs from that of an equal empty source, and reflectAsString still prints 'term=foo,...'.
 
+The test shows that AttributeSource.removeAllAttributes() leaves the cached State chain in place, so captureState() still returns the removed attributes and restoring that state into the same source fails.
+
 ## Expected vs actual
 
-- Expected: You expect it to behave like a new, empty source until you add attributes again, as hasAttributes (false) and equals (equal to a new AttributeSource) already say.
-- Actual: The method clears its two maps but not the cached chain of attribute instances that captureState, copyTo, hashCode, the impls iterator, reflection and clearAttributes/endAttributes walk, so until the next addAttribute they still see the removed attributes: restoreState(captureState) on the same source throws IllegalArgumentException, hashCode differs from that of an equal empty source, and reflectAsString still prints 'term=foo,...'.
+Expected: restoreState(captureState()) after removeAllAttributes() succeeds (captureState javadoc: the state can be restored into this source); actual: `IllegalArgumentException: State contains AttributeImpl of type...CharTermAttributeImpl that is not in in this AttributeSource`.
 
 ## Files
 
 - [src/org/apache/lucene/util/TestRemoveAllAttributesCachedState.java](src/org/apache/lucene/util/TestRemoveAllAttributesCachedState.java) (JUnit test)
-- [src/RemoveAllAttributesProbe.java](src/RemoveAllAttributesProbe.java) (main() class)
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -39,10 +40,6 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.util.TestRemoveAllAttributesCachedState
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" RemoveAllAttributesProbe
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

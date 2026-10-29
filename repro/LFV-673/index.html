@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You use the Geo3d spatial context and relate a Geo3d shape to a spatial4j rectangle that the Geo3d shape factory did not build, for example a 10-degree circle against the context&#x27;s own ctx.getWorldBounds, or run a SerializedDVStrategy IsWithin(ctx.getWorldBounds) query over that circle, and expect WITHIN (the circle lies inside the world) and one hit. Instead relate returns CONTAINS and the query matches nothing, while Contains(world bounds) matches the circle: Geo3dShape.relate(Rectangle) asks spatial3d how this shape relates to the rectangle but then applies the mapping written for the opposite question (how the other shape relates to this one), so the two nested answers come out swapped, whereas the same box built by the Geo3d factory relates correctly. Lucene builds such rectangles itself, so RecursivePrefixTreeStrategy over PackedQuadPrefixTree, whose cells are plain spatial4j rectangles, treats a cell that contains a small query circle as lying inside the circle and returns every document in that cell, for example a point at (100.3, 37.7) for a half-degree circle at (1, 1).</p>
+<p>The test shows that in the Geo3d spatial context <code>Geo3dShape.relate(Rectangle)</code> swaps WITHIN and CONTAINS for a rectangle that is not a Geo3d shape, here the context&#x27;s own <code>ctx.getWorldBounds()</code>.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> WITHIN and CONTAINS; <code>IsWithin(world bounds)</code> 1 hit and <code>Contains</code> 0; 0 hits for the point about 97 degrees from the half-degree circle.</li><li><b>Actual:</b> CONTAINS and WITHIN; <code>IsWithin(world bounds)</code> 0 hits (the test stops there; <code>Contains</code> gives 1 in the independent reproducer&#x27;s test and the diagram probe); 1 hit for the far point: 4 of 4 tests fail, no exception.</li></ul>
+<p>Expected <code>circle(0, 0, 10).relate(ctx.getWorldBounds())</code> to be <code>WITHIN</code>; actual <code>CONTAINS</code> (<code>expected:&lt;WITHIN&gt; but was:&lt;CONTAINS&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/spatial/spatial4j/TestGeo3dShapeRelatePlainRectangle.java"><code>src/org/apache/lucene/spatial/spatial4j/TestGeo3dShapeRelatePlainRectangle.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/spatial/spatial4j/TestGeo3dShapeRelateWorldBounds.java"><code>src/org/apache/lucene/spatial/spatial4j/TestGeo3dShapeRelateWorldBounds.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -43,11 +45,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.spatial.spatial4j.TestGeo3dShapeRelatePlainRectangle</code></pre>
+     execute --select-class org.apache.lucene.spatial.spatial4j.TestGeo3dShapeRelateWorldBounds</code></pre>
 <p class="small">The module(s) spatial-extras also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestGeo3dPlainRectangleRelation.java"><code>TestGeo3dPlainRectangleRelation.java</code></a></li><li><a href="TestGeo3dShapeRelatePlainRectangle.java"><code>TestGeo3dShapeRelatePlainRectangle.java</code></a></li><li><a href="TestGeo3dLibraryRectangleRelateV3.java"><code>TestGeo3dLibraryRectangleRelateV3.java</code></a></li><li><a href="TestGeo3dShapeRptSameSource.java"><code>TestGeo3dShapeRptSameSource.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

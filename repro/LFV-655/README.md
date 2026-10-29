@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build a TermVectorLeafReader over one document's term vectors (new TermVectorLeafReader(field, terms), the public helper that 'wraps a Terms with a LeafReader') and use it like any other LeafReader, expecting getMetaData to return metadata with no index sort, as MemoryIndex's in-memory reader does. Instead getMetaData throws IllegalArgumentException('minVersion must be set when createdVersionMajor is &gt;= 7') on every call, because it passes minVersion=null together with createdVersionMajor=Version.LATEST.major, a combination the LeafMetaData constructor rejects. So a field-sorted search (even with Sort.RELEVANCE), new ParallelLeafReader(reader) and addIndexes(SlowCodecReaderWrapper.wrap(reader)) all fail; a plain relevance search without a Sort works.
 
+The test shows that a `TermVectorLeafReader` cannot be searched with a Sort, because its `getMetaData()` always builds `LeafMetaData` with `minVersion=null` and `createdVersionMajor=Version.LATEST.major`, which the `LeafMetaData` constructor rejects.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: getMetaData throws IllegalArgumentException('minVersion must be set when createdVersionMajor is &gt;= 7') on every call, because it passes minVersion=null together with createdVersionMajor=Version.LATEST.major, a combination the LeafMetaData constructor rejects.
+Expected: 1 hit from `search(MatchAllDocsQuery, 1, new Sort(SortField.FIELD_DOC))`; actual: `IllegalArgumentException: minVersion must be set when createdVersionMajor is >= 7` (from `TermVectorLeafReader.getMetaData`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/search/highlight/TestTermVectorLeafReaderMetaData.java](src/org/apache/lucene/search/highlight/TestTermVectorLeafReaderMetaData.java) (JUnit test)
+- [src/org/apache/lucene/search/highlight/TestTermVectorLeafReaderSortedSearch.java](src/org/apache/lucene/search/highlight/TestTermVectorLeafReaderSortedSearch.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,7 +42,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.highlight.TestTermVectorLeafReaderMetaData
+     execute --select-class org.apache.lucene.search.highlight.TestTermVectorLeafReaderSortedSearch
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

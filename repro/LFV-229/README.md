@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You configure ThaiTokenizer with a user dictionary that contains an ordinary short word such as แม่น ('accurate') or ผล ('result') and expect it to change only where words split. Instead, when the dictionary word is followed in the text by a combining vowel or tone mark, as in แม่น้ำ ('river') or ผลิต ('produce'), the tokenizer cuts the character cluster and throws the mark away: แม่น้ำ becomes the single token แม่น, and ผลิต becomes [ผล, ต]. Because queries are analyzed the same way, a search for แม่น้ำ also matches documents that only contain แม่น, with no error.
 
+The test shows that `ThaiTokenizer` with the user dictionary {แม่น} tokenizes แม่น้ำ ("river") as just [แม่น]: the match ends inside the character cluster, so the tone mark U+0E49 and SARA AM U+0E33 are dropped.
+
 ## Expected vs actual
 
-- Expected: Every character lies in some token: with `{แม่น}`, `แม่น้ำ` stays `[แม่น้ำ[0,6)]`, and a search for `แม่น้ำ` finds 1 of the 2 documents.
-- Actual: `แม่น้ำ` gives `[แม่น[0,4)]` (U+0E49 and U+0E33 in no token), the query is `f:แม่น` and finds 2 documents; 4 of 5 tests fail.
+Expected: the tokens together hold all of แม่น้ำ. Actual: `expected:<แม่น[้ำ]> but was:<แม่น[]>` (-ea and -da).
 
 ## Files
 
@@ -21,8 +22,8 @@ You configure ThaiTokenizer with a user dictionary that contains an ordinary sho
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -45,12 +46,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestThaiDictionaryWordInsideCluster.java](TestThaiDictionaryWordInsideCluster.java)
-- [TestThaiTokenizerUserDictionaryClusterSplit.java](TestThaiTokenizerUserDictionaryClusterSplit.java)
-- [ThaiDictClusterProbe.java](ThaiDictClusterProbe.java)
 
 ## Feedback
 

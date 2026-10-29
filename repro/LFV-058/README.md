@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You call nextClearBit on a SparseFixedBitSet longer than 2^31-4096 bits at a position in its last 4096-bit block. You expect the next clear bit. Instead blockBase + 4096 wraps, it returns NO_MORE_DOCS, and BitSetIterator.docIDRunEnd then claims absent documents (DenseConjunctionBulkScorer collected 3,966 docs instead of 1 in the repro).
 
+The test shows that `SparseFixedBitSet.nextClearBit` returns NO_MORE_DOCS for a position in the last 4096-bit block of a set longer than 2^31-4096 bits, because `blockBase + 4096` overflows to Integer.MIN_VALUE.
+
 ## Expected vs actual
 
-- Expected: You expect the next clear bit.
-- Actual: blockBase + 4096 wraps, it returns NO_MORE_DOCS, and BitSetIterator.docIDRunEnd then claims absent documents (DenseConjunctionBulkScorer collected 3,966 docs instead of 1 in the repro).
+Expected: on an empty `SparseFixedBitSet(Integer.MAX_VALUE)`, `nextClearBit(Integer.MAX_VALUE - 1)` = 2147483646. Actual: 2147483647 (NO_MORE_DOCS).
 
 ## Files
 
-- [src/org/apache/lucene/util/TestVerifySfbsLastBlockClearBit.java](src/org/apache/lucene/util/TestVerifySfbsLastBlockClearBit.java) (JUnit test)
+- [src/org/apache/lucene/util/TestSparseFixedBitSetLastBlock.java](src/org/apache/lucene/util/TestSparseFixedBitSetLastBlock.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -36,9 +37,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.util.TestVerifySfbsLastBlockClearBit
+     execute --select-class org.apache.lucene.util.TestSparseFixedBitSetLastBlock
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

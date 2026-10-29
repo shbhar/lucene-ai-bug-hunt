@@ -30,62 +30,48 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.TopFieldDocs;
+import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.LuceneTestCase;
 import org.apache.lucene.tests.util.TestUtil;
 import org.apache.lucene.util.BytesRef;
 
-/**
- * ToParentBlockJoinSortField on a STRING field with reverseChildren=true (MAX selection) and
- * childMissingValue=STRING_LAST, which the javadoc documents as a legal child missing value. A
- * parent with a child that lacks the field makes the search throw.
- */
 public class TestBlockJoinSortStringLastReverse extends LuceneTestCase {
 
-  private static Document child(String v) {
+  private static Document doc(String type, String s) {
     Document d = new Document();
-    d.add(new StringField("type", "child", Field.Store.NO));
-    if (v != null) {
-      d.add(new SortedDocValuesField("s", new BytesRef(v)));
+    d.add(new StringField("type", type, Field.Store.NO));
+    if (s != null) {
+      d.add(new SortedDocValuesField("s", new BytesRef(s)));
     }
     return d;
   }
 
-  private static Document parent() {
-    Document d = new Document();
-    d.add(new StringField("type", "parent", Field.Store.NO));
-    return d;
-  }
-
   public void testStringLastWithReverseChildren() throws Exception {
-    try (Directory dir = newDirectory()) {
+    try (Directory dir = new ByteBuffersDirectory()) {
       try (IndexWriter w =
           new IndexWriter(dir, new IndexWriterConfig().setCodec(TestUtil.getDefaultCodec()))) {
-        w.addDocuments(List.of(child("b"), child(null), parent())); // parent A: one child lacks "s"
-        w.addDocuments(List.of(child("c"), parent())); // parent B
+        w.addDocuments(List.of(doc("child", "b"), doc("child", null), doc("parent", null)));
       }
       try (DirectoryReader reader = DirectoryReader.open(dir)) {
-        IndexSearcher searcher = new IndexSearcher(reader);
         BitSetProducer parents = new QueryBitSetProducer(new TermQuery(new Term("type", "parent")));
-        BitSetProducer children = new QueryBitSetProducer(new TermQuery(new Term("type", "child")));
-        CheckJoinIndex.check(reader, parents);
-        Query q =
-            new ToParentBlockJoinQuery(
-                new TermQuery(new Term("type", "child")), parents, ScoreMode.None);
-        for (boolean reverseParents : new boolean[] {false, true}) {
-          SortField sf =
-              new ToParentBlockJoinSortField(
-                  "s",
-                  SortField.Type.STRING,
-                  reverseParents,
-                  true, // reverseChildren: take the max child value
-                  null,
-                  SortField.STRING_LAST, // documented legal value for Type.STRING
-                  parents,
-                  children);
-          TopFieldDocs td = searcher.search(q, 10, new Sort(sf));
-          assertEquals(2, td.scoreDocs.length);
+        Query children = new TermQuery(new Term("type", "child"));
+        SortField sf =
+            new ToParentBlockJoinSortField(
+                "s",
+                SortField.Type.STRING,
+                false,
+                true,
+                null,
+                SortField.STRING_LAST,
+                parents,
+                new QueryBitSetProducer(children));
+        Query q = new ToParentBlockJoinQuery(children, parents, ScoreMode.None);
+        try {
+          assertEquals(1, new IndexSearcher(reader).search(q, 10, new Sort(sf)).scoreDocs.length);
+        } catch (IndexOutOfBoundsException e) {
+          // expected: the parent is returned; actual: lookupOrd(Integer.MAX_VALUE) throws
+          throw new AssertionError("expected 1 sorted hit, got " + e, e);
         }
       }
     }

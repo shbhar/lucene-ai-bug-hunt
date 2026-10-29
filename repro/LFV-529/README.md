@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You add FacetField("Author", "Bob") and FacetField("Publish Date", "2010", "10", "15") to a document and read its labels back with TaxonomyFacetLabels, whose javadoc offers it as a way to skip stored fields for these values, so you expect [Author/Bob, Publish Date/2010/10/15]; that is what you get when both dimensions are single-valued. With Publish Date configured multi-valued and hierarchical you get [Author/Bob, Publish Date/2010, Publish Date/2010/10, Publish Date/2010/10/15], and with Author configured multi-valued with requireDimCount you get [Author, Author/Bob, Publish Date/2010/10/15]. FacetsConfig deliberately indexes those ancestor (and dimension) ordinals so that multi-valued counts are right, and the reader turns every indexed ordinal back into a label; the javadoc never says so.
 
+The test shows that for a dimension configured multi-valued and hierarchical, `TaxonomyFacetLabels` (documented as a replacement for stored fields) returns the ancestor path that FacetsConfig indexes only for counting, next to the one label the document was given.
+
 ## Expected vs actual
 
-- Expected: You expect [Author/Bob, Publish Date/2010/10/15]; that is what you get when both dimensions are single-valued.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+Expected `[Date/2010/10]`; actual `[Date/2010, Date/2010/10]`, with `-ea` and `-da` (documentation/contract defect).
 
 ## Files
 
@@ -19,7 +20,8 @@ You add FacetField("Author", "Bob") and FacetField("Publish Date", "2010", "10",
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

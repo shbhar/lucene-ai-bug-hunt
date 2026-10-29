@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build a BYTE4 FST with arbitrary int labels so that one node's labels span 2^31-8 or more. You expect the FST to build, and direct addressing to be off with a factor of -1. Instead the presence-byte count wraps and the build throws ArrayIndexOutOfBoundsException, even with factor -1.
 
+The test shows that `FSTCompiler.compile()` on a BYTE4 FST whose root node has the labels {0, 1, 2, 3, Integer.MAX_VALUE - 1} (default builder) chooses direct addressing because the presence-byte count `(labelRange + 7) >> 3` wraps negative, and then crashes.
+
 ## Expected vs actual
 
-- Expected: You expect the FST to build, and direct addressing to be off with a factor of -1.
-- Actual: The presence-byte count wraps and the build throws ArrayIndexOutOfBoundsException, even with factor -1.
+Expected: the FST builds. Actual: `ArrayIndexOutOfBoundsException: arraycopy: destination index -268435436 out of bounds for byte[11]` from `writeNodeForDirectAddressingOrContinuous`, with `-ea` and `-da`.
 
 ## Files
 
-- [src/VerifyFstWideLabelSpan.java](src/VerifyFstWideLabelSpan.java) (JUnit test)
+- [src/org/apache/lucene/util/fst/TestFSTByte4WideLabelSpan.java](src/org/apache/lucene/util/fst/TestFSTByte4WideLabelSpan.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -36,9 +37,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class VerifyFstWideLabelSpan
+     execute --select-class org.apache.lucene.util.fst.TestFSTByte4WideLabelSpan
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

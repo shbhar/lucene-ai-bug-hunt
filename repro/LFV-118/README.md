@@ -10,20 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index documents whose field id is a StringField plus a SortedDocValuesField, adding the StringField first, and then a document that has only the StringField. You expect IllegalArgumentException, as Lucene's per-field consistency rule (LUCENE-9334, MIGRATE.md) requires, as 9.0-10.4 do, and as main still does when the doc-values value comes first, the type is an unfrozen copy, or a flush comes in between. Instead the document is accepted, because the frozen-FieldType cache added in 10.5.0 (#15886) caches the first value's type after the union of all the document's values was validated and then skips the check for every later document whose first value has that type; on the same fast path the schema state is not rebuilt, so after a rejected addBatch a valid StringField + StoredField document fails with 'index options: expected DOCS, but it has NONE'.
 
+The test shows that after a document whose field `id` is a StringField followed by a SortedDocValuesField, the frozen-FieldType cache lets a second document with only the StringField `id` skip the per-field schema check (`TestFrozenTypeCacheMultiTypeField#testDocumentWithoutDocValuesRejected`).
+
 ## Expected vs actual
 
-- Expected: Both documents without doc values are rejected ("doc values type: expected 'SORTED', but it has 'NONE'"), and the valid document after the rejected batch is accepted.
-- Actual: 3 of 4 tests fail: both documents without doc values are accepted, and the valid document is rejected with "index options: expected 'DOCS', but it has 'NONE'".
+Expected `IllegalArgumentException` (the LUCENE-9334 per-field consistency rule; 10.4 and main with the other value order reject it); actual: the document is accepted (`Expected exception IllegalArgumentException but no exception was thrown`), with -ea and -da.
 
 ## Files
 
 - [src/org/apache/lucene/index/TestFrozenTypeCacheMultiTypeField.java](src/org/apache/lucene/index/TestFrozenTypeCacheMultiTypeField.java) (JUnit test)
-- [src/org/apache/lucene/document/TestPerFieldConsistencyReversedOrder.java](src/org/apache/lucene/document/TestPerFieldConsistencyReversedOrder.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -42,21 +42,9 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.index.TestFrozenTypeCacheMultiTypeField
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.document.TestPerFieldConsistencyReversedOrder
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestFrozenTypeCacheSchemaCheck.java](TestFrozenTypeCacheSchemaCheck.java)
-- [regression-tests.diff](regression-tests.diff)
-- [TestFrozenTypeCacheMultiTypeField.java](TestFrozenTypeCacheMultiTypeField.java)
-- [OutcomeProbe.java](OutcomeProbe.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/indexingchain-schema/](../../models/indexingchain-schema/)
 

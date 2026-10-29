@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index some words and call WordBreakSpellChecker.suggestWordBreaks with setMaxChanges(3) or more, and you expect the maxSuggestions splits of the term that rank best by Lucene&#x27;s own order (fewest breaks, then highest frequency). Instead, once an earlier branch of the search has filled the queue, a later branch returns before it looks for its own splits, so a better split can be missing: with the index {a, ab, b, c, d, e}, the term &#x27;abcde&#x27;, maxChanges=4 and maxSuggestions=1 the method returns [a b c d e] (4 breaks) instead of [ab c d e] (3 breaks), while asking for 2 suggestions returns both in the right order. No error is raised, raising maxChanges from 3 to 4 makes the answer worse, and 9.11.1 returns the right split.</p>
+<p>The test shows that <code>WordBreakSpellChecker.suggestWordBreaks</code> with <code>setMaxChanges(4)</code> and maxSuggestions 1 returns a split with more breaks than the best one, because the full-queue early return fires in a later sibling branch (index {a, ab, b, c, d, e}, term <code>abcde</code>).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>[ab c d e]</code> as the top 1 in both minimal tests, and <code>thousand one hundred eight</code> among the top 3 number-word splits.</li><li><b>Actual:</b> <code>[a b c d e]</code> and <code>[a bc d e]</code>, and the top 3 holds the 4-break <code>thou sand one hundred eight</code> instead: all 3 tests fail.</li></ul>
+<p>Expected the 3-break split <code>ab c d e</code> (fewest breaks first); actual the 4-break <code>a b c d e</code> (<code>expected:&lt;a[]b c d e&gt; but was:&lt;ab c d e&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/search/spell/TestWordBreakPruneDeeperQueued.java"><code>src/org/apache/lucene/search/spell/TestWordBreakPruneDeeperQueued.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/search/spell/TestWordBreakFullQueue.java"><code>src/org/apache/lucene/search/spell/TestWordBreakFullQueue.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -46,7 +48,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.spell.TestWordBreakPruneDeeperQueued</code></pre>
+     execute --select-class org.apache.lucene.search.spell.TestWordBreakFullQueue</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestWordBreakSpellCheckerFullQueue.java"><code>TestWordBreakSpellCheckerFullQueue.java</code></a></li><li><a href="TestWordBreakPruneDeeperQueued.java"><code>TestWordBreakPruneDeeperQueued.java</code></a></li><li><a href="TestWordBreakTopNConsistency.java"><code>TestWordBreakTopNConsistency.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

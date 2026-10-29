@@ -8,22 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You call CompiledAutomaton.floor on an infinite language in which the strings below the input have no largest element, for example the language b a* with input bb. You expect the floor term or null. Instead the push-down loop never terminates and grows memory until OutOfMemoryError.
 
+The test shows that `CompiledAutomaton.floor` does not return when the strings below the input have no largest element: `new PrefixQuery(new Term("f", "b")).getCompiled().floor(new BytesRef("c"), new BytesRefBuilder())`.
+
 ## Expected vs actual
 
-- Expected: You expect the floor term or null.
-- Actual: The push-down loop never terminates and grows memory until OutOfMemoryError.
+Expected: floor returns (null or a term). Actual: addTail keeps following the 0xff self-loop and appending bytes until OutOfMemoryError (about 13 s at -Xmx2g).
 
 ## Files
 
-- [src/TestFloorDivergenceCharacterization.java](src/TestFloorDivergenceCharacterization.java) (JUnit test)
-- [src/TestVerifyCompiledAutomatonFloor.java](src/TestVerifyCompiledAutomatonFloor.java) (JUnit test)
+- [src/org/apache/lucene/util/automaton/TestCompiledAutomatonFloorPrefix.java](src/org/apache/lucene/util/automaton/TestCompiledAutomatonFloorPrefix.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
-- Recorded outcome of run 1 on main a9779ef3c193: 6 test(s) run, 2 failed (testBAStarFloorOfBB, testRegExpBAStarFloorOfBB).
-- Recorded outcome of run 2 on main a9779ef3c193: 3 test(s) run, 0 failed.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -39,14 +37,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx256m --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.locale=en-US -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class TestVerifyCompiledAutomatonFloor
-
-# run 2: assertions on, seed DEADBEEF
-java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.locale=en-US -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class TestFloorDivergenceCharacterization
+     execute --select-class org.apache.lucene.util.automaton.TestCompiledAutomatonFloorPrefix
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

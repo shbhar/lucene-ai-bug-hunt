@@ -22,14 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You build a vector codec on BufferingKnnVectorsWriter and, in writeField, ask the flush-time vector values which document a vector ordinal belongs to (ordToDoc, or getAcceptOrds, which is built on it), expecting what the javadoc promises, &#x27;the docid of the document indexed with the given vector ordinal&#x27;. Instead the buffered values answer ordToDoc(ord) = ord, which is right only when every document has a vector and there is no index sort: for a field that documents 0, 2 and 3 have, ordinals 1 and 2 map to documents 1 and 2 instead of 2 and 3, so a getAcceptOrds filter that accepts only document 2 accepts document 3&#x27;s vector and one that accepts only document 3 accepts none; under a reversing index sort even a dense field&#x27;s ordinals map to themselves instead of to their documents&#x27; sorted positions. Iteration (nextDoc, index, vectorValue) stays correct, nothing throws, and FLOAT32, BYTE and FLOAT16 behave the same.</p>
+<p>The test shows that the vector values BufferingKnnVectorsWriter passes to writeField at flush answer ordToDoc(ord) = ord, which is wrong for a field that not every document has.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> The buffered values answer ordToDoc(ord) = ord, which is right only when every document has a vector and there is no index sort: for a field that documents 0, 2 and 3 have, ordinals 1 and 2 map to documents 1 and 2 instead of 2 and 3, so a getAcceptOrds filter that accepts only document 2 accepts document 3&#x27;s vector and one that accepts only document 3 accepts none; under a reversing index sort even a dense field&#x27;s ordinals map to themselves instead of to their documents&#x27; sorted positions.</li></ul>
+<p>Expected each docID-&gt;ordToDoc(index()) pair for documents 0, 2, 3 to be <code>[0-&gt;0, 2-&gt;2, 3-&gt;3]</code>; actual <code>[0-&gt;0, 2-&gt;1, 3-&gt;2]</code>, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/codecs/TestBufferedVectorValuesOrdToDoc.java"><code>src/org/apache/lucene/codecs/TestBufferedVectorValuesOrdToDoc.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src2/org/apache/lucene/codecs/TestBufferedVectorValuesOrdToDoc.java"><code>src2/org/apache/lucene/codecs/TestBufferedVectorValuesOrdToDoc.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/codecs/TestBufferingKnnVectorsWriterOrdToDoc.java"><code>src/org/apache/lucene/codecs/TestBufferingKnnVectorsWriterOrdToDoc.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -40,15 +40,11 @@ CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
-javac -d classes-src -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
-javac -d classes-src2 -cp &quot;$CP&quot; $(find src2 -name &#x27;*.java&#x27;)
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.codecs.TestBufferedVectorValuesOrdToDoc
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src2:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.codecs.TestBufferedVectorValuesOrdToDoc</code></pre>
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.codecs.TestBufferingKnnVectorsWriterOrdToDoc</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

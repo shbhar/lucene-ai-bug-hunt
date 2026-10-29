@@ -1,6 +1,6 @@
 # ICUTokenizer silently drops a word that is directly followed by ZERO WIDTH JOINER and an emoji, together with the emoji, because the joined 'word ZWJ emoji' segment gets rule status 0 (UAX #29 WB3c chain in Default.rbbi) and the emoji check looks only at its first code point
 
-Bug LFV-659 · Area: analysis / ICU (ICUTokenizer rule status: Default.rbbi WB3c chain, BreakIteratorWrapper emoji status, status-0 skip) · Priority: medium · Impact: silent wrong results · Novelty: new
+Bug LFV-659 · Area: analysis / ICU (ICUTokenizer rule status: Default.rbbi WB3c chain, BreakIteratorWrapper emoji status, status-0 skip) · Priority: low · Impact: silent wrong results · Novelty: new
 
 Bug page: [../../bugs/LFV-659.html](../../bugs/LFV-659.html)
 
@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index text through the stock ICUTokenizer in which a word runs straight into an invisible ZERO WIDTH JOINER (U+200D) and then an emoji, for example 'abc' + U+200D + U+1F44D, or a Malayalam word written in the older ZWJ chillu form followed by an emoji, and expect the word and the emoji to be tokens, as they are with a space before the emoji, without the ZWJ, or with StandardTokenizer. Instead neither appears: Unicode rule WB3c (ZWJ x Extended_Pictographic) keeps 'word ZWJ emoji' in one segment, the break rules give that segment rule status 0 ('not a word'), BreakIteratorWrapper's emoji check looks only at the segment's first code point (a letter), and ICUTokenizer skips every status-0 segment, so 'hello world' + U+200D + U+1F44D + ' again' gives only [hello, again]. A TermQuery for the lost word finds nothing, with no error.
 
+The test shows that ICUTokenizer silently drops the word "abc" (and the emoji) from the input "abc" + U+200D (ZERO WIDTH JOINER) + U+1F44D.
+
 ## Expected vs actual
 
-- Expected: `world` and the emoji are each inside some token, as with a space: `hello`, `world`, `👍`, `again`.
-- Actual: `cjkAsWords=true: "world" of "hello world\u200d\ud83d\udc4d again" is in no token; tokens: [hello, again]`
+Expected: some token contains "abc". Actual: no tokens at all (`expected a token containing "abc", got []`, with -ea and -da).
 
 ## Files
 
-- [src/org/apache/lucene/analysis/icu/segmentation/TestICUTokenizerZwjEmoji.java](src/org/apache/lucene/analysis/icu/segmentation/TestICUTokenizerZwjEmoji.java) (JUnit test)
+- [src/org/apache/lucene/analysis/icu/segmentation/TestICUTokenizerWordZwjEmoji.java](src/org/apache/lucene/analysis/icu/segmentation/TestICUTokenizerWordZwjEmoji.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,18 +42,12 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.icu.segmentation.TestICUTokenizerZwjEmoji
+     execute --select-class org.apache.lucene.analysis.icu.segmentation.TestICUTokenizerWordZwjEmoji
 ```
 
 The module(s) analysis-icu also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestICUTokenizerWordZwjEmoji.java](TestICUTokenizerWordZwjEmoji.java)
-- [TestICUTokenizerZwjEmoji.java](TestICUTokenizerZwjEmoji.java)
-- [TestZwjWordEmoji.java](TestZwjWordEmoji.java)
 
 ## Feedback
 

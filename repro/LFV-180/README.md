@@ -2,26 +2,28 @@
 
 Bug LFV-180 · Area: search / CachingCollector first pass and score-caching replay (CachingCollector, CachingCollectorManager) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-180.html](../../bugs/LFV-180.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
 You wrap a FacetsCollector, or any collector that does its per-segment work in LeafCollector#finish, in a CachingCollector or CachingCollectorManager so you can run the query once and replay the hits later, or you replay a score-caching cache into such a collector, and you expect the same facet counts as a plain IndexSearcher search. Instead the collector reports no hits: CachingCollector's per-leaf wrapper overrides finish for its own bookkeeping and never passes the call on, and the score-caching replay never calls finish at all, although the no-score replay does. In the repro a query that matches 20 documents gives 0 matching docs, with no error unless assertions are enabled.
 
+The test shows that `CachingCollectorManager` (cacheScores=true) never calls `LeafCollector#finish` on the wrapped first-pass `FacetsCollector`, nor on the `FacetsCollector` the scored cache is replayed into, so both report no hits (1-document index, `MatchAllDocsQuery`).
+
 ## Expected vs actual
 
-- Expected: `[20, 20]`: the wrapped `FacetsCollector` and the replay target each report the 20 hits.
-- Actual: `[0, 0]`: both report no `MatchingDocs`, with no error, with assertions on and off.
+Expected hits `[first pass, scored replay] = [1, 1]`, as a plain search gives; actual: `[0, 0]` (`expected:<[1, 1]> but was:<[0, 0]>`), with `-ea` and `-da`.
 
 ## Files
 
 - [src/org/apache/lucene/facet/TestCachingCollectorFinish.java](src/org/apache/lucene/facet/TestCachingCollectorFinish.java) (JUnit test)
-- [src/org/apache/lucene/facet/TestCachingCollectorFinishLegacy.java](src/org/apache/lucene/facet/TestCachingCollectorFinishLegacy.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,11 +43,6 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.facet.TestCachingCollectorFinish
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.facet.TestCachingCollectorFinishLegacy
 ```
 
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.

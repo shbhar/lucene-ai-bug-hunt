@@ -23,16 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index suggestions with SuggestField, delete one document or update it (which deletes the old version), and ask SuggestIndexSearcher.suggest for the top n completions; you expect the top n live completions, because NRTSuggester enlarges its bounded search queue &#x27;to account for the filtered out suggestions&#x27; of deleted documents. With few deletions that enlargement, (long)(topN / liveDocsRatio), rounds back down to topN (for one deletion in ten documents, (long)(1 / 0.9) = 1), so a deleted completion that takes a result slot is thrown away and nothing replaces it: with abc_0, the best of abc_0..abc_9 in one segment, deleted, suggest(&#x27;abc_&#x27;, 1) returns instead of [abc_1], and after updateDocument lowers the best entry&#x27;s weight from 1000 to 1, suggest(num=1) returns that entry at weight 1 instead of the live entry at weight 999. Deleting more documents (5 of 10) gives the queue enough room and the same lookup works.</p>
+<p>The test shows that the document suggester returns too few suggestions from a segment with few deletions: NRTSuggester&#x27;s deleted-document queue slack <code>(long)(topN / liveDocsRatio)</code> rounds back down to topN (here <code>(long)(1 / 0.9) = 1</code>), so a deleted completion takes the only queue slot and nothing replaces it.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>[abc_1/99]</code> (1 of 10 deleted), <code>[abc_1/9999]</code> (1 of 1,000), <code>[abc_1/99]</code> (after <code>updateDocument</code>) and <code>[abc_0/100, abc_2/98]</code> (<code>num=2</code>).</li><li><b>Actual:</b> `<code>, </code><code>, </code>[abc_0/1]<code> and </code>[abc_0/100]<code>; the half-deleted control returns </code>[abc_1/99]` as expected.</li></ul>
+<p>Expected for one segment abc_0..abc_9 (weights 100..91) with abc_0 deleted, <code>suggest(prefix &quot;abc_&quot;, num=1)</code>: <code>[abc_1]</code>; actual: <code>expected:&lt;[abc_1]&gt; but was:&lt;[]&gt;</code>, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/search/suggest/document/TestNRTSuggesterFewDeletions.java"><code>src/org/apache/lucene/search/suggest/document/TestNRTSuggesterFewDeletions.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src2/org/apache/lucene/search/suggest/document/TestNRTSuggesterFewDeletions.java"><code>src2/org/apache/lucene/search/suggest/document/TestNRTSuggesterFewDeletions.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src3/org/apache/lucene/search/suggest/document/TestNRTSuggesterFewDeletions.java"><code>src3/org/apache/lucene/search/suggest/document/TestNRTSuggesterFewDeletions.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src4/org/apache/lucene/search/suggest/document/TestNRTSuggesterFewDeletions.java"><code>src4/org/apache/lucene/search/suggest/document/TestNRTSuggesterFewDeletions.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/search/suggest/document/TestNRTSuggesterOneDeletion.java"><code>src/org/apache/lucene/search/suggest/document/TestNRTSuggesterOneDeletion.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -45,24 +43,11 @@ CP=$CP:$LUCENE/lucene/suggest/build/libs/lucene-suggest-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
-javac -d classes-src -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
-javac -d classes-src2 -cp &quot;$CP&quot; $(find src2 -name &#x27;*.java&#x27;)
-javac -d classes-src3 -cp &quot;$CP&quot; $(find src3 -name &#x27;*.java&#x27;)
-javac -d classes-src4 -cp &quot;$CP&quot; $(find src4 -name &#x27;*.java&#x27;)
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.suggest.document.TestNRTSuggesterFewDeletions
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src2:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.suggest.document.TestNRTSuggesterFewDeletions
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src3:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.suggest.document.TestNRTSuggesterFewDeletions
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src4:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.suggest.document.TestNRTSuggesterFewDeletions</code></pre>
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.search.suggest.document.TestNRTSuggesterOneDeletion</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestSuggestFewDeletions.java"><code>TestSuggestFewDeletions.java</code></a></li><li><a href="TestSuggestFewDeletionsLimit.java"><code>TestSuggestFewDeletionsLimit.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

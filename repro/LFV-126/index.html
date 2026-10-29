@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You take a slice of an MMapDirectory file with IndexInput#slice(name, offset, length, IOContext) and a context that asks for RANDOM or SEQUENTIAL read advice, as the compound-file reader does for each inner file, and you expect the madvise hint to land on the slice&#x27;s own pages. When the slice starts inside an mmap chunk and crosses into the next chunk, the hint is applied from the start of that chunk instead: in the repro, a slice of [512 KiB, 1.5 MiB) with 1 MiB chunks puts the RANDOM hint on [0, 1 MiB), so other inner files of a compound file get it, and a short slice that straddles a chunk boundary can get none of its own pages advised. Reads and query results stay correct; only the operating system&#x27;s readahead and caching behaviour on those pages changes.</p>
+<p>The test shows that <code>IndexInput#slice(name, 512 KiB, 1 MiB, RANDOM context)</code> on an <code>MMapDirectory</code> with 1 MiB chunks (ADVISE_BY_CONTEXT) puts the MADV_RANDOM hint on the wrong bytes, because <code>MultiSegmentImpl</code> does not add its slice offset in <code>advise()</code> (Linux only; read from the <code>rr</code> flag in /proc/self/smaps).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect the madvise hint to land on the slice&#x27;s own pages.</li><li><b>Actual:</b> While the bug is present the test fails; the failure message states expected against actual.</li></ul>
+<p>Expected: RANDOM advice only inside the slice [524288, 1572864); actual (-ea and -da): file bytes [0, 1048576) get it, half of them before the slice.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/store/TestMultiChunkSliceReadAdvice.java"><code>src/org/apache/lucene/store/TestMultiChunkSliceReadAdvice.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

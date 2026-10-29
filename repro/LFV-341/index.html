@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You call KatakanaRomanizer.getInstance.romanize(...) with a CharsRef that is a slice of a larger array, for example CharsRef.subSequence(2, 6) of &#x27;ハシヤキュウ&#x27; (the slice &#x27;ヤキュウ&#x27; at offset 2), and expect the romaji of the slice, [yakyuu], because CharsRef is documented as &#x27;a slice (offset + length) into an existing char&#x27; and the same text at offset 0 gives [yakyuu]. Instead romanize reads chars[0, length), here &#x27;ハシヤキ&#x27;, and returns [hasiyaki, hashiyaki]; a slice at offset 1 of &#x27;アトウキョウ&#x27; gives [atoukyo] instead of [toukyou], and one at offset 1 of &#x27;xトウキョウt&#x27; gives instead of [toukyout]. There is no exception, with or without assertions, and Lucene&#x27;s own JapaneseCompletionFilter is not affected because it always passes offset 0.</p>
+<p>The test shows that <code>KatakanaRomanizer.romanize(CharsRef)</code> ignores <code>CharsRef.offset</code>: the slice <code>トウキョウ</code> at offset 1 of <code>アトウキョウ</code> is romanized from <code>chars[0, 5)</code> instead.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> Romanize reads chars[0, length), here &#x27;ハシヤキ&#x27;, and returns [hasiyaki, hashiyaki]; a slice at offset 1 of &#x27;アトウキョウ&#x27; gives [atoukyo] instead of [toukyou], and one at offset 1 of &#x27;xトウキョウt&#x27; gives instead of [toukyout].</li></ul>
+<p>Expected <code>[toukyou]</code>; actual <code>[atoukyo]</code> (<code>expected:&lt;[toukyou]&gt; but was:&lt;[atoukyo]&gt;</code>), with <code>-ea</code> and <code>-da</code>; passes with the 2-line <code>input.offset</code> fix.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/analysis/ja/completion/TestKatakanaRomanizerCharsRefOffset.java"><code>src/org/apache/lucene/analysis/ja/completion/TestKatakanaRomanizerCharsRefOffset.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

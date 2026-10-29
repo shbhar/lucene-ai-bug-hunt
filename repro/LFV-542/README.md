@@ -10,20 +10,21 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You analyse 'abc the' with WhitespaceTokenizer, a StopFilter that removes 'the', and a ProtectedTermFilter that wraps a LowerCaseFilter (or the CustomAnalyzer equivalent whenTerm(...).addTokenFilter("lowercase").endwhen), and expect end to report the removed stop word as a final position increment of 1, as the same chain does without the condition and as the class itself does when the last token is protected ('x the' gives 1). Instead it reports 0 whenever the last token went through the wrapped filter, although LowerCaseFilter never touches positions: end keeps the wrapped chain's end state, and the internal wrapper that feeds that chain resets the increment to 0. In a multi-valued field ['abc the', 'def'] with the default gap 0, 'def' is then indexed at position 1 instead of 2, so the PhraseQuery "abc def" matches the document (1 hit) where the plain chain gives 0 (executed).
 
+The test shows that `ConditionalTokenFilter.end()` drops its input's trailing hole (a removed trailing stop word) when the last token went through the wrapped filters, even when the wrapped filter is the identity `in -> in`.
+
 ## Expected vs actual
 
-- Expected: Every chain reports the final position increment of the plain chain (1, or 2 for `abc a the`), and `def` is at position 2 with 0 hits for `"abc def"`.
-- Actual: `finalPosInc expected:<1> but was:<0>` (and `<2>` but `<1>`), and `def at position [1, "abc def" 1] hits`: 5 of 5 tests fail, assertions on and off.
+Expected the final position increment 1 that `StopFilter` reports for `abc the`; actual 0 (`finalPosInc expected:<1> but was:<0>`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/miscellaneous/TestConditionalTokenFilterFinalPositionIncrement.java](src/org/apache/lucene/analysis/miscellaneous/TestConditionalTokenFilterFinalPositionIncrement.java) (JUnit test)
-- [src/repro/ConditionalEndPosIncMain.java](src/repro/ConditionalEndPosIncMain.java) (main() class)
+- [src/org/apache/lucene/analysis/miscellaneous/TestConditionalTokenFilterEndPositionIncrement.java](src/org/apache/lucene/analysis/miscellaneous/TestConditionalTokenFilterEndPositionIncrement.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -41,22 +42,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.miscellaneous.TestConditionalTokenFilterFinalPositionIncrement
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" repro.ConditionalEndPosIncMain
+     execute --select-class org.apache.lucene.analysis.miscellaneous.TestConditionalTokenFilterEndPositionIncrement
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestConditionalTokenFilterTrailingHole.java](TestConditionalTokenFilterTrailingHole.java)
-- [fix-option-Bplus.diff](fix-option-Bplus.diff)
-- [TestConditionalTokenFilterStackedLastToken.java](TestConditionalTokenFilterStackedLastToken.java)
-- [TestConditionalTokenFilterFinalPositionIncrement.java](TestConditionalTokenFilterFinalPositionIncrement.java)
-- [TestConditionalFinalPosInc.java](TestConditionalFinalPosInc.java)
 
 ## Feedback
 

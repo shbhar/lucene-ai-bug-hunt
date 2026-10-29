@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index documents that each hold several facet sets (the adoc's own example: one (genre, year) set per movie of an actor) and count them with MatchingFacetSetsCounts, which the user guide FacetSets.adoc says 'counts how many documents are matched by each of a list of FacetSetMatcher'. You expect each matcher's value to be a number of documents, never larger than FacetResult.value. Instead the code adds 1 for every matching facet set, so one document with the sets (Thriller, 2020) and (Thriller, 2021) gives 2 for a 'Thriller 2020-2022' range matcher while FacetResult.value is 1; upstream tests pin this per-set count, so the conservative fix is to correct the documentation, although maintainers could instead choose per-document counts.
 
+The test shows (LFV-351, documentation defect) that FacetSets.adoc says `MatchingFacetSetsCounts` counts the documents each matcher matches, but one document with facet sets (1,2020) and (1,2021) counts 2 for a "Thriller 2020-2022" range matcher.
+
 ## Expected vs actual
 
-- Expected: You expect each matcher's value to be a number of documents, never larger than FacetResult.value.
-- Actual: The code adds 1 for every matching facet set, so one document with the sets (Thriller, 2020) and (Thriller, 2021) gives 2 for a 'Thriller 2020-2022' range matcher while FacetResult.value is 1; upstream tests pin this per-set count, so the conservative fix is to correct the documentation, although maintainers could instead choose per-document counts.
+Expected (per FacetSets.adoc:119-120): 1; actual (-ea and -da): 2, because the code adds 1 per matching facet set (MatchingFacetSetsCounts.java:128); the per-set code is intended, so the fix is the documentation.
 
 ## Files
 
@@ -19,8 +20,8 @@ You index documents that each hold several facet sets (the adoc's own example: o
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

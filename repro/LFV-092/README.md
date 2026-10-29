@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build a ConstKnnFloat16ValueSource from a float16 query vector that contains an infinity or NaN half and score it against a KnnFloat16VectorField with a FunctionQuery over Float16VectorSimilarityFunction. You expect the constructor to throw IllegalArgumentException, as its float32 twin ConstKnnFloatValueSource does (VectorUtil.checkFinite) and as KnnFloat16VectorQuery and KnnFloat16VectorField do for the same halves (VectorUtil.checkFiniteFloat16). Instead the constructor only null-checks the array, so with -ea scoring later fails with a bare AssertionError inside VectorUtil (EUCLIDEAN, DOT_PRODUCT, MAXIMUM_INNER_PRODUCT; COSINE silently scores 0), and with -da documents score 0 through FunctionQuery's intended NaN/negative clamp or, for DOT_PRODUCT and MAXIMUM_INNER_PRODUCT with an infinite component, +Infinity.
 
+The test shows that `new ConstKnnFloat16ValueSource(new short[] {Float.floatToFloat16(Float.NaN)})` accepts a non-finite float16 query vector (`TestConstKnnFloat16ValueSourceNonFinite#testNaNQueryVectorIsRejected`), while its float32 twin `ConstKnnFloatValueSource` and `KnnFloat16VectorQuery`/`KnnFloat16VectorField` reject such vectors.
+
 ## Expected vs actual
 
-- Expected: You expect the constructor to throw IllegalArgumentException, as its float32 twin ConstKnnFloatValueSource does (VectorUtil.checkFinite) and as KnnFloat16VectorQuery and KnnFloat16VectorField do for the same halves (VectorUtil.checkFiniteFloat16).
-- Actual: The constructor only null-checks the array, so with -ea scoring later fails with a bare AssertionError inside VectorUtil (EUCLIDEAN, DOT_PRODUCT, MAXIMUM_INNER_PRODUCT; COSINE silently scores 0), and with -da documents score 0 through FunctionQuery's intended NaN/negative clamp or, for DOT_PRODUCT and MAXIMUM_INNER_PRODUCT with an infinite component, +Infinity.
+Expected: `IllegalArgumentException` (`VectorUtil.checkFiniteFloat16`). Actual: `Expected exception IllegalArgumentException but no exception was thrown`, the same with -ea and -da.
 
 ## Files
 
-- [src/org/apache/lucene/queries/function/TestConstKnnFloat16ValueSourceValidation.java](src/org/apache/lucene/queries/function/TestConstKnnFloat16ValueSourceValidation.java) (JUnit test)
+- [src/org/apache/lucene/queries/function/TestConstKnnFloat16ValueSourceNonFinite.java](src/org/apache/lucene/queries/function/TestConstKnnFloat16ValueSourceNonFinite.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -36,10 +37,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queries.function.TestConstKnnFloat16ValueSourceValidation
+     execute --select-class org.apache.lucene.queries.function.TestConstKnnFloat16ValueSourceNonFinite
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

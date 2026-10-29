@@ -10,22 +10,21 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index a text field with StandardAnalyzer at default settings, and the value ends in an unpaired high surrogate, for example 'hello world' followed by U+D83D, which is what cutting a Java String inside an emoji, or decoding the JSON escape \ud83d, produces. You expect hello and world to be indexed and end to report the input length as the final offset, as happens when the same lone surrogate sits mid-text and as Lucene 7.6.0 did. Instead the scanner's refill reads the whole text, looks one char ahead for the missing low surrogate, hits end of input and reports 'no new input', so the scanner ends the stream without scanning what it just read: no tokens, final offset 0, and the document does not match title:hello; values longer than the 255-char buffer lose or split their last window instead.
 
+The test shows that `StandardAnalyzer` at default settings drops every token of `"hello world\uD83D"` (text ending in an unpaired high surrogate, e.g. a string cut inside an emoji).
+
 ## Expected vs actual
 
-- Expected: `[hello, world]` with final offsets 12 and 13, and `title:hello` matches 2 documents, as on 7.6.0.
-- Actual: `` with final offset 0 for both values, and `title:hello` matches 1 document (main with -ea and -da, 10.5.2, 7.7.0).
+Expected: tokens `[hello, world]` and final offset 12 (the input length). Actual: `[]` and final offset 0.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/standard/TestStandardTokenizerTrailingHighSurrogate.java](src/org/apache/lucene/analysis/standard/TestStandardTokenizerTrailingHighSurrogate.java) (JUnit test)
-- [src/org/apache/lucene/analysis/classic/TestJFlexScannersTrailingHighSurrogate.java](src/org/apache/lucene/analysis/classic/TestJFlexScannersTrailingHighSurrogate.java) (JUnit test)
-- [src/trailhs/TrailingHighSurrogateMain.java](src/trailhs/TrailingHighSurrogateMain.java) (main() class)
+- [src/org/apache/lucene/analysis/standard/TestStandardAnalyzerTrailingHighSurrogate.java](src/org/apache/lucene/analysis/standard/TestStandardAnalyzerTrailingHighSurrogate.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -34,31 +33,18 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
-CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions on, seed 28CA5EF0
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=28CA5EF0 \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.standard.TestStandardTokenizerTrailingHighSurrogate \
-       --select-class org.apache.lucene.analysis.classic.TestJFlexScannersTrailingHighSurrogate
-
-# run 2: assertions on, seed DEADBEEF, default flags
+# run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" trailhs.TrailingHighSurrogateMain
+     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.analysis.standard.TestStandardAnalyzerTrailingHighSurrogate
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TrailingHighSurrogate.java](TrailingHighSurrogate.java)
-- [TestStandardAnalyzerTrailingHighSurrogate.java](TestStandardAnalyzerTrailingHighSurrogate.java)
-- [TestTrailingHighSurrogateJFlexScanners.java](TestTrailingHighSurrogateJFlexScanners.java)
-- [fix-with-tests.diff](fix-with-tests.diff)
 
 ## Feedback
 

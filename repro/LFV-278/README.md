@@ -10,19 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You re-sort two or more segments with SortingCodecReader and pass them to one IndexWriter.addIndexes(CodecReader...) call on a writer that has no index sort but uses a merge policy that reorders addIndexes merges, such as BPReorderingMergePolicy (an identity OneMerge#reorder is enough), and you expect every document to keep the vector it was indexed with, as it does without the reorder. Instead the merged view that IndexWriter builds for the reorder (SlowCompositeCodecReaderWrapper) numbers vectors by iteration position, while each SortingCodecReader input reports and reads vectors by its original ordinal, so in each input the k-th document in sorted order is written with the vector at original ordinal k. Nothing throws, with or without assertions, CheckIndex reports the new index clean, and kNN search then scores documents by other documents' vectors, in an executed probe including the vector of a document deleted before the call.
 
+The test shows that addIndexes of two SortingCodecReader-wrapped segments through a merge policy whose addIndexes merge returns an identity OneMerge#reorder writes vectors onto the wrong documents.
+
 ## Expected vs actual
 
-- Expected: Every document keeps its own vectors: doc 0 (id 3) holds `[3.0, 97.0]`, as in the no-reorder control.
-- Actual: `16 wrong`: doc 0 (id 3) holds id 0's vector `[0.0, 100.0]`, and so on for all 8 documents, float and byte; with id 0 deleted, live id 3 carries its vector. No exception.
+Expected every document to keep its own vector ({id}); actual: the document with id 1 has the vector of id 0 (`vector of id 1 expected:<1.0> but was:<0.0>`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/misc/index/TestReorderedAddIndexesOfSortingReaders.java](src/org/apache/lucene/misc/index/TestReorderedAddIndexesOfSortingReaders.java) (JUnit test)
+- [src/org/apache/lucene/index/TestReorderedAddIndexesOfSortedReaders.java](src/org/apache/lucene/index/TestReorderedAddIndexesOfSortedReaders.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -32,7 +33,6 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
-CP=$CP:$LUCENE/lucene/misc/build/libs/lucene-misc-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
@@ -41,16 +41,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.misc.index.TestReorderedAddIndexesOfSortingReaders
+     execute --select-class org.apache.lucene.index.TestReorderedAddIndexesOfSortedReaders
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestReorderedAddIndexesVectors.java](TestReorderedAddIndexesVectors.java)
-- [TestReorderedAddIndexesOfSortingReaders.java](TestReorderedAddIndexesOfSortingReaders.java)
-- [merged-iterator-uses-sub-index.diff](merged-iterator-uses-sub-index.diff)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/codecreader-wrappers/](../../models/codecreader-wrappers/)
 

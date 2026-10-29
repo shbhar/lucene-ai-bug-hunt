@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You run the IndexMergeTool command line with '--' before the paths, for example 'IndexMergeTool -- -merged src1 src2', and expect the parser's dedicated '--' branch (IndexMergeTool.java:61) to end option parsing, as the usual command-line convention says, so that '-merged' is taken as the target directory. Instead the branch compares the argument with == against the literal "--", which is never true for a command-line argument, so '--' falls through to the option switch and the tool stops with "unrecognized option: '--'" and exit code 2 without merging anything. The branch is also wrong when it does fire (only when Java code passes the literal "--" to main): it stops without skipping the '--', so '--' becomes the merged-index path and the intended target is read as the first source index.
 
+The test shows that IndexMergeTool's option parser does not treat a command-line `--` as the end of the options, because it compares the argument with `==` (and would also forget to skip it).
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The branch compares the argument with == against the literal "--", which is never true for a command-line argument, so '--' falls through to the option switch and the tool stops with "unrecognized option: '--'" and exit code 2 without merging anything.
+Expected `Options.parse({"--", "target", "s1", "s2"})` (with a non-interned `"--"`, as argv gives) to return mergedIndexPath `target`; actual: `IllegalArgumentException: unrecognized option: '--'`, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/misc/TestIndexMergeToolEndOfOptions.java](src/org/apache/lucene/misc/TestIndexMergeToolEndOfOptions.java) (JUnit test)
+- [src/org/apache/lucene/misc/TestIndexMergeToolDoubleDash.java](src/org/apache/lucene/misc/TestIndexMergeToolDoubleDash.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -39,7 +40,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.misc.TestIndexMergeToolEndOfOptions
+     execute --select-class org.apache.lucene.misc.TestIndexMergeToolDoubleDash
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

@@ -19,17 +19,18 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>ReqExclBulkScorer.WindowBits.applyMask adds offset + bitSet.length in int, so FILTER/MUST + MUST_NOT queries silently drop every match in a 4096-doc window based at doc 2^31-4096 or above (up to the last 3,967 doc IDs of a segment near IndexWriter.MAX_DOCS)</h1>
 <p class="facts small"><span>Bug LFV-139</span><span>Area: search / BooleanQuery MUST_NOT bulk scoring (ReqExclBulkScorer)</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-139.html">Bug page for LFV-139</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index one segment of IndexWriter.MAX_DOCS (2,147,483,519) documents with default settings, one of which has b:y, and count the matches of +*:* -b:y (MatchAllDocsQuery as FILTER plus a MUST_NOT term query) with a plain IndexSearcher; you expect 2,147,483,518. Instead you get 2,147,479,551: all 3,967 documents of the last window [2,147,479,552, MAX_DOCS) are silently missing, because ReqExclBulkScorer&#x27;s WindowBits.applyMask computes Math.min(NO_MORE_DOCS, offset + bitSet.length) in int, the sum wraps negative for a 4096-bit window based at 2^31-4096 or above, and the method then clears the whole window. Only segments with more than 2,147,479,552 documents and required clauses denser than 0.3% of maxDoc are affected, and only unreleased code (main and the 10.x / 10.6 branches since #16669) has the bug.</p>
+<p>The test shows that <code>ReqExclBulkScorer</code> drops every match of a dense required clause in the 4096-doc window based at 2^31-4096 when a <code>MUST_NOT</code> clause is present, because <code>WindowBits.applyMask</code> adds <code>offset + bitSet.length()</code> in <code>int</code> (no index built).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect 2,147,483,518.</li><li><b>Actual:</b> You get 2,147,479,551: all 3,967 documents of the last window [2,147,479,552, MAX_DOCS) are silently missing, because ReqExclBulkScorer&#x27;s WindowBits.applyMask computes Math.min(NO_MORE_DOCS, offset + bitSet.length) in int, the sum wraps negative for a 4096-bit window based at 2^31-4096 or above, and the method then clears the whole window.</li></ul>
+<p>Expected 99 hits (the last 100 doc IDs of a <code>MAX_DOCS</code> segment minus one excluded); actual 0 (<code>expected:&lt;99&gt; but was:&lt;0&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/search/TestReqExclLastWindowBelow2To31.java"><code>src/org/apache/lucene/search/TestReqExclLastWindowBelow2To31.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/org/apache/lucene/search/TestMatchAllMustNotInMaxDocsSegment.java"><code>src/org/apache/lucene/search/TestMatchAllMustNotInMaxDocsSegment.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/search/TestReqExclLastWindow.java"><code>src/org/apache/lucene/search/TestReqExclLastWindow.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -45,12 +46,7 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestReqExclLastWindowBelow2To31
-
-# run 2: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false -Xmx3g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestMatchAllMustNotInMaxDocsSegment</code></pre>
+     execute --select-class org.apache.lucene.search.TestReqExclLastWindow</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/bitsets-livedocs-acceptdocs/index.html">bitsets-livedocs-acceptdocs</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You call the surround parser's documented entry point QueryParser.parse(String), which declares only ParseException and already turns the lexer's TokenMgrError (an Error) into a ParseException, on a valid query with many nested groups, for example "(".repeat(d) + "a" + ")".repeat(d) or a long chain of "(a OR " groups, and expect a query or a ParseException. Instead the generated recursive-descent grammar, which spends seven frames per "(" (FieldsQuery -&gt; OrQuery -&gt; AndQuery -&gt; NotQuery -&gt; NQuery -&gt; WQuery -&gt; PrimaryQuery -&gt; FieldsQuery) and has no depth bound, runs out of stack and java.lang.StackOverflowError escapes parse, so a caller that handles ParseException gets an undeclared Error. On a 1 MB thread stack as few as about 740 nested groups (1,473 chars) are enough on the first deep parse, and an 800-term chain of parenthesised binary ORs (7,884 chars, under the module's 1024-basic-query limit) fails even after JIT warm-up.
 
+The test shows that the surround `QueryParser.parse` on 100,000 nested parentheses lets `StackOverflowError` escape from its unbounded FieldsQuery -&gt;... -&gt; PrimaryQuery recursion.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The generated recursive-descent grammar, which spends seven frames per "(" (FieldsQuery -&gt; OrQuery -&gt; AndQuery -&gt; NotQuery -&gt; NQuery -&gt; WQuery -&gt; PrimaryQuery -&gt; FieldsQuery) and has no depth bound, runs out of stack and java.lang.StackOverflowError escapes parse, so a caller that handles ParseException gets an undeclared Error.
+Expected: a query or the declared `ParseException`; actual: `AssertionError: expected a query or ParseException, got StackOverflowError` (-ea and -da).
 
 ## Files
 
@@ -19,7 +20,8 @@ You call the surround parser's documented entry point QueryParser.parse(String),
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,8 +40,8 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed 364DEE9
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=364DEE9 \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.queryparser.surround.parser.TestSurroundDeepNesting
 ```

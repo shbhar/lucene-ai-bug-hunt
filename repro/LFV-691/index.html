@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You run a RegexCompletionQuery, which &#x27;takes a regular expression as the prefix of the query term&#x27;, over the suggestions foo (weight 5), food (1) and fox (2), and expect &#x27;foo.&#x27; and &#x27;foo[^x]&#x27; to return only food (the only suggestion with a matching four-character prefix) and &#x27;foo..&#x27; to return nothing (no suggestion has five characters). Instead &#x27;foo.&#x27; and &#x27;foo[^x]&#x27; return [foo, food] with foo ranked first, and &#x27;foo..&#x27; returns [food]. The document suggester stores every suggestion in its FST as the analyzed text followed by an internal end byte 0x00 and dedup bytes, and RegexCompletionQuery hands the regex automaton, whose &#x27;.&#x27; and negated classes include U+0000, to the FST intersection unchanged, so the pattern runs past the end of the suggestion into these internal bytes.</p>
+<p>The test shows that <code>RegexCompletionQuery(&quot;foo.&quot;)</code> over the suggestions foo and food also returns foo, because &#x27;.&#x27; matches the suggester&#x27;s internal end byte 0x00.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>foo.</code> and <code>foo[^x]</code> return <code>[food]</code> (also with n = 1); <code>foo..</code> returns `<code>, also over five copies of </code>foo`.</li><li><b>Actual:</b> <code>foo.</code> and <code>foo[^x]</code> return <code>[foo, food]</code> and n = 1 gives <code>[foo]</code>; <code>foo..</code> returns <code>[food]</code>, and <code>[foo, foo]</code> over five copies of <code>foo</code>.</li></ul>
+<p>Expected <code>[food]</code>; actual <code>[foo, food]</code>: <code>expected:&lt;[food]&gt; but was:&lt;[foo, food]&gt;</code> (-ea and -da).</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/search/suggest/document/TestRegexCompletionEndByte.java"><code>src/org/apache/lucene/search/suggest/document/TestRegexCompletionEndByte.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -43,10 +45,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.search.suggest.document.TestRegexCompletionEndByte</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestRegexCompletionPastEndOfSuggestion.java"><code>TestRegexCompletionPastEndOfSuggestion.java</code></a></li><li><a href="TestRegexCompletionEndByteProbes.java"><code>TestRegexCompletionEndByteProbes.java</code></a></li><li><a href="RegexCompletionEndByteProbe.java"><code>RegexCompletionEndByteProbe.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

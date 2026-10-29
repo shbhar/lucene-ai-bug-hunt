@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You highlight a text with the classic Highlighter, a QueryScorer and SimpleSpanFragmenter, whose javadoc says it &#x27;breaks text up into same-size fragments but does not split up Spans&#x27;, for a query with two overlapping phrases (&#x27;new york&#x27; OR &#x27;york city hall&#x27;), two phrases that share a start (&#x27;new york&#x27; OR &#x27;new york city hall&#x27;), or a phrase whose words get synonyms stacked on them by SynonymGraphFilter, and you expect every phrase match shorter than the fragment size to stay inside one fragment. Instead the fragmenter cuts inside the longer phrase (&#x27;The museum is near New York City&#x27; | &#x27; Hall and the park&#x27;, &#x27;We flew to New York City&#x27; | &#x27; Hall last week&#x27;, &#x27;I left my big laptop&#x27; | &#x27; bag on the train&#x27;), so getBestFragment can return only part of the phrase, and in the same-start case listing the longer phrase first in the BooleanQuery makes the phrase come out whole. Hits, scores and which words are highlighted are correct; only the fragment boundaries are wrong.</p>
+<p>The test shows that SimpleSpanFragmenter(scorer, 20) with the same-start phrases &#x27;new york&#x27; OR &#x27;new york city hall&#x27; splits the longer phrase match across fragments (TestSimpleSpanFragmenterSameStartPhrases#testSameStartPhrasesNotSplit).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> Every best fragment holds the whole phrase, as in the 4 controls: <code>We flew to &lt;B&gt;New&lt;/B&gt; &lt;B&gt;York&lt;/B&gt; &lt;B&gt;City&lt;/B&gt; &lt;B&gt;Hall&lt;/B&gt; last</code>.</li><li><b>Actual:</b> 4 of 8 fail, e.g. best fragment <code>We flew to &lt;B&gt;New&lt;/B&gt; &lt;B&gt;York&lt;/B&gt; &lt;B&gt;City&lt;/B&gt;</code>; fragments <code>We flew to New York City</code> | <code> Hall last week</code> | <code> for a conference</code>.</li></ul>
+<p>Expected the best fragment to hold &lt;B&gt;New&lt;/B&gt; &lt;B&gt;York&lt;/B&gt; &lt;B&gt;City&lt;/B&gt; &lt;B&gt;Hall&lt;/B&gt;; actual [We flew to &lt;B&gt;New&lt;/B&gt; &lt;B&gt;York&lt;/B&gt; &lt;B&gt;City&lt;/B&gt;] (cut before &quot;Hall&quot;), with -ea and -da.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/search/highlight/TestSimpleSpanFragmenterSpanTracking.java"><code>src/org/apache/lucene/search/highlight/TestSimpleSpanFragmenterSpanTracking.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/search/highlight/TestSimpleSpanFragmenterSameStartPhrases.java"><code>src/org/apache/lucene/search/highlight/TestSimpleSpanFragmenterSameStartPhrases.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -36,7 +38,6 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
-CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
 CP=$CP:$LUCENE/lucene/highlighter/build/libs/lucene-highlighter-$V.jar
 CP=$CP:$LUCENE/lucene/memory/build/libs/lucene-memory-$V.jar
 CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
@@ -45,10 +46,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions on, seed DEADBEEF
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed 5EED0858
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=5EED0858 \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.highlight.TestSimpleSpanFragmenterSpanTracking</code></pre>
+     execute --select-class org.apache.lucene.search.highlight.TestSimpleSpanFragmenterSameStartPhrases</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestSimpleSpanFragmenterPhraseSplit.java"><code>TestSimpleSpanFragmenterPhraseSplit.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

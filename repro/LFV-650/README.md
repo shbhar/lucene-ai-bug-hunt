@@ -8,20 +8,21 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You create a sink with tee.newSinkTokenStream and then wrap the tee in a further filter, as the class javadoc example does (sinks first, then final1 = new LowerCaseFilter(source1)), and expect the sink to replay every token the tee consumed, as newSinkTokenStream promises. If that later filter adds an attribute the tee did not have yet, for example PorterStemFilter adding KeywordAttribute for a stemmed field next to an unstemmed sink field, the sink lacks it, because its attributes are a cloneAttributes snapshot taken when it was created, and its restoreState throws IllegalArgumentException ('State contains AttributeImpl of type...KeywordAttributeImpl that is not in in this AttributeSource') on the first token, so addDocument rejects the document. With LowerCaseFilter, the javadoc's own filter, nothing is added and the example works; creating the sink after the stemmer also works.
 
+The test shows that a sink created with `tee.newSinkTokenStream()` before a `PorterStemFilter` is put on the tee (the class javadoc's order) cannot replay the token "foxes".
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+Expected the sink to return "foxes"; actual: `restoreState` throws `IllegalArgumentException: State contains AttributeImpl of type...KeywordAttributeImpl that is not in in this AttributeSource`, with `-ea` and `-da`.
 
 ## Files
 
 - [src/org/apache/lucene/analysis/sinks/TestTeeSinkAttributeAddedAfterSink.java](src/org/apache/lucene/analysis/sinks/TestTeeSinkAttributeAddedAfterSink.java) (JUnit test)
-- [src/TeeSinkAttributeAddedAfterSinkMain.java](src/TeeSinkAttributeAddedAfterSinkMain.java) (main() class)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -36,14 +37,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.analysis.sinks.TestTeeSinkAttributeAddedAfterSink
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" TeeSinkAttributeAddedAfterSinkMain
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

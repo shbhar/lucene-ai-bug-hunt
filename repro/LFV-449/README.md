@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You take the terms enum of a sorted-set doc-values view with more than 2^31 distinct values (for example MultiDocValues.getSortedSetValues over a very large multi-segment index), position it on a term with seekCeil, keep ord or termState, and later return with seekExact(ord) or seekExact(term, state); you expect to land on that term again, because sorted-set ordinals are longs and termsEnum is documented to support ord and seekExact(long). Instead seekExact(long) stores '(int) ord' (SortedSetDocValuesTermsEnum.java:69), so for ordinals from 2^31 to 2^32-1 it asks the values for a negative ordinal and throws, and for 2^32+5 it silently positions on ordinal 5 and returns that term, with -ea and -da. seekCeil, seekExact(BytesRef), next and ord use long arithmetic and are correct; the fix is to drop the cast.
 
+The test shows that the default `SortedSetDocValues#termsEnum()` casts the ordinal to int in `seekExact(long)`, so on a view with more than 2^32 values `seekExact(2^32 + 5)` silently lands on ordinal 5.
+
 ## Expected vs actual
 
-- Expected: You expect to land on that term again, because sorted-set ordinals are longs and termsEnum is documented to support ord and seekExact(long).
-- Actual: seekExact(long) stores '(int) ord' (SortedSetDocValuesTermsEnum.java:69), so for ordinals from 2^31 to 2^32-1 it asks the values for a negative ordinal and throws, and for 2^32+5 it silently positions on ordinal 5 and returns that term, with -ea and -da. seekCeil, seekExact(BytesRef), next and ord use long arithmetic and are correct; the fix is to drop the cast.
+Expected: `ord()` is 4294967301 after `seekExact(4294967301)`. Actual: `expected:<4294967301> but was:<5>`, no exception, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/index/TestSortedSetDocValuesTermsEnumLongOrd.java](src/org/apache/lucene/index/TestSortedSetDocValuesTermsEnumLongOrd.java) (JUnit test)
+- [src/org/apache/lucene/index/TestSortedSetTermsEnumSeekExactLongOrd.java](src/org/apache/lucene/index/TestSortedSetTermsEnumSeekExactLongOrd.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,7 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestSortedSetDocValuesTermsEnumLongOrd
+     execute --select-class org.apache.lucene.index.TestSortedSetTermsEnumSeekExactLongOrd
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

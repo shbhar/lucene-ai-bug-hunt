@@ -1,0 +1,55 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.opennlp;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.custom.CustomAnalyzer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.ClasspathResourceLoader;
+
+public class TestLemmatizerSentenceFinalKeyword extends LuceneTestCase {
+
+  public void testKeywordAtEndOfSentence() throws Exception {
+    List<String> terms = new ArrayList<>();
+    try (Analyzer a =
+            CustomAnalyzer.builder(new ClasspathResourceLoader(getClass()))
+                .withTokenizer(
+                    "opennlp",
+                    "tokenizerModel",
+                    "en-test-tokenizer.bin",
+                    "sentenceModel",
+                    "en-test-sent.bin")
+                .addTokenFilter("opennlpPOS", "posTaggerModel", "en-test-pos-maxent.bin")
+                .addTokenFilter("keywordMarker", "pattern", "evening")
+                .addTokenFilter("opennlplemmatizer", "dictionary", "en-test-lemmas.dict")
+                .build();
+        TokenStream ts = a.tokenStream("f", "They sent him running in the evening")) {
+      CharTermAttribute term = ts.addAttribute(CharTermAttribute.class);
+      ts.reset();
+      while (ts.incrementToken()) {
+        terms.add(term.toString());
+      }
+      ts.end();
+    }
+    // the keyword "evening" must pass through unlemmatized; actual: it is dropped
+    assertEquals(List.of("they", "send", "he", "run", "in", "the", "evening"), terms);
+  }
+}

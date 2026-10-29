@@ -18,23 +18,17 @@ package org.apache.lucene.spatial.spatial4j;
 
 import org.apache.lucene.tests.util.LuceneTestCase;
 import org.locationtech.spatial4j.context.SpatialContext;
-import org.locationtech.spatial4j.distance.DistanceCalculator;
 import org.locationtech.spatial4j.shape.Point;
 
-/**
- * Geo3dDistanceCalculator.within(from, toX, toY, d) returns d < distance(from, to), the negation of
- * the DistanceCalculator contract "true if the distance between from and to is <= distance".
- */
 public class TestGeo3dDistanceCalculatorWithin extends LuceneTestCase {
 
-  public void testWithinAgreesWithDistance() {
+  public void testWithin() {
     SpatialContext ctx = new Geo3dSpatialContextFactory().newSpatialContext();
-    DistanceCalculator calc = ctx.getDistCalc();
-    assertTrue(calc instanceof Geo3dDistanceCalculator);
-    Point from = ctx.getShapeFactory().pointXY(0, 0);
-    assertEquals(1.0, calc.distance(from, 1, 0), 1e-9);
-    assertEquals(50.0, calc.distance(from, 50, 0), 1e-9);
-    assertTrue("(1,0) is 1 degree away, within 10 degrees", calc.within(from, 1, 0, 10));
-    assertFalse("(50,0) is 50 degrees away, not within 10 degrees", calc.within(from, 50, 0, 10));
+    Point origin = ctx.getShapeFactory().pointXY(0, 0);
+    // spatial4j DistanceCalculator.within is true if the distance is <= the given limit
+    assertEquals(
+        "(1, 0) is 1 degree from (0, 0), so it is within 10 degrees",
+        true,
+        ctx.getDistCalc().within(origin, 1, 0, 10));
   }
 }

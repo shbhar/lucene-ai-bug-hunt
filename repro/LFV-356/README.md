@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 The standard flexible-parser grammar accepts escaped field names on purpose ('my\ field:x' is a query on the field 'my field', 'a\:b:x' on 'a:b'), and QueryNode#toQueryString is documented to return 'a query string understood by the query parser' that 'can be parsed back by the original text parser'. Every toQueryString that prints a field appends the name raw (only the term goes through the escaper), so the node of 'my\ field:x' prints 'my field:x', which parses as df:my OR field:x, and the node of 'a\:b:x' prints 'a:b:x', which is a syntax error. The same happens for phrase and fuzzy nodes, for range nodes on main (after the #7865 range fix), and for hand-built nodes such as new FieldQueryNode("my field", "x", 0, 0).
 
+The test shows that the flexible parser's QueryNode#toQueryString prints an escaped field name raw, so the printed string of `my\ field:x` does not parse back to the same query.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+Expected the printed string to parse to the term query `my field:x`; actual: it prints `my field:x`, which parses to `df:my field:x` (`expected:<my field:x> but was:<df:my field:x>`), with `-ea` and `-da`.
 
 ## Files
 
@@ -19,8 +20,8 @@ The standard flexible-parser grammar accepts escaped field names on purpose ('my
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

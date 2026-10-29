@@ -22,12 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index points with the SimpleText codec, take a PointTree from PointValues.getPointTree, clone it and keep moving both the clone and the original, and expect each tree to report the bounds of its own current node, as PointTree#clone promises (&#x27;the current node becomes the root of the new tree&#x27;) and as the default points format does. Instead SimpleTextPointTree.clone copies the reference to the original&#x27;s saved split-value array for the current level, so a move of one tree overwrites the bound that the other tree restores when it moves back up: after tree.moveToChild, tree.moveToParent, clone = tree.clone, clone.moveToChild, tree.moveToChild, tree.moveToSibling, clone.moveToParent, the clone at its root reports max 0 instead of 2047 for the values 0..2047. Any traversal that prunes on those bounds can then miss or wrongly include cells; no in-tree query moves trees this way.</p>
+<p>The test shows that with the SimpleText codec a <code>PointTree.clone()</code> shares a saved split value with the original tree, so moving the original corrupts the clone&#x27;s bounds.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> SimpleTextPointTree.clone copies the reference to the original&#x27;s saved split-value array for the current level, so a move of one tree overwrites the bound that the other tree restores when it moves back up: after tree.moveToChild, tree.moveToParent, clone = tree.clone, clone.moveToChild, tree.moveToChild, tree.moveToSibling, clone.moveToParent, the clone at its root reports max 0 instead of 2047 for the values 0..2047.</li></ul>
+<p>Expected the clone&#x27;s root max <code>1023</code> after it moves back to its root (values 0..1023); actual <code>0</code> (<code>expected:&lt;1023&gt; but was:&lt;0&gt;</code>), with <code>-ea</code> and <code>-da</code>; passes when clone() copies the array.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/codecs/simpletext/TestSimpleTextPointTreeCloneIndependence.java"><code>src/org/apache/lucene/codecs/simpletext/TestSimpleTextPointTreeCloneIndependence.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -40,8 +42,8 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions on, seed 254C10E
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=254C10E \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.codecs.simpletext.TestSimpleTextPointTreeCloneIndependence</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>

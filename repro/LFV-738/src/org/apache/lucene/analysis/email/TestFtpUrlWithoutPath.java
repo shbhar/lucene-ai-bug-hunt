@@ -16,56 +16,16 @@
  */
 package org.apache.lucene.analysis.email;
 
-import org.apache.lucene.analysis.Analyzer;
+import java.io.StringReader;
+import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
 
-/**
- * RFC 1738 section 3.2 makes the path of an ftp URL optional (ftpurl = "ftp://" login [ "/" fpath
- * [ ";type=" ftptype ]]), and RFC 3986 allows an empty path-abempty; an ftp URL without a path is
- * not recognized as a URL.
- */
 public class TestFtpUrlWithoutPath extends BaseTokenStreamTestCase {
 
-  private static Analyzer tokenizerOnly() {
-    return new Analyzer() {
-      @Override
-      protected TokenStreamComponents createComponents(String fieldName) {
-        return new TokenStreamComponents(new UAX29URLEmailTokenizer(newAttributeFactory()));
-      }
-    };
-  }
-
-  /** Control: with a trailing slash the URL is recognized. */
-  public void testControlWithSlash() throws Exception {
-    try (Analyzer a = tokenizerOnly()) {
-      assertAnalyzesTo(
-          a,
-          "get it from ftp://ftp.example.com/ today",
-          new String[] {"get", "it", "from", "ftp://ftp.example.com/", "today"},
-          new String[] {"<ALPHANUM>", "<ALPHANUM>", "<ALPHANUM>", "<URL>", "<ALPHANUM>"});
-    }
-  }
-
-  public void testFtpWithoutPath() throws Exception {
-    try (Analyzer a = tokenizerOnly()) {
-      assertAnalyzesTo(
-          a,
-          "get it from ftp://ftp.example.com today",
-          new String[] {"get", "it", "from", "ftp://ftp.example.com", "today"},
-          new String[] {"<ALPHANUM>", "<ALPHANUM>", "<ALPHANUM>", "<URL>", "<ALPHANUM>"});
-    }
-  }
-
-  public void testFtpWithoutPathLocalHost() throws Exception {
-    try (Analyzer a = tokenizerOnly()) {
-      assertAnalyzesTo(a, "ftp://localhost", new String[] {"ftp://localhost"}, new String[] {"<URL>"});
-    }
-  }
-
-  /** http with no path is recognized; the ftp rule is the odd one out. */
-  public void testControlHttpWithoutPath() throws Exception {
-    try (Analyzer a = tokenizerOnly()) {
-      assertAnalyzesTo(a, "http://localhost", new String[] {"http://localhost"}, new String[] {"<URL>"});
-    }
+  public void testFtpUrlWithoutPath() throws Exception {
+    Tokenizer t = new UAX29URLEmailTokenizer();
+    t.setReader(new StringReader("ftp://localhost"));
+    // RFC 1738 3.2.2 lets the ftp path be omitted: expected one <URL> token, actual "ftp" + "localhost"
+    assertTokenStreamContents(t, new String[] {"ftp://localhost"}, new String[] {"<URL>"});
   }
 }

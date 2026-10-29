@@ -8,20 +8,22 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You configure SynonymGraphFilterFactory (or SynonymFilterFactory) with a synonyms file that an editor saved as UTF-8 with a byte order mark (bytes EF BB BF) and expect the same rules as from the file without the mark, because Lucene's shared resource-line loader skips a leading BOM for the other file-based analysis factories (WordlistLoader.getLines, 'skip initial bom marker', SOLR-1865) and the synonym factory itself skipped it until 3.4.0. Instead the factory decodes the file with its own UTF-8 reader and SolrSynonymParser keeps U+FEFF glued to the first line: with the first rule 'foo, bar' the text 'foo' is no longer expanded (and 'bar' gains the invisible synonym '\uFEFFfoo'), a first rule 'baz =&gt; qux' never fires, and a first line '#couch, sofa' is no longer a comment, so 'sofa' expands to '\uFEFF#couch'. In WordNet format the fixed-column synset id (substring(2, 11)) is shifted by one character, so the first word ends up in a synset of its own; nothing reports an error.
+You configure SynonymGraphFilterFactory (or SynonymFilterFactory) with a synonyms file that an editor saved as UTF-8 with a byte order mark (bytes EF BB BF) and expect the same rules as from the file without the mark, because Lucene's shared resource-line loader skips a leading BOM for the word-list factories that read through it (WordlistLoader.getLines, 'skip initial bom marker', SOLR-1865) and the synonym factory itself skipped it until 3.4.0. Instead the factory decodes the file with its own UTF-8 reader and SolrSynonymParser keeps U+FEFF glued to the first line: with the first rule 'foo, bar' the text 'foo' is no longer expanded (and 'bar' gains the invisible synonym '\uFEFFfoo'), a first rule 'baz =&gt; qux' never fires, and a first line '#couch, sofa' is no longer a comment, so 'sofa' expands to '\uFEFF#couch'. In WordNet format the fixed-column synset id (substring(2, 11)) is shifted by one character, so the first word ends up in a synset of its own; nothing reports an error.
+
+The test shows that `SynonymGraphFilterFactory` with a synonyms file that starts with a UTF-8 byte order mark (`"\uFEFFfoo, bar\n"`) silently drops the first rule.
 
 ## Expected vs actual
 
-- Expected: Each first line behaves as in the file without the mark: `foo` -&gt; `[bar, foo]`, `baz` -&gt; `[qux]`, `sofa` stays `[sofa]`.
-- Actual: 5 of 6 tests fail, assertions on and off: `foo` -&gt; `[foo]`, `baz` -&gt; `[baz]`, `sofa` -&gt; `[\uFEFF#couch, sofa]`; the stop-filter control passes.
+Expected "foo" to expand to [bar, foo], as without the mark; actual: [foo] (`term 0 expected:<[bar]> but was:<[foo]>`), with -ea and -da.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/synonym/TestSynonymFileUtf8Bom.java](src/org/apache/lucene/analysis/synonym/TestSynonymFileUtf8Bom.java) (JUnit test)
+- [src/org/apache/lucene/analysis/synonym/TestSynonymGraphFilterFactoryUtf8Bom.java](src/org/apache/lucene/analysis/synonym/TestSynonymGraphFilterFactoryUtf8Bom.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,20 +39,13 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.synonym.TestSynonymFileUtf8Bom
+     execute --select-class org.apache.lucene.analysis.synonym.TestSynonymGraphFilterFactoryUtf8Bom
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestSynonymFileUtf8Bom.java](TestSynonymFileUtf8Bom.java)
-- [fix-option-F-factories.diff](fix-option-F-factories.diff)
-- [TestSynonymBomOnDisk.java](TestSynonymBomOnDisk.java)
-- [TestSynonymsFileBomV1.java](TestSynonymsFileBomV1.java)
 
 ## Feedback
 

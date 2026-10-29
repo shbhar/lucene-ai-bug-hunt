@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 Index two documents whose float payloads are '-0.0' and '0.0' (WhitespaceTokenizer + DelimitedPayloadTokenFilter with FloatEncoder) and search PayloadScoreQuery(SpanTermQuery, MaxPayloadFunction or MinPayloadFunction, a decoder that calls PayloadHelper.decodeFloat, includeSpanScore false or true). You expect both hits to score 0 and tie in doc-id order, because PayloadScoreQuery maps every negative payload score to 0 (LUCENE-7996: 'Scorers are no longer allowed to produce negative scores'; the test framework's AssertingScorer checks Float.compare(score, 0f) &gt;= 0), as it does for a payload of -1.0. Instead the -0.0 document scores and explains as -0.0, because the clamp 'score &gt;= 0 == false' and the explain test 'value &lt; 0' are both false for -0.0, and since 10.2.0 search(q, 1) returns that document while search(q, 2) ranks it second.
 
+The test shows that PayloadScoreQuery's negative-score clamp (`score >= 0 == false`) lets a payload score of -0.0 through, so with MaxPayloadFunction and a float payload decoder a -0.0 payload scores -0.0, and since 10.2.0 the top-1 hit is not the head of the top-2 hits.
+
 ## Expected vs actual
 
-- Expected: You expect both hits to score 0 and tie in doc-id order, because PayloadScoreQuery maps every negative payload score to 0 (LUCENE-7996: 'Scorers are no longer allowed to produce negative scores'; the test framework's AssertingScorer checks Float.compare(score, 0f) &gt;= 0), as it does for a payload of -1.0.
-- Actual: The -0.0 document scores and explains as -0.0, because the clamp 'score &gt;= 0 == false' and the explain test 'value &lt; 0' are both false for -0.0, and since 10.2.0 search(q, 1) returns that document while search(q, 2) ranks it second.
+Expected: both documents score 0 and search(q, 1) returns the head of search(q, 2). Actual (-ea and -da): doc 0 scores -0.0, top-1 is [doc 0] but top-2 is [doc 1, doc 0] (`expected:<1> but was:<0>`).
 
 ## Files
 
@@ -19,7 +20,8 @@ Index two documents whose float payloads are '-0.0' and '0.0' (WhitespaceTokeniz
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

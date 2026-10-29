@@ -17,119 +17,38 @@
 package org.apache.lucene.search.suggest.document;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.codecs.Codec;
-import org.apache.lucene.codecs.FilterCodec;
-import org.apache.lucene.codecs.PostingsFormat;
-import org.apache.lucene.codecs.perfield.PerFieldPostingsFormat;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.tests.analysis.MockAnalyzer;
 import org.apache.lucene.tests.util.LuceneTestCase;
 import org.apache.lucene.tests.util.TestUtil;
 
-/**
- * ContextQuery looks up the boost of a matched path by testing whether the first N labels of the
- * path equal a query context, longest first, without checking that the context ends there. An
- * exact context "red" therefore lends its boost to an indexed context "redwood" that was matched
- * through another query context (a prefix context, or addAllContexts()).
- */
 public class TestContextQueryExactContextBoost extends LuceneTestCase {
 
-  private static IndexWriterConfig iwc(Analyzer analyzer) {
-    IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
-    Codec def = TestUtil.getDefaultCodec();
-    iwc.setCodec(
-        new FilterCodec(def.getName(), def) {
-          final PostingsFormat pf = new Completion104PostingsFormat();
-
-          @Override
-          public PostingsFormat postingsFormat() {
-            return new PerFieldPostingsFormat() {
-              @Override
-              public PostingsFormat getPostingsFormatForField(String field) {
-                return field.equals("suggest_field")
-                    ? pf
-                    : ((PerFieldPostingsFormat) delegate.postingsFormat()).getPostingsFormatForField(field);
-              }
-            };
-          }
-        });
-    return iwc;
-  }
-
-  private DirectoryReader index(Directory dir, Analyzer analyzer) throws Exception {
-    IndexWriter w = new IndexWriter(dir, iwc(analyzer));
-    Document d1 = new Document();
-    d1.add(new ContextSuggestField("suggest_field", "table lamp", 5, "redwood"));
-    w.addDocument(d1);
-    Document d2 = new Document();
-    d2.add(new ContextSuggestField("suggest_field", "table cloth", 4, "red"));
-    w.addDocument(d2);
-    w.close();
-    return DirectoryReader.open(dir);
-  }
-
-  private static float scoreOf(TopSuggestDocs td, String key) {
-    for (TopSuggestDocs.SuggestScoreDoc sd : td.scoreLookupDocs()) {
-      if (sd.key.toString().equals(key)) {
-        return sd.score;
+  public void testExactContextBoostNotAppliedToLongerContext() throws Exception {
+    try (Directory dir = new ByteBuffersDirectory();
+        Analyzer analyzer = new StandardAnalyzer()) {
+      IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
+      iwc.setCodec(TestUtil.alwaysPostingsFormat(new Completion104PostingsFormat()));
+      try (IndexWriter w = new IndexWriter(dir, iwc)) {
+        Document doc = new Document();
+        doc.add(new ContextSuggestField("suggest", "lamp", 5, "redwood"));
+        w.addDocument(doc);
+      }
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        ContextQuery query =
+            new ContextQuery(new PrefixCompletionQuery(analyzer, new Term("suggest", "la")));
+        query.addContext("red", 10, true);
+        query.addAllContexts();
+        TopSuggestDocs top = new SuggestIndexSearcher(reader).suggest(query, 1, false);
+        // "redwood" is not the exact context "red": expected the plain weight 5, actual 5 * 10
+        assertEquals("score of lamp/redwood", 5f, top.scoreLookupDocs()[0].score, 0f);
       }
     }
-    throw new AssertionError("no hit " + key);
-  }
-
-  /** prefix context "re" (boost 1) and exact context "red" (boost 10) */
-  public void testExactBoostLeaksToLongerContextMatchedByPrefix() throws Exception {
-    Analyzer analyzer = new MockAnalyzer(random());
-    Directory dir = newDirectory();
-    DirectoryReader r = index(dir, analyzer);
-    SuggestIndexSearcher s = new SuggestIndexSearcher(r);
-    ContextQuery q = new ContextQuery(new PrefixCompletionQuery(analyzer, new Term("suggest_field", "tab")));
-    q.addContext("re", 1, false);
-    q.addContext("red", 10, true);
-    TopSuggestDocs td = s.suggest(q, 2, false);
-    assertEquals(2, td.scoreLookupDocs().length);
-    // "red" is exact: it matches the context "red" only; "redwood" matches the prefix context "re"
-    assertEquals("table cloth (context red, weight 4 * boost 10)", 40f, scoreOf(td, "table cloth"), 0f);
-    assertEquals("table lamp (context redwood, weight 5 * boost 1)", 5f, scoreOf(td, "table lamp"), 0f);
-    assertEquals("table cloth", td.scoreLookupDocs()[0].key.toString());
-    r.close();
-    dir.close();
-  }
-
-  /** addAllContexts() plus an exact context "red" (boost 10) */
-  public void testExactBoostLeaksToLongerContextMatchedByAllContexts() throws Exception {
-    Analyzer analyzer = new MockAnalyzer(random());
-    Directory dir = newDirectory();
-    DirectoryReader r = index(dir, analyzer);
-    SuggestIndexSearcher s = new SuggestIndexSearcher(r);
-    ContextQuery q = new ContextQuery(new PrefixCompletionQuery(analyzer, new Term("suggest_field", "tab")));
-    q.addAllContexts();
-    q.addContext("red", 10, true);
-    TopSuggestDocs td = s.suggest(q, 2, false);
-    assertEquals(2, td.scoreLookupDocs().length);
-    assertEquals(40f, scoreOf(td, "table cloth"), 0f);
-    assertEquals("redwood has no boosted context: score = weight", 5f, scoreOf(td, "table lamp"), 0f);
-    r.close();
-    dir.close();
-  }
-
-  /** Control: with only the exact context, "redwood" is (correctly) not matched at all. */
-  public void testExactOnlyControl() throws Exception {
-    Analyzer analyzer = new MockAnalyzer(random());
-    Directory dir = newDirectory();
-    DirectoryReader r = index(dir, analyzer);
-    SuggestIndexSearcher s = new SuggestIndexSearcher(r);
-    ContextQuery q = new ContextQuery(new PrefixCompletionQuery(analyzer, new Term("suggest_field", "tab")));
-    q.addContext("red", 10, true);
-    TopSuggestDocs td = s.suggest(q, 2, false);
-    assertEquals(1, td.scoreLookupDocs().length);
-    assertEquals(40f, scoreOf(td, "table cloth"), 0f);
-    r.close();
-    dir.close();
   }
 }

@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You give WordDelimiterGraphFilterFactory a types file with one rule for a character that is not in your text (for example '$ =&gt; DIGIT', or even '- =&gt; SUBWORD_DELIM', which '-' already is) and expect every other character to keep the type it has without the option. Instead parseTypes fills all 256 Latin-1 entries from WordDelimiterIterator.getType (the Unicode general category), while the table the filter uses without the option is built from Character.isLowerCase/isUpperCase/isDigit; the two disagree on exactly 8 characters, so 'm² x³ 1½ ¼' analyzes to [m, ², x, ³, 1½, ¼] instead of [m, x, 1] and 'ªB' is no longer split. Nothing reports an error; a small change that seeds the Latin-1 entries from the default table fixes both factories.
 
+The test shows that a WordDelimiterGraphFilterFactory types file with the no-op rule '- =&gt; SUBWORD_DELIM' changes how the unlisted character ² is tokenized.
+
 ## Expected vs actual
 
-- Expected: Every text gives the same terms with and without the rule (`a-b m² 1½ ¼ ªB` gives `[a, b, m, 1, ª, B]`), and no character below U+0100 changes.
-- Actual: All four tests fail: the no-op rule gives `[a, b, m, ², 1½, ¼, ªB]`, and the sweep lists U+00AA, U+00B2, U+00B3, U+00B9, U+00BA, U+00BC, U+00BD and U+00BE.
+Expected: 'm²' gives [m], as without the types file. Actual (-ea and -da): [m, ²].
 
 ## Files
 
-- [src/org/apache/lucene/analysis/miscellaneous/TestWdgfTypesOptionLatin1Defaults.java](src/org/apache/lucene/analysis/miscellaneous/TestWdgfTypesOptionLatin1Defaults.java) (JUnit test)
+- [src/org/apache/lucene/analysis/miscellaneous/TestWdgfTypesRuleKeepsOtherTypes.java](src/org/apache/lucene/analysis/miscellaneous/TestWdgfTypesRuleKeepsOtherTypes.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,19 +39,13 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed 3310A905E5510003
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=3310A905E5510003 \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.miscellaneous.TestWdgfTypesOptionLatin1Defaults
+     execute --select-class org.apache.lucene.analysis.miscellaneous.TestWdgfTypesRuleKeepsOtherTypes
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestWordDelimiterTypesOption.java](TestWordDelimiterTypesOption.java)
-- [TestWdgfTypesOptionLatin1Defaults.java](TestWdgfTypesOptionLatin1Defaults.java)
-- [TestTypesRuleKeepsOtherCharTypes.java](TestTypesRuleKeepsOtherCharTypes.java)
 
 ## Feedback
 

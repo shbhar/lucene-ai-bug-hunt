@@ -1,6 +1,6 @@
 # A binary doc-values update whose term matches many documents copies its value once per matched document into one int-sized buffer when it is applied, so at 2^31 bytes in one segment (about 2^30 for the first update of a field in a packet) commit throws ArrayIndexOutOfBoundsException (AssertionError with -ea) and IndexWriter closes itself, losing the update and every uncommitted document (every release since 4.8.0)
 
-Bug LFV-838 · Area: index / IndexWriter doc-values updates (BinaryDocValuesFieldUpdates value buffer, FrozenBufferedUpdates apply, applyUpdatesPacket tragic close) · Priority: medium · Impact: crash · Novelty: new
+Bug LFV-838 · Area: index / IndexWriter doc-values updates (BinaryDocValuesFieldUpdates value buffer, FrozenBufferedUpdates apply, applyUpdatesPacket tragic close) · Priority: low · Impact: crash · Novelty: new
 
 Bug page: [../../bugs/LFV-838.html](../../bugs/LFV-838.html)
 

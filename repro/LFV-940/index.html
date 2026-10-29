@@ -23,11 +23,12 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <h2>What it shows</h2>
 <p>You evaluate search quality with QueryDriver or QualityBenchmark and a TREC qrels file read by TrecJudge, expecting a document to count as relevant only when its grade is 1 or more, as trec_eval counts it. TrecJudge instead treats every grade token except the exact string &quot;0&quot; as relevant, so documents graded -2 (spam or useless, in TREC Web track qrels) or -1 count as relevant: a junk page graded -2 that ranks above the only relevant page gives 2 relevant documents, P@1 1.0 and AP 1.0, where trec_eval gives 1, 0 and 0.5. There is no error or warning.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> While the bug is present the test fails; the failure message states expected against actual.</li></ul>
+<p>Expected <code>isRelevant(&quot;d&quot;, q) == false</code> (trec_eval counts a document relevant only when its grade is &gt;= 1); actual <code>true</code>, because every grade other than the literal string <code>0</code> counts as relevant, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/benchmark/quality/trec/TestTrecJudgeGrades.java"><code>src/org/apache/lucene/benchmark/quality/trec/TestTrecJudgeGrades.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/benchmark/quality/trec/TestTrecJudgeNegativeGrade.java"><code>src/org/apache/lucene/benchmark/quality/trec/TestTrecJudgeNegativeGrade.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -44,7 +45,7 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.benchmark.quality.trec.TestTrecJudgeGrades</code></pre>
+     execute --select-class org.apache.lucene.benchmark.quality.trec.TestTrecJudgeNegativeGrade</code></pre>
 <p class="small">The module(s) benchmark also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

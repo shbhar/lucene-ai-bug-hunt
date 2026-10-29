@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You load a Hunspell dictionary with the suffix rule 'SFX A abc d [c]' (strip abc, add d, condition [c]) on the root xabc and expect the condition to be tested where Hunspell lines it up, at the end of the root, which for a condition shorter than the strip is the end of the strip: xd should be a correct word with stem xabc and 'SFX A abc e [a]' should never apply, as C Hunspell 1.3.2 answers and as Lucene itself answers when the same condition is written as the literal c. Instead Lucene rejects xd and accepts xe as a form of xabc, and the prefix rules 'PFX B abc d [a]' and 'PFX B abc e [c]' on the root abcx are reversed the same way (dx rejected, ex accepted); spell, getRoots and HunspellStemFilter give these wrong verdicts and stems with no error. The cause is AffixCondition.compile: for a condition with or. and no more character patterns than the strip, it decides the rule once at load by matching the strip against 'kind == PREFIX ? ".*" + condition: condition + ".*"', which tests the strip's start for SFX and its end for PFX, the two templates swapped between the kinds.
 
+The test shows that a Hunspell suffix rule whose bracket condition is shorter than its strip is checked against the start of the strip instead of the end of the root (`SFX A abc d [c]` on root `xabc`).
+
 ## Expected vs actual
 
-- Expected: `data` and `redo` are correct words with the roots `datum` and `undo`, `quanta` is not a word, and the control `strata` is correct, as C Hunspell 1.3.2 says.
-- Actual: 3 of 4 tests fail: `spell("data")` and `spell("redo")` are false and `spell("quanta")` is true; the `strata` control passes.
+Expected `spell("xd")` to be true (xabc ends in c, and the same rule with the literal condition `c` accepts it); actual: false (`expected:<true> but was:<false>`), with `-ea` and `-da`.
 
 ## Files
 
@@ -21,8 +22,8 @@ You load a Hunspell dictionary with the suffix rule 'SFX A abc d [c]' (strip abc
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -45,13 +46,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestShortAffixCondition.java](TestShortAffixCondition.java)
-- [TestAffixConditionShorterThanStrip.java](TestAffixConditionShorterThanStrip.java)
-- [test-unit.diff](test-unit.diff)
-- [TestShortAffixConditionV1.java](TestShortAffixConditionV1.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/hunspell/](../../models/hunspell/)
 

@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You analyze Japanese text with JapaneseTokenizer and JapaneseReadingFormFilter(useRomaji=true), whose romanizer is documented as 'Romanize katakana with modified hepburn', and expect the small tsu ッ to double the next consonant, as the method already does for キット -&gt; 'kitto' and マッチ -&gt; 'matchi'. Instead the 'ッ' case appends a consonant only for the カ, サ, タ and パ rows and appends nothing otherwise, so バッグ 'bag' becomes 'bagu', the same term as バグ 'bug', ベッド becomes 'bedo' and スタッフ becomes 'sutafu'. Distinct words then match each other, and a romaji query 'baggu' finds no document that contains バッグ.
 
+The test shows that Kuromoji's `ToStringUtil.getRomanization` drops the small tsu ッ before the ガ row instead of doubling the consonant, as it does before k/s/t/p (キット -&gt; kitto).
+
 ## Expected vs actual
 
-- Expected: バッグ → `baggu` (not バグ's `bagu`), ベッド → `beddo`, ビッグ → `biggu`: the ッ doubles the next consonant, as in キット → `kitto`.
-- Actual: 7 of 7 lose the ッ (バッグ → `bagu`, ベッド → `bedo`, ビッグ → `bigu`, キッズ → `kizu`,...), and the filter emits `bagu` for バッグ.
+Expected `getRomanization("バッグ")` to be "baggu"; actual "bagu" (the romaji of バグ), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/ja/TestRomajiSokuonBeforeVoicedConsonant.java](src/org/apache/lucene/analysis/ja/TestRomajiSokuonBeforeVoicedConsonant.java) (JUnit test)
+- [src/org/apache/lucene/analysis/ja/dict/TestToStringUtilSokuon.java](src/org/apache/lucene/analysis/ja/dict/TestToStringUtilSokuon.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,19 +42,12 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.ja.TestRomajiSokuonBeforeVoicedConsonant
+     execute --select-class org.apache.lucene.analysis.ja.dict.TestToStringUtilSokuon
 ```
 
 The module(s) analysis-kuromoji also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestRomajiSokuon.java](TestRomajiSokuon.java)
-- [TestRomajiSokuonBeforeVoicedConsonant.java](TestRomajiSokuonBeforeVoicedConsonant.java)
-- [TestSokuonDirect.java](TestSokuonDirect.java)
-- [TestSokuonFilter.java](TestSokuonFilter.java)
 
 ## Feedback
 

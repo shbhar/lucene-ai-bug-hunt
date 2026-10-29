@@ -22,12 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You aggregate float values per taxonomy dim (FloatAssociationFacetField weights or a DoubleValuesSource) and call getAllDims, documented to sort dims by value, and getTopDims, documented to return the same as the first entries of getAllDims. If one dim&#x27;s value is NaN (dims a=1, b=NaN, c=2), getAllDims can return [a=1.0, b=NaN, c=2.0], with a ahead of c, while getTopDims(1, 10) returns [b=NaN]; with 32 or more dims, getAllDims can instead throw IllegalArgumentException &#x27;Comparison method violates its general contract!&#x27; from List.sort. The getAllDims comparator compares doubleValue with &gt; in both directions and falls back to the dim name, so NaN ties with every value and the order is not transitive, while getTopDims has used the NaN-safe Float.compare (valueComparator) since #12966 (9.11.0).</p>
+<p>The test shows that taxonomy <code>Facets#getAllDims</code> (float associations, SUM) misorders finite dims when another dim&#x27;s value is NaN, because its &lt; / &gt; comparator treats NaN as equal to every value (dims a=1, b=NaN, c=2).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> While the bug is present the test fails; the failure message states expected against actual.</li></ul>
+<p>Expected c=2.0 ranked before a=1.0 (getAllDims sorts by value); actual: <code>[a=1.0, b=NaN, c=2.0]</code>, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/facet/taxonomy/TestFloatFacetGetAllDimsNaN.java"><code>src/org/apache/lucene/facet/taxonomy/TestFloatFacetGetAllDimsNaN.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/facet/taxonomy/TestGetAllDimsNaN.java"><code>src/org/apache/lucene/facet/taxonomy/TestGetAllDimsNaN.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -44,7 +46,7 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.facet.taxonomy.TestFloatFacetGetAllDimsNaN</code></pre>
+     execute --select-class org.apache.lucene.facet.taxonomy.TestGetAllDimsNaN</code></pre>
 <p class="small">The module(s) facet also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/facet-top-ordinal-queues-nan-and-special-value-order/index.html">facet-top-ordinal-queues-nan-and-special-value-order</a></p>

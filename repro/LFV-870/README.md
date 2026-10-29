@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build Word2VecSynonymFilter with minAcceptedSimilarity 0.8 (the factory default), whose only documentation says it is the 'minimal value of cosine similarity between the searched vector and the retrieved ones', so you expect only model terms at cosine 0.8 or more as synonyms. Word2VecSynonymProvider compares the threshold with the DOT_PRODUCT score of the unit-length model vectors, which is (1 + cosine) / 2, so the real cosine cutoff is 2m - 1: at 0.8 a term at cosine 0.65 is emitted, at 0.5 an orthogonal term (cosine 0) is emitted, and at 0.2 a term at cosine -0.5 is emitted. The authors' intent points to the score scale (the factory accepts only (0, 1]), so the fix is a javadoc clarification, not a code change.
 
+The test shows that Word2VecSynonymFilter's minAcceptedSimilarity, documented as a minimal cosine similarity, is compared with the score (1 + cosine) / 2: at 0.8 (the factory default) a term at cosine 0.707 is emitted as a synonym.
+
 ## Expected vs actual
 
-- Expected: You expect only model terms at cosine 0.8 or more as synonyms.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+Expected only the token `a` (b's cosine 0.707 is below 0.8); actual: `b` is added too (`TokenStream has more tokens than expected (expected count=1); extra token=b`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/synonym/word2vec/TestWord2VecMinAcceptedSimilarityScale.java](src/org/apache/lucene/analysis/synonym/word2vec/TestWord2VecMinAcceptedSimilarityScale.java) (JUnit test)
+- [src/org/apache/lucene/analysis/synonym/word2vec/TestWord2VecMinAcceptedSimilarityCosine.java](src/org/apache/lucene/analysis/synonym/word2vec/TestWord2VecMinAcceptedSimilarityCosine.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -35,10 +37,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.synonym.word2vec.TestWord2VecMinAcceptedSimilarityScale
+     execute --select-class org.apache.lucene.analysis.synonym.word2vec.TestWord2VecMinAcceptedSimilarityCosine
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

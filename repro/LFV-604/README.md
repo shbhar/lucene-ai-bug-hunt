@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index 'alpha beta' into a field with IndexOptions.DOCS_AND_FREQS (no positions) and search IntervalQuery("body", Intervals.ordered(Intervals.prefix("alph"), Intervals.prefix("bet"))). You expect IllegalArgumentException ('... because it has no indexed positions'), because the IndexOptions javadoc says positional queries on such a field throw and the same query written with Intervals.term("alpha") and Intervals.term("beta") does throw. Instead MultiTermIntervalsSource never checks Terms#hasPositions, runs the interval logic on the position -1 that the postings return, and silently reports 0 hits (1 of 2 on a MultiReader that also holds a positioned copy of the document); wildcard, regexp, fuzzyTerm, range and multiterm leaves behave the same way.
 
+The test shows that `IntervalQuery("body", Intervals.ordered(Intervals.prefix("alph"), Intervals.prefix("bet")))` on a `DOCS_AND_FREQS` field (one doc, `alpha beta`) never checks for indexed positions.
+
 ## Expected vs actual
 
-- Expected: You expect IllegalArgumentException ('... because it has no indexed positions'), because the IndexOptions javadoc says positional queries on such a field throw and the same query written with Intervals.term("alpha") and Intervals.term("beta") does throw.
-- Actual: MultiTermIntervalsSource never checks Terms#hasPositions, runs the interval logic on the position -1 that the postings return, and silently reports 0 hits (1 of 2 on a MultiReader that also holds a positioned copy of the document); wildcard, regexp, fuzzyTerm, range and multiterm leaves behave the same way.
+Expected: `IllegalArgumentException` (no indexed positions), as `Intervals.term` throws and the `IndexOptions` javadoc documents. Actual: no exception, 0 hits.
 
 ## Files
 
-- [src/org/apache/lucene/queries/intervals/TestMultiTermIntervalsNoPositionsPerLeaf.java](src/org/apache/lucene/queries/intervals/TestMultiTermIntervalsNoPositionsPerLeaf.java) (JUnit test)
+- [src/org/apache/lucene/queries/intervals/TestMultiTermIntervalsWithoutPositions.java](src/org/apache/lucene/queries/intervals/TestMultiTermIntervalsWithoutPositions.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,7 +40,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queries.intervals.TestMultiTermIntervalsNoPositionsPerLeaf
+     execute --select-class org.apache.lucene.queries.intervals.TestMultiTermIntervalsWithoutPositions
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

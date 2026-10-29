@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks. Maintainer triage: Fix in pr
 
 You use MMapDirectory with its default shared-arena grouping while files of one group are opened and closed concurrently. You expect the files of a group to share one arena. Instead onClose of an old arena removes the newer live arena's entry, so grouping is lost (577 arenas instead of 10 in the repro).
 
+The test shows that in a default MMapDirectory, closing a group's old arena (A1, permits used up) unregisters the newer arena A2 that is still open, so the next open of the same segment gets a third arena (`TestMMapDirectoryArenaGrouping#testOpenAfterOldArenaClosedSharesNewerArena`, one file, single thread).
+
 ## Expected vs actual
 
-- Expected: The open after the old arena closed shares the newer arena, which is alive and has 63 permits left.
-- Actual: It gets a new arena: `AssertionError: the next open of group 0 got a new arena instead of the live arena that still has 63 permits left`.
+Expected: the open after A1 closed shares the open arena A2 (63 permits left). Actual: it gets a new arena; fails with -ea and -da (performance only).
 
 ## Files
 
-- [src/org/apache/lucene/store/TestVerifyArenaGroupingLost.java](src/org/apache/lucene/store/TestVerifyArenaGroupingLost.java) (JUnit test)
+- [src/org/apache/lucene/store/TestMMapDirectoryArenaGrouping.java](src/org/apache/lucene/store/TestMMapDirectoryArenaGrouping.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -36,9 +37,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.store.TestVerifyArenaGroupingLost
+     execute --select-class org.apache.lucene.store.TestMMapDirectoryArenaGrouping
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

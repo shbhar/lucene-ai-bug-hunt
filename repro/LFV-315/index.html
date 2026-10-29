@@ -23,13 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You wrap a query in RescoreTopNQuery and re-score its matches with a values source that uses the query&#x27;s own score, for example DoubleValuesSource.SCORES or an expression such as _score * popularity, keeping the best n. You expect the source to see each match&#x27;s real score, so rescoring body:common OR body:rare by SCORES with n=1 should return the rare-term document 9 with its normal score. Instead RescoreTopNQuery runs the inner query in a mode that produces no scores, so the source reads 0 for every match and the result is doc 0 with score 0.0 (the first match by doc id); for a kNN inner query the scores are right until the query cache caches the inner query, and from then on (the 5th identical search with the usage-tracking policy) they read 0 too.</p>
+<p>The test shows that RescoreTopNQuery with DoubleValuesSource.SCORES reads score 0 for every inner hit (inner Weight built with ScoreMode.COMPLETE_NO_SCORES).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> lexical: doc 9 at 0.90565; kNN: 11999, 11998, 11997 on all six searches.</li><li><b>Actual:</b> lexical: doc 0 at 0.0; kNN: right for searches 1-4, then 11990, 11991, 11992, all at 0.0.</li></ul>
+<p>Expected: the TermQuery&#x27;s own best hit and BM25 score (doc 1, 0.1098); actual on main 645d4fe: doc 0 with score 0.0 (with -ea and -da).</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/search/TestRescoreTopNQueryInnerScores.java"><code>src/org/apache/lucene/search/TestRescoreTopNQueryInnerScores.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/search/TestRescoreTopNQueryScoresSource.java"><code>src/org/apache/lucene/search/TestRescoreTopNQueryScoresSource.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -42,10 +43,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestRescoreTopNQueryInnerScores</code></pre>
+     execute --select-class org.apache.lucene.search.TestRescoreTopNQueryScoresSource</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestRescoreTopNQueryInnerScores.java"><code>TestRescoreTopNQueryInnerScores.java</code></a></li><li><a href="rescoretopn-inner-score-mode.diff"><code>rescoretopn-inner-score-mode.diff</code></a></li><li><a href="TestRescoreHybridInnerProbe.java"><code>TestRescoreHybridInnerProbe.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You call IndexWriter#tryUpdateDocValue with an NRT reader and a doc id outside [0, reader.maxDoc), for example 8 or 9 on an 8-document reader, 12 on a 10-document reader, or -1 on a 4-document leaf reader. You expect the call to be rejected, as the same reader rejects such an id ('docID must be &gt;= 0 and &lt; maxDoc', IllegalArgumentException), or at least to leave every other document alone. Instead, with assertions disabled (and for the negative leaf-reader id even with them enabled) it returns a sequence number &gt; 0, which the javadoc says means the update succeeded, and writes the value to or soft-deletes a different live document (8 -&gt; doc 0, 9 -&gt; doc 1, -1 -&gt; doc 3), or commits a doc-values entry for nonexistent doc 12 that CheckIndex accepts and that forceMerge turns into every document of the next segment carrying its predecessor's value (b0=777, b1=1000,..., b9=1008; 1009 is lost).
 
+The test shows that IndexWriter#tryUpdateDocValue on a 4-doc NRT leaf reader with docID -1 reports success and updates a different document.
+
 ## Expected vs actual
 
-- Expected: You expect the call to be rejected, as the same reader rejects such an id ('docID must be &gt;= 0 and &lt; maxDoc', IllegalArgumentException), or at least to leave every other document alone.
-- Actual: With assertions disabled (and for the negative leaf-reader id even with them enabled) it returns a sequence number &gt; 0, which the javadoc says means the update succeeded, and writes the value to or soft-deletes a different live document (8 -&gt; doc 0, 9 -&gt; doc 1, -1 -&gt; doc 3), or commits a doc-values entry for nonexistent doc 12 that CheckIndex accepts and that forceMerge turns into every document of the next segment carrying its predecessor's value (b0=777, b1=1000,..., b9=1008; 1009 is lost).
+Expected: docID -1 is rejected or changes nothing (doc 3 keeps v=3); actual: it returns seqNo 7 and doc 3 gets v=777, with -ea and -da.
 
 ## Files
 
-- [src/org/apache/lucene/index/TestTryUpdateDocValueOutOfRangeDocId.java](src/org/apache/lucene/index/TestTryUpdateDocValueOutOfRangeDocId.java) (JUnit test)
+- [src/org/apache/lucene/index/TestTryUpdateDocValueNegativeDocId.java](src/org/apache/lucene/index/TestTryUpdateDocValueNegativeDocId.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -34,10 +36,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed 80200001
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=80200001 \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestTryUpdateDocValueOutOfRangeDocId
+     execute --select-class org.apache.lucene.index.TestTryUpdateDocValueNegativeDocId
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

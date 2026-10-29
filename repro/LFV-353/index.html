@@ -23,13 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You analyze &#x27;lucene / solr rocks&#x27; with a whitespace tokenizer, a keyword marker that marks &#x27;solr&#x27;, and WordDelimiterGraphFilter(GENERATE_WORD_PARTS | IGNORE_KEYWORDS), and expect the hole left by the swallowed &#x27;/&#x27; to stay in front of &#x27;solr&#x27; (position increments {1, 2, 1}), exactly as when &#x27;solr&#x27; is not a keyword, is marked without IGNORE_KEYWORDS, or is a protected word. Instead the keyword branch returns &#x27;solr&#x27; before the pending increment is applied, so &#x27;solr&#x27; gets 1 and &#x27;rocks&#x27; gets 2 ({1, 1, 2}); with the same analyzer at index and query time the exact phrase &quot;solr rocks&quot; finds 0 of the 1 matching documents, and the phrase &quot;lucene solr&quot; matches the document &#x27;lucene / solr&#x27;, which the chain without the keyword mark does not.</p>
+<p>The test shows that with <code>IGNORE_KEYWORDS</code>, <code>WordDelimiterGraphFilter</code> returns a keyword token before applying the hole left by a swallowed delimiter-only token, so the hole moves to after the keyword.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> Increments <code>{1, 2, 1}</code> for <code>lucene / solr rocks</code>; the phrase &quot;solr rocks&quot; finds 1 document and &quot;lucene solr&quot; finds 0.</li><li><b>Actual:</b> Increments <code>{1, 1, 2}</code> (<code>posIncrement 1 term=solr expected:&lt;2&gt; but was:&lt;1&gt;</code>); &quot;solr rocks&quot; finds 0 documents and &quot;lucene solr&quot; finds 2.</li></ul>
+<p>Expected position increments for <code>lucene / solr rocks</code> with <code>solr</code> marked as a keyword: <code>{1, 2, 1}</code>. Actual: <code>{1, 1, 2}</code> (<code>posIncrement 1 term=solr expected:&lt;2&gt; but was:&lt;1&gt;</code>, with <code>-ea</code> and <code>-da</code>).</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/analysis/miscellaneous/TestWdgfKeywordPendingHole.java"><code>src/org/apache/lucene/analysis/miscellaneous/TestWdgfKeywordPendingHole.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/analysis/miscellaneous/TestWdgfIgnoreKeywordsHole.java"><code>src/org/apache/lucene/analysis/miscellaneous/TestWdgfIgnoreKeywordsHole.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -46,7 +47,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.miscellaneous.TestWdgfKeywordPendingHole</code></pre>
+     execute --select-class org.apache.lucene.analysis.miscellaneous.TestWdgfIgnoreKeywordsHole</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestWordDelimiterGraphFilterKeywordHole.java"><code>TestWordDelimiterGraphFilterKeywordHole.java</code></a></li><li><a href="test-upstream.diff"><code>test-upstream.diff</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

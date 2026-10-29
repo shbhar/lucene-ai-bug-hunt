@@ -18,44 +18,26 @@ package org.apache.lucene.spatial3d.geom;
 
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * A zero-width path (GeoPathFactory.makeGeoPath with width 0) returns, for the squared distance
- * styles, the LINEAR value from computePathCenterDistance and the fourth power from
- * computeOutsideDistance, instead of the square that LINEAR_SQUARED / NORMAL_SQUARED stand for (and
- * that a path of width 1e-6 returns).
- */
 public class TestGeoDegeneratePathSquaredStyles extends LuceneTestCase {
 
-  private static final PlanetModel PM = PlanetModel.SPHERE;
-  private static final GeoPoint[] POINTS = {new GeoPoint(PM, 0, 0), new GeoPoint(PM, 0, 0.1)};
-  // 0.01 rad beside the middle of the path
-  private static final GeoPoint Q = new GeoPoint(PM, 0.01, 0.05);
-
-  public void testPathCenterDistance() {
-    GeoPath zeroWidth = GeoPathFactory.makeGeoPath(PM, 0.0, POINTS);
-    GeoPath narrow = GeoPathFactory.makeGeoPath(PM, 1e-6, POINTS);
-    double linear = zeroWidth.computePathCenterDistance(DistanceStyle.LINEAR, Q);
+  public void testZeroWidthPathLinearSquared() {
+    PlanetModel pm = PlanetModel.SPHERE;
+    GeoPath path =
+        GeoPathFactory.makeGeoPath(
+            pm, 0, new GeoPoint[] {new GeoPoint(pm, 0, 0), new GeoPoint(pm, 0, 0.1)});
+    GeoPoint q = new GeoPoint(pm, 0.01, 0.05);
+    // expected LINEAR^2 (~1e-4) from both calls; actual LINEAR (~1e-2), then LINEAR^4 (~1e-8)
+    double center = path.computePathCenterDistance(DistanceStyle.LINEAR, q);
     assertEquals(
-        "narrow path, LINEAR_SQUARED = LINEAR^2",
-        linear * linear,
-        narrow.computePathCenterDistance(DistanceStyle.LINEAR_SQUARED, Q),
+        "computePathCenterDistance(LINEAR_SQUARED)",
+        center * center,
+        path.computePathCenterDistance(DistanceStyle.LINEAR_SQUARED, q),
         1e-12);
+    double outside = path.computeOutsideDistance(DistanceStyle.LINEAR, q);
     assertEquals(
-        "zero-width path, LINEAR_SQUARED",
-        linear * linear,
-        zeroWidth.computePathCenterDistance(DistanceStyle.LINEAR_SQUARED, Q),
-        1e-12);
-  }
-
-  public void testOutsideDistance() {
-    GeoPath zeroWidth = GeoPathFactory.makeGeoPath(PM, 0.0, POINTS);
-    assertFalse(zeroWidth.isWithin(Q));
-    double linear = zeroWidth.computeOutsideDistance(DistanceStyle.LINEAR, Q);
-    assertEquals(0.01, linear, 1e-5);
-    assertEquals(
-        "zero-width path, outside LINEAR_SQUARED = LINEAR^2",
-        linear * linear,
-        zeroWidth.computeOutsideDistance(DistanceStyle.LINEAR_SQUARED, Q),
+        "computeOutsideDistance(LINEAR_SQUARED)",
+        outside * outside,
+        path.computeOutsideDistance(DistanceStyle.LINEAR_SQUARED, q),
         1e-12);
   }
 }

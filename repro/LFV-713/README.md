@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You load a Hunspell dictionary with a compound rule such as 'CHECKCOMPOUNDPATTERN o /X z' (a simplified compound form whose second part may begin with anything: hunspell(5) allows empty beginchars with a flag and an optional replacement) and call Hunspell.spell("foz"), and expect true or false; C Hunspell 1.3.2 and 1.7.2 both say false. Instead, with assertions enabled, spell and suggest throw java.lang.AssertionError from WordStorage.lookupWord ('assert length &gt; 0'). The cause: checkCompoundPatternReplacements expands the final 'z' to 'o' plus empty beginchars and puts the break right after 'foo', but never checks that a second part remains, so checkCompoundsAfter looks up a second part of length 0; with -da that lookup finds nothing and spell returns false for the repro.
 
+The test shows that with `-ea`, `Hunspell.spell("foz")` throws for a dictionary with `CHECKCOMPOUNDPATTERN o /X z` (empty beginchars, replacement z), because expanding the final `z` leaves an empty second compound part that is then looked up.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: With assertions enabled, spell and suggest throw java.lang.AssertionError from WordStorage.lookupWord ('assert length &gt; 0').
+Expected `false` (C Hunspell's answer, and Lucene's with `-da`); actual with `-ea`: `AssertionError` from `assert length > 0` at `WordStorage.lookupWord(WordStorage.java:107)`, reached from `checkCompoundPatternReplacements`. With `-da` the test passes (the claim is about `-ea` only).
 
 ## Files
 
@@ -19,7 +20,8 @@ You load a Hunspell dictionary with a compound rule such as 'CHECKCOMPOUNDPATTER
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

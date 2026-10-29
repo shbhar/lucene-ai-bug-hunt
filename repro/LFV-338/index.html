@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You read a MappingCharFilter to the end, call reset to rewind it (MappingCharFilter overrides reset for this, and upstream TestMappingCharFilter.testReaderReset re-reads after it), read it again and expect correctOffset to map the second pass&#x27;s output back to the input exactly as on the first pass. Instead reset rewinds the input and the filter&#x27;s read state but not the offset-correction map it inherits from BaseCharFilter, so the second pass appends new corrections computed from the first pass&#x27;s last cumulative diff: for the map a-&gt;xy over &quot;a&quot;, correctOffset(2) returns 0 instead of 1, and a WhitespaceTokenizer over the re-read filter for &quot;a b&quot; gives xy[0,0] b[1,2] instead of xy[0,1] b[2,3]. For deleting or shrinking maps, with -ea the second read trips BaseCharFilter&#x27;s &#x27;Offset... is less than the last recorded offset&#x27; assertion, and with -da it returns offsets past the end of the input (b-&gt;&#x27;&#x27; over &quot;ba&quot;: correctOffset(1) = 3 for a 2-character input).</p>
+<p>The test shows that <code>MappingCharFilter.reset()</code> keeps the offset corrections from the first read, so <code>correctOffset()</code> is wrong after a reset and a second read (map <code>a</code>-&gt;<code>xy</code> over <code>&quot;a&quot;</code>).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> reset rewinds the input and the filter&#x27;s read state but not the offset-correction map it inherits from BaseCharFilter, so the second pass appends new corrections computed from the first pass&#x27;s last cumulative diff: for the map a-&gt;xy over &quot;a&quot;, correctOffset(2) returns 0 instead of 1, and a WhitespaceTokenizer over the re-read filter for &quot;a b&quot; gives xy[0,0] b[1,2] instead of xy[0,1] b[2,3].</li></ul>
+<p>Expected <code>correctOffset(2)</code> = 1 (end of the input) after the re-read; actual: 0 (<code>expected:&lt;1&gt; but was:&lt;0&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/analysis/charfilter/TestMappingCharFilterResetOffsets.java"><code>src/org/apache/lucene/analysis/charfilter/TestMappingCharFilterResetOffsets.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

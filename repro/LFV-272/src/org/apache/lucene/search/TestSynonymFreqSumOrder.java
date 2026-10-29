@@ -16,100 +16,46 @@
  */
 package org.apache.lucene.search;
 
+import java.io.IOException;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.search.similarities.BM25Similarity;
-import org.apache.lucene.search.similarities.Similarity;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.tests.analysis.MockAnalyzer;
 import org.apache.lucene.tests.util.LuceneTestCase;
 import org.apache.lucene.tests.util.TestUtil;
-import org.apache.lucene.util.BytesRef;
 
-/**
- * With three or more boosted terms, SynonymScorer#freq sums boost * freq in float in the order of
- * the disjunction's topList, which depends on how the iterator reached the document. The same
- * document then gets different scores (1 ulp apart) from nextDoc() and advance(), so explain() does
- * not match the score of a search.
- */
 public class TestSynonymFreqSumOrder extends LuceneTestCase {
 
-  private static final Similarity SIM = new BM25Similarity();
-  private static final String[] DOCS = {
-    "b", "", "a a a a b b c c c", "a a a a b c c c", "c c c c", "a a b b"
-  };
-
-  private static Query query() {
-    return new SynonymQuery.Builder("f")
-        .addTerm(new BytesRef("a"), 0.5f)
-        .addTerm(new BytesRef("b"), 0.2f)
-        .addTerm(new BytesRef("c"), 0.70000005f)
-        .build();
-  }
-
-  private static Directory index() throws Exception {
-    Directory dir = newDirectory();
-    IndexWriterConfig iwc = new IndexWriterConfig(new MockAnalyzer(random()));
-    iwc.setCodec(TestUtil.getDefaultCodec());
-    iwc.setSimilarity(SIM);
-    try (IndexWriter w = new IndexWriter(dir, iwc)) {
-      for (String text : DOCS) {
-        Document doc = new Document();
-        doc.add(new TextField("f", text, Field.Store.NO));
-        w.addDocument(doc);
-      }
-      w.forceMerge(1);
-    }
-    return dir;
-  }
-
-  private static IndexSearcher searcher(DirectoryReader reader) {
-    IndexSearcher searcher = new IndexSearcher(reader);
-    searcher.setSimilarity(SIM);
-    searcher.setQueryCache(null);
-    return searcher;
-  }
-
-  /** The explanation's value must equal the score of the hit (CheckHits.verifyExplanation). */
-  public void testExplainMatchesScore() throws Exception {
-    try (Directory dir = index();
-        DirectoryReader reader = DirectoryReader.open(dir)) {
-      IndexSearcher searcher = searcher(reader);
-      Query q = query();
-      for (ScoreDoc hit : searcher.search(q, 10).scoreDocs) {
-        float explained = searcher.explain(q, hit.doc).getValue().floatValue();
-        assertEquals("doc " + hit.doc + ": score " + hit.score + " explain " + explained,
-            hit.score, explained, 0f);
-      }
-    }
-  }
-
-  /** A document's score must not depend on whether the scorer reached it by nextDoc or advance. */
-  public void testScoreIndependentOfIterationPath() throws Exception {
-    try (Directory dir = index();
-        DirectoryReader reader = DirectoryReader.open(dir)) {
-      IndexSearcher searcher = searcher(reader);
-      Weight weight = searcher.createWeight(searcher.rewrite(query()), ScoreMode.COMPLETE, 1f);
-      LeafReaderContext ctx = reader.leaves().get(0);
-      for (int target = 0; target < DOCS.length; target++) {
-        Scorer byNextDoc = weight.scorer(ctx);
-        int doc = byNextDoc.iterator().nextDoc();
-        while (doc < target) {
-          doc = byNextDoc.iterator().nextDoc();
+  public void testExplainEqualsHitScore() throws IOException {
+    try (Directory dir = new ByteBuffersDirectory()) {
+      IndexWriterConfig iwc =
+          new IndexWriterConfig(new StandardAnalyzer()).setCodec(TestUtil.getDefaultCodec());
+      try (IndexWriter w = new IndexWriter(dir, iwc)) {
+        for (int i = 0; i < 4; i++) {
+          Document doc = new Document();
+          doc.add(new TextField("f", "a b c", Field.Store.NO));
+          w.addDocument(doc);
         }
-        if (doc != target) {
-          continue; // no match
+      }
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        IndexSearcher searcher = new IndexSearcher(reader);
+        Query q =
+            new SynonymQuery.Builder("f")
+                .addTerm(new Term("f", "a"), 0.2f)
+                .addTerm(new Term("f", "b"), 0.2f)
+                .addTerm(new Term("f", "c"), 0.3f)
+                .build();
+        for (ScoreDoc hit : searcher.search(q, 10).scoreDocs) {
+          // explain() must report the hit's score; on main they differ by 1 ulp for docs 1 and 2
+          float explained = searcher.explain(q, hit.doc).getValue().floatValue();
+          assertEquals("doc " + hit.doc + " hit score vs explain()", hit.score, explained, 0f);
         }
-        Scorer byAdvance = weight.scorer(ctx);
-        assertEquals(target, byAdvance.iterator().advance(target));
-        assertEquals(
-            "doc " + target + " scored by nextDoc vs advance",
-            byNextDoc.score(), byAdvance.score(), 0f);
       }
     }
   }

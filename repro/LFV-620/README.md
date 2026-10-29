@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You analyze text with OpenNLPTokenizer, OpenNLPPOSFilter, a keyword marker that protects some words (for example KeywordMarkerFilter with the pattern 'evening') and OpenNLPLemmatizerFilter, and expect the protected words to pass through unlemmatized, which is what the filter's KeywordAttribute handling is for. Instead 'They sent him running in the evening' becomes [they, send, he, run, in, the]: the protected last word is gone, and when every word of a sentence is protected only its first word survives ([They]). The filter ends a sentence once it has emitted one lemma per non-keyword token (OpenNLPLemmatizerFilter.java:64, a 9.5.0 change from #11734), so the keyword tokens after the last non-keyword token are thrown away.
 
+The test shows that OpenNLPLemmatizerFilter drops a keyword-marked token that ends a sentence (opennlp tokenizer -&gt; POS -&gt; keywordMarker(pattern=evening) -&gt; dictionary lemmatizer, module test models).
+
 ## Expected vs actual
 
-- Expected: The chain emits `[they, send, he, run, in, the, evening]`, and every protected token of the fixed streams (`Acme`, `Widget`) comes out in place.
-- Actual: The chain emits `[they, send, he, run, in, the]` ("token 6 does not exist"); a sentence-final `Acme` is lost, and `Acme Widget` keeps only `Acme`.
+Expected [they, send, he, run, in, the, evening] for "They sent him running in the evening"; actual [they, send, he, run, in, the] on main, with -ea and -da.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/opennlp/TestLemmatizerKeepsSentenceFinalKeywords.java](src/org/apache/lucene/analysis/opennlp/TestLemmatizerKeepsSentenceFinalKeywords.java) (JUnit test)
+- [src/org/apache/lucene/analysis/opennlp/TestLemmatizerSentenceFinalKeyword.java](src/org/apache/lucene/analysis/opennlp/TestLemmatizerSentenceFinalKeyword.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,21 +40,15 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions on, seed 1880C0DE
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=1880C0DE \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.opennlp.TestLemmatizerKeepsSentenceFinalKeywords
+     execute --select-class org.apache.lucene.analysis.opennlp.TestLemmatizerSentenceFinalKeyword
 ```
 
 The module(s) analysis-opennlp also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestOpenNLPLemmatizerFilterKeywords.java](TestOpenNLPLemmatizerFilterKeywords.java)
-- [TestLemmatizerKeepsSentenceFinalKeywords.java](TestLemmatizerKeepsSentenceFinalKeywords.java)
-- [TestKeywordAtSentenceEndChain.java](TestKeywordAtSentenceEndChain.java)
 
 ## Feedback
 

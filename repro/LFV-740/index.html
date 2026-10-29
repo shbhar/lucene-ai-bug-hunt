@@ -22,12 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You build a geo3d circle or path on PlanetModel.WGS84 (or call Vector.normalDistance or DistanceStyle.NORMAL.computeDistance on two GeoPoints) and ask for the NORMAL or NORMAL_SQUARED distance, which Vector&#x27;s javadoc defines as &#x27;the normal (perpendicular) distance to a vector described by a vector taken from the origin&#x27;, and expect 0 for a point and itself and about 7.85e-6 planet units for a point 50 m from a circle&#x27;s centre. Instead both come out as 0.00165 (about 10.5 km) at latitude 0.3 rad, because Vector.normalDistanceSquared projects onto the receiver with t = dotProduct(v) and never divides by |this|^2, which is exact only for unit vectors, while WGS84 surface points have lengths between about 0.998 and 1.0011. The same offset enters every NORMAL and NORMAL_SQUARED circle and path distance on non-spherical planet models, with no error; on SPHERE the values are exact.</p>
+<p>The test shows that geo3d <code>Vector.normalDistance</code> assumes a unit-length receiver, so on WGS84 the normal distance from a point to itself is not 0.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> Both come out as 0.00165 (about 10.5 km) at latitude 0.3 rad, because Vector.normalDistanceSquared projects onto the receiver with t = dotProduct(v) and never divides by |this|^2, which is exact only for unit vectors, while WGS84 surface points have lengths between about 0.998 and 1.0011.</li></ul>
+<p>Expected 0 for <code>p.normalDistance(p)</code> (WGS84 point at latitude 0.3 rad); actual <code>expected:&lt;0.0&gt; but was:&lt;0.0016507737062451833&gt;</code> (-ea and -da).</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/spatial3d/geom/TestNormalDistanceOnEllipsoid.java"><code>src/org/apache/lucene/spatial3d/geom/TestNormalDistanceOnEllipsoid.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

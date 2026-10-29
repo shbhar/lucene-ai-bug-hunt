@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You call MatchRegionRetriever.highlightDocument with your own FieldValueProvider, for example one backed by a Map built from the document's stored fields, and for a field that is indexed but not stored it returns null, exactly as FieldValueProvider#getValues documents ('null if the field is not loaded or does not exist'). You expect no hit regions for that field, which is what the same provider gives when it returns an empty list and what the in-tree highlightDocuments path gives on the same index. Instead the default offset strategy uses the null list and the call throws NullPointerException (OffsetsFromPositions.java:70 for a positions-only field, OffsetsFromTokens.java:74 for a DOCS or DOCS_AND_FREQS field, OffsetsFromValues.java:51).
 
+The test shows that `MatchRegionRetriever.highlightDocument` throws a NullPointerException when a custom `FieldValueProvider` returns `null` for a matched, unstored positions field, which `FieldValueProvider#getValues` documents as allowed ("null if the field is not loaded or does not exist").
+
 ## Expected vs actual
 
-- Expected: You expect no hit regions for that field, which is what the same provider gives when it returns an empty list and what the in-tree highlightDocuments path gives on the same index.
-- Actual: The default offset strategy uses the null list and the call throws NullPointerException (OffsetsFromPositions.java:70 for a positions-only field, OffsetsFromTokens.java:74 for a DOCS or DOCS_AND_FREQS field, OffsetsFromValues.java:51).
+Expected: no hit regions (empty map); actual: `NullPointerException` at `OffsetsFromPositions.java:70` ("Cannot invoke List.isEmpty() because values is null"), with `-ea` and `-da`.
 
 ## Files
 
@@ -19,7 +20,8 @@ You call MatchRegionRetriever.highlightDocument with your own FieldValueProvider
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

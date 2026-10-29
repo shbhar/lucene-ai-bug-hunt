@@ -10,19 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You store locations with Geo3DDocValuesField on the default WGS84 model and sort hits with Geo3DDocValuesField.newDistanceSort(field, lat, lon, 1000, WGS84), expecting ascending distance from the centre with the distance in metres (and, with newOutsideDistanceSort, 0.0 for points inside the circle). Instead about half of the documents inside the 1 km radius, even ones 10 m from the centre, get +Infinity and sort last as if they had no location, some documents 2-3 km away get finite distances and sort ahead of them, and inside documents get outside distances of up to 988 m, while LatLonDocValuesField's distance sort orders the same points correctly. The cause: each doc value decodes to a point up to about 4.5 m off the planet surface, and the comparators pass that point unprojected to the circle's membership test, a single plane that for a 1 km circle lies only about 8 cm below the surface at the centre, so the decode error, not the distance, decides in or out.
 
+The test shows that `Geo3DDocValuesField.newDistanceSort("point", 40, -74, 1000, WGS84)` gives distance +Infinity to a document stored exactly at the sort centre, because its 21-bit decoded point lies below the surface and is tested against the circle's nearly tangent plane without being projected back.
+
 ## Expected vs actual
 
-- Expected: The 36 documents at 500 m sort first, each about 500 m away; with `newOutsideDistanceSort` each gets 0.0.
-- Actual: Only 19 sort before every 3 km document; 17 get +Infinity and sort after 14 documents 3 km away with finite distances (22 of the first 36 hits are 500 m documents); the outside sort gives the same 17 up to 722 m.
+Expected: a finite distance near 0 m (the document is at the centre of the 1 km circle). Actual: `Infinity`, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/spatial3d/TestGeo3DDistanceSortSmallRadius.java](src/org/apache/lucene/spatial3d/TestGeo3DDistanceSortSmallRadius.java) (JUnit test)
+- [src/org/apache/lucene/spatial3d/TestGeo3DDistanceSortCentreDocument.java](src/org/apache/lucene/spatial3d/TestGeo3DDistanceSortCentreDocument.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,17 +42,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.spatial3d.TestGeo3DDistanceSortSmallRadius
+     execute --select-class org.apache.lucene.spatial3d.TestGeo3DDistanceSortCentreDocument
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestGeo3DDocValuesSmallRadiusSort.java](TestGeo3DDocValuesSmallRadiusSort.java)
-- [TestGeo3DDocValuesSortSmallCircle.java](TestGeo3DDocValuesSortSmallCircle.java)
-- [TestGeo3DDistanceSortSmallRadius.java](TestGeo3DDistanceSortSmallRadius.java)
-- [Geo3DSortHistoryMain.java](Geo3DSortHistoryMain.java)
 
 ## Feedback
 

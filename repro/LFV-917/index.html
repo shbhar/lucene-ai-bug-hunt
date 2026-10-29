@@ -22,12 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You build LongRange#getQuery(fastMatch, LongValuesSource) (or the DoubleRange or multi-valued overloads) with a fast-match query of 1,200 term clauses (two required 600-term disjunctions) and search it with the default maxClauseCount of 1024. You expect TooManyNestedClauses, which you do get when the same fast-match query is a sibling FILTER clause, because the check counts &#x27;total clauses cumulatively in all of its children&#x27;, Query#visit is documented to visit &#x27;any child queries&#x27;, and getQuery documents fastMatchQuery as &#x27;a query to use as a filter&#x27;. Instead the search runs and returns the correct hits: ValueSourceQuery.visit and MultiValueSourceQuery.visit only call visitor.visitLeaf(this), so the fast-match query, which stays in the rewritten query and is executed as the approximation in createWeight, is seen by no clause check at all, and QueryVisitor.termCollector returns none of its terms.</p>
+<p>The test shows that <code>LongRange#getQuery(fastMatchQuery, valuesSource)</code> with a 1,200-clause fast-match query is searched without <code>TooManyNestedClauses</code> under the default <code>maxClauseCount</code> of 1024, because the range query&#x27;s <code>visit()</code> never visits its fast-match query.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect TooManyNestedClauses, which you do get when the same fast-match query is a sibling FILTER clause, because the check counts &#x27;total clauses cumulatively in all of its children&#x27;, Query#visit is documented to visit &#x27;any child queries&#x27;, and getQuery documents fastMatchQuery as &#x27;a query to use as a filter&#x27;.</li><li><b>Actual:</b> The search runs and returns the correct hits: ValueSourceQuery.visit and MultiValueSourceQuery.visit only call visitor.visitLeaf(this), so the fast-match query, which stays in the rewritten query and is executed as the approximation in createWeight, is seen by no clause check at all, and QueryVisitor.termCollector returns none of its terms.</li></ul>
+<p>Expected <code>IndexSearcher.TooManyNestedClauses</code>; actual: the search runs with no exception, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/facet/range/TestRangeQueryFastMatchClauseLimit.java"><code>src/org/apache/lucene/facet/range/TestRangeQueryFastMatchClauseLimit.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -41,8 +43,8 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.facet.range.TestRangeQueryFastMatchClauseLimit</code></pre>
 <p class="small">The module(s) facet also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>

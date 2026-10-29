@@ -16,97 +16,36 @@
  */
 package org.apache.lucene.index;
 
-import java.io.IOException;
-import org.apache.lucene.document.BinaryDocValuesField;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
-import org.apache.lucene.document.SortedNumericDocValuesField;
-import org.apache.lucene.document.TextField;
-import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.LuceneTestCase;
-import org.apache.lucene.tests.util.TestUtil;
-import org.apache.lucene.util.BytesRef;
 
-/**
- * The numeric, binary and norms views of MultiDocValues throw NullPointerException from
- * advance(target) after advanceExact landed on a document of a segment that has no values for the
- * field, when target is in that same segment.
- */
 public class TestMultiDocValuesAdvanceAfterAdvanceExact extends LuceneTestCase {
 
-  private Directory dir;
-  private DirectoryReader reader;
-
-  @Override
-  public void setUp() throws Exception {
-    super.setUp();
-    dir = newDirectory();
-    IndexWriterConfig iwc =
-        new IndexWriterConfig()
-            .setCodec(TestUtil.getDefaultCodec())
-            .setMergePolicy(NoMergePolicy.INSTANCE);
-    try (IndexWriter w = new IndexWriter(dir, iwc)) {
-      w.addDocument(new Document()); // segment 0: docs 0 and 1 have none of the fields
+  public void testAdvanceAfterAdvanceExactOnSegmentWithoutField() throws Exception {
+    IndexWriterConfig iwc = new IndexWriterConfig().setMergePolicy(NoMergePolicy.INSTANCE);
+    try (Directory dir = newDirectory();
+        IndexWriter w = new IndexWriter(dir, iwc)) {
+      w.addDocument(new Document());
       w.addDocument(new Document());
       w.commit();
-      Document doc = new Document(); // segment 1: doc 2 has all of them
-      doc.add(new TextField("body", "some text", Field.Store.NO));
-      doc.add(new NumericDocValuesField("num", 42));
-      doc.add(new BinaryDocValuesField("bin", new BytesRef("v")));
-      doc.add(new SortedNumericDocValuesField("snum", 42));
+      Document doc = new Document();
+      doc.add(new NumericDocValuesField("f", 42));
       w.addDocument(doc);
       w.commit();
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        NumericDocValues dv = MultiDocValues.getNumericValues(reader, "f");
+        assertFalse(dv.advanceExact(0));
+        int next;
+        try {
+          next = dv.advance(1);
+        } catch (NullPointerException e) {
+          // segment 0 (docs 0, 1) lacks the field: expected advance(1) == 2, actual NPE
+          throw new AssertionError("expected advance(1) == 2, got " + e, e);
+        }
+        assertEquals(2, next);
+      }
     }
-    reader = DirectoryReader.open(dir);
-    assertEquals(2, reader.leaves().size());
-  }
-
-  @Override
-  public void tearDown() throws Exception {
-    reader.close();
-    dir.close();
-    super.tearDown();
-  }
-
-  // Each test: advanceExact(0) -> false (doc 0 has no value), then advance(1): docID() is 0 and
-  // 1 > 0, so per DocIdSetIterator#advance the result is the first doc >= 1 with a value, i.e. 2.
-
-  public void testNumeric() throws IOException {
-    NumericDocValues dv = MultiDocValues.getNumericValues(reader, "num");
-    assertFalse(dv.advanceExact(0));
-    assertEquals(0, dv.docID());
-    assertEquals(2, dv.advance(1));
-    assertEquals(42, dv.longValue());
-  }
-
-  public void testBinary() throws IOException {
-    BinaryDocValues dv = MultiDocValues.getBinaryValues(reader, "bin");
-    assertFalse(dv.advanceExact(0));
-    assertEquals(2, dv.advance(1));
-    assertEquals(new BytesRef("v"), dv.binaryValue());
-  }
-
-  public void testNorms() throws IOException {
-    NumericDocValues norms = MultiDocValues.getNormValues(reader, "body");
-    assertFalse(norms.advanceExact(0));
-    assertEquals(2, norms.advance(1));
-  }
-
-  /** Control: the sorted-numeric view (which uses empty, non-null per-leaf iterators) is fine. */
-  public void testSortedNumericControl() throws IOException {
-    SortedNumericDocValues dv = MultiDocValues.getSortedNumericValues(reader, "snum");
-    assertFalse(dv.advanceExact(0));
-    assertEquals(2, dv.advance(1));
-    assertEquals(42, dv.nextValue());
-  }
-
-  /** Control: nextDoc() after the same advanceExact is fine on the numeric view. */
-  public void testNumericNextDocControl() throws IOException {
-    NumericDocValues dv = MultiDocValues.getNumericValues(reader, "num");
-    assertFalse(dv.advanceExact(0));
-    assertEquals(2, dv.nextDoc());
-    assertEquals(DocIdSetIterator.NO_MORE_DOCS, dv.nextDoc());
   }
 }

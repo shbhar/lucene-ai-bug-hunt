@@ -22,12 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You build a zero-width path with GeoPathFactory.makeGeoPath(planetModel, 0, points) and call computePathCenterDistance or computeOutsideDistance with DistanceStyle.LINEAR_SQUARED (or NORMAL_SQUARED), expecting the square of the LINEAR (or NORMAL) distance, which is what DistanceStyle&#x27;s &#x27;convert to aggregation form, aggregate, convert back&#x27; contract gives, what the same path with width 1e-6 returns and what Lucene 9.4.2 returned. Instead, for a point 0.01 rad beside the path, computePathCenterDistance returns about 0.01 (the unsquared distance) and computeOutsideDistance returns about 1e-8 (the fourth power) where about 1e-4 is expected. The cause is an incomplete edit in the 2022 path refactor: GeoDegeneratePath&#x27;s components now return the square root (the aggregation form of the squared styles), but computePathCenterDistance never squares the minimum back, and PathSegment.outsideDistance still returns the plain square, which outsideDistance then squares a second time.</p>
+<p>The test shows that on a zero-width geo3d path (<code>GeoPathFactory.makeGeoPath(SPHERE, 0, points)</code>) the squared distance style <code>LINEAR_SQUARED</code> is not the square of <code>LINEAR</code>: <code>computePathCenterDistance</code> returns the unsquared distance and <code>computeOutsideDistance</code> the fourth power.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> For a point 0.01 rad beside the path, computePathCenterDistance returns about 0.01 (the unsquared distance) and computeOutsideDistance returns about 1e-8 (the fourth power) where about 1e-4 is expected.</li></ul>
+<p>Expected <code>LINEAR^2</code> = 9.9999e-5 from both calls; actual on main <code>computePathCenterDistance(LINEAR_SQUARED)</code> = 0.0099999 (<code>expected:&lt;9.999916666944443E-5&gt; but was:&lt;0.009999958333385416&gt;</code>), and, once that site is fixed, <code>computeOutsideDistance(LINEAR_SQUARED)</code> = 9.9998e-9.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/spatial3d/geom/TestGeoDegeneratePathSquaredStyles.java"><code>src/org/apache/lucene/spatial3d/geom/TestGeoDegeneratePathSquaredStyles.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

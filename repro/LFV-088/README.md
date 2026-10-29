@@ -1,6 +1,6 @@
 # LatLonPoint#nearest reports an EQUAL_TO TotalHits that counts deleted documents
 
-Bug LFV-088 · Area: document / LatLonPoint#nearest · Priority: medium · Impact: silent wrong results · Novelty: new
+Bug LFV-088 · Area: document / LatLonPoint#nearest · Priority: low · Impact: silent wrong results · Novelty: new
 
 Bug page: [../../bugs/LFV-088.html](../../bugs/LFV-088.html)
 
@@ -10,19 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index documents with a LatLonPoint field, delete or update some of them, and call LatLonPoint.nearest(searcher, field, lat, lon, n) with n larger than the index. You expect TopFieldDocs.totalHits, which is labelled TotalHits.Relation.EQUAL_TO (exact), to count only documents that can be hits, here the hits returned. Instead the total is the per-segment sum of PointValues#getDocCount, an index statistic that still counts deleted documents, so 3 documents with one deleted return 2 hits but report exactly '3 hits', more than reader.numDocs.
 
+The test shows that `LatLonPoint.nearest` returns an EQUAL_TO `TotalHits` that counts a deleted (unmerged) document.
+
 ## Expected vs actual
 
-- Expected: 2 hits and `totalHits` = 2 (`EQUAL_TO`) after the delete; 10 hits and 10 after the update, or a lower bound marked `GREATER_THAN_OR_EQUAL_TO`.
-- Actual: The right hits, but "3 hits" and "11 hits", both `EQUAL_TO`, while `reader.numDocs` is 2 and 10.
+Expected, with 3 documents and 1 deleted: exactly 2 hits (or a lower bound &lt;= 2). Actual (-ea and -da): EQUAL_TO 3 (`got 3 hits`).
 
 ## Files
 
-- [src/org/apache/lucene/search/TestNearestTotalHitsDeletedDocs.java](src/org/apache/lucene/search/TestNearestTotalHitsDeletedDocs.java) (JUnit test)
+- [src/org/apache/lucene/search/TestNearestTotalHitsDeletedDoc.java](src/org/apache/lucene/search/TestNearestTotalHitsDeletedDoc.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,16 +41,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestNearestTotalHitsDeletedDocs
+     execute --select-class org.apache.lucene.search.TestNearestTotalHitsDeletedDoc
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestNearestTotalHits.java](TestNearestTotalHits.java)
-- [TestNearestTotalHitsEdges.java](TestNearestTotalHitsEdges.java)
-- [fix-dense-exact.diff](fix-dense-exact.diff)
 
 ## Feedback
 

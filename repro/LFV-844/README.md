@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You turn on IndexWriter's InfoStream for merge-scheduler messages, and the logging call throws once (an OutOfMemoryError, or an exception from the logging backend). It throws on the message the writer prints right after it hands a merge to the merge scheduler. You expect what the IndexWriter javadoc promises: after an Error the writer closes itself, and after an exception close still finishes, because no merge is actually running. Instead, the merge has already been moved from 'pending' to 'running', and no thread ever runs or finishes it, so after an Error addDocument hangs forever inside the writer's own rollback (abortMerges), and after an exception close hangs forever in waitForMerges.
 
+The test shows that when the merge scheduler's `InfoStream` throws an `OutOfMemoryError` on the " checked out merge" line, the merge is already in `runningMerges` with no thread to run it, so the writer's own tragic rollback (`abortMerges`) waits for it and `addDocument` never returns.
+
 ## Expected vs actual
 
-- Expected: You expect what the IndexWriter javadoc promises: after an Error the writer closes itself, and after an exception close still finishes, because no merge is actually running.
-- Actual: The merge has already been moved from 'pending' to 'running', and no thread ever runs or finishes it, so after an Error addDocument hangs forever inside the writer's own rollback (abortMerges), and after an exception close hangs forever in waitForMerges.
+Expected the 4th `addDocument` to throw the Error and the writer to close itself; actual `expected addDocument to throw the Error, still blocked after 10 s` (the framework's thread-leak report then shows the thread in `IndexWriter.abortMerges` &lt;- `maybeCloseOnTragicEvent`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/index/TestCheckedOutMergeStrandedByLogging.java](src/org/apache/lucene/index/TestCheckedOutMergeStrandedByLogging.java) (JUnit test)
+- [src/org/apache/lucene/index/TestErrorLoggingCheckedOutMerge.java](src/org/apache/lucene/index/TestErrorLoggingCheckedOutMerge.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 2 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,7 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestCheckedOutMergeStrandedByLogging
+     execute --select-class org.apache.lucene.index.TestErrorLoggingCheckedOutMerge
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You configure a soft-deletes field, soft-delete a document (softUpdateDocument, or updateDocValues on that field), commit, close, and open a new IndexWriter on the index; you expect hasDeletions to return true, because its javadoc says 'Returns true if this index has deletions', IndexWriterConfig#setSoftDeletesField says a soft-deleted document 'is treated as if it has been hard-deleted through the IndexWriter API', and the same writer's getDocStats reports maxDoc 3 and numDocs 2. Instead it returns false, with -ea and -da, until DirectoryReader.open(writer) puts the segment into the reader pool; after that the same call on the unchanged index returns true. The loop over committed segments uses SegmentCommitInfo#hasDeletions (delGen != -1, hard deletes only), while the buffered and pooled branches of the same method count soft deletes; the one-line fix is info.getDelCount(softDeletesEnabled) &gt; 0.
 
+The test shows that with a soft-deletes field, a document soft-deleted by `softUpdateDocument` and committed makes a newly opened `IndexWriter` answer `hasDeletions() == false`, while the same writer's `getDocStats()` counts the deleted document.
+
 ## Expected vs actual
 
-- Expected: You expect hasDeletions to return true, because its javadoc says 'Returns true if this index has deletions', IndexWriterConfig#setSoftDeletesField says a soft-deleted document 'is treated as if it has been hard-deleted through the IndexWriter API', and the same writer's getDocStats reports maxDoc 3 and numDocs 2.
-- Actual: It returns false, with -ea and -da, until DirectoryReader.open(writer) puts the segment into the reader pool; after that the same call on the unchanged index returns true.
+Expected `true` (getDocStats maxDoc=2, numDocs=1); actual `false` (`expected:<true> but was:<false>`), with `-ea` and `-da`.
 
 ## Files
 
@@ -19,8 +20,8 @@ You configure a soft-deletes field, soft-delete a document (softUpdateDocument, 
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

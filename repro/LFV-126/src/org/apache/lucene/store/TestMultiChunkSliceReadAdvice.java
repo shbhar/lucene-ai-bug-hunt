@@ -18,80 +18,47 @@ package org.apache.lucene.store;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.lucene.tests.util.LuceneTestCase;
 import org.apache.lucene.util.Constants;
 
-/**
- * IndexInput#slice(String, long, long, IOContext) applies the context's read advice to the pages of
- * the slice. For a slice that spans two mmap chunks, check which pages of the file got the advice,
- * using the random-read flag ("rr") that Linux reports per mapping in /proc/self/smaps.
- */
 public class TestMultiChunkSliceReadAdvice extends LuceneTestCase {
 
   public void testRandomAdviceStaysInsideTheSlice() throws Exception {
-    assumeTrue("needs madvise", MMapDirectory.supportsMadvise());
-    assumeTrue("reads /proc/self/smaps", Constants.LINUX);
-    final int chunkSize = 1 << 20; // a multiple of the page size
-    final Path path = createTempDir("sliceReadAdvice");
-    try (MMapDirectory dir = new MMapDirectory(path, chunkSize)) {
+    assumeTrue("needs Linux madvise", Constants.LINUX && MMapDirectory.supportsMadvise());
+    int chunk = 1 << 20;
+    Path path = createTempDir();
+    try (MMapDirectory dir = new MMapDirectory(path, chunk)) {
       dir.setReadAdvice(MMapDirectory.ADVISE_BY_CONTEXT);
       try (IndexOutput out = dir.createOutput("data", IOContext.DEFAULT)) {
-        out.writeBytes(new byte[3 * chunkSize], 3 * chunkSize);
+        out.writeBytes(new byte[2 * chunk], 2 * chunk);
       }
-      // IOContext.DEFAULT maps to the NORMAL advice: nothing is advised when the file is opened
       try (IndexInput in = dir.openInput("data", IOContext.DEFAULT)) {
-        final long sliceStart = chunkSize / 2;
-        final long sliceEnd = sliceStart + chunkSize; // the slice spans chunks 0 and 1
-        IndexInput slice =
-            in.slice(
-                "inner",
-                sliceStart,
-                sliceEnd - sliceStart,
-                IOContext.DEFAULT.withHints(DataAccessHint.RANDOM));
-        assertEquals(chunkSize, slice.length());
-
-        List<long[]> advised = randomReadFileRanges(path.resolve("data").toRealPath().toString());
-        assertFalse("nothing was advised", advised.isEmpty());
-        for (long[] range : advised) {
-          assertTrue(
-              "file bytes ["
-                  + range[0]
-                  + ", "
-                  + range[1]
-                  + ") got the RANDOM advice, but the slice is ["
-                  + sliceStart
-                  + ", "
-                  + sliceEnd
-                  + ")",
-              range[0] >= sliceStart && range[1] <= sliceEnd);
+        long start = chunk / 2, end = start + chunk;
+        in.slice("inner", start, chunk, IOContext.DEFAULT.withHints(DataAccessHint.RANDOM));
+        String file = path.resolve("data").toRealPath().toString();
+        long mapStart = -1, mapEnd = -1;
+        for (String line : Files.readAllLines(Path.of("/proc/self/smaps"))) {
+          String[] parts = line.split("\\s+");
+          if (line.endsWith(" " + file)) {
+            String[] addr = parts[0].split("-");
+            mapStart = Long.parseLong(parts[2], 16);
+            mapEnd = mapStart + Long.parseLong(addr[1], 16) - Long.parseLong(addr[0], 16);
+          } else if (line.startsWith("VmFlags:") && mapStart >= 0) {
+            assertTrue(
+                "expected RANDOM advice only inside the slice ["
+                    + start
+                    + ", "
+                    + end
+                    + "), but file bytes ["
+                    + mapStart
+                    + ", "
+                    + mapEnd
+                    + ") got it",
+                (line + " ").contains(" rr ") == false || (mapStart >= start && mapEnd <= end));
+            mapStart = -1;
+          }
         }
       }
     }
-  }
-
-  /** File offset ranges [start, end) of the mappings of {@code file} that carry the "rr" flag. */
-  private static List<long[]> randomReadFileRanges(String file) throws Exception {
-    List<long[]> ranges = new ArrayList<>();
-    long[] current = null;
-    for (String line : Files.readAllLines(Path.of("/proc/self/smaps"))) {
-      String[] parts = line.trim().split("\\s+");
-      if (parts.length >= 6 && parts[0].matches("[0-9a-f]+-[0-9a-f]+")) {
-        current = null;
-        if (line.endsWith(" " + file)) {
-          String[] addr = parts[0].split("-");
-          long size = Long.parseUnsignedLong(addr[1], 16) - Long.parseUnsignedLong(addr[0], 16);
-          long fileOffset = Long.parseUnsignedLong(parts[2], 16);
-          current = new long[] {fileOffset, fileOffset + size};
-        }
-      } else if (current != null && line.startsWith("VmFlags:")) {
-        if (List.of(line.substring("VmFlags:".length()).trim().split("\\s+")).contains("rr")) {
-          ranges.add(current);
-        }
-        current = null;
-      }
-    }
-    return ranges;
   }
 }

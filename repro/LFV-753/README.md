@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index points with the SimpleText codec, take a PointTree from PointValues.getPointTree, clone it and keep moving both the clone and the original, and expect each tree to report the bounds of its own current node, as PointTree#clone promises ('the current node becomes the root of the new tree') and as the default points format does. Instead SimpleTextPointTree.clone copies the reference to the original's saved split-value array for the current level, so a move of one tree overwrites the bound that the other tree restores when it moves back up: after tree.moveToChild, tree.moveToParent, clone = tree.clone, clone.moveToChild, tree.moveToChild, tree.moveToSibling, clone.moveToParent, the clone at its root reports max 0 instead of 2047 for the values 0..2047. Any traversal that prunes on those bounds can then miss or wrongly include cells; no in-tree query moves trees this way.
 
+The test shows that with the SimpleText codec a `PointTree.clone()` shares a saved split value with the original tree, so moving the original corrupts the clone's bounds.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: SimpleTextPointTree.clone copies the reference to the original's saved split-value array for the current level, so a move of one tree overwrites the bound that the other tree restores when it moves back up: after tree.moveToChild, tree.moveToParent, clone = tree.clone, clone.moveToChild, tree.moveToChild, tree.moveToSibling, clone.moveToParent, the clone at its root reports max 0 instead of 2047 for the values 0..2047.
+Expected the clone's root max `1023` after it moves back to its root (values 0..1023); actual `0` (`expected:<1023> but was:<0>`), with `-ea` and `-da`; passes when clone() copies the array.
 
 ## Files
 
@@ -19,7 +20,8 @@ You index points with the SimpleText codec, take a PointTree from PointValues.ge
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -34,8 +36,8 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions on, seed 254C10E
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=254C10E \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.codecs.simpletext.TestSimpleTextPointTreeCloneIndependence
 ```

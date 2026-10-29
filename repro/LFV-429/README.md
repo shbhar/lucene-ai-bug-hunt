@@ -1,6 +1,6 @@
 # Reordering merges (BPReorderingMergePolicy) silently break document blocks written before Lucene 9.9, because IndexWriter's reorder guard reads the unrecorded LeafMetaData#hasBlocks flag as 'no blocks'
 
-Bug LFV-429 · Area: index / IndexWriter merge-time reordering (OneMerge#reorder guard; misc BPReorderingMergePolicy) · Priority: medium · Impact: data corruption · Novelty: new
+Bug LFV-429 · Area: index / IndexWriter merge-time reordering (OneMerge#reorder guard; misc BPReorderingMergePolicy) · Priority: low · Impact: data corruption · Novelty: new
 
 Bug page: [../../bugs/LFV-429.html](../../bugs/LFV-429.html)
 
@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You have an index with document blocks (children followed by their parent, added with IndexWriter#addDocuments) that was written by Lucene 9.8 or earlier, open it with a current Lucene, and force-merge it through BPReorderingMergePolicy. You expect the merge to leave the blocks alone, because since 9.11 IndexWriter lets a merge reorder documents only when there are no blocks or a parent field identifies them, and such an old index cannot have a parent field. Instead the guard trusts LeafMetaData#hasBlocks, which was never recorded before 9.9 and reads false for those segments, so the reorderer renumbers the documents one by one and interleaves the blocks, with no exception and a clean CheckIndex, while the same documents written by 9.9.2 are left intact.
 
+The test shows that a reordering forceMerge (BPReorderingMergePolicy) tears apart document blocks written by Lucene 9.8.0, because IndexWriter's reorder guard reads the unrecorded pre-9.9 `LeafMetaData#hasBlocks` as "no blocks" (fixture `blocks.9.8.0.zip`: 3 child+parent blocks in 2 segments).
+
 ## Expected vs actual
 
-- Expected: 0 of 257 children paired with another parent (or with none) after the merge, as for the same blocks written by 9.9.2.
-- Actual: 257 of 257 children paired with another parent (or with none), merged segment `hasBlocks=false` (139 of 257 with `BPReorderingMergePolicy`).
+Expected the merged segment's docs, in pairs, to be the blocks `[c0p0, c1p1, c2p2]`; actual: `[c0c1, c2p0, p1p2]` (doc order c0 c1 c2 p0 p1 p2), with `-ea` and `-da`.
 
 ## Files
 
@@ -21,8 +22,8 @@ You have an index with document blocks (children followed by their parent, added
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -46,14 +47,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestReorderingMergeKeepsPre99Blocks.java](TestReorderingMergeKeepsPre99Blocks.java)
-- [fix-with-test.diff](fix-with-test.diff)
-- [TestReorderPre99Blocks.java](TestReorderPre99Blocks.java)
-- [TestReorderingMergeOldBlocks.java](TestReorderingMergeOldBlocks.java)
-- [MakeBlockIndex.java](MakeBlockIndex.java)
 
 ## Feedback
 

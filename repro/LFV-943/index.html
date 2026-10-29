@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You decode a segments_N commit file by following the SegmentInfos class javadoc, which gives the order Header, LuceneVersion, Version, NameCounter, SegCount, MinSegmentLuceneVersion, then per segment SegName, SegID, SegCodec, DelGen, DeletionCount, FieldInfosGen, DocValuesGen, UpdatesFiles, DocValuesOverlays, and types NameCounter as an Int32 and the fixed-width fields with links to DataOutput#writeInt/#writeLong (little-endian since 9.0). The writer instead puts an IndexCreatedVersionMajor VInt right after LuceneVersion, writes NameCounter as a VLong, writes Version, SegCount, DelGen, DeletionCount and the other fixed-width fields big-endian, and adds SoftDelCount, a flag byte plus the 16-byte SegmentCommitInfo id and the FieldInfosFiles set to every segment entry, so a parser built from the text reads the VInt 11 where Version should be and every later field is misaligned. Lucene&#x27;s own reader matches the writer, so nothing breaks at runtime; only the documentation is wrong, and it has not matched the bytes since 4.9.0 (2014).</p>
+<p>The test shows that the segments_N grammar in the <code>SegmentInfos</code> class javadoc is stale: the field written right after LuceneVersion is the undocumented IndexCreatedVersionMajor vInt, not Version (documentation defect; writer and reader agree).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> While the bug is present the test fails; the failure message states expected against actual.</li></ul>
+<p>Expected (javadoc): Version, an Int64 equal to <code>SegmentInfos#getVersion</code> (2 for an empty commit). Actual: <code>Version expected:&lt;2&gt; but was:&lt;11&gt;</code>, where 11 is the IndexCreatedVersionMajor vInt (same with -ea and -da).</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/index/TestSegmentInfosJavadocGrammar.java"><code>src/org/apache/lucene/index/TestSegmentInfosJavadocGrammar.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src2/org/apache/lucene/index/TestSegmentInfosJavadocGrammar.java"><code>src2/org/apache/lucene/index/TestSegmentInfosJavadocGrammar.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/index/TestSegmentsNJavadocVersionField.java"><code>src/org/apache/lucene/index/TestSegmentsNJavadocVersionField.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -39,15 +40,11 @@ CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
-javac -d classes-src -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
-javac -d classes-src2 -cp &quot;$CP&quot; $(find src2 -name &#x27;*.java&#x27;)
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestSegmentInfosJavadocGrammar
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src2:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestSegmentInfosJavadocGrammar</code></pre>
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.index.TestSegmentsNJavadocVersionField</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

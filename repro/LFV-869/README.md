@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build an automaton with Lucene's standard code-point constructors, for example Automata.makeString("\uD801\uDC00") (U+10400) or new RegExp("a" + an emoji).toAutomaton, and convert it with AutomatonToTokenStream.toTokenStream, whose javadoc says the stream releases the automaton's edges as tokens. You expect the token for the edge labelled U+10400 to be that character (the surrogate pair D801 DC00). Instead incrementToken appends (char) label, which keeps only the low 16 bits, so the token is U+0400 (a Cyrillic letter), U+1F600 becomes the private-use U+F600 and U+10000 becomes a NUL char, silently.
 
+The test shows that AutomatonToTokenStream.toTokenStream(Automata.makeString(U+10400)) emits the edge label cast to char (TestAutomatonToTokenStreamSupplementaryLabel#testSupplementaryLabel).
+
 ## Expected vs actual
 
-- Expected: You expect the token for the edge labelled U+10400 to be that character (the surrogate pair D801 DC00).
-- Actual: incrementToken appends (char) label, which keeps only the low 16 bits, so the token is U+0400 (a Cyrillic letter), U+1F600 becomes the private-use U+F600 and U+10000 becomes a NUL char, silently.
+Expected token text U+10400 (the label); actual U+0400 (its low 16 bits), with -ea and -da.
 
 ## Files
 
@@ -19,7 +20,8 @@ You build an automaton with Lucene's standard code-point constructors, for examp
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -34,8 +36,8 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions on, seed 3430DEADBEEF
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=3430DEADBEEF \
+# run 1: assertions on, seed 5EED0869
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=5EED0869 \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.analysis.TestAutomatonToTokenStreamSupplementaryLabel
 ```

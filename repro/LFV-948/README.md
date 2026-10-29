@@ -8,24 +8,27 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You read the Lucene 10.6.0 release notes, whose GITHUB#16243 entry says StableTflSimilarity 'also supports k3 query-term frequency saturation', and write new StableTflSimilarity(1.2f, 0.917f, 7f) against the 10.6.0 jar. You expect it to compile, as it does on main; instead javac finds no (float, float, float) constructor and no getK3, because the 10.x backport (#16322) deliberately left k3 out ('remove k3 which isn't in 10') and, on the feature author's review request, also dropped the k3 sentence, which a later, unrelated backport commit (3a75616c943, the #16300 backport) put back. The sentence ships in the RC1 source release's CHANGES.txt and Changes.html and is also in main's copy of the 10.6.0 section.
 
+The test shows that the Lucene 10.6.0 CHANGES entry for GITHUB#16243 (RC1 CHANGES.txt:57, and main's copy of the 10.6.0 section at CHANGES.txt:507) says StableTflSimilarity 'also supports k3', but the 10.6.0 class has no k3 constructor; main's class has one, so the test passes on main and fails on the 10.6.0 RC1 code.
+
 ## Expected vs actual
 
-- Expected: You expect it to compile, as it does on main; instead javac finds no (float, float, float) constructor and no getK3, because the 10.x backport (#16322) deliberately left k3 out ('remove k3 which isn't in 10') and, on the feature author's review request, also dropped the k3 sentence, which a later, unrelated backport commit (3a75616c943, the #16300 backport) put back.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+(10.6.0 RC1, branch_10_6 4ae946e5a9b) expected a StableTflSimilarity(float k1, float c, float k3) constructor; actual constructors: StableTflSimilarity(float, float) and StableTflSimilarity().
 
 ## Files
 
-- [src/org/apache/lucene/search/similarities/TestStableTflK3AsAdvertised.java](src/org/apache/lucene/search/similarities/TestStableTflK3AsAdvertised.java) (JUnit test)
+- [src/org/apache/lucene/search/similarities/TestStableTflSimilarityK3.java](src/org/apache/lucene/search/similarities/TestStableTflSimilarityK3.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene branch_10_6 4ae946e5a9b9 (2026-10-26): reproduced on 10.6.0-SNAPSHOT jars built at this commit.
+- Recorded outcome of run 1 on Lucene branch_10_6 4ae946e5a9b9: 1 test(s) run, 1 failed.
+- Passes on Lucene main 645d4fe14a20 (2026-10-28).
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
 # Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
-LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
+LUCENE=/path/to/lucene; V=10.6.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
@@ -37,7 +40,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.similarities.TestStableTflK3AsAdvertised
+     execute --select-class org.apache.lucene.search.similarities.TestStableTflSimilarityK3
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

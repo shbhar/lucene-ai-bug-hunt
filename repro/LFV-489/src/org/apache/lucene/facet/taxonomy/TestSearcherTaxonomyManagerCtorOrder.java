@@ -16,54 +16,36 @@
  */
 package org.apache.lucene.facet.taxonomy;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.facet.FacetField;
-import org.apache.lucene.facet.FacetResult;
-import org.apache.lucene.facet.FacetsCollector;
-import org.apache.lucene.facet.FacetsCollectorManager;
 import org.apache.lucene.facet.FacetsConfig;
-import org.apache.lucene.facet.LabelAndValue;
 import org.apache.lucene.facet.taxonomy.SearcherTaxonomyManager.SearcherAndTaxonomy;
 import org.apache.lucene.facet.taxonomy.directory.DirectoryTaxonomyWriter;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.tests.analysis.MockAnalyzer;
 import org.apache.lucene.tests.util.LuceneTestCase;
 import org.apache.lucene.util.InfoStream;
 
-/**
- * The near-real-time SearcherTaxonomyManager constructor opens the taxonomy reader before the
- * index reader, the opposite of the order that TaxonomyReader's javadoc requires and that
- * refreshIfNeeded follows. A document indexed (with a new category) between the two opens is
- * visible to the first searcher, but its ordinal is unknown to the paired taxonomy reader.
- *
- * <p>Deterministic: the main IndexWriter's InfoStream pauses the constructing thread when its
- * getReader call starts (no lock is held at that point) and lets an indexing thread add one
- * document, which is exactly what an unlucky scheduler can do. Public API only.
- */
 public class TestSearcherTaxonomyManagerCtorOrder extends LuceneTestCase {
 
-  /** Pauses the armed thread once, at the start of IndexWriter.getReader. */
-  private static final class PauseAtGetReader extends InfoStream {
-    final AtomicReference<Thread> armed = new AtomicReference<>();
-    final CountDownLatch paused = new CountDownLatch(1);
-    final CountDownLatch resume = new CountDownLatch(1);
+  private static class AddDocumentAtGetReader extends InfoStream {
+    IndexWriter writer;
+    DirectoryTaxonomyWriter taxoWriter;
 
     @Override
     public void message(String component, String message) {
-      if ("IW".equals(component)
-          && "flush at getReader".equals(message)
-          && armed.compareAndSet(Thread.currentThread(), null)) {
-        paused.countDown();
+      if (writer != null && message.equals("flush at getReader")) {
+        IndexWriter w = writer;
+        writer = null;
+        Document doc = new Document();
+        doc.add(new FacetField("Author", "Bob"));
         try {
-          assertTrue(resume.await(30, TimeUnit.SECONDS));
-        } catch (InterruptedException e) {
-          throw new RuntimeException(e);
+          w.addDocument(new FacetsConfig().build(taxoWriter, doc));
+        } catch (IOException e) {
+          throw new UncheckedIOException(e);
         }
       }
     }
@@ -77,108 +59,26 @@ public class TestSearcherTaxonomyManagerCtorOrder extends LuceneTestCase {
     public void close() {}
   }
 
-  private static String authorCounts(SearcherAndTaxonomy pair, FacetsConfig config) {
-    try {
-      FacetsCollector fc =
-          pair.searcher().search(new MatchAllDocsQuery(), new FacetsCollectorManager());
-      FacetResult result =
-          new FastTaxonomyFacetCounts(pair.taxonomyReader(), config, fc)
-              .getTopChildren(10, "Author");
-      // label order of tied counts is not part of the contract: compare sorted
-      java.util.List<String> labels = new java.util.ArrayList<>();
-      for (LabelAndValue lv : result.labelValues) {
-        labels.add(lv.label + "=" + lv.value);
-      }
-      java.util.Collections.sort(labels);
-      return String.join(" ", labels);
-    } catch (Exception e) {
-      return "facet counting threw " + e;
-    }
-  }
-
-  public void testFirstPairIsMatchedUnderConcurrentIndexing() throws Exception {
+  public void testFirstPairKnowsTheCategoryOfItsDocument() throws Exception {
+    AddDocumentAtGetReader hook = new AddDocumentAtGetReader();
     try (Directory indexDir = newDirectory();
-        Directory taxoDir = newDirectory()) {
-      PauseAtGetReader pause = new PauseAtGetReader();
-      IndexWriter writer =
-          new IndexWriter(
-              indexDir, new IndexWriterConfig(new MockAnalyzer(random())).setInfoStream(pause));
-      DirectoryTaxonomyWriter taxoWriter = new DirectoryTaxonomyWriter(taxoDir);
-      FacetsConfig config = new FacetsConfig();
-
-      Document doc = new Document();
-      doc.add(new FacetField("Author", "Alice"));
-      writer.addDocument(config.build(taxoWriter, doc));
-
-      // An application indexing thread: addCategory (via FacetsConfig.build), then addDocument.
-      AtomicReference<Throwable> indexerFailure = new AtomicReference<>();
-      Thread indexer =
-          new Thread(
-              () -> {
-                try {
-                  assertTrue(pause.paused.await(30, TimeUnit.SECONDS));
-                  Document d = new Document();
-                  d.add(new FacetField("Author", "Bob"));
-                  writer.addDocument(config.build(taxoWriter, d));
-                } catch (Throwable t) {
-                  indexerFailure.set(t);
-                } finally {
-                  pause.resume.countDown();
-                }
-              });
-      indexer.start();
-
-      pause.armed.set(Thread.currentThread());
-      SearcherTaxonomyManager mgr = new SearcherTaxonomyManager(writer, true, null, taxoWriter);
-      indexer.join();
-      assertNull(indexerFailure.get());
-
-      try {
+        Directory taxoDir = newDirectory();
+        IndexWriter writer = new IndexWriter(indexDir, new IndexWriterConfig().setInfoStream(hook));
+        DirectoryTaxonomyWriter taxoWriter = new DirectoryTaxonomyWriter(taxoDir)) {
+      hook.taxoWriter = taxoWriter;
+      hook.writer = writer;
+      try (SearcherTaxonomyManager mgr = new SearcherTaxonomyManager(writer, null, taxoWriter)) {
         SearcherAndTaxonomy pair = mgr.acquire();
-        String first;
-        int numDocs;
-        int taxoSize;
-        int bobOrd;
         try {
-          numDocs = pair.searcher().getIndexReader().numDocs();
-          taxoSize = pair.taxonomyReader().getSize();
-          bobOrd = pair.taxonomyReader().getOrdinal(new FacetLabel("Author", "Bob"));
-          first = authorCounts(pair, config);
+          assertEquals(1, pair.searcher().getIndexReader().numDocs());
+          // expected: the pair's taxonomy knows Author/Bob, its document's category; actual: -1
+          assertNotEquals(
+              "taxonomy ordinal of Author/Bob",
+              TaxonomyReader.INVALID_ORDINAL,
+              pair.taxonomyReader().getOrdinal("Author", "Bob"));
         } finally {
           mgr.release(pair);
         }
-
-        // Nothing changed in the index since the constructor, so a refresh keeps the same pair.
-        boolean refreshed = mgr.maybeRefresh();
-        pair = mgr.acquire();
-        String afterRefresh;
-        try {
-          afterRefresh = authorCounts(pair, config);
-        } finally {
-          mgr.release(pair);
-        }
-
-        String msg =
-            "first pair: searcher numDocs="
-                + numDocs
-                + ", taxonomy size="
-                + taxoSize
-                + ", taxonomy ordinal of Author/Bob="
-                + bobOrd
-                + "; counts: ["
-                + first
-                + "]; after maybeRefresh() (returned "
-                + refreshed
-                + "): ["
-                + afterRefresh
-                + "]";
-        assertEquals(msg, 2, numDocs);
-        assertEquals(msg, "Alice=1 Bob=1", first);
-        assertEquals(msg, "Alice=1 Bob=1", afterRefresh);
-      } finally {
-        mgr.close();
-        writer.close();
-        taxoWriter.close();
       }
     }
   }

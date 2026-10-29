@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index DOT_PRODUCT or COSINE float vectors and reorder them with BpVectorReorderer, by calling computeDocMap or by merging through BPReorderingMergePolicy, for example 64 legal unit vectors where docs 0..31 alternate (1,0) and (-1,0) and docs 32..63 are (0,1); you expect a valid reordering, as for any other legal vectors. Instead the half whose vectors cancel out sums to the zero vector, computeCentroid normalizes it by 1/sqrt(0) = Infinity and the centroid becomes NaN. With assertions on, VectorUtil.dotProduct then fails with 'AssertionError: not finite: NaN from &lt;[1.0, 0.0],[NaN, NaN]&gt;' and the merge path closes the IndexWriter; with assertions off nothing throws, but the NaN biases leave that split in doc-ID order.
 
+The test shows that `BpVectorReorderer.computeDocMap` on 64 legal DOT_PRODUCT unit vectors, where docs 0..31 alternate (1, 0) and (-1, 0) and sum to zero, scales that half's centroid by 1/sqrt(0) and gets NaN.
+
 ## Expected vs actual
 
-- Expected: You expect a valid reordering, as for any other legal vectors.
-- Actual: The half whose vectors cancel out sums to the zero vector, computeCentroid normalizes it by 1/sqrt(0) = Infinity and the centroid becomes NaN.
+Expected a DocMap; actual with `-ea`: `AssertionError: not finite: NaN from <[1.0, 0.0],[NaN, NaN]>`. With `-da` the test passes, as the claim says: nothing throws, and that split is just left in doc-ID order.
 
 ## Files
 
@@ -19,8 +20,8 @@ You index DOT_PRODUCT or COSINE float vectors and reorder them with BpVectorReor
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

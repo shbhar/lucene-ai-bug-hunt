@@ -10,21 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You score a field with SweetSpotSimilarity and setLengthNormFactors(10, 20, 0.5f), index mostly 10-term fields plus some shorter ones, and run searcher.search(new TermQuery(new Term("f", "t")), 10) on a term with more than 1,000 matches, expecting the same top hits as an exhaustive search. Instead a 10-term document that contains the term twice (score 1.414) is missing and a document that contains it once (score 1.0) comes first. Below the plateau a 2-term field scores lower than a 10-term field although its norm is smaller, which breaks the rule that a greater norm never scores higher; the postings writer relies on that rule, keeps only the short field's (freq, norm) pair for the block, advertises a block maximum of 0.471, and top-k search skips the block.
 
+The test shows that with SweetSpotSimilarity.setLengthNormFactors(10, 20, 0.5f), the default IndexSearcher.search(q, 1) misses the best hit, because a shorter-than-plateau field makes the postings block's impacts underestimate its max score and TOP_SCORES skips the block.
+
 ## Expected vs actual
 
-- Expected: `search(q, 10)` returns doc 2150 (1.4142135) first, like the search that counts every hit.
-- Actual: It returns docs 0-9 (1.0 each) and misses doc 2150; `getMaxScore(2150)` is 0.47140452; 5 of 6 tests fail.
+Expected: search(q, 1) returns the exhaustive top hit, doc 1025 (score 1.41). Actual: doc 0 (score 1.0) (`expected:<1025> but was:<0>`), with -ea and -da.
 
 ## Files
 
 - [src/org/apache/lucene/misc/TestSweetSpotTopScores.java](src/org/apache/lucene/misc/TestSweetSpotTopScores.java) (JUnit test)
-- [src/SweetSpotTopScoresMain.java](src/SweetSpotTopScoresMain.java) (main() class)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -43,19 +42,9 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.misc.TestSweetSpotTopScores
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" SweetSpotTopScoresMain
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestSweetSpotSimilarityTopScores.java](TestSweetSpotSimilarityTopScores.java)
-- [TestSweetSpotPlateauPruningV1.java](TestSweetSpotPlateauPruningV1.java)
-- [SweetSpotPlainSearcherCheck.java](SweetSpotPlainSearcherCheck.java)
 
 ## Feedback
 

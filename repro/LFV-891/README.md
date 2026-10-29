@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build a CompiledAutomaton with the documented one-argument constructor, for example from new RegExp("m").toAutomaton (type SINGLE), Automata.makeEmpty (NONE), Automata.makeAnyString (ALL) or, on 10.x, the non-deterministic RegExp("(a|ab)c").toAutomaton (type NORMAL, run by NFARunAutomaton), and call floor(input, output). You expect what the javadoc promises, the largest accepted term &lt;= input or null: floor("x") = "m", null, "x", and floor("b") = "ac" (the value the determinized form of the same language returns). Instead floor throws NullPointerException ('Cannot invoke ByteRunAutomaton.step(int, int) because this.runAutomaton is null'), because it always walks runAutomaton and the constructor leaves runAutomaton null for these four shapes.
 
+The test shows that `new CompiledAutomaton(Automata.makeString("m")).floor("x")` throws a NullPointerException, because the one-argument constructor builds type SINGLE with `runAutomaton == null` and `floor` always walks `runAutomaton`.
+
 ## Expected vs actual
 
-- Expected: You expect what the javadoc promises, the largest accepted term &lt;= input or null: floor("x") = "m", null, "x", and floor("b") = "ac" (the value the determinized form of the same language returns).
-- Actual: Floor throws NullPointerException ('Cannot invoke ByteRunAutomaton.step(int, int) because this.runAutomaton is null'), because it always walks runAutomaton and the constructor leaves runAutomaton null for these four shapes.
+Expected: the largest accepted term &lt;= "x", i.e. "m". Actual on main with -ea and with -da: NullPointerException ("this.runAutomaton" is null) at CompiledAutomaton.java:411.
 
 ## Files
 
-- [src/org/apache/lucene/util/automaton/TestCompiledAutomatonFloorTypes.java](src/org/apache/lucene/util/automaton/TestCompiledAutomatonFloorTypes.java) (JUnit test)
+- [src/org/apache/lucene/util/automaton/TestCompiledAutomatonFloorSingle.java](src/org/apache/lucene/util/automaton/TestCompiledAutomatonFloorSingle.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,7 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.util.automaton.TestCompiledAutomatonFloorTypes
+     execute --select-class org.apache.lucene.util.automaton.TestCompiledAutomatonFloorSingle
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

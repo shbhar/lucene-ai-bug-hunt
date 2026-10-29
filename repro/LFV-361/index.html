@@ -22,22 +22,21 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You give the XML query parser (CoreParser.parse) a &lt;BooleanQuery&gt; whose &lt;Clause&gt; has no occurs attribute and expect an optional (SHOULD) clause, because LuceneCoreQuery.dtd declares occurs with the default &quot;should&quot;, BooleanQueryBuilder.getOccursValue has its own &#x27;attribute absent -&gt; SHOULD&#x27; branch, and 5.0.0 and earlier parsed it that way. Instead the whole parse fails with ParserException &#x27;Invalid value for &quot;occurs&quot; attribute of clause:&#x27; (nothing after the colon): org.w3c.dom.Element.getAttribute returns an empty string, never null, for an absent attribute, so the &#x27;occs == null&#x27; default branch never runs; an explicit occurs=&quot;&quot; is rejected the same way. Explicit should, must, mustNot and filter values work as before, and writing occurs=&quot;should&quot; is a workaround.</p>
+<p>The test shows that <code>CoreParser.parse</code> rejects <code>&lt;BooleanQuery fieldName=&#x27;f&#x27;&gt;&lt;Clause&gt;&lt;TermQuery&gt;a&lt;/TermQuery&gt;&lt;/Clause&gt;&lt;/BooleanQuery&gt;</code>, a <code>&lt;Clause&gt;</code> without <code>occurs</code>.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> The whole parse fails with ParserException &#x27;Invalid value for &quot;occurs&quot; attribute of clause:&#x27; (nothing after the colon): org.w3c.dom.Element.getAttribute returns an empty string, never null, for an absent attribute, so the &#x27;occs == null&#x27; default branch never runs; an explicit occurs=&quot;&quot; is rejected the same way.</li></ul>
+<p>Expected: one SHOULD clause <code>f:a</code> (the DTD default and the builder&#x27;s own null branch); actual (-ea and -da): ParserException &#x27;Invalid value for &quot;occurs&quot; attribute of clause:&#x27; (BooleanQueryBuilder.java:81), because <code>Element.getAttribute</code> returns &quot;&quot; and the <code>occs == null</code> check (:72) never matches.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/queryparser/xml/TestClauseDefaultOccurs.java"><code>src/org/apache/lucene/queryparser/xml/TestClauseDefaultOccurs.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/ClauseDefaultOccursProbe.java"><code>src/ClauseDefaultOccursProbe.java</code></a> <span class="dim">(main() class)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
+<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
-CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
 CP=$CP:$LUCENE/lucene/facet/build/libs/lucene-facet-$V.jar
 CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
 CP=$CP:$LUCENE/lucene/queryparser/build/libs/lucene-queryparser-$V.jar
@@ -50,11 +49,7 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queryparser.xml.TestClauseDefaultOccurs
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; ClauseDefaultOccursProbe</code></pre>
+     execute --select-class org.apache.lucene.queryparser.xml.TestClauseDefaultOccurs</code></pre>
 <p class="small">The module(s) facet also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

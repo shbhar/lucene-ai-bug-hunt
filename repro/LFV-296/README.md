@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You call SegmentOrder.fromSort(new Sort(new SortField("f", SortField.Type.LONG, true))).reorder(reader) to visit the segments with the highest f values first, on a reader whose leaves do not support caching, for example a ParallelCompositeReader over two DirectoryReaders with two segments each. You expect a re-ordered view, because reorder accepts any IndexReader and LeafReader#getCoreCacheHelper documents null as a legal return value ('not suited for caching') that other consumers such as LRUQueryCache and QueryBitSetProducer simply skip. Instead reorder throws NullPointerException at SegmentOrder.java:137, where the leaf comparator's memo calls reader.getCoreCacheHelper.getKey without a null check.
 
+The test shows that `SegmentOrder.fromSort(LONG sort on f, descending).reorder(reader)` on a MultiReader over two MemoryIndex readers throws NullPointerException; their leaves return null from `getCoreCacheHelper()`, which LeafReader documents as legal.
+
 ## Expected vs actual
 
-- Expected: You expect a re-ordered view, because reorder accepts any IndexReader and LeafReader#getCoreCacheHelper documents null as a legal return value ('not suited for caching') that other consumers such as LRUQueryCache and QueryBitSetProducer simply skip.
-- Actual: reorder throws NullPointerException at SegmentOrder.java:137, where the leaf comparator's memo calls reader.getCoreCacheHelper.getKey without a null check.
+Expected: a reordered view with the f=2 leaf first; actual (-ea and -da): NPE at SegmentOrder.java:137 (`reader.getCoreCacheHelper().getKey()` without a null check), reported as an AssertionError that states both.
 
 ## Files
 
@@ -19,8 +20,8 @@ You call SegmentOrder.fromSort(new Sort(new SortField("f", SortField.Type.LONG, 
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -30,6 +31,7 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
+CP=$CP:$LUCENE/lucene/memory/build/libs/lucene-memory-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 

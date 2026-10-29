@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You count facets on a sample of a large result set with RandomSamplingFacetsCollector.createManager(sampleSize, seed) on an IndexSearcher that has an executor, and expect what a one-slice search gives: about sampleSize sampled hits, taken at the rate sampleSize / totalHits that getSamplingRate reports, so that amortizeFacetCounts estimates the real counts. Instead, with two or more slices the reduce fills the reduced collector's original hits from FacetsCollectorManager.reduceMatchingDocs, which calls each slice collector's getMatchingDocs, the accessor RandomSamplingFacetsCollector overrides to return that slice's sample; the reduced collector then samples those samples again. The sample shrinks to about sampleSize^2 x numSlices / totalHits and every amortized count is low by the per-slice ratio, with no error: 2 segments of 1,024 matching docs with sampleSize 128 and one slice per segment give 16 sampled hits and an amortized count of 256 instead of 128 and 2,048, and default slicing on 2 segments of 262,144 docs with sampleSize 4,096 gives 64 sampled hits and 8,192 instead of 4,096 and 524,288.
 
+The test shows that with two slices (one per segment), RandomSamplingFacetsCollector.createManager samples the hits twice: the reduce samples again the per-slice samples it reads through the overridden getMatchingDocs().
+
 ## Expected vs actual
 
-- Expected: With several slices, the one-slice numbers: 128 sampled, 2,048 original hits and an amortized count of 2,048 (default slicing: 1,000, 20,000 and 20,000).
-- Actual: 16 sampled, 256 original hits and an amortized count of 256 (default slicing: 100, 2,000 and 2,000; 4 partitions of 65,536: 64, 4,096 and 4,096), with `getSamplingRate` unchanged.
+Expected: 128 sampled hits out of 2,048 (the reported rate 0.0625), as a one-slice search gives. Actual (-ea and -da): 16.
 
 ## Files
 
-- [src/org/apache/lucene/facet/TestSamplingManagerReduceResamples.java](src/org/apache/lucene/facet/TestSamplingManagerReduceResamples.java) (JUnit test)
+- [src/org/apache/lucene/facet/TestSamplingManagerTwoSlices.java](src/org/apache/lucene/facet/TestSamplingManagerTwoSlices.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,20 +42,12 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.facet.TestSamplingManagerReduceResamples
+     execute --select-class org.apache.lucene.facet.TestSamplingManagerTwoSlices
 ```
 
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestSamplingManagerSlices.java](TestSamplingManagerSlices.java)
-- [TestSamplingManagerReduceResamples.java](TestSamplingManagerReduceResamples.java)
-- [TestSamplingManagerMultiSlice.java](TestSamplingManagerMultiSlice.java)
-- [TestSamplingReduceV3Check.java](TestSamplingReduceV3Check.java)
-- [TestFactCheckMixedSlices.java](TestFactCheckMixedSlices.java)
 
 ## Feedback
 

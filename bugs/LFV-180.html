@@ -1,0 +1,411 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>CachingCollector never calls LeafCollector#finish on the collector it wraps or when it replays cached scores, so a FacetsCollector reports no hits</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.triage{margin:var(--s4) 0 0;padding:var(--s2) var(--s4);border-left:3px solid var(--info);background:var(--panel);
+max-width:var(--measure)}
+.triage p{margin:0;font-size:var(--step--1);line-height:1.5}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-180 &middot; cachingcollector-drops-leafcollector-finish</p><h1 id='top'>CachingCollector never calls LeafCollector#finish on the collector it wraps or when it replays cached scores, so a FacetsCollector reports no hits</h1><p class='tldr'>Since 9.8.0, a <code class='nw'>FacetsCollector</code> wrapped in <code class='nw'>CachingCollector</code>, or fed by its replay with cached scores, reports 0 hits for a query that matches 20 documents, with no error. <code class='nw'>CachingCollector</code> never passes the per-segment <code class='nw'>finish()</code> call on, and <code class='nw'>FacetsCollector</code> records a segment's hits only in <code class='nw'>finish()</code>.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 480</span><span class='sub'>Since 9.8.0 CachingCollector never forwards LeafCollector#finish, so a FacetsCollector behind it silently reports no hits, a natural combination of an experimental API that no known user builds and that -ea tests on several segments catch.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>9.8.0 (#12380, 2023)<span class='sub'>introduced 2023-06-30 &middot; about 3 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>9.8.0 to 10.5.2 and main; CachingCollectorManager (main, unreleased) too</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div class='wide'><dt>Found by</dt><dd>a bounded-exhaustive check of the collector managers, then a JUnit</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-29.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'><code class='nw'>CachingCollector</code> sits between <code class='nw'>IndexSearcher</code> and the collector it wraps, records each segment's hits, and can replay them into another collector later. It drops the per-segment <code class='nw'>finish()</code> call in two places.</p><div class='part' id='background'><div class="hd hd-3"><h3 id='background-h'>Background: how a collector sees a segment</h3><a class="hlink" href="#background" target="_self" aria-label="Link to this section" aria-describedby="background-h"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span>For each segment, <code class='nw'>IndexSearcher</code> asks the collector for a leaf collector, calls <code class='nw'>collect(doc)</code> for every match, and then calls <code class='nw'>finish()</code> once the segment is done.</span></li><li><span><code class='nw'>FacetsCollector</code> buffers a segment's matches in <code class='nw'>collect</code> and adds them to <code>getMatchingDocs()</code> only in <code class='nw'>finish()</code>.</span></li><li><span><code class='nw'>CachingCollector</code> wraps a collector: it forwards each call to it while recording the doc IDs (and, with <code class='nw'>cacheScores</code>, the scores), so <code class='nw'>replay(other)</code> can feed the same hits to another collector without rerunning the query.</span></li></ol></div><figure class='visual' id='cachingcollector-drops-leafcollector-finish-short-visual'><div class='frame'><a class='still' href='../assets/LFV-180/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-180/bug.png' alt='Summary card for CachingCollector and LeafCollector#finish: a query matching 20 documents in one segment; a FacetsCollector wrapped in CachingCollector, and one fed by the replay with cached scores, each report 0 hits instead of 20 because finish() never reaches them; the two-line fix forwards it.' width='1920' height='1080'></a></div><figcaption> Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><div class="hd hd-3"><h3 id='the-bug-step-by-step'>The bug, step by step</h3><a class="hlink" href="#the-bug-step-by-step" target="_self" aria-label="Link to this section" aria-describedby="the-bug-step-by-step"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span>Index 20 documents into one segment, all matching <code class='nw'>f:a</code>. Wrap a <code class='nw'>FacetsCollector</code> in <code>CachingCollector.create(fc, true, 1000)</code> (cache doc IDs and scores) and search with it. You expect 20 hits in <code>getMatchingDocs()</code>, as without the cache.</span></li><li><span>Instead it reports 0. <code class='nw'>IndexSearcher</code> calls <code class='nw'>finish()</code> on each segment's leaf collector, but the cache's per-segment wrapper overrides <code class='nw'>finish()</code> for its own bookkeeping and never forwards it. <code class='nw'>FacetsCollector</code> adds a segment's hits to <code>getMatchingDocs()</code> only in <code class='nw'>finish()</code>.</span></li><li><span>Replay the cache into a new <code>FacetsCollector(true)</code>: again 0 instead of 20. The replay with cached scores never calls <code class='nw'>finish()</code>; the replay of a cache without scores does, and gives 20.</span></li><li><span>No error with assertions off. With assertions on and two or more segments, <code class='nw'>FacetsCollector</code> throws an <code class='nw'>AssertionError</code> instead. <code>CachingCollectorManager</code> (main, listed for 10.6.0) behaves the same. After a cache overflow, later segments do get <code class='nw'>finish()</code>, so results turn partial instead of empty.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that put a finish-dependent collector (<code class='nw'>FacetsCollector</code>, <code>BlockGroupingCollector</code>, the <code>TermGroupFacetCollectorManager</code> collectors, the sandbox <code>HistogramCollector</code> or their own) behind <code class='nw'>CachingCollector</code> (since 9.8.0) or <code>CachingCollectorManager</code> (main), or replay a score cache into one. For them it fires on every query. Lucene's <code class='nw'>GroupingSearch</code> is not affected: its collectors do not implement <code class='nw'>finish()</code>.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>519 words</span></summary><div class='body'><p><code class='nw'>CachingCollector</code> lets an application run a query once, keep its hits and later replay them into another collector. Two calls to <code>LeafCollector#finish()</code>, the hook <code class='nw'>IndexSearcher</code> calls once a segment is collected, are missing in it, both introduced by #12380 (9.8.0), the change that added the hook: it wrote the wrapper's non-forwarding <code class='nw'>finish()</code> override and gave only the no-score replay a <code class='nw'>finish()</code> call. The per-segment wrapper <code>NoScoreCachingLeafCollector</code> extends <code>FilterLeafCollector</code>, whose <code class='nw'>finish()</code> forwards to the wrapped collector, but overrides <code class='nw'>finish()</code> for its own bookkeeping without <code class='nw'>super.finish()</code> (<code>CachingCollector.java:214-221</code> on main <code class='nw'>645d4fe14a20</code>), so the wrapped collector never gets <code class='nw'>finish()</code> while the cache is live. And the replay with cached scores, <code>ScoreCachingCollector#collect</code> (<code class='nw'>:144-155</code>), overrides the no-score replay (<code class='nw'>:98-104</code>) and leaves out its <code>collector.finish()</code> (<code class='nw'>:103</code>). The same commit moved <code class='nw'>FacetsCollector</code>'s per-segment <code class='nw'>MatchingDocs</code> into <code class='nw'>finish()</code> (<code>FacetsCollector.java:116-128</code>), so a <code class='nw'>FacetsCollector</code> behind the cache, or replayed from a score cache, reports no hits: 0 of 20 in the repro, with no error unless assertions are on and a slice has two or more segments. <code>BlockGroupingCollector</code> loses each segment's last group the same way. It is a regression from 9.7.0, affects every release from 9.8.0 to 10.5.2 and main, and the new <code>CachingCollectorManager</code> (main, listed under 10.6.0) inherits it. Forwarding the call at both sites (two lines) fixes it; the core caching tests and the grouping and facet modules pass with the fix.</p><div class="hd hd-3"><h3 id='what-the-bug-is-the-two-missing-calls-main-645d4fe14a20'>The two missing calls (main <code class='nw'>645d4fe14a20</code>)</h3><a class="hlink" href="#what-the-bug-is-the-two-missing-calls-main-645d4fe14a20" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-two-missing-calls-main-645d4fe14a20"><span aria-hidden="true">#</span></a></div><ol><li><strong>Wrapped first pass, both <code class='nw'>cacheScores</code> modes.</strong> While the cache is live, <code class='nw'>getLeafCollector</code> returns a <code>NoScoreCachingLeafCollector</code> (or its subclass <code>ScoreCachingLeafCollector</code>) around the wrapped leaf collector (<code>CachingCollector.java:80-90</code>). It extends <code>FilterLeafCollector</code>, whose <code class='nw'>finish()</code> is <code class='nw'>in.finish()</code> (<code>FilterLeafCollector.java:51-54</code>), and its <code class='nw'>collect</code> forwards every hit (<code>CachingCollector.java:188-206</code>). But it overrides <code class='nw'>finish()</code> with its own bookkeeping only:</li></ol><pre><code>   @Override
+   public void finish() {
+     if (!hasCache()) {
+       collector.invalidate();
+     } else {
+       postCollect();
+     }
+   }</code></pre><p>(<code>CachingCollector.java:214-221</code>). No <code class='nw'>super.finish()</code>, so the wrapped collector's <code class='nw'>finish()</code> never runs.</p><ol><li><strong>Replay with cached scores.</strong> <code class='nw'>replay(other)</code> calls <code>collect(collector, i)</code> per cached segment (<code class='nw'>:106-118</code>). The no-score <code class='nw'>collect</code> ends with <code>collector.finish()</code> (<code class='nw'>:103</code>); <code>ScoreCachingCollector#collect</code> overrides it to replay doc IDs with scores and ends without it (<code class='nw'>:144-155</code>).</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-what-the-user-sees'>What the user sees</h3><a class="hlink" href="#what-the-bug-is-what-the-user-sees" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-what-the-user-sees"><span aria-hidden="true">#</span></a></div><ul><li><code class='nw'>FacetsCollector</code> records <code class='nw'>MatchingDocs</code> only in <code class='nw'>finish()</code> (<code>FacetsCollector.java:116-128</code>), so <code>getMatchingDocs()</code> stays empty: 0 of 20 hits. With assertions on and a second segment in the slice, <code class='nw'>doSetNextReader</code> fails <code>assert docsBuilder == null</code> (<code class='nw'>:107</code>) first.</li><li><code>BlockGroupingCollector</code> processes a segment's last group in <code class='nw'>finish()</code> (<code>BlockGroupingCollector.java:497-502</code>), so that group is lost; with a full queue a returned group can carry another matched document's sort value (executed security probe).</li><li>When the cache overflows inside a segment, the following segments get the unwrapped leaf collector (<code>CachingCollector.java:87-88</code>), which <code class='nw'>IndexSearcher</code> finishes (<code>IndexSearcher.java:862</code>). The result is then partial instead of empty (per-leaf <code>finished=[false, true]</code>).</li><li><code>CachingCollectorManager</code> builds one <code class='nw'>CachingCollector</code> per slice (<code>CachingCollectorManager.java:82-91</code>) and inherits both halves; its javadoc example takes the first-pass result directly (<code class='nw'>:38</code>). Executed through the manager sequentially and with a thread pool; the manager with intra-segment partitions was not run.</li></ul></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>171 words</span></summary><div class='body'><ul><li><strong>Opt-in.</strong> <code class='nw'>CachingCollector</code> and <code>CachingCollectorManager</code> are <code>@lucene.experimental</code> expert APIs (<code>CachingCollector.java:38</code>, <code>CachingCollectorManager.java:48</code>). Within that usage the default settings suffice, and no scale is needed.</li><li><strong>Silent.</strong> With assertions off the facet result is simply empty (or holds only the segments after an overflow); nothing is persisted. With assertions on and 2+ segments in a slice, tests see an <code class='nw'>AssertionError</code> instead.</li><li><strong>Grouping.</strong> <code>BlockGroupingCollector</code> drops each segment's pending last group; with a full queue a group can come back with another matched document's sort value (executed probe, main and 10.5.2 only: 408 checks on main with assertions off, 433 with them on, 408 on 10.5.2; 0 with the fix).</li><li><strong>Releases.</strong> Every release from 9.8.0 to 10.5.2 and main; <code>CachingCollectorManager</code> (#16247) is listed under 10.6.0, not yet released.</li><li><strong>Likelihood: rare.</strong> Lucene's own <code class='nw'>GroupingSearch</code> and Solr's grouping cache (by code reading) put no finish-dependent collector behind the cache; saved GitHub code searches found no <code class='nw'>CachingCollector</code> use on the Elasticsearch and OpenSearch default branches. The recorded searches found no report in the three years since 9.8.0.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>The test shows that <code>CachingCollectorManager</code> (cacheScores=true) never calls <code>LeafCollector#finish</code> on the wrapped first-pass <code class='nw'>FacetsCollector</code>, nor on the <code class='nw'>FacetsCollector</code> the scored cache is replayed into, so both report no hits (1-document index, <code>MatchAllDocsQuery</code>).</p><figure class='code'><figcaption><span class='fname'>TestCachingCollectorFinish.java (JUnit test)</span><span class='meta'>53 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.facet;
+
+import java.util.List;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.CachingCollectorManager;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+public class TestCachingCollectorFinish extends LuceneTestCase {
+
+  public void testFacetsCollectorBehindScoreCache() throws Exception {
+    try (Directory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+        w.addDocument(new Document());
+      }
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        CachingCollectorManager&lt;FacetsCollector, FacetsCollector&gt; caching =
+            new CachingCollectorManager&lt;&gt;(new FacetsCollectorManager(), true, null, 1000);
+        FacetsCollector firstPass =
+            new IndexSearcher(reader).search(new MatchAllDocsQuery(), caching);
+        FacetsCollector replayed = caching.replay(new FacetsCollectorManager());
+        // Expected: first pass and scored replay each see the 1 hit; actual: [0, 0] (no finish()).
+        assertEquals(List.of(1, 1), List.of(hits(firstPass), hits(replayed)));
+      }
+    }
+  }
+
+  private static int hits(FacetsCollector fc) {
+    return fc.getMatchingDocs().stream().mapToInt(FacetsCollector.MatchingDocs::totalHits).sum();
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code># in a copy of this bug&#x27;s repro folder (repro/LFV-180/, which holds src/)
+# Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
+LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
+CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
+CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
+CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
+CP=$CP:$LUCENE/lucene/facet/build/libs/lucene-facet-$V.jar
+CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
+CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
+
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
+
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.facet.TestCachingCollectorFinish
+# the module(s) facet also need their third-party runtime jars
+</code></pre></figure><dl class='outcome'><div><dt>Expected vs actual</dt><dd>Expected hits <code>[first pass, scored replay] = [1, 1]</code>, as a plain search gives; actual: <code>[0, 0]</code> (<code>expected:&lt;[1, 1]&gt; but was:&lt;[0, 0]&gt;</code>), with <code class='nw'>-ea</code> and <code class='nw'>-da</code>.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-180/'>repro/LFV-180/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>36 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>Lucene main 645d4fe14a20 (2026-10-28)</code></td></tr><tr><th scope='row'>jdk</th><td><code class='nw'>25.0.3+9-LTS</code></td></tr></tbody></table></div><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># Lucene main 645d4fe14a20, assertions on (-ea), seed DEADBEEF: 1 test(s) run, 1 failed
+    =&gt; java.lang.AssertionError: expected:&lt;[1, 1]&gt; but was:&lt;[0, 0]&gt;
+       org.junit.Assert.fail(Assert.java:89)
+       org.junit.Assert.failNotEquals(Assert.java:835)
+       org.junit.Assert.assertEquals(Assert.java:120)
+       org.junit.Assert.assertEquals(Assert.java:146)
+       org.apache.lucene.facet.TestCachingCollectorFinish.testFacetsCollectorBehindScoreCache(TestCachingCollectorFinish.java:45)</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code>LeafCollector#finish</code> runs once a segment "has finished collecting successfully" (<code>LeafCollector.java:149-159</code>), and <code class='nw'>create()</code> calls the wrapped collector "the Collector to wrap and delegate calls to".</li><li>The replay without scores already calls <code class='nw'>finish()</code> (<code>CachingCollector.java:103</code>), added by the same commit (#12380).</li><li>Behaviour regression from 9.7.0 (supporting evidence: the hook is new in 9.8.0); delivery that varies with cache overflow cannot be a design.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>151 words</span></summary><div class='body'><ul><li><strong>Contract.</strong> <code>LeafCollector#finish</code> (<code>LeafCollector.java:149-159</code>); <code>CachingCollector.create</code>: "the Collector to wrap and delegate calls to" (<code>CachingCollector.java:301</code>, <code class='nw'>:320</code>); the leaf wrapper is a <code>FilterLeafCollector</code>, whose <code class='nw'>finish()</code> delegates (<code>FilterLeafCollector.java:51-54</code>).</li><li><strong>Same commit, inconsistent.</strong> #12380 added the forwarding <code>FilterLeafCollector#finish</code> and <code>collector.finish()</code> in the no-score replay, but not in the scored replay or the wrapper's override. Its 18 review comments and issue #12375 never discuss CachingCollector's forwarding.</li><li><strong>The test framework asserts it.</strong> <code>AssertingCollector</code> checks that the previous leaf was finished (<code>AssertingCollector.java:62</code>); wrapping one in a <code class='nw'>CachingCollector</code> trips that check (executed).</li><li><strong>Precedent.</strong> The missing or double <code class='nw'>finish()</code> in DrillSidewaysScorer was fixed as a bug (#12640, #12642, #12853); as gsmiller wrote on #12853, "We should consider it a bug for MatchingDocs to not be populated". In 2011 LUCENE-3102 (#4175) fixed "CachingCollector.replay was failing to call setScorer per-segment".</li><li><strong>Why tests missed it.</strong> <code>TestCachingCollector</code> and <code>TestCachingCollectorManager</code> only use collectors without <code class='nw'>finish()</code>.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>141 words</span></summary><div class='body'><p>Strongest case (the intended-behaviour check and the works-as-designed cross-model review): the classes are <code>@lucene.experimental</code>; the replay javadoc promises only to replay "the cached doc IDs (and scores)" (<code>CachingCollector.java:345-354</code>); the only in-tree user, <code class='nw'>GroupingSearch</code>, needs no <code class='nw'>finish()</code>; and no test caches or replays into a finish-dependent collector.</p><p>Why it fails: the no-score replay already calls <code class='nw'>finish()</code>; the first pass is documented as delegating; delivery that changes with cache overflow is no contract; and experimental status allows API changes, not silently empty results. The cross-model reviews and the intended-behaviour check rated the case weak; the independent reproduction rated it weak for the first pass and weak-to-moderate for the replay. For the scored replay the contract comes from consistency with the no-score replay and the general <code class='nw'>LeafCollector</code> contract, not from explicit replay wording; the issue should say so.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Forward finish() at both sites</strong></p><p class='short'>Forward the call at both sites (<code>CachingCollector.java</code>, +3/-1): <code class='nw'>super.finish()</code> at the start of <code>NoScoreCachingLeafCollector#finish</code>, which then declares <code class='nw'>IOException</code>, and <code>collector.finish()</code> at the end of <code>ScoreCachingCollector#collect</code>. The test passes; the core caching tests and the grouping and facet modules pass, with assertions on and off.</p><pre class='snippet' tabindex='0'><code>// ScoreCachingCollector#collect (replay with cached scores)
+       collector.collect(docs[j]);
+     }
++    collector.finish();
+   }
+// NoScoreCachingLeafCollector#finish (wrapped first pass)
+   @Override
+-  public void finish() {
++  public void finish() throws IOException {
++    super.finish();
+     if (!hasCache()) {</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>3 options · 338 words</span></summary><div class='body'><p>Two options were built and run in a scratch worktree of <code class='nw'>645d4fe14a20</code>; a documentation-only change is not recommended.</p><div class="hd hd-3"><h3 id='fix-forward-both'>Forward finish() at both sites <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-forward-both" target="_self" aria-label="Link to this section" aria-describedby="fix-forward-both"><span aria-hidden="true">#</span></a></div><p><code class='nw'>super.finish()</code> in the leaf wrapper's <code class='nw'>finish()</code> (first pass, both <code class='nw'>cacheScores</code> modes) and <code>collector.finish()</code> after the scored replay loop. The wrapped collector then gets <code class='nw'>finish()</code> exactly once per segment, whether the cache is live or overflowed (after an overflow <code class='nw'>IndexSearcher</code> finishes the unwrapped leaf collector, as before).</p><pre class='snippet' tabindex='0'><code>// ScoreCachingCollector#collect (replay with cached scores)
+       collector.collect(docs[j]);
+     }
++    collector.finish();
+   }
+// NoScoreCachingLeafCollector#finish (wrapped first pass)
+   @Override
+-  public void finish() {
++  public void finish() throws IOException {
++    super.finish();
+     if (!hasCache()) {</code></pre><p class='k'>Trade-offs</p><p>The override must declare <code class='nw'>IOException</code>, as <code>FilterLeafCollector#finish</code> already does. Forwarding first means a throwing wrapped <code class='nw'>finish()</code> skips the cache's bookkeeping for that segment; the search fails with that exception anyway, and putting <code class='nw'>super.finish()</code> after the bookkeeping works too.</p><p class='k'>What the checks validated</p><ul><li>Stock + test: fails with assertions on and off; + fix: passes with assertions on and off.</li><li>+ fix: core <code>TestCachingCollector</code>, <code>TestCachingCollectorManager</code>, <code>TestMultiCollector</code>, <code>TestMultiCollectorManager</code>, <code>TestIndexSearcher</code> (38 tests, 1 skipped), the whole grouping module (56 tests) and the whole facet module (307 tests), 0 failures, assertions on and off; <code>:lucene:core:check :lucene:facet:check -x test</code> passes.</li><li>Each line alone leaves the test failing (<code>[20, 0]</code>, <code>[0, 20]</code>). Not run: the full test suite.</li></ul><div class="hd hd-3"><h3 id='fix-finish-in-replay'>Same first-pass line, one finish() call in replay() for both replay paths <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-finish-in-replay" target="_self" aria-label="Link to this section" aria-describedby="fix-finish-in-replay"><span aria-hidden="true">#</span></a></div><p>Move <code>collector.finish()</code> from <code>NoScoreCachingCollector#collect</code> into the <code class='nw'>replay</code> loop, right after <code>collect(collector, i)</code> (+3/-2 with the first-pass line).</p><p class='k'>Trade-offs</p><p>One call site, so a future override of <code class='nw'>collect</code> cannot drop it again; a slightly larger diff that moves an existing line.</p><p class='k'>What the checks validated</p><p>The test, <code>TestCachingCollector*</code> (8 tests) and the grouping module (56 tests) pass, assertions on.</p><div class="hd hd-3"><h3 id='fix-document'>Document that finish() is not forwarded</h3><a class="hlink" href="#fix-document" target="_self" aria-label="Link to this section" aria-describedby="fix-document"><span aria-hidden="true">#</span></a></div><p>A javadoc note on <code class='nw'>CachingCollector</code> and <code>CachingCollectorManager</code>.</p><p class='k'>Trade-offs</p><p>Leaves facets behind the cache silently empty and contradicts "the Collector to wrap and delegate calls to". Not recommended.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Solr's grouping cache (by code reading) puts no finish-dependent collector behind <code class='nw'>CachingCollector</code>, and saved GitHub code searches found no use of it on the Elasticsearch and OpenSearch default branches.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A bounded-exhaustive check: a harness ran the real collector managers, including <code>CachingCollectorManager</code> with <code>FacetsCollectorManager</code> as first and second pass, on every index of 1-3 segments with 1-6 documents under every slicing, and compared each result with a plain search. The hypothesis came from reading #12380; the harness confirmed it in every slicing, then it was reduced to a JUnit.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>113 words</span></summary><div class='body'><p><strong>Method: bounded-exhaustive translation validation</strong> (semi-formal). While scoping the harness of a hunt unit (concurrent collector managers), the finder read #12380 and suspected that <code class='nw'>CachingCollector</code> loses <code>LeafCollector#finish</code>. The harness runs the real collector managers on every index of 1-3 segments x 1-6 documents (258 shapes) under every distinct <code class='nw'>IndexSearcher</code> slicing (3,750), sequentially and with a 3-thread pool, and compares each result with a plain <code>IndexSearcher.search</code>. It witnessed the bug in every slicing: the cached-first-pass failure kinds 360,000 times in the final run. The finder then reduced it by hand to a one-segment public-API JUnit on the stock main jars and a release-compatible variant; this doc's test is a one-method version of those.</p></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found: 217 queries on 2026-10-26 (GitHub issues and PRs, commits, the dev@, java-user@, issues@ and commits@ lists, the JIRA archive, downstream trackers, the web), refreshed on 2026-10-29. Not fixed upstream: main, branch_10x and branch_10_6 carry both sites, and a scan of the 413 PRs open on 2026-10-26 found none touching them.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p>Related, not reports of this bug: #12380 introduced both halves (it wrote the non-forwarding override and added <code class='nw'>finish()</code> to the no-score replay only; its reviews never discuss CachingCollector); #12375 lists CachingCollector among the collectors that could use the hook; #16247 added CachingCollectorManager (its reviews never mention <code class='nw'>finish()</code>); #12640, #12642 and #12853 fixed the same class of bug in DrillSidewaysScorer; #4175 (LUCENE-3102) is the 2011 replay precedent; #10401 (LUCENE-9361, open) proposes removing CachingCollector; open PR #15210 edits the same inner class (a textual conflict, not a fix).</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues and PRs (apache/lucene, apache/solr, Elasticsearch, OpenSearch)</th><td class='when'>2026-10-26</td><td>three scripted prior-report searches and 41 GraphQL searches: class and inner-class names, "LeafCollector#finish", FilterLeafCollector finish, "docsBuilder == null", cacheScores, replay finish; bodies and reviews of 17 apache/lucene items read</td><td>no report of either half</td></tr><tr><th scope='row'>Open apache/lucene PRs</th><td class='when'>2026-10-26</td><td>changed files of all 413 open PRs</td><td>none touches either site; #15210 edits the same inner class</td></tr><tr><th scope='row'>Mailing lists and JIRA archive</th><td class='when'>2026-10-26</td><td>27 list searches (dev@, java-user@, issues@, commits@, general@, Solr lists), 4 JIRA searches</td><td>no report; the 2023 dev@ threads on finish() semantics are context</td></tr><tr><th scope='row'>Web</th><td class='when'>2026-10-26</td><td>7 web searches</td><td>nothing relevant</td></tr><tr><th scope='row'>Refresh</th><td class='when'>2026-10-29</td><td>upstream branch heads; CachingCollector issues and PRs by update date; three keyword searches over items updated since 2026-10-25 (415 PRs open by then; the changed-file scan was not repeated)</td><td>main still 645d4fe14a20, both sites unchanged on branch_10x and branch_10_6, no new item</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced by #12380 (jpountz, merged 2023-06-30, first released in 9.8.0), which added <code>LeafCollector#finish</code>. Every release from 9.8.0 to 10.5.2 and main is affected; 9.7.0 and earlier are not. <code>CachingCollectorManager</code> (#16247, main, unreleased) inherits it.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>6 rows</span></summary><div class='body'><p>#12380 "Add a post-collection hook to LeafCollector." is <code class='nw'>8811f31b9ca6</code> on main and <code class='nw'>de07bdd88dd1</code> on branch_9x, the same patch. It added <code>LeafCollector#finish</code> and the forwarding <code>FilterLeafCollector#finish</code>, replaced CachingCollector's old <code class='nw'>postCollection()</code> bookkeeping with the non-forwarding <code>NoScoreCachingLeafCollector#finish</code>, added <code class='nw'>finish()</code> to the no-score replay only, and moved <code class='nw'>FacetsCollector</code>'s <code class='nw'>MatchingDocs</code> recording into <code class='nw'>finish()</code>. Before it, <code class='nw'>FacetsCollector</code> saved its segments without the hook, which works through the cache. #16247 (gaobinlong, merged 2026-07-08) added <code>CachingCollectorManager</code>, listed under 10.6.0.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>645d4fe14a20</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the test fails, <code>[0, 0]</code>, assertions on and off</td></tr><tr><th scope='row'>10.0.0, 10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the test fails, <code>[0, 0]</code> (release jars)</td></tr><tr><th scope='row'>9.8.0 to 10.5.2 (23 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the follow-up's history probe gets 12 of 12 checks wrong on each; a release-compatible JUnit fails on all of them</td></tr><tr><th scope='row'>#12380 commits <code class='nw'>8811f31b9ca6</code>, <code class='nw'>de07bdd88dd1</code> vs their parents</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> bisect</span></td><td>built from source: 12 of 12 wrong; the parents <code class='nw'>40ee6e583e18</code>, <code class='nw'>aa0474750584</code> get every check right</td></tr><tr><th scope='row'>8.0.0 to 9.7.0 (37 releases)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>no finish hook; every probe check right (20 of 20 hits on 9.7.0)</td></tr><tr><th scope='row'>with the fix (main <code class='nw'>645d4fe14a20</code>)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the test passes; core caching tests, grouping and facet modules pass</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>A cross-model refute review (executed), independent verifiers and an adjudication all rate it real; the cross-model reviews call the intended-behaviour case weak. This doc's test was run on main, 10.0.0 and 10.5.2, and with the fix.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>216 words</span></summary><div class='body'><p>Every check re-ran a repro on the stock jars; the reviewer from another model family (OpenAI GPT-5.6) executed its own tests in the refute lens and only read code in the works-as-designed lens.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder (a hunt unit)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Harness witnessed it in every slicing; JUnit fails 2 of 4 on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), the release variant fails on 9.8.0, 9.12.3, 10.0.0, 10.5.2 and main and passes on 9.7.0.</td></tr><tr><th scope='row'>cross-model refute review</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>Own finish-counting tests fail 2 of 4 each for CachingCollector and CachingCollectorManager; pass with the fix.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>13 of 19 own tests fail on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 19 of 19 pass with its fix; overflow probe <code>finished=[false, true]</code>; AssertingCollector probe trips.</td></tr><tr><th scope='row'>Works-as-designed review</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high (reading only)</span></td><td>Intended argument weak; a separate run re-ran the repro (2 of 4 fail).</td></tr><tr><th scope='row'>Devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>No comment, test, review or list post chose to skip <code class='nw'>finish()</code>; 9.7.0 passes, 10.5.2 fails.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high</span></td><td>Re-ran the independent reproduction's tests: 13 of 19 fail, 19 of 19 with the fix.</td></tr><tr><th scope='row'>this doc</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced, fix validated</span></td><td>One-method test on main, 10.0.0, 10.5.2; fix A and B in a scratch worktree.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-180/bug.png' download='cachingcollector-drops-leafcollector-finish-bug.png' target='_self'>PNG</a> <span class='n'>538 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,522 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-180, snapshot of 2026-10-29</p><dl class='card'><div><dt>Registry title</dt><dd>CachingCollector (and CachingCollectorManager) never calls LeafCollector#finish on the collector it wraps, nor on the second-pass collector when it replays cached scores, so finish-dependent collectors such as FacetsCollector silently report no hits</dd></div><div><dt>Area</dt><dd>search / CachingCollector first pass and score-caching replay (CachingCollector, CachingCollectorManager)</dd></div><div><dt>Priority</dt><dd>Low, rank 480: Since 9.8.0 CachingCollector never forwards LeafCollector#finish, so a FacetsCollector behind it silently reports no hits, a natural combination of an experimental API that no known user builds and that -ea tests on several segments catch.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Hits applications that combine CachingCollector (released since 9.8.0, @lucene.experimental) or CachingCollectorManager (main only, unreleased) with a collector that finalizes its per-leaf results in LeafCollector#finish, either as the wrapped first pass (both cacheScores modes) or as the target of a score-caching replay: with the default configuration and assertions off, FacetsCollector then reports no MatchingDocs at all (0 of 20 hits in the repro) and BlockGroupingCollector drops each leaf's pending last group and can return a wrong group order and sort values (executed by the security probe), while with assertions on and two or more leaves in a slice FacetsCollector throws AssertionError ('assert docsBuilder == null') instead; once the cache overflows, only the leaves after the overflowing one get finish, so results turn partial rather than empty; no scale is needed, nothing is persisted, and the no-score replay and in-tree GroupingSearch (whose collectors do not implement finish) are not affected.</dd></div><div><dt>Summary</dt><dd>You wrap a FacetsCollector, or any collector that does its per-segment work in LeafCollector#finish, in a CachingCollector or CachingCollectorManager so you can run the query once and replay the hits later, or you replay a score-caching cache into such a collector, and you expect the same facet counts as a plain IndexSearcher search. Instead the collector reports no hits: CachingCollector's per-leaf wrapper overrides finish() for its own bookkeeping and never passes the call on, and the score-caching replay never calls finish() at all, although the no-score replay does. In the repro a query that matches 20 documents gives 0 matching docs, with no error unless assertions are enabled.</dd></div><div><dt>Introduced</dt><dd>de07bdd88dd1 (branch_9x, released in 9.8.0) and 8811f31b9ca6 (main, released from 10.0.0), the same patch: #12380 'Add a post-collection hook to LeafCollector.' by jpountz, merged 2023-06-30 (closes #12375) [exec: lucene-core and lucene-facet built from source at both commits get 12 of 12 history-probe checks wrong; their parents aa0474750584 (branch_9x) and 40ee6e583e18 (main) get all checks right]; that commit added LeafCollector#finish and the forwarding FilterLeafCollector#finish, replaced CachingCollector's old postCollection() bookkeeping with a NoScoreCachingLeafCollector#finish override that does not call super.finish(), added collector.finish() to the no-score replay only (ScoreCachingCollector#collect, which overrides it, was not touched), and moved FacetsCollector's MatchingDocs recording into finish() [read: git show, git blame, git log -S/-G]; the CachingCollectorManager entry point 3afffeef5a8d (#16247, by gaobinlong, merged 2026-07-08, unreleased) inherits it [exec on main] (2023-06-30 (#12380, both commits); 2026-07-08 (#16247, CachingCollectorManager entry point, unreleased))</dd></div><div><dt>First affected version</dt><dd>9.8.0 [exec] (first main-line release: 10.0.0 [exec]); 9.7.0 is the last release without the bug [exec]: LeafCollector#finish did not exist there and FacetsCollector recorded MatchingDocs without it, which works through CachingCollector; CachingCollectorManager: unreleased (main only; listed under 10.6.0 in CHANGES.txt; 10.6.0 not on Maven Central on 2026-10-26)</dd></div><div><dt>Affected versions</dt><dd>every release from 9.8.0 to 10.5.2 (all 23: 9.8.0, 9.9.0-9.9.2, 9.10.0, 9.11.0-9.11.1, 9.12.0-9.12.3, 10.0.0-10.5.2) and main ea57360912ed. [exec] the follow-up's history probe (public-API main() program, lucene-core + lucene-facet, 20 docs as 1 and as 2 segments, 12 bug checks plus controls) gets 12 of 12 checks wrong on each of them with -ea, and also with -da on 9.8.0, 9.12.3, 10.0.0, 10.5.2 and main, and 0 of 12 with the fix sketch shadowed on main; the finder's release-compatible JUnit fails its 2 bug tests on all 23 releases and main (-da too on 9.8.0, 9.12.3, 10.5.2 and main); the CachingCollectorManager JUnit fails 2 of 4 on main with -ea and -da; the independent reproduction's tests fail on 10.5.2, 9.12.3 and 9.8.0, the cross-model review's finish-count test on 10.5.2 and 9.8.0, the intended-behaviour check's re-run on 10.5.2. Not affected [exec]: all 37 releases from 8.0.0 to 9.7.0 (probe; JUnit on 9.1.0-9.7.0) and both parent commits. [read] branch_10x and branch_10_6 (the coming 10.6.0) carry both defect sites (their CachingCollector.java differs from main's only by a 'final' modifier); releases before 8.0.0 predate the hook. FacetsCollector and a finish-counting collector were executed on every version; BlockGroupingCollector only on main and 10.5.2 and the TermGroupFacetCollectorManager collector only on main (security probe). Not executed: x86, CachingCollectorManager with intra-segment partitions; the history runs used JDK 25.</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26, follow-up prior-report record verdict new: 217 query lines, among them three scripted prior-report searches over GitHub issues/PRs, commits, downstream repositories, the dev@, java-user@, issues@ and commits@ lists, the JIRA archive and the web, 41 GraphQL searches over apache/lucene, apache/solr, elastic/elasticsearch and opensearch-project/OpenSearch, 27 mailing-list full-text searches, 4 JIRA REST searches and 7 web searches, plus the bodies and review comments of 17 apache/lucene items, the file lists of all 413 open apache/lucene PRs and the local git history; none reports either half of the bug); not fixed upstream: on main ea57360912ed, branch_10x and branch_10_6 NoScoreCachingLeafCollector#finish still does not forward and the scored replay still ends without finish(), and no open PR touches either site (#15210 edits NoScoreCachingLeafCollector#setScorer in the same inner class and would conflict textually; #16133 changes FilterLeafCollector#competitiveIterator); related, not reports of this bug: #12380 (introduced it; its 18 review comments and 13 reviews never discuss CachingCollector), #12375 (lists CachingCollector among the collectors that could use the hook), #16247 (CachingCollectorManager; its reviews never mention finish), #4175 / LUCENE-3102 (2011 precedent: replay failing to call setScorer per segment was fixed as a bug), #5436 / LUCENE-4370 (2012 warning that delegating collectors must drive a future finish hook properly, old API), #12640 / #12642 / #12853 (missing or duplicate finish in DrillSidewaysScorer, fixed; gsmiller: 'We should consider it a bug for MatchingDocs to not be populated'), #12558 (what an empty MatchingDocs list did downstream, different cause), the 2023 dev@ threads 'LeafCollector#finish idempotency?' and the Solr 9.8.0 upgrade thread (finish runs once per leaf after successful collection), #10401 / LUCENE-9361 (open proposal to remove CachingCollector); gaps: GitHub's search rate limit was saturated (GraphQL search used instead), list search scores only the first 400 characters of unopened mails, private security reports and chat channels cannot be searched</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>645d4fe14a20</code> (commit of 2026-10-28, upstream main on 2026-10-29): the repro test through gradle in a scratch worktree and through the standalone runner, assertions on and off, stock, with the fix, with each half of the fix and with the alternative fix; the 10.0.0 and 10.5.2 release jars (Maven Central, SHA-1 checked). The hunt's earlier runs (finder, verifiers, adjudication, follow-up: 116 history runs over 8.0.0-10.5.2, both #12380 commits and their parents) used main <code class='nw'>ea57360912ed</code>, where every cited source file except <code class='nw'>CHANGES.txt</code> is identical.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>a Lucene main checkout lucene/core/src/java/org/apache/lucene/search/CachingCollector.java:25-38 (class javadoc, @lucene.experimental), :98-104 (no-score replay per-leaf loop, collector.finish() at :103), :145-155 (ScoreCachingCollector#collect, the scored replay, no finish()), :214-221 (NoScoreCachingLeafCollector#finish: own bookkeeping, no super.finish()), :301 and :320 (&#x27;the Collector to wrap and delegate calls to&#x27;), :346-354 (replay javadoc)</code></li><li><code>a Lucene main checkout lucene/core/src/java/org/apache/lucene/search/FilterLeafCollector.java:30 (@lucene.experimental), :51-54 (finish forwards to in.finish()); LeafCollector.java:149-159 (finish: called once the leaf has finished collecting successfully, &#x27;e.g. to convert facet counts on leaf ordinals to facet counts on global ordinals&#x27;); IndexSearcher.java:862 (searchLeaf calls leafCollector.finish())</code></li><li><code>a Lucene main checkout lucene/core/src/java/org/apache/lucene/search/CachingCollectorManager.java:25-41 (wraps a delegate manager, replay &#x27;without re-running the query&#x27;, example &#x27;R1 firstResult = searcher.search(query, caching)&#x27;), :48 (@lucene.experimental), :118-130 (replay into per-slice caches)</code></li><li><code>a Lucene main checkout lucene/facet/src/java/org/apache/lucene/facet/FacetsCollector.java:106-114 (doSetNextReader, &#x27;assert docsBuilder == null&#x27; at :107), :116-128 (finish records MatchingDocs)</code></li><li><code>a Lucene main checkout lucene/grouping/src/java/org/apache/lucene/search/grouping/BlockGroupingCollector.java:497-502 (finish processes the leaf&#x27;s last group); TermGroupFacetCollectorManager.java:240, :346 (leaf finish); lucene/suggest/src/java/org/apache/lucene/search/suggest/document/CompletionScorer.java:70-73 and TopSuggestDocsCollector.java:190-195 (why TopSuggestDocsCollector is out of reach); lucene/test-framework/src/java/org/apache/lucene/tests/search/AssertingCollector.java:62</code></li><li><code>a Lucene main checkout lucene/CHANGES.txt:438 (Lucene 10.6.0 section), :525 (GITHUB#16247 CachingCollectorManager), :548 (GITHUB#16292 TermGroupFacetCollectorManager), :3329 (GITHUB#12380 LeafCollector#finish)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>a Lucene main checkout (645d4fe14a20) lucene/core/src/java/org/apache/lucene/search/CachingCollector.java:80-90, :98-104, :106-118, :144-155, :188-206, :214-221</code></li><li><code>a Lucene main checkout (645d4fe14a20) lucene/core/src/java/org/apache/lucene/search/FilterLeafCollector.java:51-54; IndexSearcher.java:831-863</code></li><li><code>a Lucene main checkout (645d4fe14a20) lucene/facet/src/java/org/apache/lucene/facet/FacetsCollector.java:77-79, :106-114, :116-128</code></li><li><code>a Lucene main checkout (645d4fe14a20) lucene/grouping/src/java/org/apache/lucene/search/grouping/BlockGroupingCollector.java:497-502</code></li><li><code>a Lucene main checkout (645d4fe14a20) lucene/core/src/java/org/apache/lucene/search/CachingCollectorManager.java:24-48, :82-91</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>a Lucene main checkout (645d4fe14a20) lucene/grouping/src/java/org/apache/lucene/search/grouping/GroupingSearch.java:167-171; TermGroupFacetCollectorManager.java:240, :346; lucene/CHANGES.txt:543, :566</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>a Lucene main checkout (645d4fe14a20) lucene/core/src/java/org/apache/lucene/search/LeafCollector.java:149-159; CachingCollector.java:103, :301, :320, :345-354; FilterLeafCollector.java:51-54</code></li><li><code>a Lucene main checkout (645d4fe14a20) lucene/test-framework/src/java/org/apache/lucene/tests/search/AssertingCollector.java:62</code></li></ul></dd></div><div><dt>History</dt><dd><ul class='paths'><li><code>a Lucene main checkout (645d4fe14a20) lucene/CHANGES.txt:3362 (9.8.0 section), :543 (10.6.0 section)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestCachingCollectorFinish.java (JUnit test): <a href='../repro/LFV-180/src/org/apache/lucene/facet/TestCachingCollectorFinish.java'><code>repro/LFV-180/src/org/apache/lucene/facet/TestCachingCollectorFinish.java</code></a> (53 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>It is made in parallel with this doc; every on-screen value comes from the code at <code class='nw'>645d4fe14a20</code> or the diagram's executed probe.</p><ul class='paths'><li><a href='../assets/LFV-180/bug.png'><code>assets/LFV-180/bug.png</code></a> (538 KB)</li></ul><p class='meta built'>Built 2026-10-29 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-29. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

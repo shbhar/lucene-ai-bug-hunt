@@ -22,14 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You add a batch with IndexWriter#addBatch whose doc-values-only DictionaryColumn (SORTED or SORTED_SET) has a tuple cursor that returns a batch doc-id equal to numDocs or -1, or whose SORTED_NUMERIC or SORTED_SET column returns doc-ids in decreasing order, for example (1, v) then (0, v&#x27;). You expect an IllegalArgumentException with the writer still open and no other document touched, which is what the same addBatch call does for LongColumn, BinaryColumn, vector and stored or indexed (row-pass) columns that break the same documented contract. Instead the out-of-range value is silently attached to the document indexed just before or just after the batch (it survives commit, and CheckIndex reports a clean index), and the out-of-order tuples either throw an AssertionError that closes the writer (-ea) or are accepted (-da), after which a later valid addDocument is rejected with &#x27;Out of order doc ids: last=1, next=0&#x27;, another later document reads a value from the batch, and the next commit can fail and close the writer.</p>
+<p>The test shows that IndexWriter#addBatch accepts an out-of-range tuple doc-id (2 when numDocs=2) on a doc-values-only SORTED DictionaryColumn and writes that value onto the next document added to the index.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect an IllegalArgumentException with the writer still open and no other document touched, which is what the same addBatch call does for LongColumn, BinaryColumn, vector and stored or indexed (row-pass) columns that break the same documented contract.</li><li><b>Actual:</b> The out-of-range value is silently attached to the document indexed just before or just after the batch (it survives commit, and CheckIndex reports a clean index), and the out-of-order tuples either throw an AssertionError that closes the writer (-ea) or are accepted (-da), after which a later valid addDocument is rejected with &#x27;Out of order doc ids: last=1, next=0&#x27;, another later document reads a value from the batch, and the next commit can fail and close the writer.</li></ul>
+<p>Expected: the document added after the batch has no &quot;tag&quot; value (or the batch is rejected). Actual: it reads &quot;b&quot; from the batch (<code>expected null, but was:&lt;b&gt;</code>, with -ea and -da).</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/index/TestColumnBatchDictionaryDocIdRange.java"><code>src/org/apache/lucene/index/TestColumnBatchDictionaryDocIdRange.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/org/apache/lucene/index/TestColumnBatchMultiValuedTupleOrder.java"><code>src/org/apache/lucene/index/TestColumnBatchMultiValuedTupleOrder.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/document/column/TestDictionaryColumnDocIdOutOfRange.java"><code>src/org/apache/lucene/document/column/TestDictionaryColumnDocIdOutOfRange.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -45,7 +45,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestColumnBatchMultiValuedTupleOrder \
-       --select-class org.apache.lucene.index.TestColumnBatchDictionaryDocIdRange</code></pre>
+     execute --select-class org.apache.lucene.document.column.TestDictionaryColumnDocIdOutOfRange</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

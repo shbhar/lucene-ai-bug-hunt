@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You strip '&lt;scripts&gt;hello&lt;/scripts&gt; world' (or '&lt;style-guide&gt;hello&lt;/style-guide&gt; world') with HTMLStripCharFilter and expect '\nhello\n world', which is what Lucene 10.4.0 gives and what main gives for the same shape with any other name, such as '&lt;scrapes&gt;'. Since 10.5.0 the output is empty: the start-tag rules for script and style no longer require a delimiter after the name, so the longer name is taken for a &lt;script&gt; or &lt;style&gt; tag and everything up to the next literal &lt;/script&gt; or &lt;/style&gt;, here the end of the input, is dropped (for '&lt;stylesheet&gt;hello&lt;/stylesheet&gt; world' a StandardTokenizer after the filter emits no token at all). With escapedTags={brand}, '&lt;brand&gt;Acme&lt;/brand&gt;' likewise comes out as '\nAcme&lt;/brand&gt;' instead of unchanged.
 
+The test shows that `HTMLStripCharFilter` (since 10.5.0, #15756) takes a start tag whose name only begins with `script` (`<scripts>`) for a `<script>` tag and drops everything after it up to a `</script>` that never comes.
+
 ## Expected vs actual
 
-- Expected: `<scripts>hello</scripts> world` strips to `\nhello\n world`, as the `<scrapes>` control does, and `<brand>Acme</brand>` with `escapedTags={brand}` stays unchanged.
-- Actual: It strips to an empty string, the tokenizer test gets no token, and `<brand>Acme</brand>` becomes `\nAcme</brand>`: 4 of the 5 new tests fail.
+Expected `"<scripts>hello</scripts> world"` to strip to `"\nhello\n world"` (what 10.4.0 gives, and what main gives for any other name); actual `""` (`expected:<[\nhello\n world]> but was:<[]>`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/charfilter/TestHTMLStripTagNamePrefix.java](src/org/apache/lucene/analysis/charfilter/TestHTMLStripTagNamePrefix.java) (JUnit test)
+- [src/org/apache/lucene/analysis/charfilter/TestHTMLStripScriptPrefixName.java](src/org/apache/lucene/analysis/charfilter/TestHTMLStripScriptPrefixName.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,17 +42,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.charfilter.TestHTMLStripTagNamePrefix
+     execute --select-class org.apache.lucene.analysis.charfilter.TestHTMLStripScriptPrefixName
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestHTMLStripCharFilter-prefix-methods.java](TestHTMLStripCharFilter-prefix-methods.java)
-- [test-main.diff](test-main.diff)
-- [TestHTMLStripTagNamePrefix.java](TestHTMLStripTagNamePrefix.java)
-- [PrefixProbe.java](PrefixProbe.java)
 
 ## Feedback
 

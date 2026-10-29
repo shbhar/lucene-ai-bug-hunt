@@ -22,12 +22,13 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You read the Lucene 10.3.0 release notes (&#x27;MultiIndexMergeScheduler: a production multi-tenant merge scheduler&#x27;) and the class javadoc (&#x27;can be used easily by creating a MultiIndexMergeScheduler instance for each index&#x27;), and write iwc.setMergeScheduler(new MultiIndexMergeScheduler(dir)) in your application, using the public constructor the javadoc calls &#x27;The main MultiIndexMergeScheduler constructor -- use this one&#x27;. You expect it to compile, as the same line with ConcurrentMergeScheduler does. Instead javac rejects it because the class itself is declared &#x27;class MultiIndexMergeScheduler&#x27; without &#x27;public&#x27; (MultiIndexMergeScheduler.java:36), and it has been package-private in every release that contains it, so only code inside org.apache.lucene.index (in practice Lucene&#x27;s own test) can use it.</p>
+<p>The test shows that application code (any package other than <code>org.apache.lucene.index</code>) cannot create the <code>MultiIndexMergeScheduler</code> that the 10.3.0 CHANGES entry advertises and whose javadoc says to create once per index: the class is package-private.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect it to compile, as the same line with ConcurrentMergeScheduler does.</li><li><b>Actual:</b> Javac rejects it because the class itself is declared &#x27;class MultiIndexMergeScheduler&#x27; without &#x27;public&#x27; (MultiIndexMergeScheduler.java:36), and it has been package-private in every release that contains it, so only code inside org.apache.lucene.index (in practice Lucene&#x27;s own test) can use it.</li></ul>
+<p>Expected: the test compiles and passes, as with <code>new ConcurrentMergeScheduler()</code>. Actual: javac fails with <code>MultiIndexMergeScheduler is not public in org.apache.lucene.index; cannot be accessed from outside package</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/search/TestMultiIndexMergeSchedulerVisibility.java"><code>src/org/apache/lucene/search/TestMultiIndexMergeSchedulerVisibility.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/example/TestMultiIndexMergeSchedulerFromApplication.java"><code>src/org/example/TestMultiIndexMergeSchedulerFromApplication.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -43,6 +44,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestMultiIndexMergeSchedulerVisibility</code></pre>
+     execute --select-class org.example.TestMultiIndexMergeSchedulerFromApplication</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

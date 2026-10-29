@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index a field with BlockTreeOrdsPostingsFormat (here 26 terms a00..a24 and b in one segment, default block sizes), position a TermsEnum with seekExact(0), take its termState and call seekExact(term, state) on the same enum, which the TermsEnum javadoc allows and which leaves it on a00. You expect a later seekExact(&quot;b&quot;) to return true, seekCeil(&quot;b&quot;) to return FOUND and next after a24 to return &quot;b&quot;, as they do without the extra TermState call and with every other terms dictionary. Instead seekExact(&quot;b&quot;) returns false, seekCeil(&quot;b&quot;) throws EOFException (or, in a segment whose terms file is larger than about 7 KB, returns NOT_FOUND with a made-up term) and next after a24 throws, because seekExact(ord) loads only the target block and deliberately leaves the enum unpositioned, while the TermState seek&#x27;s &#x27;already on this term&#x27; shortcut marks it positioned anyway, so the next call reuses parent frames that were never loaded.</p>
+<p>The test shows that on a <code>BlockTreeOrdsPostingsFormat</code> TermsEnum, <code>seekExact(0)</code> followed by <code>seekExact(term(), termState())</code> on the same enum leaves it unable to find another existing term (26 terms a00..a24 and b, default block sizes).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect a later seekExact(&quot;b&quot;) to return true, seekCeil(&quot;b&quot;) to return FOUND and next after a24 to return &quot;b&quot;, as they do without the extra TermState call and with every other terms dictionary.</li><li><b>Actual:</b> seekExact(&quot;b&quot;) returns false, seekCeil(&quot;b&quot;) throws EOFException (or, in a segment whose terms file is larger than about 7 KB, returns NOT_FOUND with a made-up term) and next after a24 throws, because seekExact(ord) loads only the target block and deliberately leaves the enum unpositioned, while the TermState seek&#x27;s &#x27;already on this term&#x27; shortcut marks it positioned anyway, so the next call reuses parent frames that were never loaded.</li></ul>
+<p>Expected <code>seekExact(&quot;b&quot;)</code> to return <code>true</code>; actual <code>false</code> (<code>existing term b: expected seekExact true, got false</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/codecs/blocktreeords/TestOrdsTermStateSeekAfterOrdSeek.java"><code>src/org/apache/lucene/codecs/blocktreeords/TestOrdsTermStateSeekAfterOrdSeek.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src2/org/apache/lucene/codecs/blocktreeords/TestOrdsTermStateSeekAfterOrdSeek.java"><code>src2/org/apache/lucene/codecs/blocktreeords/TestOrdsTermStateSeekAfterOrdSeek.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -39,15 +40,11 @@ CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
-javac -d classes-src -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
-javac -d classes-src2 -cp &quot;$CP&quot; $(find src2 -name &#x27;*.java&#x27;)
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.codecs.blocktreeords.TestOrdsTermStateSeekAfterOrdSeek
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src2:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.codecs.blocktreeords.TestOrdsTermStateSeekAfterOrdSeek</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

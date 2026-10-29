@@ -10,20 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You add a document whose text field has two values, 'quick the' and 'fox', to a MemoryIndex with an analyzer that removes the stop word 'the', and expect the positions of a one-document IndexWriter index: IndexWriter keeps the hole the removed trailing 'the' leaves (TokenStream.end reports it as a final position increment), so 'fox' is at position 2 and the phrase "quick fox" does not match. MemoryIndex.storeTerms never adds that final increment, puts 'fox' at position 1 and matches the phrase; the reverse also happens (the input of upstream's TestIndexWriter#testStopwordsPosIncHole matches a phrase on IndexWriter but not on MemoryIndex), and values that produce no tokens before the first token skip the position and offset gaps ([the | quick fox] with gap 100: IndexWriter quick at position 101, offsets 4-9; MemoryIndex position 0, offsets 0-5). Lucene Monitor inherits it: a stored phrase query matches the document when it is matched alone (MemoryIndex path) but not when the same document is in a two-document batch (IndexWriter path).
 
+The test shows that a field with values "quick the" and "fox" (StandardAnalyzer with stop word "the") gets the phrase "quick fox" wrong in MemoryIndex: IndexWriter keeps the hole that the removed trailing "the" leaves (the final position increment from `TokenStream.end()`, so fox is at position 2), and MemoryIndex drops it (fox at 1).
+
 ## Expected vs actual
 
-- Expected: As with `IndexWriter`: `fox` at 2 and 0 hits for `"quick fox"`; 1 hit for `"just ? test"`; `quick` at 101 (offsets 4-9); Monitor gives the same answer alone and in a batch.
-- Actual: `fox` at 1 and 1 hit for `"quick fox"`; 0 hits for `"just ? test"`; `quick` at 0 (offsets 0-5); Monitor: 1 match alone, 0 in a batch of two.
+Expected the IndexWriter result, 0 hits for `PhraseQuery("body", "quick", "fox")`. Actual: MemoryIndex gives 1 hit (`expected:<0> but was:<1>`).
 
 ## Files
 
-- [src/org/apache/lucene/index/memory/TestMemoryIndexMultiValuePositions.java](src/org/apache/lucene/index/memory/TestMemoryIndexMultiValuePositions.java) (JUnit test)
-- [src/org/apache/lucene/monitor/TestMonitorSingleVsBatchPositions.java](src/org/apache/lucene/monitor/TestMonitorSingleVsBatchPositions.java) (JUnit test)
+- [src/org/apache/lucene/index/memory/TestMemoryIndexValueEndHole.java](src/org/apache/lucene/index/memory/TestMemoryIndexValueEndHole.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -33,9 +33,7 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
-CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
 CP=$CP:$LUCENE/lucene/memory/build/libs/lucene-memory-$V.jar
-CP=$CP:$LUCENE/lucene/monitor/build/libs/lucene-monitor-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
@@ -44,18 +42,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.memory.TestMemoryIndexMultiValuePositions \
-       --select-class org.apache.lucene.monitor.TestMonitorSingleVsBatchPositions
+     execute --select-class org.apache.lucene.index.memory.TestMemoryIndexValueEndHole
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestMemoryIndexMultiValuedPositions.java](TestMemoryIndexMultiValuedPositions.java)
-- [TestMonitorSingleVsBatchPositions.java](TestMonitorSingleVsBatchPositions.java)
-- [TestMemoryIndexMultiValuePositions.java](TestMemoryIndexMultiValuePositions.java)
-- [TestMultiValueInversionEquivalence.java](TestMultiValueInversionEquivalence.java)
 
 ## Feedback
 

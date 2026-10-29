@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You open a taxonomy with new DirectoryTaxonomyWriter(dir) and the constructor throws an IOException, because a file read failed after it had already opened its internal IndexWriter (while reading the latest commit of an existing taxonomy, or while opening a reader to add the root category of a new one); once the error has passed you try again. You expect the retry to work, because a constructor that throws hands the caller nothing to close and so must release what it acquired, as IndexWriter's own constructor does. Instead the constructor has no cleanup after openIndexWriter, so the unreachable IndexWriter keeps the taxonomy's write lock and every later DirectoryTaxonomyWriter on that directory in the same JVM fails with LockObtainFailedException 'Lock held by this virtual machine'.
 
+The test shows that when the DirectoryTaxonomyWriter constructor fails reading the latest commit of an existing taxonomy (one IOException after it opened its IndexWriter), the unreachable IndexWriter keeps the write lock.
+
 ## Expected vs actual
 
-- Expected: You expect the retry to work, because a constructor that throws hands the caller nothing to close and so must release what it acquired, as IndexWriter's own constructor does.
-- Actual: The constructor has no cleanup after openIndexWriter, so the unreachable IndexWriter keeps the taxonomy's write lock and every later DirectoryTaxonomyWriter on that directory in the same JVM fails with LockObtainFailedException 'Lock held by this virtual machine'.
+Expected a new DirectoryTaxonomyWriter on the same directory to open after the failed constructor; actual: `LockObtainFailedException` (write.lock still held), with `-ea` and `-da`.
 
 ## Files
 
@@ -19,7 +20,8 @@ You open a taxonomy with new DirectoryTaxonomyWriter(dir) and the constructor th
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

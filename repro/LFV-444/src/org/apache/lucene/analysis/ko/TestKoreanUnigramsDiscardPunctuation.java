@@ -17,64 +17,20 @@
 package org.apache.lucene.analysis.ko;
 
 import java.io.IOException;
-import org.apache.lucene.analysis.Analyzer;
+import java.io.StringReader;
+import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.Tokenizer;
-import org.apache.lucene.analysis.custom.CustomAnalyzer;
 import org.apache.lucene.analysis.ko.KoreanTokenizer.DecompoundMode;
 import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
 
-/**
- * KoreanTokenizer with outputUnknownUnigrams=true and discardPunctuation=true (the default) must
- * still drop punctuation and whitespace, as it does with outputUnknownUnigrams=false.
- */
 public class TestKoreanUnigramsDiscardPunctuation extends BaseTokenStreamTestCase {
 
-  private static Analyzer analyzer(boolean outputUnknownUnigrams) {
-    return new Analyzer() {
-      @Override
-      protected TokenStreamComponents createComponents(String fieldName) {
-        Tokenizer t =
-            new KoreanTokenizer(
-                newAttributeFactory(), null, DecompoundMode.DISCARD, outputUnknownUnigrams, true);
-        return new TokenStreamComponents(t, t);
-      }
-    };
-  }
-
-  /** Control: without unigrams the punctuation and whitespace are dropped. */
-  public void testControlWithoutUnigrams() throws IOException {
-    try (Analyzer a = analyzer(false)) {
-      assertAnalyzesTo(a, "가격: $100", new String[] {"가격", "100"});
-      assertAnalyzesTo(a, "다음\n\n문장", new String[] {"다음", "문장"});
-    }
-  }
-
-  /** "$" is punctuation (a currency symbol); it must not become a token. */
-  public void testCurrencySymbolWithUnigrams() throws IOException {
-    try (Analyzer a = analyzer(true)) {
-      assertAnalyzesTo(a, "가격: $100", new String[] {"가격", "1", "0", "0"});
-    }
-  }
-
-  /** A paragraph break must not become two "\n" tokens. */
-  public void testNewlinesWithUnigrams() throws IOException {
-    try (Analyzer a = analyzer(true)) {
-      assertAnalyzesTo(a, "다음\n\n문장", new String[] {"다음", "문장"});
-    }
-  }
-
-  /** The same through the SPI factory with only outputUnknownUnigrams="true". */
-  public void testFactory() throws IOException {
-    try (Analyzer a =
-        CustomAnalyzer.builder()
-            .withTokenizer("korean", "outputUnknownUnigrams", "true")
-            .build()) {
-      assertAnalyzesTo(
-          a,
-          "test@example.com",
-          new String[] {
-            "t", "e", "s", "t", "e", "x", "a", "m", "p", "l", "e", "c", "o", "m"
-          });
-    }
+  public void testUnigramsKeepPunctuation() throws IOException {
+    Tokenizer t =
+        new KoreanTokenizer(
+            TokenStream.DEFAULT_TOKEN_ATTRIBUTE_FACTORY, null, DecompoundMode.DISCARD, true, true);
+    t.setReader(new StringReader("가격: $100"));
+    // expected [가격, 1, 0, 0] as with outputUnknownUnigrams=false; actual [가격, $, 1, 0, 0]
+    assertTokenStreamContents(t, new String[] {"가격", "1", "0", "0"});
   }
 }

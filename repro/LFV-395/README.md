@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index two documents, 'P P P' labelled true and 'N' labelled false, where P is U+F900 (a CJK compatibility ideograph) and N is U+1D400 (mathematical bold capital A), train BooleanPerceptronClassifier with the default bias (the average term frequency, here 2), and expect assignClass(P) = (true, 0.393), which is what the same corpus gives with ASCII terms or with ordinary CJK ideographs. Instead the constructor throws AssertionError 'inputs are added out of order lastInput=[f0 9d 90 80] vs input=[ef a4 80]' with -ea, and with -da assignClass(P) returns (false, 0.632) because P's weight can no longer be found in the FST. The classifier keeps its weights in a ConcurrentSkipListMap&lt;String, Double&gt;, whose String order (UTF-16 code units) puts U+1D400 (D835 DC00) before U+F900, and adds their UTF-8 encodings in that order to an FSTCompiler that requires UTF-8 byte order (EF before F0) and checks it only with an assert.
 
+The test shows that BooleanPerceptronClassifier adds its weights to the FST in Java String (UTF-16) order, not the UTF-8 byte order FSTCompiler requires, when one term starts with U+F900 and another with U+1D400 (corpus 'P P P' -&gt; true, 'N' -&gt; false).
+
 ## Expected vs actual
 
-- Expected: `assignClass("ｓａｌｅ")` = (true, 0.393) and `assignClass("🎉")` = (false, 0.393), as with the ASCII and katakana controls.
-- Actual: Assertions off: `assignClass("ｓａｌｅ")` = (false, 0.632); assertions on: `AssertionError: inputs are added out of order` from the constructor.
+Expected assignClass(U+F900) = true, as with ASCII terms; actual: with `-ea` the constructor throws `AssertionError: inputs are added out of order lastInput=[f0 9d 90 80] vs input=[ef a4 80]`, with `-da` `expected:<true> but was:<false>`.
 
 ## Files
 
@@ -21,8 +22,8 @@ You index two documents, 'P P P' labelled true and 'N' labelled false, where P i
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,21 +42,13 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.classification.TestBooleanPerceptronUtf8Order
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestBooleanPerceptronTermOrder.java](TestBooleanPerceptronTermOrder.java)
-- [TestPerceptronUtf8InputOrderV1.java](TestPerceptronUtf8InputOrderV1.java)
-- [TestPerceptronUtf8Order.java](TestPerceptronUtf8Order.java)
-- [TestBooleanPerceptronUtf8Order.java](TestBooleanPerceptronUtf8Order.java)
-- [TestPerceptronFstOrderSecurityReach.java](TestPerceptronFstOrderSecurityReach.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/classification/](../../models/classification/)
 

@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 One thread calls deleteAll on an IndexWriter while a merge is running, and another thread calls addIndexes(CodecReader...) on the same writer. You expect the overlapping call either to succeed or to fail with MergePolicy.MergeAbortedException, as deleteAll's javadoc says for concurrent addIndexes(CodecReader) callers and as most such overlaps do. Instead, when the call reaches its entry check while deleteAll is waiting for the running merge to abort, it throws AlreadyClosedException 'this IndexWriter is closed. Cannot execute addIndexes(CodecReaders...) API' although the writer is open: isOpen is true, deleteAll returns normally and the next addIndexes call on the same writer succeeds.
 
+The test shows that an `addIndexes(CodecReader...)` call that has passed its flush reaches its merges-enabled check while `deleteAll()` waits for a running merge to abort, and it throws `AlreadyClosedException` although the writer is open.
+
 ## Expected vs actual
 
-- Expected: You expect the overlapping call either to succeed or to fail with MergePolicy.MergeAbortedException, as deleteAll's javadoc says for concurrent addIndexes(CodecReader) callers and as most such overlaps do.
-- Actual: When the call reaches its entry check while deleteAll is waiting for the running merge to abort, it throws AlreadyClosedException 'this IndexWriter is closed.
+Expected, per the `deleteAll()` javadoc: success or `MergePolicy.MergeAbortedException`. Actual: `AlreadyClosedException: this IndexWriter is closed. Cannot execute addIndexes(CodecReaders...) API` with `isOpen()=true`.
 
 ## Files
 
-- [src/org/apache/lucene/index/TestAddIndexesAlreadyClosedDuringDeleteAll.java](src/org/apache/lucene/index/TestAddIndexesAlreadyClosedDuringDeleteAll.java) (JUnit test)
+- [src/org/apache/lucene/index/TestAddIndexesDuringDeleteAll.java](src/org/apache/lucene/index/TestAddIndexesDuringDeleteAll.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,7 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestAddIndexesAlreadyClosedDuringDeleteAll
+     execute --select-class org.apache.lucene.index.TestAddIndexesDuringDeleteAll
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

@@ -22,12 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>The javadoc of IndexReader#decRef says &#x27;If an exception is hit, the refCount is unchanged&#x27;, so after a final decRef that throws (for example because a reader-closed listener or the reader&#x27;s doClose throws IOException) getRefCount should still be 1. Instead the count is 0, the reader is closed, and a retried decRef throws AlreadyClosedException. The code is the intended side: LUCENE-5553 (2014) deliberately made a failing close really close the reader and still notify every listener, and removed the old put-back-on-failure code that the sentence described, so the fix is javadoc-only.</p>
+<p>The test shows (LFV-497, documentation defect) that a final <code>IndexReader.decRef()</code> whose reader-closed listener throws IOException leaves the reader closed at refCount 0, contradicting the decRef javadoc &quot;If an exception is hit, the refCount is unchanged&quot;.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> The count is 0, the reader is closed, and a retried decRef throws AlreadyClosedException.</li></ul>
+<p>Expected (per javadoc): getRefCount() == 1 after the failed decRef; actual (-ea and -da): 0 (&quot;refCount after the failed decRef expected:&lt;1&gt; but was:&lt;0&gt;&quot;); the code is intended (LUCENE-5553), the fix is javadoc-only.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/index/TestDecRefExceptionRefCount.java"><code>src/org/apache/lucene/index/TestDecRefExceptionRefCount.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

@@ -10,19 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build a 1 km circle on the default WGS84 planet model (GeoCircleFactory.makeGeoCircle, or Geo3DDocValuesField.newOutsideDistanceSort with maxRadiusMeters 1000) and ask for the outside distance of points 3 km from the centre, expecting about 2 km in every direction (0.0 inside, distance to the edge outside). Instead computeOutsideDistance returns +Infinity at 10 of 12 bearings (only due north and due south are right), and the sort gives most documents outside the circle +Infinity, the value the javadoc reserves for documents missing the field, so they sort last. The cause: Plane.arcDistance and Plane.linearDistance look for the nearest edge point on the line where the circle's plane meets a plane through the origin, the plane normal and the point; on a sphere that line passes through the circle's centre, but on an ellipsoid the circle plane's normal is tilted, the line passes about 21 km from the circle at latitude 40, and for a smaller circle it finds no edge point at all, so the minimum keeps its +Infinity start value.
 
+The test shows that on WGS84, `GeoCircle.computeOutsideDistance(ARC)` from a point 3 km due east of the centre of a 1 km circle (40N 74W) is +Infinity.
+
 ## Expected vs actual
 
-- Expected: About 2,000 m at all 12 bearings, and 12 sort values of about 20,000 m.
-- Actual: 2,000 m due north and due south, +Infinity at the other 10 bearings; sort values 20,001 m and 20,007 m, then 10 × +Infinity.
+Expected: about 2000 m (the distance to the circle edge; the fixes give 1998.03 m); actual: `expected:<2000.0> but was:<Infinity>`.
 
 ## Files
 
-- [src/org/apache/lucene/spatial3d/TestGeo3DOutsideDistanceSmallCircle.java](src/org/apache/lucene/spatial3d/TestGeo3DOutsideDistanceSmallCircle.java) (JUnit test)
+- [src/org/apache/lucene/spatial3d/geom/TestGeoCircleOutsideDistanceWGS84.java](src/org/apache/lucene/spatial3d/geom/TestGeoCircleOutsideDistanceWGS84.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,15 +42,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.spatial3d.TestGeo3DOutsideDistanceSmallCircle
+     execute --select-class org.apache.lucene.spatial3d.geom.TestGeoCircleOutsideDistanceWGS84
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestGeo3DOutsideDistanceSmallCircle.java](TestGeo3DOutsideDistanceSmallCircle.java)
-- [TestSmallCircleOutsideDistance.java](TestSmallCircleOutsideDistance.java)
 
 ## Feedback
 

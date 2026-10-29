@@ -8,20 +8,23 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You share one ByteBuffersDirectory between two threads: one renames file 'a' to a new name while the other creates a new 'a' (createOutput, write, close) or renames a temp file onto 'a', and you expect the new 'a' to stay until someone deletes or renames it, as it does on FSDirectory. Instead, now and then the new file vanishes: rename has already moved its own entry with the checked files.remove(source, file) and then runs a leftover unconditional files.remove(source), which can only remove a different entry, the one the other thread has just put under 'a'. Neither call reports an error; afterwards listAll lacks the file and openInput throws NoSuchFileException (stress tests lose between 1 and a few hundred files per 100,000 rounds on every run).
 
+The test shows that ByteBuffersDirectory.rename("a", "b") deletes a new file "a" created right after its checked files.remove(source, file), through the leftover files.remove(source); the test forces that order by swapping the private files map for one that runs createOutput("a") at that point (what another thread's createOutput does in the race).
+
 ## Expected vs actual
 
-- Expected: You expect the new 'a' to stay until someone deletes or renames it, as it does on FSDirectory.
-- Actual: Now and then the new file vanishes: rename has already moved its own entry with the checked files.remove(source, file) and then runs a leftover unconditional files.remove(source), which can only remove a different entry, the one the other thread has just put under 'a'.
+Expected listAll() = [a, b] (nobody deleted the new 'a'). Actual: [b].
 
 ## Files
 
-- [src/org/apache/lucene/store/TestByteBuffersDirectoryRenameRace.java](src/org/apache/lucene/store/TestByteBuffersDirectoryRenameRace.java) (JUnit test)
+- [src/org/apache/lucene/store/TestByteBuffersDirectoryRenameDropsNewSource.java](src/org/apache/lucene/store/TestByteBuffersDirectoryRenameDropsNewSource.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
+- This repro reads private Lucene state by reflection (setAccessible), so it depends on internals that may change.
 
 ```bash
 # Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -37,7 +40,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.store.TestByteBuffersDirectoryRenameRace
+     execute --select-class org.apache.lucene.store.TestByteBuffersDirectoryRenameDropsNewSource
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

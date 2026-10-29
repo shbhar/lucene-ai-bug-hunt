@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You parse an ordinary date range such as [1990 TO 1999] with DateRangePrefixTree.parseShape and print it, expecting a string that parseShape reads back as the same range, as NRShape#toString promises ('The result should be parseable by parseShape(String)'). Instead it prints "[1990 TO 1000]", which parseShape rejects with IllegalArgumentException 'Wrong order', and [* TO 1999-12-31] prints as "[* TO 1000]" ([1990 TO 2999] as "[1990 TO 2000]"), which parses without error to a range that ends up to 999 years early. Range normalization turns an end of 1999 into the thousand-year cell 1000-1999 (an end of 2 BC into a million-year cell), and the per-cell printer writes a cell as its FIRST year, which is right for a range start but wrong for a range end; searches are unaffected, only the text is wrong.
 
+The test shows that DateRangePrefixTree prints the range [1990 TO 1999] as "[1990 TO 1000]" (the end is printed as the first year of its thousand-year block), so `parseShape` cannot read back its own `toString()`.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: It prints "[1990 TO 1000]", which parseShape rejects with IllegalArgumentException 'Wrong order', and [* TO 1999-12-31] prints as "[* TO 1000]" ([1990 TO 2999] as "[1990 TO 2000]"), which parses without error to a range that ends up to 999 years early.
+Expected `parseShape(shape.toString())` to equal the shape (NRShape#toString: "should be parseable by parseShape"); actual: `IllegalArgumentException: Wrong order: 1990 TO 1000`, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/spatial/prefix/tree/TestDateRangeShapeToStringRoundTrip.java](src/org/apache/lucene/spatial/prefix/tree/TestDateRangeShapeToStringRoundTrip.java) (JUnit test)
+- [src/org/apache/lucene/spatial/prefix/tree/TestDateRangeBlockEndToString.java](src/org/apache/lucene/spatial/prefix/tree/TestDateRangeBlockEndToString.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -39,7 +41,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.spatial.prefix.tree.TestDateRangeShapeToStringRoundTrip
+     execute --select-class org.apache.lucene.spatial.prefix.tree.TestDateRangeBlockEndToString
 ```
 
 The module(s) spatial-extras also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.

@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You call IndexWriter#addIndexes(Directory...) with an index whose first field a_new is new to the destination and whose field z_conflict clashes with the destination&#x27;s schema; the call correctly throws IllegalArgumentException and adds no segment, as its javadoc promises (&#x27;either no indexes will have been added or they all will have been&#x27;). You expect the writer to be as it was before the call, so that a later document can use a_new with any schema, as it can after the writer is reopened and after the same failure in addIndexes(CodecReader...). Instead the writer keeps a_new registered with the incoming schema, because addIndexes(Directory...) registers each incoming FieldInfo in the writer-wide FieldNumbers map while it iterates and its failure path only deletes the copied files: getFieldNames lists a_new although no segment has it, and a document with NumericDocValuesField(&#x27;a_new&#x27;) is rejected (&#x27;cannot change field &quot;a_new&quot; from index options=DOCS to inconsistent index options=NONE&#x27;) until the writer is reopened.</p>
+<p>The test shows that a failed <code>IndexWriter#addIndexes(Directory...)</code> (schema conflict on &quot;z_conflict&quot;, nothing added) leaves the incoming field &quot;a_new&quot;, checked before the conflict, registered in the writer&#x27;s schema (default config).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect the writer to be as it was before the call, so that a later document can use a_new with any schema, as it can after the writer is reopened and after the same failure in addIndexes(CodecReader...).</li><li><b>Actual:</b> The writer keeps a_new registered with the incoming schema, because addIndexes(Directory...) registers each incoming FieldInfo in the writer-wide FieldNumbers map while it iterates and its failure path only deletes the copied files: getFieldNames lists a_new although no segment has it, and a document with NumericDocValuesField(&#x27;a_new&#x27;) is rejected (&#x27;cannot change field &quot;a_new&quot; from index options=DOCS to inconsistent index options=NONE&#x27;) until the writer is reopened.</li></ul>
+<p>Expected the first document of the destination that uses &quot;a_new&quot; (<code>NumericDocValuesField</code>) to be accepted, as after a reopen; actual: <code>IllegalArgumentException: cannot change field &quot;a_new&quot; from index options=DOCS to inconsistent index options=NONE</code>, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/index/TestFailedAddIndexesLeavesSchema.java"><code>src/org/apache/lucene/index/TestFailedAddIndexesLeavesSchema.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/index/TestFailedAddIndexesRegistersField.java"><code>src/org/apache/lucene/index/TestFailedAddIndexesRegistersField.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -44,7 +45,7 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestFailedAddIndexesLeavesSchema</code></pre>
+     execute --select-class org.apache.lucene.index.TestFailedAddIndexesRegistersField</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/indexingchain-schema/index.html">indexingchain-schema</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

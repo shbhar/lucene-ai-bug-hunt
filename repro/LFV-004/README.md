@@ -10,20 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You keep an old NRT reader open, roll back writers until a later writer reuses its segment name, and then merge that reader, for example with addIndexes(CodecReader...). You expect the merge to copy the old reader's own stored fields and vectors. Instead its merge instance opens the file again by name and copies the newer segment's data, silently (CheckIndex on the target is clean) or, for compound files of another layout, with a loud exception.
 
+The test shows that addIndexes(CodecReader) of a stale NRT reader on MMapDirectory with ADVISE_BY_CONTEXT copies the stored fields of a later segment that reused the name _0, because the merge instance re-opens the file by name.
+
 ## Expected vs actual
 
-- Expected: The target's copy has R's own document: `old` and its 4096 letters, as on 10.5.2.
-- Actual: The copy has writer 3's document, `new` and its letters; no exception, `CheckIndex` on the target is clean, and R still reads `old`.
+Expected: the copy has the reader's own id "old". Actual: org.junit.ComparisonFailure: expected:&lt;[old]&gt; but was:&lt;[new]&gt; (main 645d4fe, -ea and -da). 10.5.2 passes.
 
 ## Files
 
-- [src/org/apache/lucene/index/TestNRTReaderCleanup.java](src/org/apache/lucene/index/TestNRTReaderCleanup.java) (JUnit test)
+- [src/org/apache/lucene/index/TestMergeInstanceReopenByName.java](src/org/apache/lucene/index/TestMergeInstanceReopenByName.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
-- Recorded outcome of run 1 on main a9779ef3c193: 7 test(s) run, 4 failed (testAddIndexesCopiesTheCompoundFileOfAReaderWhoseSegmentNameIsReused, testAddIndexesCopiesTheStoredFieldsOfAReaderWhoseSegmentNameIsReused, testAddIndexesCopiesTheVectorsOfAReaderWhoseSegmentNameIsReused, testMinimalAdviseByContext).
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,15 +41,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestNRTReaderCleanup
+     execute --select-class org.apache.lucene.index.TestMergeInstanceReopenByName
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestNRTReaderCleanup.java](TestNRTReaderCleanup.java)
-- [VisualExample.java](VisualExample.java)
 
 ## Feedback
 

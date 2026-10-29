@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You search with an IndriAndQuery of SHOULD clauses, for example IndriAndQuery(SHOULD f:a), and call IndexSearcher.explain for a document that contains none of the clause terms and is not a hit. You expect a no-match explanation (isMatch false), as TermQuery and a BooleanQuery over the same clauses give. Instead IndriAndWeight.explain advances its scorer to the document, checks the result only with 'assert advanced == doc', and returns Explanation.match(scorer.score,...) for wherever the scorer landed: a match carrying the next hit's score, or, past the last match, an EOFException or IndexOutOfBoundsException from a norms read (AssertionError with -ea).
 
+The test shows that IndriAndWeight.explain does not check where its scorer landed, so a document that matches no clause of `IndriAndQuery(SHOULD f:a)` is explained as a match with the next hit's score.
+
 ## Expected vs actual
 
-- Expected: You expect a no-match explanation (isMatch false), as TermQuery and a BooleanQuery over the same clauses give.
-- Actual: IndriAndWeight.explain advances its scorer to the document, checks the result only with 'assert advanced == doc', and returns Explanation.match(scorer.score,...) for wherever the scorer landed: a match carrying the next hit's score, or, past the last match, an EOFException or IndexOutOfBoundsException from a norms read (AssertionError with -ea).
+Expected: `explain(query, 0).isMatch()` is false (doc 0 has no `f:a`). Actual with `-da`: `expected no match for doc 0, got 0.13076457 = sum of:` (doc 1's score); with `-ea`: AssertionError from `assert advanced == doc` at IndriAndWeight.java:99.
 
 ## Files
 
@@ -19,7 +20,8 @@ You search with an IndriAndQuery of SHOULD clauses, for example IndriAndQuery(SH
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -34,8 +36,8 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.search.TestIndriAndExplainNonMatch
 ```

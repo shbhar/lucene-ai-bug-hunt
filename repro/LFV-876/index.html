@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index Thai text with the default ThaiAnalyzer, which runs ThaiCharFilter before the tokenizer, and expect a word typed with two of the typos the filter documents fixing (ที่ with its tone mark typed twice and before the vowel, ท่่ี, or แมว written as two Sara E with an invisible zero-width joiner between them) to be indexed like the clean word, because the filter&#x27;s javadoc says it removes zero-width characters, deduplicates repeated tone marks, reorders a tone mark typed before an above/below vowel, joins double Sara E and recomposes decomposed Sara Am precisely so that the BreakIterator does not merge adjacent words. ThaiCharFilter makes one pass and tests its multi-character patterns against the raw next characters, while zero-width removal and deduplication act only on the character at the front of its buffer, after the earlier character has already been emitted, so the output still holds the tone-before-vowel, double Sara E or decomposed Sara Am sequence (ท่ี, เเมว, ทํา), which a second pass of the same filter would clean. The BreakIterator then merges words: ฉันทำงานท่่ีบ้าน is indexed as [ฉัน, ทำ, งาน, ที่บ้าน] instead of [ฉัน, ทำ, งาน, บ้าน], ฉันรักเ + ZWJ + เมวมาก as [ฉัน, รักแมวมาก], and a TermQuery for บ้าน or แมว finds 0 documents.</p>
+<p>The test shows that ThaiCharFilter, given a tone mark typed twice and before its above vowel (ท + Mai Ek + Mai Ek + Sara Ii), drops the duplicate but does not reorder the remaining tone mark, although its javadoc lists both rules.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> ท่่ี -&gt; ที่, เ+ZWJ+เมว -&gt; แมว, ทํ+ZWSP+า -&gt; ทำ; ThaiAnalyzer keeps [ฉัน, ทำ, งาน, บ้าน]; a TermQuery for บ้าน finds 1 document.</li><li><b>Actual:</b> ท่ี, เเมว and ทํา; [ฉัน, ทำ, งาน, ที่บ้าน]; 0 documents (6 of 7 tests fail; the control passes).</li></ul>
+<p>Expected <code>ท\u0E35\u0E48</code> (ที่); actual <code>ท\u0E48\u0E35</code> (JUnit: <code>expected:&lt;ท[ี่]&gt; but was:&lt;ท[่ี]&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/analysis/th/TestThaiCharFilterLookahead.java"><code>src/org/apache/lucene/analysis/th/TestThaiCharFilterLookahead.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/analysis/th/TestThaiCharFilterRepeatedToneBeforeVowel.java"><code>src/org/apache/lucene/analysis/th/TestThaiCharFilterRepeatedToneBeforeVowel.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -42,10 +44,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions off (production-like), seed 3390C1A5
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=3390C1A5 \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.th.TestThaiCharFilterLookahead</code></pre>
+     execute --select-class org.apache.lucene.analysis.th.TestThaiCharFilterRepeatedToneBeforeVowel</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestThaiCharFilterCombinedTypos.java"><code>TestThaiCharFilterCombinedTypos.java</code></a></li><li><a href="fix-option-A.diff"><code>fix-option-A.diff</code></a></li><li><a href="TestThaiCharFilterLookahead.java"><code>TestThaiCharFilterLookahead.java</code></a></li><li><a href="TestThaiCharFilterCombinedAnomalies.java"><code>TestThaiCharFilterCombinedAnomalies.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

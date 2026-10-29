@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You set a text on an OpenNLPSentenceBreakIterator and call next(n) to jump n sentence boundaries, expecting the n-th boundary, as java.text.BreakIterator#next(int) promises (&#x27;Returns the nth boundary from the current boundary&#x27;) and as n calls of next give. When that boundary is the end of the text, next(n) returns DONE (-1) instead: with the model-free NLPSentenceDetectorOp on &#x27;Whole text is one sentence.&#x27;, next from first returns 27 but next(1) returns -1, and on the module&#x27;s three-sentence test text (boundaries 0, 31, 59, 102) next(3) from first returns -1 instead of 102 while next(2) correctly returns 59. The iterator is still moved to the end, so only the returned value is wrong; code that steps with next(n) until DONE loses the final sentence group.</p>
+<p>The test shows that OpenNLPSentenceBreakIterator.next(1) returns DONE instead of the end of the text when that is the next boundary (no model file: new NLPSentenceDetectorOp()).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>next(1)</code> from <code>first</code> returns 27, like <code>next</code>; <code>next(3)</code> from <code>first</code> returns 102, the end of the text.</li><li><b>Actual:</b> Both return -1 (<code>DONE</code>): 2 of 3 tests fail, with assertions on and off; the controls pass, and <code>current</code> is 102 after <code>next(3)</code>.</li></ul>
+<p>Expected next(1) from first() on &quot;One sentence.&quot; to return 13, as next() does; actual -1 (DONE) on main, with -ea and -da.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/analysis/opennlp/TestSentenceBreakIteratorNextN.java"><code>src/org/apache/lucene/analysis/opennlp/TestSentenceBreakIteratorNextN.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/analysis/opennlp/TestSentenceBreakIteratorNextOne.java"><code>src/org/apache/lucene/analysis/opennlp/TestSentenceBreakIteratorNextOne.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -43,11 +45,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions on, seed 1880C0DE
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=1880C0DE \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.opennlp.TestSentenceBreakIteratorNextN</code></pre>
+     execute --select-class org.apache.lucene.analysis.opennlp.TestSentenceBreakIteratorNextOne</code></pre>
 <p class="small">The module(s) analysis-opennlp also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestOpenNLPSentenceBreakIteratorNextN.java"><code>TestOpenNLPSentenceBreakIteratorNextN.java</code></a></li><li><a href="test-additions.diff"><code>test-additions.diff</code></a></li><li><a href="fix-option-A.diff"><code>fix-option-A.diff</code></a></li><li><a href="TestSentenceBreakIteratorNextN.java"><code>TestSentenceBreakIteratorNextN.java</code></a></li><li><a href="NextNHistoryProbe.java"><code>NextNHistoryProbe.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

@@ -1,6 +1,6 @@
 # KNearestFuzzyClassifier ignores its documented 'field^boost' syntax: an entry such as 'title^10' in textFieldNames is looked up as a literal field name, so that field contributes nothing, and with a single boosted field assignClass returns null
 
-Bug LFV-801 · Area: classification / KNearestFuzzyClassifier (textFieldNames 'field^boost' syntax; NearestFuzzyQuery field lookup) · Priority: medium · Impact: silent wrong results · Novelty: new
+Bug LFV-801 · Area: classification / KNearestFuzzyClassifier (textFieldNames 'field^boost' syntax; NearestFuzzyQuery field lookup) · Priority: low · Impact: silent wrong results · Novelty: new
 
 Bug page: [../../bugs/LFV-801.html](../../bugs/LFV-801.html)
 
@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build a KNearestFuzzyClassifier with a text field written as 'text^2' or 'title^10', as its constructor javadoc says you may, and expect the same classes as with the plain field name (with that field weighted more). Instead the entry is used verbatim as the name of a field called 'text^2', which does not exist, so that field adds no terms to the query: with one text field assignClass returns null and getClasses an empty list, and with several fields the boosted one is silently ignored. The sibling KNearestNeighborClassifier, whose javadoc has the same sentence, parses the boost and classifies normally.
 
+The test shows that `KNearestFuzzyClassifier` reads a documented boosted field name such as `text^2` as a literal field name, so the field contributes nothing.
+
 ## Expected vs actual
 
-- Expected: `text^2` classifies like `text` (fruit) and `getClasses` is not empty; `{"title^10", "body"}` and `{"title^1", "body"}` give fruit, like `{"title", "body"}`.
-- Actual: `text^2` gives `null` and `getClasses` returns ``; both boosted two-field calls give vehicle, the body-only answer: 4 of 4 tests fail.
+Expected `assignClass("apple")` with `"text^2"` to give the same class as with `"text"` (`fruit`); actual: `null` (-ea and -da).
 
 ## Files
 
-- [src/org/apache/lucene/classification/TestKNearestFuzzyClassifierFieldBoost.java](src/org/apache/lucene/classification/TestKNearestFuzzyClassifierFieldBoost.java) (JUnit test)
+- [src/org/apache/lucene/classification/TestKNearestFuzzyClassifierBoostedField.java](src/org/apache/lucene/classification/TestKNearestFuzzyClassifierBoostedField.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -43,17 +45,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.classification.TestKNearestFuzzyClassifierFieldBoost
+     execute --select-class org.apache.lucene.classification.TestKNearestFuzzyClassifierBoostedField
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestKNearestFuzzyClassifierBoostedFieldNames.java](TestKNearestFuzzyClassifierBoostedFieldNames.java)
-- [TestKNearestFuzzyBoostProbe.java](TestKNearestFuzzyBoostProbe.java)
-- [TestKNearestFuzzyBoostedFieldV1.java](TestKNearestFuzzyBoostedFieldV1.java)
-- [TestKNearestFuzzyClassifierFieldBoost.java](TestKNearestFuzzyClassifierFieldBoost.java)
 
 ## Feedback
 

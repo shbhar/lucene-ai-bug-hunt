@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You tokenize 'say "hello world' with SimplePatternTokenizer and the pattern "[^"]*"|[a-z]+ (a quoted string or a word) and expect [say, hello, world], because the javadoc says the longest match at each start point is the next token and the class otherwise skips one character and tries again (PatternTokenizer with the same regex gives these three tokens). Instead you get only [say]: the lookahead from the unclosed quote runs to the end of the input without ever matching, and that end-of-input branch ends tokenization instead of retrying at the next character, so 'hello' and 'world' are never indexed (minimal case: abc|b on 'ab' gives instead of [b]). SimplePatternSplitTokenizer has the same branch and emits the whole rest as one token: separator &lt;[^&gt;]*&gt;|+ on 'x &lt; y' gives [x, '&lt; y'] instead of String.split's [x, &lt;, y]; nothing throws.
 
+The test shows that SimplePatternTokenizer stops scanning when a lookahead that never matched reaches the end of the input, instead of retrying at the next character as it does when the lookahead dies earlier.
+
 ## Expected vs actual
 
-- Expected: `abc|b` on `ab` gives `b`; `say "hello world` gives `say`, `hello`, `world`; `don't stop me` gives `don`, `t`, `stop`, `me`; split `x < y` gives `x`, `<`, `y`.
-- Actual: No token for `ab` (`token 0 does not exist`); only `say` and only `don` (`token 1 does not exist`); split gives `x`, `< y` (`term 1 expected:<<> but was:<<[ y]>`).
+Expected pattern `abc|b` on `ab` to give `[b]` (as on `abx`); actual `[]` (`token 0 does not exist`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/pattern/TestSimplePatternEofLookahead.java](src/org/apache/lucene/analysis/pattern/TestSimplePatternEofLookahead.java) (JUnit test)
+- [src/org/apache/lucene/analysis/pattern/TestSimplePatternLookaheadAtEnd.java](src/org/apache/lucene/analysis/pattern/TestSimplePatternLookaheadAtEnd.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,15 +42,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.pattern.TestSimplePatternEofLookahead
+     execute --select-class org.apache.lucene.analysis.pattern.TestSimplePatternLookaheadAtEnd
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestSimplePatternLookaheadAtEnd.java](TestSimplePatternLookaheadAtEnd.java)
-- [test-upstream.diff](test-upstream.diff)
 
 ## Feedback
 

@@ -1,6 +1,6 @@
 # DirectIOIndexInput.fill moves filePos to the next block, and clears the buffer, before its EOF check and before the channel read succeeds, so after a read that threw, a legal seek or the next read on the same input returns bytes of another file position or a spurious EOFException (since 9.0.0)
 
-Bug LFV-504 · Area: misc / store: DirectIODirectory (DirectIOIndexInput.fill and seek) · Priority: medium · Impact: silent wrong results · Novelty: new
+Bug LFV-504 · Area: misc / store: DirectIODirectory (DirectIOIndexInput.fill and seek) · Priority: low · Impact: silent wrong results · Novelty: new
 
 Bug page: [../../bugs/LFV-504.html](../../bugs/LFV-504.html)
 
@@ -10,19 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You read a file through the misc DirectIODirectory, one read on an input throws (an EOFException because it asked for more bytes than are left, or an IOException from a transient storage error), and you then seek back to a legal position, or simply read again, on the same input. You expect the bytes at the file pointer, or another exception (after the same read-past-EOF sequences MMapDirectory returns the right bytes). Instead fill had already moved its window position (filePos) to the next block, and on the read path cleared the buffer, before it threw, so the next reads silently return bytes of a different position of the same file (or throw EOFException at a legal position) while getFilePointer reports the requested one.
 
+The test shows that after a readBytes past EOF on a DirectIODirectory input, a legal seek lands in a stale buffer (fill() moved filePos before its EOF check threw), so the next read silently returns a byte of another file position.
+
 ## Expected vs actual
 
-- Expected: After the read past EOF, `seek(262148)` then `readInt` returns 262,148, as `FSDirectory.open` (MMapDirectory) does.
-- Actual: `readInt` returns 4, the int stored one 262,144-byte window earlier; all 5 tests fail, with assertions on and off.
+Expected: `readByte()` after `seek(block + 1)` returns the byte at position block + 1 (81 for 4096-byte blocks). Actual: `expected:<81> but was:<1>`, the byte at position 1.
 
 ## Files
 
-- [src/org/apache/lucene/misc/store/TestDirectIOStateAfterEOF.java](src/org/apache/lucene/misc/store/TestDirectIOStateAfterEOF.java) (JUnit test)
-- [src/org/apache/lucene/misc/store/TestDirectIOReadAfterFailedFill.java](src/org/apache/lucene/misc/store/TestDirectIOReadAfterFailedFill.java) (JUnit test)
+- [src/org/apache/lucene/misc/store/TestDirectIOSeekAfterReadPastEOF.java](src/org/apache/lucene/misc/store/TestDirectIOSeekAfterReadPastEOF.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,22 +42,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.misc.store.TestDirectIOStateAfterEOF
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.misc.store.TestDirectIOReadAfterFailedFill
+     execute --select-class org.apache.lucene.misc.store.TestDirectIOSeekAfterReadPastEOF
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestDirectIOStaleWindowAfterFailedRead.java](TestDirectIOStaleWindowAfterFailedRead.java)
-- [TestDirectIOFailedReadProbe.java](TestDirectIOFailedReadProbe.java)
-- [TestDirectIOFailedSeekProbe.java](TestDirectIOFailedSeekProbe.java)
-- [TestDirectIOFillHistory.java](TestDirectIOFillHistory.java)
 
 ## Feedback
 

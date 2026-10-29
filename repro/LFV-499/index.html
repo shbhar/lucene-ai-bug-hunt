@@ -18,18 +18,19 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>A Monitor.register call that IndexWriter rejects is not rolled back: the earlier versions of the queries in the call are deleted at the next commit or close, and until then getQuery and match disagree</h1>
-<p class="facts small"><span>Bug LFV-499</span><span>Area: monitor / query index updates (WritableQueryIndex.commitWithoutNotify failure atomicity, reached through both Monitor.register overloads)</span><span>Priority: medium</span><span>Impact: data corruption</span><span>Novelty: new</span></p>
+<p class="facts small"><span>Bug LFV-499</span><span>Area: monitor / query index updates (WritableQueryIndex.commitWithoutNotify failure atomicity, reached through both Monitor.register overloads)</span><span>Priority: low</span><span>Impact: data corruption</span><span>Novelty: new</span></p>
 <p><a href="../../bugs/LFV-499.html">Bug page for LFV-499</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You update stored queries with Monitor.register and IndexWriter rejects one of the new query documents, for example register(q2 = f:y) where q2 carries a 40,000-byte value in a TermFilteredPresearcher filter field, so register throws IllegalArgumentException. You expect the queries of the call to keep their old versions, as they do when the Monitor rejects a query before writing and as IndexWriter.updateDocuments would guarantee for each id. Instead the Monitor has already queued the deletion of the old version of every query id in the call and switched its in-memory cache to the new versions: right away q2 matches nothing although getQuery(&quot;q2&quot;) still returns f:b, and the next unrelated register or deleteById, or close of a persistent Monitor, deletes the old versions for good (register(q2 rejected, q1 valid), then close and reopen, leaves neither q1 nor q2).</p>
+<p>The test shows that a <code>Monitor.register</code> call that IndexWriter rejects (q2 carries a 40,000-byte filter-field value) still deletes another query of the same call, q1, once the on-disk Monitor is closed.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> q2 keeps matching &quot;b&quot;; q2 survives the next register and close; q1 survives a call that threw on another query.</li><li><b>Actual:</b> q2 matches nothing while getQuery says b; the next register leaves [q3]; after close and reopen ; q1 deleted with the default configuration.</li></ul>
+<p>Expected q1 to still be registered after close and reopen (<code>[q1]</code>); actual: no queries (<code>expected:&lt;[q1]&gt; but was:&lt;[]&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/monitor/TestFailedRegisterIsNotRolledBack.java"><code>src/org/apache/lucene/monitor/TestFailedRegisterIsNotRolledBack.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/org/apache/lucene/monitor/TestFailedRegisterOnIOError.java"><code>src/org/apache/lucene/monitor/TestFailedRegisterOnIOError.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/monitor/TestFailedRegisterDeletesOtherQuery.java"><code>src/org/apache/lucene/monitor/TestFailedRegisterDeletesOtherQuery.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -48,9 +49,7 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.monitor.TestFailedRegisterIsNotRolledBack \
-       --select-class org.apache.lucene.monitor.TestFailedRegisterOnIOError</code></pre>
+     execute --select-class org.apache.lucene.monitor.TestFailedRegisterDeletesOtherQuery</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestRejectedRegisterKeepsQueries.java"><code>TestRejectedRegisterKeepsQueries.java</code></a></li><li><a href="option-a-with-test.diff"><code>option-a-with-test.diff</code></a></li><li><a href="TestFailedRegisterOnIOError.java"><code>TestFailedRegisterOnIOError.java</code></a></li><li><a href="TestFilterChangeBeforeRejected.java"><code>TestFilterChangeBeforeRejected.java</code></a></li></ul>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/monitor-lifecycle-persistence-mbt/index.html">monitor-lifecycle-persistence-mbt</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

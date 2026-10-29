@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You call PersistentSnapshotDeletionPolicy.snapshot (or release), fsync of the new save file snapshots_N fails once, the call throws and the policy undoes the change in memory; you expect the next call, with no fault, to work. Instead persist has left the complete snapshots_N in the directory (its delete-on-failure block covers only creating and writing the file, not the sync) and has not advanced its generation, so the next snapshot or release writes the same name and fails with FileAlreadyExistsException; that call's cleanup deletes the leftover, and the call after it works. Secondary, contract open: a policy re-opened before that next call adopts the leftover, so a snapshot that threw is in effect and a release that threw has taken effect.
 
+The test shows that after one failed fsync of its save file, the next fault-free PersistentSnapshotDeletionPolicy.snapshot() fails on the save file that persist() left behind.
+
 ## Expected vs actual
 
-- Expected: You expect the next call, with no fault, to work.
-- Actual: persist has left the complete snapshots_N in the directory (its delete-on-failure block covers only creating and writing the file, not the sync) and has not advanced its generation, so the next snapshot or release writes the same name and fails with FileAlreadyExistsException; that call's cleanup deletes the leftover, and the call after it works.
+Expected: the second snapshot() succeeds (the first one was undone in memory); actual: FileAlreadyExistsException: File already exists: snapshots_0.
 
 ## Files
 
 - [src/org/apache/lucene/index/TestPersistentSnapshotSyncFailure.java](src/org/apache/lucene/index/TestPersistentSnapshotSyncFailure.java) (JUnit test)
-- [src2/org/apache/lucene/index/TestPersistentSnapshotSyncFailure.java](src2/org/apache/lucene/index/TestPersistentSnapshotSyncFailure.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -33,15 +34,11 @@ CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
-javac -d classes-src -cp "$CP" $(find src -name '*.java')
-javac -d classes-src2 -cp "$CP" $(find src2 -name '*.java')
+javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes-src:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestPersistentSnapshotSyncFailure
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes-src2:$CP" org.junit.platform.console.ConsoleLauncher \
+     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.index.TestPersistentSnapshotSyncFailure
 ```
 

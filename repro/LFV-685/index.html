@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index text with IrishAnalyzer (or put IrishLowerCaseFilter in a chain), whose filter is documented to &#x27;normalise token text to lower case&#x27;, and expect a capitalised word to match its lower-case form, as it does with LowerCaseFilter. For letters outside the BMP it does not: the Adlam capital U+1E900 stays U+1E900 instead of becoming U+1E922 (the Deseret capital U+10400 likewise stays, also after n-eclipsis), so a document holding the Adlam word U+1E900 U+1E923 is not found by U+1E922 U+1E923 (0 hits instead of 1). The loop at IrishLowerCaseFilter.java:55 passes one UTF-16 char to Character.toLowerCase, which returns a surrogate unit unchanged; BMP letters in the same token are lower-cased and nothing is thrown.</p>
+<p>The test shows that IrishAnalyzer (through IrishLowerCaseFilter, which lower-cases one UTF-16 char at a time) does not lower-case an upper-case letter outside the BMP.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The filter maps U+1E900 to U+1E922 (and the other capitals to their small letters), and the <code>IrishAnalyzer</code> search for U+1E922 U+1E923 finds the document: 1 hit.</li><li><b>Actual:</b> 3 of 4 tests fail: all five filter cases keep their capital (U+1E900 U+1E923 stays U+1E900 U+1E923), <code>normalize</code> keeps U+1E900, and the lower-case search finds 0 hits; the capitalised spelling finds 1.</li></ul>
+<p>Expected the Deseret capital U+10400 to become U+10428; actual: it stays U+10400 (<code>expected:&lt;U+104[28]&gt; but was:&lt;U+104[00]&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/analysis/ga/TestIrishLowerCaseSupplementary.java"><code>src/org/apache/lucene/analysis/ga/TestIrishLowerCaseSupplementary.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -47,5 +49,4 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.analysis.ga.TestIrishLowerCaseSupplementary</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestIrishLowerCaseFilterSupplementary.java"><code>TestIrishLowerCaseFilterSupplementary.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

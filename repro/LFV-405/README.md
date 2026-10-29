@@ -1,6 +1,6 @@
 # MatchingFacetSetsCounts decodes the facet-set binary doc value from position 0 of BytesRef.bytes instead of BytesRef.offset, so a value that a reader returns as a slice of a larger array is counted from the wrong bytes (silently wrong facet-set counts, or NegativeArraySizeException / ArrayIndexOutOfBoundsException)
 
-Bug LFV-405 · Area: facet / facet sets (MatchingFacetSetsCounts.count, a BinaryDocValues consumer; reached through MemoryIndex, custom readers and the backward-codecs Lucene80 BEST_COMPRESSION doc-values producer) · Priority: medium · Impact: silent wrong results · Novelty: new
+Bug LFV-405 · Area: facet / facet sets (MatchingFacetSetsCounts.count, a BinaryDocValues consumer; reached through MemoryIndex, custom readers and the backward-codecs Lucene80 BEST_COMPRESSION doc-values producer) · Priority: low · Impact: silent wrong results · Novelty: new
 
 Bug page: [../../bugs/LFV-405.html](../../bugs/LFV-405.html)
 
@@ -10,19 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You count facet sets with MatchingFacetSetsCounts over a reader that hands back a document's facet-set binary doc value as a BytesRef slice of a larger array (offset != 0), for example a MemoryIndex holding a value that was packed into a shared buffer, and expect the same counts as for a compact copy of the same bytes. Instead count reads the dimension count from bytes[0] and the dimension values from bytes[4..length) of the backing array, ignoring the offset, so the document is counted under whatever bytes start that array: a document whose set is (3,4), stored right after an encoding of (1,2), is counted as (1,2)=1 and (3,4)=0, with no error. When the leading bytes do not decode to a sane dimension count, the MatchingFacetSetsCounts constructor throws NegativeArraySizeException or ArrayIndexOutOfBoundsException instead, while the same value indexed through IndexWriter with the default codec is counted correctly.
 
+The test shows that MatchingFacetSetsCounts ignores `BytesRef.offset` of a facet-set binary doc value: a MemoryIndex document whose value is the (3,4) encoding as a slice after an encoding of (1,2) is counted as (1,2).
+
 ## Expected vs actual
 
-- Expected: (3,4)=1 (1,2)=0 for the sliced value, as for its compact copy.
-- Actual: (3,4)=0 (1,2)=1 with no error; the Lucene80 and one-array readers give (1,2)=2 (3,4)=0 instead of 1 and 1.
+Expected counts `(3,4)=1, (1,2)=0`; actual `(3,4)=0, (1,2)=1` (`expected:<[(3,4) (1), (1,2) (0)]> but was:<[(3,4) (0), (1,2) (1)]>`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/facet/facetset/TestMatchingFacetSetsCountsSliceValue.java](src/org/apache/lucene/facet/facetset/TestMatchingFacetSetsCountsSliceValue.java) (JUnit test)
+- [src/org/apache/lucene/facet/facetset/TestMatchingFacetSetsCountsSlicedValue.java](src/org/apache/lucene/facet/facetset/TestMatchingFacetSetsCountsSlicedValue.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -42,20 +43,12 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.facet.facetset.TestMatchingFacetSetsCountsSliceValue
+     execute --select-class org.apache.lucene.facet.facetset.TestMatchingFacetSetsCountsSlicedValue
 ```
 
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestMatchingFacetSetsCountsMemoryIndex.java](TestMatchingFacetSetsCountsMemoryIndex.java)
-- [TestMatchingFacetSetsCountsSlicedValues.java](TestMatchingFacetSetsCountsSlicedValues.java)
-- [TestMatchingFacetSetsCountsSliceValue.java](TestMatchingFacetSetsCountsSliceValue.java)
-- [TestFacetSetCountsHonourBytesRefOffset.java](TestFacetSetCountsHonourBytesRefOffset.java)
-- [TestFacetSetsSliceVariantsV3.java](TestFacetSetsSliceVariantsV3.java)
 
 ## Feedback
 

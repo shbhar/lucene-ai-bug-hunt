@@ -2,25 +2,28 @@
 
 Bug LFV-054 · Area: search / query cache · Priority: low · Impact: minor · Novelty: new
 
+Bug page: [../../bugs/LFV-054.html](../../bugs/LFV-054.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
 On main, you build an LRUQueryCache with the configuration from its class javadoc (maxSize 256, 50 MB) and run one filter over more than 16 segments. You expect the filter to be cached. Instead maxSize and RAM are hard-split across 16 partitions routed by query, so it gets a 0% hit rate forever; maxSize &lt; 16 caches nothing, and partition counts that are 0, negative or not a power of two crash or waste capacity.
 
+The test shows that on main an `LRUQueryCache(256, 64 MB, ctx -> true, +inf)` never hits for one filter over 17 one-document segments: 16 partitions of 16 entries, and all of one query's entries go to the same partition.
+
 ## Expected vs actual
 
-- Expected: You expect the filter to be cached.
-- Actual: maxSize and RAM are hard-split across 16 partitions routed by query, so it gets a 0% hit rate forever; maxSize &lt; 16 caches nothing, and partition counts that are 0, negative or not a power of two crash or waste capacity.
+Expected 17 cache hits when the same TermQuery is searched a second time (17 entries fit in maxSize 256). Actual: 0 hits; each insert evicts the entry that the next segment's lookup needs.
 
 ## Files
 
-- [src/VerifyLRUJavadocConfig.java](src/VerifyLRUJavadocConfig.java) (JUnit test)
+- [src/org/apache/lucene/search/TestLRUQueryCacheManySegments.java](src/org/apache/lucene/search/TestLRUQueryCacheManySegments.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -36,9 +39,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx4g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class VerifyLRUJavadocConfig
+     execute --select-class org.apache.lucene.search.TestLRUQueryCacheManySegments
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

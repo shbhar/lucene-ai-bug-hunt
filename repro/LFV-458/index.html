@@ -22,14 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You merge an HNSW vector field in which one segment&#x27;s graph has more than 805,306,368 vectors (Lucene writes such a segment without error, for example by merging smaller graphs) and expect the merge to reuse that graph as it does at any smaller size, because no HNSW vector-count limit is documented or enforced below IndexWriter.MAX_DOCS. Instead both mergers presize an IntIntHashMap to the graph size to map old to new ordinals, and that map&#x27;s fixed 0.75 load factor and 2^30-slot table cap make its constructor throw BufferAllocationException (&#x27;Maximum array size exceeded for this load factor&#x27;) before any other work. The merge fails again on every retry, so such a segment can never be merged with graph reuse; by code reading the IndexWriter is also closed as a tragic event.</p>
+<p>The test shows that on main an HNSW merge (IncrementalHnswGraphMerger, used by both mergers) that reuses a graph of 805,306,369 vectors fails while mapping ordinals, because it presizes an <code>IntIntHashMap</code> to the graph size. The graph and vectors are stubs, so nothing large is allocated.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> Both mergers presize an IntIntHashMap to the graph size to map old to new ordinals, and that map&#x27;s fixed 0.75 load factor and 2^30-slot table cap make its constructor throw BufferAllocationException (&#x27;Maximum array size exceeded for this load factor&#x27;) before any other work.</li></ul>
+<p>Expected: the merge maps the ordinals and starts copying the graph (the stub then throws the test&#x27;s <code>GraphCopyStarted</code>). Actual: <code>BufferAllocationException: Maximum array size exceeded for this load factor (elements: 805306369, load factor: 0.750000)</code> from <code>getNewOrdMapping</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/util/hnsw/TestHnswMergeOrdMapCapacity.java"><code>src/org/apache/lucene/util/hnsw/TestHnswMergeOrdMapCapacity.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src2/org/apache/lucene/util/hnsw/TestHnswMergeOrdMapCapacity.java"><code>src2/org/apache/lucene/util/hnsw/TestHnswMergeOrdMapCapacity.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/util/hnsw/TestHnswMergeLargeGraphOrdMapping.java"><code>src/org/apache/lucene/util/hnsw/TestHnswMergeLargeGraphOrdMapping.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -40,16 +40,12 @@ CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
-javac -d classes-src -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
-javac -d classes-src2 -cp &quot;$CP&quot; $(find src2 -name &#x27;*.java&#x27;)
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.util.hnsw.TestHnswMergeOrdMapCapacity
-java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src2:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.util.hnsw.TestHnswMergeOrdMapCapacity</code></pre>
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.util.hnsw.TestHnswMergeLargeGraphOrdMapping</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/hnsw-parallel-repair-tla/index.html">hnsw-parallel-repair-tla</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

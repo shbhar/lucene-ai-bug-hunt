@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You run an ordinary top-k search such as searcher.search(query, 10) with a BayesianScoreQuery, and more than 1,000 documents match. You expect the same top hits as an exhaustive search, because the probability is a monotone function of the inner score and pruning may skip only documents that score below the current k-th hit. Instead, when a later document&#x27;s probability is exactly one float step above the k-th hit&#x27;s (most often when probabilities are close to 1), BayesianScoreQuery turns that probability back into an inner-score threshold with a closed-form inverse that lands in the middle of the range of inner scores that all round to that probability, so the inner query skips the document and the search silently returns the weaker hit.</p>
+<p>The test shows that <code>BayesianScoreQuery</code> turns the minimum competitive probability into an inner-score threshold that skips a still-competitive hit, so the default <code>search(q, 1)</code> returns the wrong top hit after 1,000 matches.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect the same top hits as an exhaustive search, because the probability is a monotone function of the inner score and pruning may skip only documents that score below the current k-th hit.</li><li><b>Actual:</b> When a later document&#x27;s probability is exactly one float step above the k-th hit&#x27;s (most often when probabilities are close to 1), BayesianScoreQuery turns that probability back into an inner-score threshold with a closed-form inverse that lands in the middle of the range of inner scores that all round to that probability, so the inner query skips the document and the search silently returns the weaker hit.</li></ul>
+<p>Expected doc 1001 (inner 5.0, p=0.9933072); actual doc 1000 (inner 4.999999, p=0.9933071): <code>score=0.9933071 expected:&lt;1001&gt; but was:&lt;1000&gt;</code>, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/search/TestBayesianMinCompetitiveTies.java"><code>src/org/apache/lucene/search/TestBayesianMinCompetitiveTies.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

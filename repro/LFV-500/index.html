@@ -22,14 +22,15 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You call removeAllAttributes on an AttributeSource (for example a token stream you reuse with a different set of attributes) after it has been used, for example by clearAttributes, which every Tokenizer calls for each token. You expect it to behave like a new, empty source until you add attributes again, as hasAttributes (false) and equals (equal to a new AttributeSource) already say. Instead the method clears its two maps but not the cached chain of attribute instances that captureState, copyTo, hashCode, the impls iterator, reflection and clearAttributes/endAttributes walk, so until the next addAttribute they still see the removed attributes: restoreState(captureState) on the same source throws IllegalArgumentException, hashCode differs from that of an equal empty source, and reflectAsString still prints &#x27;term=foo,...&#x27;.</p>
+<p>The test shows that AttributeSource.removeAllAttributes() leaves the cached State chain in place, so captureState() still returns the removed attributes and restoring that state into the same source fails.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect it to behave like a new, empty source until you add attributes again, as hasAttributes (false) and equals (equal to a new AttributeSource) already say.</li><li><b>Actual:</b> The method clears its two maps but not the cached chain of attribute instances that captureState, copyTo, hashCode, the impls iterator, reflection and clearAttributes/endAttributes walk, so until the next addAttribute they still see the removed attributes: restoreState(captureState) on the same source throws IllegalArgumentException, hashCode differs from that of an equal empty source, and reflectAsString still prints &#x27;term=foo,...&#x27;.</li></ul>
+<p>Expected: restoreState(captureState()) after removeAllAttributes() succeeds (captureState javadoc: the state can be restored into this source); actual: <code>IllegalArgumentException: State contains AttributeImpl of type...CharTermAttributeImpl that is not in in this AttributeSource</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/util/TestRemoveAllAttributesCachedState.java"><code>src/org/apache/lucene/util/TestRemoveAllAttributesCachedState.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/RemoveAllAttributesProbe.java"><code>src/RemoveAllAttributesProbe.java</code></a> <span class="dim">(main() class)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
+<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
@@ -44,10 +45,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.util.TestRemoveAllAttributesCachedState
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; RemoveAllAttributesProbe</code></pre>
+     execute --select-class org.apache.lucene.util.TestRemoveAllAttributesCachedState</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

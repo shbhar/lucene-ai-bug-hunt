@@ -1,0 +1,36 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.similarities;
+
+import org.apache.lucene.search.FieldStats;
+import org.apache.lucene.search.TermStats;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.BytesRef;
+
+public class TestDistributionLLNegativeZero extends LuceneTestCase {
+
+  public void testZeroScoreIsPositiveZero() {
+    Similarity.SimScorer scorer =
+        new IBSimilarity(new DistributionLL(), new LambdaDF(), new NormalizationH1(0f))
+            .scorer(
+                1f,
+                new FieldStats("f", 100, 100, 1000, 500),
+                new TermStats(new BytesRef("t"), 10, 20));
+    // c = 0 gives tfn = 0, so LL computes -log(1): expected +0.0 (as DistributionSPL), actual -0.0
+    assertEquals(Float.valueOf(0f), Float.valueOf(scorer.score(1f, 1L)));
+  }
+}

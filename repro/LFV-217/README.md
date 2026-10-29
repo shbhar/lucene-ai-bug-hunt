@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build JoinUtil.createJoinQuery("fromF", false, "toF", Float.class, fromQuery, searcher, ScoreMode.None) where the from documents store -1 and -2 in a FloatDocValuesField and the to documents index FloatPoint -1, -2 and 3, and expect a query that matches the two to documents with -1 and -2, because the javadoc lists Float and Double as supported numeric types with no sign restriction. Instead createJoinQuery throws IllegalArgumentException 'values are out of order: saw [40 7f ff ff] before [3f ff ff ff]' (that is, -1 before -2; releases before 10.4.0 show an UnsupportedOperationException raised while that message is built), and Double and every scoring ScoreMode fail the same way. The cause is that JoinUtil sorts the collected Float/Double join values as raw IEEE bits in signed-long order, which for negative numbers is the reverse of numeric order, and streams them in that order into PointInSetQuery / PointInSetIncludingScoreQuery, which require strictly ascending points.
 
+The test shows that JoinUtil's numeric join on Float.class (ScoreMode.None) fails when the from side has the two negative values -1 and -2 (FloatDocValuesField).
+
 ## Expected vs actual
 
-- Expected: `createJoinQuery` returns a query, and `searcher.count(join)` is 2 (the to documents -1 and -2) for `Float` and `Double`.
-- Actual: `createJoinQuery` throws `IllegalArgumentException: values are out of order: saw [40 7f ff ff] before [3f ff ff ff]` (-1 before -2; Double likewise); 4 of 4 tests fail.
+Expected: a join query that counts the 2 documents with FloatPoint -1 and -2. Actual (-ea and -da): IllegalArgumentException `values are out of order: saw [40 7f ff ff] before [3f ff ff ff]`.
 
 ## Files
 
@@ -21,8 +22,8 @@ You build JoinUtil.createJoinQuery("fromF", false, "toF", Float.class, fromQuery
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -39,19 +40,13 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.search.join.TestNumericJoinNegativeFloats
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestNumericJoinNegativeFloats.java](TestNumericJoinNegativeFloats.java)
-- [TestNumericJoinSignedFloatOrder.java](TestNumericJoinSignedFloatOrder.java)
-- [fix.diff](fix.diff)
 
 ## Feedback
 

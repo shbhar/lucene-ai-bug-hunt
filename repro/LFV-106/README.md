@@ -10,20 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You search with a vector similarity (threshold) query, for example FloatVectorSimilarityQuery, in a non-scoring context such as IndexSearcher#count or ConstantScoreQuery, with a query cache that several readers or searchers share (the IndexSearcher default in 9.10.0-10.5.2). You expect every reader and every search to get the hits it gets without the cache. Instead the cache hands one reader's or one search's per-segment result to another: an older point-in-time reader misses a document that only a newer reader has deleted (99 hits instead of 100), a search without a timeout gets the empty result of an earlier timed-out search (0 instead of 100), and with a filter on an updated doc-values field a newer reader gets a document that no longer matches the filter (100 instead of 99).
 
+The test shows that `FloatVectorSimilarityQuery` says its per-segment result is cacheable, but the result depends on live docs, so a shared query cache gives an older reader the result of a newer reader that deleted a document (same segment core).
+
 ## Expected vs actual
 
-- Expected: Each reader or search gets its uncached result: the older reader 100 (12,000 with the default settings), a search without a timeout 100, the newer reader with the filter 99.
-- Actual: The older reader gets 99 (11,999), the search without a timeout 0, the newer reader with the filter 100, including a doc the filter rejects; the control is right.
+Expected `count` 2 on the older reader, where doc 0 is still live; actual 1 (`expected:<2> but was:<1>`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/search/TestVectorSimilarityQueryCaching.java](src/org/apache/lucene/search/TestVectorSimilarityQueryCaching.java) (JUnit test)
-- [src2/org/apache/lucene/search/TestVectorSimilarityQueryCaching.java](src2/org/apache/lucene/search/TestVectorSimilarityQueryCaching.java) (JUnit test)
+- [src/org/apache/lucene/search/TestVectorSimilarityQueryCache.java](src/org/apache/lucene/search/TestVectorSimilarityQueryCache.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -36,27 +36,15 @@ CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
-javac -d classes-src -cp "$CP" $(find src -name '*.java')
-javac -d classes-src2 -cp "$CP" $(find src2 -name '*.java')
+javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes-src:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestVectorSimilarityQueryCaching
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes-src2:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestVectorSimilarityQueryCaching
+     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.search.TestVectorSimilarityQueryCache
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestVectorSimilarityQueryCaching.java](TestVectorSimilarityQueryCaching.java)
-- [option-b-narrow.diff](option-b-narrow.diff)
-- [option-a-not-cacheable.diff](option-a-not-cacheable.diff)
-- [TestVectorSimilarityQueryStillCached.java](TestVectorSimilarityQueryStillCached.java)
-- [TestVectorSimilarityQueryScoringParent.java](TestVectorSimilarityQueryScoringParent.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/knn-query-layer/](../../models/knn-query-layer/)
 

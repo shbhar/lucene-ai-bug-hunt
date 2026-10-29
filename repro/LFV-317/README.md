@@ -1,6 +1,6 @@
 # HTMLStripCharFilter reads a backslash right before a quoted attribute value's closing quote as an escaped quote, so the tag runs on to the next quote of the same kind and the visible text in between is dropped (every quoted attribute since 9.9.0 / GITHUB#11724; on* event attributes since the 2012 JFlex rewrite)
 
-Bug LFV-317 · Area: analysis / HTMLStripCharFilter (JFlex grammar: SingleQuoted, DoubleQuoted, OpenTagAttribute, EventAttribute) · Priority: medium · Impact: silent wrong results · Novelty: new
+Bug LFV-317 · Area: analysis / HTMLStripCharFilter (JFlex grammar: SingleQuoted, DoubleQuoted, OpenTagAttribute, EventAttribute) · Priority: low · Impact: silent wrong results · Novelty: new
 
 Bug page: [../../bugs/LFV-317.html](../../bugs/LFV-317.html)
 
@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You strip '&lt;a href="C:\Temp\"&gt;folder&lt;/a&gt; text after &lt;a href="x"&gt;y&lt;/a&gt; end' with HTMLStripCharFilter and expect 'folder text after y end', which is what 9.8.0, the HTML parsing rules (Python's html.parser as an independent check) and the same document without the trailing backslash give. Instead main returns 'y end': the scanner reads the backslash and the closing quote as an escaped quote, so the attribute value runs on to the next double quote (the one in href="x"), everything from the first tag to the end of the second tag is treated as one tag, and 'folder text after' is never indexed. No error is raised, and a single-quoted value ending in a backslash loses text the same way.
 
+The test shows that HTMLStripCharFilter drops visible text when a quoted attribute value ends in a backslash (`href="C:\Temp\"`): the backslash is read as escaping the closing quote, so the tag runs on to the next double quote.
+
 ## Expected vs actual
 
-- Expected: All three trigger inputs strip to `folder text after y end`, as the control does.
-- Actual: Each strips to `y end`: 40 tests, 3 failed, with assertions on and off; the control passes.
+Expected `folder text y` (what 9.8.0 and the fixed grammar give); actual `y` (`expected:<[folder text ]y> but was:<[]y>`), with `-ea` and `-da`.
 
 ## Files
 
@@ -21,8 +22,8 @@ You strip '&lt;a href="C:\Temp\"&gt;folder&lt;/a&gt; text after &lt;a href="x"&g
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -45,12 +46,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestHTMLStripCharFilter-backslash-methods.java](TestHTMLStripCharFilter-backslash-methods.java)
-- [test-main.diff](test-main.diff)
-- [TestHTMLStripAttributeBackslash.java](TestHTMLStripAttributeBackslash.java)
 
 ## Feedback
 

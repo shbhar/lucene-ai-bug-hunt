@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build an analyzer with CustomAnalyzer from a whitespace tokenizer and the dateRecognizer filter (datePattern=yyyy-MM-dd, locale=en-US) and analyse text such as '2024-01-15 foo 1999-12-31' from four threads at once, as IndexWriter does with its indexing threads. You expect every thread to get the same date tokens as a single-threaded run, because Analyzer gives each thread its own set of token stream components. Instead some analyses throw NumberFormatException ('multiple points', 'For input string: ""') or ArrayIndexOutOfBoundsException, because DateRecognizerFilterFactory creates one java.text.DateFormat, which is not thread-safe, and create passes that same instance to the filter of every thread.
 
+The test shows that an analyzer built with `DateRecognizerFilterFactory` (via CustomAnalyzer) throws when two threads use it at once: every filter the factory creates gets the same `java.text.DateFormat`, which is not thread-safe.
+
 ## Expected vs actual
 
-- Expected: All 4 threads get `2024-01-15`, `1999-12-31`, `2001-07-04`, `1970-01-01` in all 20,000 analyses, as the constructor-built control does.
-- Actual: `testFactoryBuiltAnalyzerIsThreadSafe` fails: an analysis throws `NumberFormatException: multiple points` (10 of 10 repetitions fail with `-Ptests.iters=10`; the control passes).
+Expected no exception (Analyzer gives each thread its own filter); actual `NumberFormatException` out of `SimpleDateFormat.parse` in `DateRecognizerFilter.accept` (-ea and -da; needs two CPUs running the threads in parallel).
 
 ## Files
 
@@ -21,7 +22,8 @@ You build an analyzer with CustomAnalyzer from a whitespace tokenizer and the da
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -44,13 +46,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestDateRecognizerFactoryThreads.java](TestDateRecognizerFactoryThreads.java)
-- [TestDateRecognizerConcurrentV1.java](TestDateRecognizerConcurrentV1.java)
-- [TestDateRecognizerFactoryIndexWriterThreads.java](TestDateRecognizerFactoryIndexWriterThreads.java)
-- [DateRecognizerFactoryRace.java](DateRecognizerFactoryRace.java)
 
 ## Feedback
 

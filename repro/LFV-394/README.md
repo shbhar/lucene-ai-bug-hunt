@@ -10,20 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You configure LogDocMergePolicy (or LogByteSizeMergePolicy) with setMergeFactor(Integer.MAX_VALUE), which the setter accepts (it rejects only values below 2, and its javadoc recommends large values for batch indexing), bulk-load one large segment, add one document and commit, and expect the commit to succeed with no merge, as it does with Integer.MAX_VALUE - 1. Instead findMerges computes the end of each merge window as 'int end = start + mergeFactor', which wraps negative for every size level that does not start at segment 0, and its minimum-size packing step then calls levels.get(-2147483648), so commit throws IndexOutOfBoundsException (OutOfMemoryError 'Requested array size exceeds VM limit' before 10.2.0). Every later commit and flush of new documents fails the same way until the factor is lowered; on main a 20,000,000-document segment followed by a 1-document flush is enough.
 
+The test shows that LogDocMergePolicy.findMerges with mergeFactor = Integer.MAX_VALUE (accepted by setMergeFactor) throws on two segments of 20,000,000 and 1 docs, because 'start + mergeFactor' wraps negative for the second size level.
+
 ## Expected vs actual
 
-- Expected: Both `findMerges` calls return null (nothing to merge) and the second commit stores 20,000,001 documents.
-- Actual: The control passes; the other two tests throw `IndexOutOfBoundsException: Index -2147483648 out of bounds for length 2` at `LogMergePolicy.findMerges(LogMergePolicy.java:636)`, with assertions on and off.
+Expected: null (no merge, as with Integer.MAX_VALUE - 1). Actual (-ea and -da): IndexOutOfBoundsException: Index -2147483648 out of bounds for length 2 at LogMergePolicy.findMerges:636.
 
 ## Files
 
-- [src/org/apache/lucene/index/TestLogMergePolicyHugeMergeFactor.java](src/org/apache/lucene/index/TestLogMergePolicyHugeMergeFactor.java) (JUnit test)
-- [src/org/apache/lucene/index/TestLogMergePolicyHugeMergeFactorRelease.java](src/org/apache/lucene/index/TestLogMergePolicyHugeMergeFactorRelease.java) (JUnit test)
+- [src/org/apache/lucene/index/TestLogMergePolicyMaxMergeFactor.java](src/org/apache/lucene/index/TestLogMergePolicyMaxMergeFactor.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,23 +38,13 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false -Xmx3g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestLogMergePolicyHugeMergeFactor
-
-# run 2: assertions on, seed DEADBEEF, default flags
+# run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestLogMergePolicyHugeMergeFactorRelease
+     execute --select-class org.apache.lucene.index.TestLogMergePolicyMaxMergeFactor
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestLogMergePolicyHugeMergeFactor.java](TestLogMergePolicyHugeMergeFactor.java)
-- [TestLogMergePolicyMergeFactorWrap.java](TestLogMergePolicyMergeFactorWrap.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/overflow-at-scale-2/](../../models/overflow-at-scale-2/)
 

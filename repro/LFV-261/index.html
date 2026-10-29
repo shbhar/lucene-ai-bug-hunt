@@ -23,13 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You set StableTflSimilarity on the searcher, whose javadoc derives a term&#x27;s rarity from the length |t| of the query term, and you search with a SynonymQuery (for example the one QueryBuilder builds when a synonym filter stacks &#x27;dog&#x27; and &#x27;dogs&#x27; at one position) or with a CombinedFieldQuery. You expect the real query terms&#x27; length to be used, so that SynonymQuery{ab, cd} on a document that contains &#x27;ab&#x27; once scores like TermQuery(ab), and a one-field CombinedFieldQuery scores like a TermQuery on a copy field. Instead both queries hand the similarity a fixed placeholder term (&#x27;synonym pseudo-term&#x27;, 19 code points; &#x27;pseudo_term&#x27;, 11 code points), so every synonym group is scored as an almost maximally rare 19-character term and every combined-field term as an 11-character one: SynonymQuery{ab, cd} scores 1.4050181 instead of 1.3490043, and in 200-token documents the group {dog, dogs} scores 2.13x TermQuery(dog) and outranks a document that matches &#x27;elephant&#x27;.</p>
+<p>The test shows that with StableTflSimilarity, SynonymQuery passes the placeholder term &quot;synonym pseudo-term&quot; (19 code points) to the similarity instead of its real terms, so a synonym group gets the rarity of a 19-character term.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>SynonymQuery{ab, cd}</code> scores like <code>TermQuery(ab)</code> (0.9569799), a one-field <code>CombinedFieldQuery</code> like the copy-field <code>TermQuery</code> (1.3647432), and the &quot;elephant&quot; document ranks first.</li><li><b>Actual:</b> 1.4050031 (<code>19.0 = tl</code>) and 1.4047582 (<code>11.0 = tl</code>), and the &quot;dog&quot; document (1.4049385) outranks the &quot;elephant&quot; document (1.325023); 3 of 5 tests fail, the BM25 controls pass.</li></ul>
+<p>Expected: SynonymQuery{ab, cd} on a document with the single token &quot;ab&quot; scores like TermQuery(ab), 1.3855287. Actual (-ea and -da): 1.4050188.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/search/TestStableTflPseudoTermLength.java"><code>src/org/apache/lucene/search/TestStableTflPseudoTermLength.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/search/TestStableTflSynonymQuery.java"><code>src/org/apache/lucene/search/TestStableTflSynonymQuery.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -45,7 +46,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestStableTflPseudoTermLength</code></pre>
+     execute --select-class org.apache.lucene.search.TestStableTflSynonymQuery</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestStableTflQueryTermLength.java"><code>TestStableTflQueryTermLength.java</code></a></li><li><a href="TestStableTflPseudoTermLength.java"><code>TestStableTflPseudoTermLength.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

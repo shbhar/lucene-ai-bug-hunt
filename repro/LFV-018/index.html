@@ -23,15 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You wrap several readers in a ParallelLeafReader where more than one has term vectors for the same field. You expect term vectors from the first reader that has the field, as documented. Instead, since #14373, they come from the wrong reader, and an index written from it with addIndexes fails CheckIndex.</p>
+<p>The test shows that <code>ParallelLeafReader.termVectors()</code> returns a term vector from the second reader for a field that the first reader owns (&quot;first reader having a given field wins&quot;) and indexes without term vectors.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>termVectors(body)=null</code>; the copy passes CheckIndex at level 2; 0 of 8 reader orders return the second reader&#x27;s vector (10.1.0, and main with fix A).</li><li><b>Actual:</b> <code>termVectors(body)=second</code>; the copy fails CheckIndex at level 2 (&quot;has term vectors for field=body but FieldInfo has storeTermVector=false&quot;); 4 of 8 orders return the second reader&#x27;s vector (10.2.0 to 10.5.2 and main).</li></ul>
+<p>Expected: no term vector for <code>body</code> (getFieldInfos() and terms() come from the first reader, which has none). Actual: the second reader&#x27;s vector (term <code>second</code>).</p>
 <h2>Files</h2><ul>
-<li><a href="src/verify/sa2/TestParallelReaderTermVectorOwnership.java"><code>src/verify/sa2/TestParallelReaderTermVectorOwnership.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/verify/sa2/TestWrapForMergeParallelTermVectors.java"><code>src/verify/sa2/TestWrapForMergeParallelTermVectors.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/index/TestParallelLeafReaderTermVectorsOwner.java"><code>src/org/apache/lucene/index/TestParallelLeafReaderTermVectorsOwner.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.</li>
-<li>Recorded outcome of run 1 on main a9779ef3c193: 6 test(s) run, 6 failed (testAddIndexesOfParallelLeafReader, testCheckReaderAcceptsParallelLeafReader, testCheckReaderBothVectoredBothOrders, testFirstReaderWinsInBothOrders, testOwnerWithoutVectorsCompositeReader, testOwnerWithoutVectorsLeafReader).</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -45,14 +44,8 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class verify.sa2.TestParallelReaderTermVectorOwnership
-
-# run 2: assertions on, seed DEADBEEF, default flags
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class verify.sa2.TestWrapForMergeParallelTermVectors</code></pre>
+     execute --select-class org.apache.lucene.index.TestParallelLeafReaderTermVectorsOwner</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestParallelLeafReaderTermVectorsOwner.java"><code>TestParallelLeafReaderTermVectorsOwner.java</code></a></li><li><a href="PlrTermVectorsOwner.java"><code>PlrTermVectorsOwner.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

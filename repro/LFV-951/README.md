@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You wrap your own index query, for example TermQuery(body:a) or a 20-clause DisjunctionMaxQuery, in new CompositeVerifyQuery(indexQuery, shapePredicate), then collect its terms with QueryVisitor.termCollector or search it after IndexSearcher.setMaxClauseCount(8). You expect [body:a] and an IndexSearcher.TooManyNestedClauses error, because Query#visit is documented to 'recurse through the query tree, visiting any child queries', the wrapper rewrites its index query and runs it as the approximation that every hit must match, and the same 20 clauses as a bare query or as a sibling FILTER clause are rejected. Instead CompositeVerifyQuery.visit only calls visitor.visitLeaf(this): termCollector returns and the clause check counts the whole query as one clause, so the over-limit query runs (its hits are correct).
 
+The test shows that CompositeVerifyQuery.visit calls only visitor.visitLeaf(this) and never visits the index query that it rewrites and runs, so QueryVisitor.termCollector misses that query's terms.
+
 ## Expected vs actual
 
-- Expected: You expect [body:a] and an IndexSearcher.TooManyNestedClauses error, because Query#visit is documented to 'recurse through the query tree, visiting any child queries', the wrapper rewrites its index query and runs it as the approximation that every hit must match, and the same 20 clauses as a bare query or as a sibling FILTER clause are rejected.
-- Actual: CompositeVerifyQuery.visit only calls visitor.visitLeaf(this): termCollector returns and the clause check counts the whole query as one clause, so the over-limit query runs (its hits are correct).
+Expected `[body:a]` for CompositeVerifyQuery(TermQuery(body:a), predicate); actual `[]`, with `-ea` and `-da`.
 
 ## Files
 
@@ -19,7 +20,8 @@ You wrap your own index query, for example TermQuery(body:a) or a 20-clause Disj
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You run CheckIndex -verbose at level 2 or more (or call Terms.getStats) on an index written with the default codec and expect each field&#x27;s block-tree statistics to say how many bytes its terms index takes, as the field&#x27;s javadoc &#x27;Byte size of the index&#x27; and the printed label &#x27;index trie: N bytes&#x27; promise. Since 10.3.0 the Lucene103 block tree never assigns Stats.indexNumBytes, so every field prints &#x27;index trie: 0 bytes&#x27;, even a 20,000-term field with 607 blocks in a segment whose.tip file is 2,473 bytes. Nothing else reads the number, so search and indexing are unaffected, and the older Lucene90 block tree had already stopped reporting the real size (a constant such as 56 bytes since 8.6.0), so this is a small diagnostic defect, not a regression of a working metric.</p>
+<p>The test shows that the Lucene103 block tree never sets <code>Stats.indexNumBytes</code> (&quot;Byte size of the index&quot;): <code>Terms.getStats()</code> of a one-term <code>StringField</code> under the default codec reports 0 (<code>TestStatsIndexNumBytes#testIndexNumBytesIsSet</code>).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> While the bug is present the test fails; the failure message states expected against actual.</li></ul>
+<p>Expected: the field&#x27;s trie bytes in the.tip file, &gt; 0. Actual: <code>expected indexNumBytes &gt; 0 but was 0</code>, the same with -ea and -da.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/codecs/lucene103/blocktree/TestStatsIndexNumBytes.java"><code>src/org/apache/lucene/codecs/lucene103/blocktree/TestStatsIndexNumBytes.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

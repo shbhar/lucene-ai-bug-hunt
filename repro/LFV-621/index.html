@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You build an OpenNLP chain that removes some tokens before a sentence-aware filter, for example tokenizer -&gt; POS tagger -&gt; TypeTokenFilter keeping only nouns -&gt; lemmatizer, and analyze &#x27;He did not come back. They sent him running in the evening.&#x27;, expecting the lemmatized nouns of the second sentence, [they, evening], as you get for that sentence alone. Instead the whole value yields no token: SentenceAttributeExtractor starts with currSentence = 0, so when the first token it receives already belongs to sentence 1 it returns an empty first sentence, and the POS, chunker and lemmatizer filters all treat an empty sentence as the end of the stream. A fully removed sentence in the middle of the text is handled correctly; only the first one is not.</p>
+<p>The test shows that a sentence-aware OpenNLP filter (here the chunker) emits no token at all when an earlier filter removed every token of the first sentence (opennlp tokenizer -&gt; POS -&gt; LengthFilter(min 3) -&gt; chunker, module test models).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> Each chain emits the same tokens with or without the removed first sentence: <code>[they, evening]</code>, or the 12 words of the two kept sentences.</li><li><b>Actual:</b> <code>AssertionError: token 0 does not exist</code>: no token at all; 3 of 3 tests fail, assertions on and off, while every control passes.</li></ul>
+<p>Expected [They, sent, him, running] for &quot;No. They sent him running.&quot;; actual [] on main, with -ea and -da.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/analysis/opennlp/TestSentenceFiltersFirstSentenceRemoved.java"><code>src/org/apache/lucene/analysis/opennlp/TestSentenceFiltersFirstSentenceRemoved.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/analysis/opennlp/TestChunkerAfterRemovedFirstSentence.java"><code>src/org/apache/lucene/analysis/opennlp/TestChunkerAfterRemovedFirstSentence.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -43,11 +45,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions on, seed 1880C0DE
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=1880C0DE \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.opennlp.TestSentenceFiltersFirstSentenceRemoved</code></pre>
+     execute --select-class org.apache.lucene.analysis.opennlp.TestChunkerAfterRemovedFirstSentence</code></pre>
 <p class="small">The module(s) analysis-opennlp also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestOpenNLPFirstSentenceRemoved.java"><code>TestOpenNLPFirstSentenceRemoved.java</code></a></li><li><a href="fix-option-A.diff"><code>fix-option-A.diff</code></a></li><li><a href="TestSentenceFiltersFirstSentenceRemoved.java"><code>TestSentenceFiltersFirstSentenceRemoved.java</code></a></li><li><a href="TestDroppedFirstSentenceV1.java"><code>TestDroppedFirstSentenceV1.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

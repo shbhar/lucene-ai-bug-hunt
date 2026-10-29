@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You load a well-formed FOP-format hyphenation grammar with HyphenationCompoundWordTokenFilter.getHyphenationTree (or HyphenationTree.loadPatterns, or the factory's hyphenator file) and expect it to load, as the TernaryTree javadoc's 'room for about 65000 nodes' suggests. For some grammars, for example the current TeX Afrikaans patterns or the repro's 1,310 random 4-8-letter patterns, loading instead throws ArrayIndexOutOfBoundsException: Index 2048 out of bounds for length 2048 from TernaryTree.insert, called by compact during trimToSize. The cause: insert(char key, int start, char val) reserves room for strlen(key) + 1 nodes counted from index 0 instead of from start, and its only caller with start &gt; 0, compact, passes a key array whose index 0 is an empty string, so it reserves one node and a multi-node insert that crosses the 2048-node block boundary writes past the arrays; with strlen(key, start), the bound the String overload already uses, every failing grammar loads with all values right.
 
+The test shows that loading a well-formed 2-pattern hyphenation grammar through `HyphenationCompoundWordTokenFilter.getHyphenationTree(InputSource)` throws, because `TernaryTree.insert(char[] key, int start, char val)` (called by `trimToSize()` -&gt; `compact()`) sizes its node arrays with `strlen(key)` instead of `strlen(key, start)`.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+Expected: the grammar loads. Actual: `ArrayIndexOutOfBoundsException: Index 2048 out of bounds for length 2048` from `TernaryTree.insert` (with -ea and -da); with `strlen(key, start) + 1` it loads.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/compound/TestHyphenationTreeCompactCapacity.java](src/org/apache/lucene/analysis/compound/TestHyphenationTreeCompactCapacity.java) (JUnit test)
+- [src/org/apache/lucene/analysis/compound/TestHyphenationGrammarLongPatternsLoad.java](src/org/apache/lucene/analysis/compound/TestHyphenationGrammarLongPatternsLoad.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,7 +40,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.compound.TestHyphenationTreeCompactCapacity
+     execute --select-class org.apache.lucene.analysis.compound.TestHyphenationGrammarLongPatternsLoad
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

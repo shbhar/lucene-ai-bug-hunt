@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You run text such as &#x27;get it from ftp://ftp.example.com today&#x27; or &#x27;ftp://localhost&#x27; through UAX29URLEmailTokenizer, whose javadoc says URLs are &#x27;tokenized according to the relevant RFCs&#x27;, and expect each ftp URL as one &lt;URL&gt; token, because RFC 1738 (section 3.2.2: &#x27;The whole url-path may be omitted, including the &quot;/&quot; delimiting it&#x27;) and RFC 3986 (an empty path after an authority) allow it, and the same tokenizer already keeps &#x27;http://localhost&#x27; whole. Instead it emits &#x27;ftp&#x27; as &lt;ALPHANUM&gt; followed by the rest on its own (&#x27;ftp.example.com&#x27; as &lt;URL&gt;, &#x27;localhost&#x27; as &lt;ALPHANUM&gt;, &#x27;192.0.2.10&#x27; as &lt;NUM&gt;, &#x27;//anonymous@ftp.example.org&#x27; as &lt;EMAIL&gt;), because the grammar&#x27;s FTPurl rule makes the &#x27;/&#x27;-led FTPorFILEpath mandatory while the http rule beside it makes its path optional. With a trailing slash (&#x27;ftp://ftp.example.com/&#x27;) the URL is one token, and nothing reports an error.</p>
+<p>The test shows that <code>UAX29URLEmailTokenizer</code> does not keep the path-less ftp URL <code>ftp://localhost</code> as one <code>&lt;URL&gt;</code> token (RFC 1738 3.2.2 makes the ftp path optional).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> Each path-less ftp URL is one <code>&lt;URL&gt;</code> token, e.g. <code>[ftp://localhost &lt;URL&gt;]</code>, like <code>[http://localhost &lt;URL&gt;]</code>.</li><li><b>Actual:</b> <code>ftp://localhost</code> gives <code>[ftp &lt;ALPHANUM&gt;, localhost &lt;ALPHANUM&gt;]</code> (a <code>&lt;NUM&gt;</code> and an <code>&lt;EMAIL&gt;</code> for the IPv4 and userinfo forms): 5 of 6 tests fail, assertions on and off.</li></ul>
+<p>Expected one token <code>ftp://localhost</code> of type <code>&lt;URL&gt;</code>; actual <code>ftp</code> + <code>localhost</code>: <code>term 0 expected:&lt;ftp[://localhost]&gt; but was:&lt;ftp[]&gt;</code> (-ea and -da).</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/analysis/email/TestFtpUrlWithoutPath.java"><code>src/org/apache/lucene/analysis/email/TestFtpUrlWithoutPath.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -42,10 +44,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions on, seed 44A1C0DE
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=44A1C0DE \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.analysis.email.TestFtpUrlWithoutPath</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestUAX29URLEmailFtpNoPath.java"><code>TestUAX29URLEmailFtpNoPath.java</code></a></li><li><a href="TestFtpUrlWithoutPath.java"><code>TestFtpUrlWithoutPath.java</code></a></li><li><a href="TestFtpUrlNoPath.java"><code>TestFtpUrlNoPath.java</code></a></li><li><a href="FtpNoPathProbe.java"><code>FtpNoPathProbe.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

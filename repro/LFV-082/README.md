@@ -8,19 +8,20 @@ AI-assisted finding, reproduced on Lucene main but not yet independently re-veri
 
 You parse a point query whose literal lies outside the field's int range, such as i:[2147483648 TO *], i&gt;=2147483648 or i:2147483648, with the flexible StandardQueryParser and an Integer PointsConfig. You expect no match, because no int value reaches that bound. Instead PointRangeQueryNodeProcessor and PointQueryNodeProcessor narrow the parsed number with Number.intValue, which wraps it, so the range queries match all 5 documents of the repro and i:2147483648 matches the Integer.MIN_VALUE document.
 
+The test shows that the flexible StandardQueryParser with an Integer PointsConfig narrows the out-of-range literal in i:[2147483648 TO *] with intValue(), so it parses to i:[-2147483648 TO 2147483647].
+
 ## Expected vs actual
 
-- Expected: You expect no match, because no int value reaches that bound.
-- Actual: PointRangeQueryNodeProcessor and PointQueryNodeProcessor narrow the parsed number with Number.intValue, which wraps it, so the range queries match all 5 documents of the repro and i:2147483648 matches the Integer.MIN_VALUE document.
+Expected: 0 hits on a one-document index (i = 0), since no int is &gt;= 2^31. Actual (-ea and -da): 1 hit, "i:[-2147483648 TO 2147483647] expected:&lt;0&gt; but was:&lt;1&gt;".
 
 ## Files
 
-- [src/TestF4RangeLimitLeads.java](src/TestF4RangeLimitLeads.java) (JUnit test)
+- [src/org/apache/lucene/queryparser/flexible/standard/TestPointRangeOutOfIntRange.java](src/org/apache/lucene/queryparser/flexible/standard/TestPointRangeOutOfIntRange.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -39,10 +40,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF -Dtests.method=testOutOfRangeLiteralNarrowing \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class TestF4RangeLimitLeads
+     execute --select-class org.apache.lucene.queryparser.flexible.standard.TestPointRangeOutOfIntRange
 ```
 
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.

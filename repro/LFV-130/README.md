@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You open a file that spans more than one mmap chunk with MMapDirectory (in the repro, a 40-byte file with 16-byte chunks), read until a read throws EOFException, and then seek the same input past the end, which IndexInput#seek says must throw EOFException. Instead seek(50) succeeds, getFilePointer returns 50 and readByte returns 34, the byte at offset 34, because the two EOF branches leave the cached chunk index one past the last chunk and seek then checks the target against the wrong chunk. Every target in the window that mirrors the last chunk one chunk further on (48 to 56 here) is accepted this way, and a later clone of the input throws java.lang.AssertionError for the same reason.
 
+The test shows that on a multi-chunk MMapDirectory input (40-byte file, 16-byte chunks), after readByte() hits EOF, seek(50) past EOF succeeds and the next read returns a byte from one chunk earlier.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: seek(50) succeeds, getFilePointer returns 50 and readByte returns 34, the byte at offset 34, because the two EOF branches leave the cached chunk index one past the last chunk and seek then checks the target against the wrong chunk.
+Expected: `seek(50)` throws EOFException (IndexInput#seek). Actual: `expected EOFException from seek(50) on a 40-byte file, but seek succeeded and readByte()=34`.
 
 ## Files
 
-- [src/org/apache/lucene/store/TestMultiChunkSeekPastEOFAfterEOF.java](src/org/apache/lucene/store/TestMultiChunkSeekPastEOFAfterEOF.java) (JUnit test)
+- [src/org/apache/lucene/store/TestMMapSeekPastEOFAfterReadEOF.java](src/org/apache/lucene/store/TestMMapSeekPastEOFAfterReadEOF.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,7 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.store.TestMultiChunkSeekPastEOFAfterEOF
+     execute --select-class org.apache.lucene.store.TestMMapSeekPastEOFAfterReadEOF
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

@@ -1,6 +1,6 @@
 # WikipediaTokenizer silently drops Chinese and Japanese text inside wiki markup (links, categories, headings, bold/italics, templates, citations, external-link labels): its grammar has a CJ token rule only for plain text, and every markup state matches ALPHANUM only
 
-Bug LFV-708 · Area: analysis-common / wikipedia: WikipediaTokenizer (JFlex grammar lexical states, WikipediaTokenizerImpl.jflex) · Priority: medium · Impact: silent wrong results · Novelty: new
+Bug LFV-708 · Area: analysis-common / wikipedia: WikipediaTokenizer (JFlex grammar lexical states, WikipediaTokenizerImpl.jflex) · Priority: low · Impact: silent wrong results · Novelty: new
 
 Bug page: [../../bugs/LFV-708.html](../../bugs/LFV-708.html)
 
@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You tokenize Chinese or Japanese wiki text with WikipediaTokenizer, for example '[[日本]]', '[[Category:日本]]', '== 日本 ==' or "x '''東京''' y", and expect the text inside the markup to become tokens, as it does for Latin and Korean text in the same markup ('[[Japan]]', '[[한국]]') and for Chinese/Japanese plain text ('日本' gives 日|&lt;CJ&gt; and 本|&lt;CJ&gt;). Instead every Chinese/Japanese character inside markup is skipped without an error: '[[日本]]', '[[Category:日本]]', '== 日本 ==' and '&lt;ref&gt;日本&lt;/ref&gt;' give no token at all, '[http://example.org 日本]' gives only the URL, and "x '''東京''' y" gives x and y, with y typed bold. The cause is the grammar: its only CJ token rule is for plain text (WikipediaTokenizerImpl.jflex:201), while all nine markup lexical states have a token rule for ALPHANUM only and ignore every other character (:219-309), and the CJ character class is disjoint from ALPHANUM.
 
+The test shows that `WikipediaTokenizer` drops Chinese/Japanese text inside wiki markup: the internal link `[[日本]]` gives no token, while `[[Japan]]` gives `Japan`.
+
 ## Expected vs actual
 
-- Expected: Every Han and kana character lies inside some token, as `[[Japan]]` gives `Japan|il`: `東京は[[日本]]の首都である。` gives 11 tokens.
-- Actual: `lost from "東京は[[日本]]の首都である。", tokens [東|<CJ>, 京|<CJ>, は|<CJ>, の|<CJ>, 首|<CJ>, 都|<CJ>, で|<CJ>, あ|<CJ>, る|<CJ>] expected:<> but was:<[日本]>`
+Expected the terms to spell `日本`; actual no token at all (`expected:<[日本]> but was:<[]>`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/wikipedia/TestWikipediaTokenizerMarkupCjk.java](src/org/apache/lucene/analysis/wikipedia/TestWikipediaTokenizerMarkupCjk.java) (JUnit test)
+- [src/org/apache/lucene/analysis/wikipedia/TestWikipediaTokenizerLinkCjk.java](src/org/apache/lucene/analysis/wikipedia/TestWikipediaTokenizerLinkCjk.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,16 +42,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.wikipedia.TestWikipediaTokenizerMarkupCjk
+     execute --select-class org.apache.lucene.analysis.wikipedia.TestWikipediaTokenizerLinkCjk
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestWikipediaTokenizerCjkInMarkup.java](TestWikipediaTokenizerCjkInMarkup.java)
-- [TestWikipediaTokenizerMarkupCjk.java](TestWikipediaTokenizerMarkupCjk.java)
-- [TestWikipediaMarkupCjk.java](TestWikipediaMarkupCjk.java)
 
 ## Feedback
 

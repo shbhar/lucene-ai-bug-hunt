@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build a UnifiedHighlighter without a searcher (builderWithoutSearcher, optionally withMaxLength(20)) and call highlightWithoutSearcher on a text longer than maxLength, expecting the text to be cut to its first maxLength chars before highlighting, as getMaxLength ('Content will be truncated to this size before highlighting') and withMaxLength document and as the searcher entry points do. Instead the whole text is analyzed and highlighted: with maxLength 20, the 48-char text 'Alpha beta gamma. Delta epsilon. Lucene is here.' gives '&lt;b&gt;Lucene&lt;/b&gt; is here.' (its only match is at offset 33) where the searcher path returns 'Alpha beta gamma. ', and with the default maxLength of 10,000 a match at char 10,541 of a 10,560-char text is highlighted. The only truncation lives in the stored-field loader (LimitedStoredFieldVisitor), which this entry point never calls, although the re-analysis strategy it uses relies on it ('content is already truncated to maxLength').
 
+The test shows that `UnifiedHighlighter.highlightWithoutSearcher` ignores `maxLength`: with `withMaxLength(20)` it still highlights a match at offset 33 of a 48-char text.
+
 ## Expected vs actual
 
-- Expected: Both cases return `Alpha beta gamma. ` with nothing marked, the same as through a searcher.
-- Actual: Both return `<b>Lucene</b> is here.`: 2 of 3 tests fail, with assertions on and off, on main, 10.5.2 and 10.0.0.
+Expected: the text is cut to 20 chars before highlighting (getMaxLength javadoc), so there is no `<b>Lucene</b>`; actual: `<b>Lucene</b> is here.`, with `-ea` and `-da`.
 
 ## Files
 
@@ -21,7 +22,8 @@ You build a UnifiedHighlighter without a searcher (builderWithoutSearcher, optio
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -46,10 +48,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestHighlightWithoutSearcherMaxLength.java](TestHighlightWithoutSearcherMaxLength.java)
 
 ## Feedback
 

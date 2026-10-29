@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You set IndexWriterConfig#setParentField (no index sort) and a merge policy that keeps fully deleted segments, such as SoftDeletesRetentionMergePolicy, and IndexWriter rejects a document block at a child with a documented non-aborting exception (for example a term longer than MAX_TERM_LENGTH) while that block is the only content of its in-memory segment, for example the first thing indexed after a commit. You expect the rejection to leave a consistent index that keeps merging, as the addDocument javadoc promises (&#x27;if an Exception is hit... the index will be consistent&#x27;). Instead the block is flushed as a fully deleted segment whose FieldInfos have no parent field (IndexWriter registers the parent field only when it reaches a block&#x27;s last document), the merge policy keeps it, and every merge that combines it only with segments holding no multi-document block throws IllegalStateException &#x27;expected parent doc field to be &quot;_parent &quot; across all segments but found a segment with different field &quot;null&quot;&#x27; and closes IndexWriter, also after the index is reopened, until forceMergeDeletes removes the segment.</p>
+<p>The test shows that with setParentField and SoftDeletesRetentionMergePolicy, a block rejected at its child (term &gt; MAX_TERM_LENGTH) right after a commit leaves a fully deleted segment without the parent field that breaks forceMerge (<code>TestRejectedBlockSegmentWithoutParentField#testForceMergeAfterBlockRejectedAtChild</code>).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>forceMerge(1)</code> merges the 3 segments into 1 with the 2 accepted documents, and <code>getMergedFieldInfos</code> names the parent field <code>_parent</code>.</li><li><b>Actual:</b> <code>IllegalStateException: expected parent doc field to be &quot;_parent &quot; across all segments but found a segment with different field &quot;null&quot;</code>; IndexWriter closes itself (tragic exception set), also for a new writer and on a plain reader.</li></ul>
+<p>Expected: forceMerge(1) succeeds. Actual: IllegalStateException &quot;expected parent doc field to be &quot;_parent &quot; across all segments but found a segment with different field &quot;null&quot;&quot;; fails with -ea and -da.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/index/TestRejectedBlockSegmentWithoutParentField.java"><code>src/org/apache/lucene/index/TestRejectedBlockSegmentWithoutParentField.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -41,10 +43,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.index.TestRejectedBlockSegmentWithoutParentField</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestRejectedBlockParentFieldMerges.java"><code>TestRejectedBlockParentFieldMerges.java</code></a></li><li><a href="TestRejectedBlockMergeFailure.java"><code>TestRejectedBlockMergeFailure.java</code></a></li><li><a href="TestRejectedBlockMergeControls.java"><code>TestRejectedBlockMergeControls.java</code></a></li><li><a href="RejectedBlockSupport.java"><code>RejectedBlockSupport.java</code></a></li><li><a href="TestSingleRejectedDocProbe.java"><code>TestSingleRejectedDocProbe.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

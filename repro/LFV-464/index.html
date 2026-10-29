@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index text with payloads, for example &#x27;big|adj dog|noun&#x27; (doc 0) and &#x27;big|adj dog|verb&#x27; (doc 1) through DelimitedPayloadTokenFilter, and query IntervalQuery(f, Intervals.term(&quot;dog&quot;, payload is &#x27;noun&#x27;)), which correctly hits only doc 0. You expect Weight#matches to be null for doc 1, which the query does not match, and non-null for doc 1 as a hit of +f:big -&lt;that query&gt;. Instead the payload-filtered source returns an empty but non-null MatchesIterator for every document that contains &#x27;dog&#x27; at all, so Weight#matches reports a match for the non-hit and the BooleanQuery returns null Matches for its real hit (the default UnifiedHighlighter then leaves that hit unhighlighted, and Lucene monitor&#x27;s HighlightsMatch matcher reports the non-hit as a match), while hits, counts and scores stay correct.</p>
+<p>The test shows that <code>Intervals.term(term, payloadFilter)</code> gives a non-null <code>Weight#matches</code> for a document in which the filter rejects every position of the term, so the query does not match it (one doc, one token <code>dog</code> with payload <code>verb</code>, filter &quot;payload is <code>noun</code>&quot;).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect Weight#matches to be null for doc 1, which the query does not match, and non-null for doc 1 as a hit of +f:big -&lt;that query&gt;.</li><li><b>Actual:</b> The payload-filtered source returns an empty but non-null MatchesIterator for every document that contains &#x27;dog&#x27; at all, so Weight#matches reports a match for the non-hit and the BooleanQuery returns null Matches for its real hit (the default UnifiedHighlighter then leaves that hit unhighlighted, and Lucene monitor&#x27;s HighlightsMatch matcher reports the non-hit as a match), while hits, counts and scores stay correct.</li></ul>
+<p>Expected <code>Weight#matches(ctx, 0) == null</code> (count is 0); actual: a non-null <code>Matches</code> (<code>expected null, but was:&lt;MatchesUtils$3@...&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/queries/intervals/TestPayloadFilteredIntervalsMatchesNonMatchingDoc.java"><code>src/org/apache/lucene/queries/intervals/TestPayloadFilteredIntervalsMatchesNonMatchingDoc.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/queries/intervals/TestPayloadFilteredIntervalsMatches.java"><code>src/org/apache/lucene/queries/intervals/TestPayloadFilteredIntervalsMatches.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -36,16 +37,15 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
-CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
 CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queries.intervals.TestPayloadFilteredIntervalsMatchesNonMatchingDoc</code></pre>
+     execute --select-class org.apache.lucene.queries.intervals.TestPayloadFilteredIntervalsMatches</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

@@ -22,15 +22,15 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You compile the same expression text &#x27;f(x)&#x27; twice with custom function maps that bind f to different functions (Math.abs in one, negation in the other), wrap each in a FunctionMatchQuery with the same &#x27;v &gt; 0&#x27; predicate, and expect two different queries, because on documents with x = -3, -2, -1, 1, 2 the first matches 5 documents and the second 3. Instead the two value sources, and therefore the two queries, compare equal with equal hash codes: ExpressionValueSource.equals/hashCode look only at the source text, the bound variables and needsScores, not at the functions the text was compiled with. A query cache then answers the second query with the first query&#x27;s cached matches, so count returns 5 instead of 3, with no error.</p>
+<p>The test shows that <code>f(x)</code> compiled with f = Math.abs and <code>f(x)</code> compiled with f = negate give equal <code>ExpressionValueSource</code>s, so through a query cache the second <code>FunctionMatchQuery(..., v &gt; 0)</code> gets the first one&#x27;s cached matches.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> The two value sources, and therefore the two queries, compare equal with equal hash codes: ExpressionValueSource.equals/hashCode look only at the source text, the bound variables and needsScores, not at the functions the text was compiled with.</li></ul>
+<p>Expected <code>count</code> = 3 for -x &gt; 0 on x = -3, -2, -1, 1, 2; actual: 5, the abs(x) &gt; 0 result (<code>expected:&lt;3&gt; but was:&lt;5&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/expressions/TestExpressionValueSourceEqualsFunctions.java"><code>src/org/apache/lucene/expressions/TestExpressionValueSourceEqualsFunctions.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/ExpressionValueSourceEqualsFunctionsMain.java"><code>src/ExpressionValueSourceEqualsFunctionsMain.java</code></a> <span class="dim">(main() class)</span></li>
+<li><a href="src/org/apache/lucene/expressions/TestExpressionFunctionsQueryCacheKey.java"><code>src/org/apache/lucene/expressions/TestExpressionFunctionsQueryCacheKey.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
+<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
@@ -47,11 +47,7 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.expressions.TestExpressionValueSourceEqualsFunctions
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; ExpressionValueSourceEqualsFunctionsMain</code></pre>
+     execute --select-class org.apache.lucene.expressions.TestExpressionFunctionsQueryCacheKey</code></pre>
 <p class="small">The module(s) expressions also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

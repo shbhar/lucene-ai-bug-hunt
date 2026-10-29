@@ -23,14 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index a point field with more data dimensions than index dimensions (FieldType.setDimensions(d, 1, bytes), selective indexing) and run a PointInSetQuery (newSetQuery) on it. You expect every document whose indexed value is in the set to match. Instead BKDWriter sorts leaves by a data dimension and the query&#x27;s forward-only visitor skips matches: 189,088 of 207,884 expected hits (91%) were missed in the repro, and a 3-dim/2-index-dim field returned 0 hits instead of 2.</p>
+<p>The test shows that <code>IntPoint.newSetQuery(&quot;f&quot;, 10, 30)</code> misses a match on a points field with 2 dimensions of which only the first is indexed (<code>FieldType.setDimensions(2, 1, 4)</code>), 3 docs (30,5) (10,9) (20,9) in one segment (<code>TestPointInSetQuerySelectiveIndexing#testSetQueryOnOneIndexDimensionOfTwo</code>).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>newSetQuery</code> for 10, for 30 and for {10, 30} finds 1, 1 and 2; 2 after <code>forceMerge(1)</code>; 2 on the 3-dimension field.</li><li><b>Actual:</b> 0, 1 and 1; 1 after <code>forceMerge(1)</code> (2 before it); 0 on the 3-dimension field (with <code>-ea</code>, an <code>AssertionError</code> in <code>SinglePointVisitor.visit</code> instead).</li></ul>
+<p>Expected count 2 (indexed values 30 and 10); actual <code>expected:&lt;2&gt; but was:&lt;1&gt;</code>: the leaf is sorted by the non-indexed dimension, so the forward-only <code>MergePointVisitor</code> skips 10. Fails the same way with -ea and -da, and no exception is thrown.</p>
 <h2>Files</h2><ul>
-<li><a href="src/VerifySelIdx1DTest.java"><code>src/VerifySelIdx1DTest.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/search/TestPointInSetQuerySelectiveIndexing.java"><code>src/org/apache/lucene/search/TestPointInSetQuerySelectiveIndexing.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.</li>
-<li>Recorded outcome of run 1 on main a9779ef3c193: 6 test(s) run, 6 failed (testFlushDefaultCodec, testFlushSimpleText, testMemoryIndexSelectiveField, testMergeBreaksPreviouslyCorrectResults, testMultiIndexDimSetQuery, testScaleSeeded).</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -38,17 +38,15 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
-CP=$CP:$LUCENE/lucene/memory/build/libs/lucene-memory-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx4g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class VerifySelIdx1DTest</code></pre>
+     execute --select-class org.apache.lucene.search.TestPointInSetQuerySelectiveIndexing</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="test-main.patch"><code>test-main.patch</code></a></li><li><a href="SelIdxDemo.java"><code>SelIdxDemo.java</code></a></li></ul>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/study-bkd-points-proof/index.html">study-bkd-points-proof</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

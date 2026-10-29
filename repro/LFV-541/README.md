@@ -1,6 +1,6 @@
 # DirectoryTaxonomyWriter indexes a facet label that contains an unpaired surrogate a second time, under a new ordinal, once its writer cache has been filled from the taxonomy index, because the cache compares the label's Java string while the index stores its UTF-8 term with the surrogate replaced by U+FFFD; the taxonomy then holds two categories with one path and facet counts for that value are split
 
-Bug LFV-541 · Area: facet / taxonomy writer (DirectoryTaxonomyWriter category identity: writer cache key vs taxonomy index term, perhapsFillCache) · Priority: medium · Impact: data corruption · Novelty: new
+Bug LFV-541 · Area: facet / taxonomy writer (DirectoryTaxonomyWriter category identity: writer cache key vs taxonomy index term, perhapsFillCache) · Priority: low · Impact: data corruption · Novelty: new
 
 Bug page: [../../bugs/LFV-541.html](../../bugs/LFV-541.html)
 
@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You add a facet value with an unpaired surrogate, for example FacetField("dim", "x\uD83D") built from a string cut inside an emoji, in one writer session and the same value again in a later session, with the default DirectoryTaxonomyWriter; you expect the existing ordinal back, as TaxonomyWriter.addCategory promises, and one facet entry with count 2. Instead, once the second session has filled its cache from the index (after 11 new categories by default), the cached key is the stored form "x\uFFFD", the original string misses, the writer trusts its now complete cache and indexes the label again (ordinal 14 instead of 2), so the facet result shows x\uFFFD (1) twice. The duplicate stays in the taxonomy for good; within one fresh session the writer likewise gives "x\uD83D" and "x\uFFFD" ordinals 2 and 3, although the taxonomy reader resolves both to 2.
 
+The test shows that `DirectoryTaxonomyWriter.addCategory` gives a label with an unpaired surrogate (`dim/"x\uD83D"`) a second ordinal in a later writer session once that session has filled its cache from the index (the stored term is `x` + U+FFFD).
+
 ## Expected vs actual
 
-- Expected: The cut label keeps ordinal 2 in session 2, the value is one facet entry `x� (2)`, and the merged index counts both documents.
-- Actual: Session 2 returns ordinal 14, the value shows as `x� (1)` twice, the writer and reader disagree (3 vs 2), and the merge counts 1 of 2 documents.
+Expected, per `TaxonomyWriter.addCategory` ("If the category was already present in the taxonomy, its existing ordinal is returned"): `2`. Actual: `expected:<2> but was:<13>`.
 
 ## Files
 
@@ -21,7 +22,8 @@ You add a facet value with an unpaired surrogate, for example FacetField("dim", 
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -46,12 +48,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestTaxonomyWriterUnpairedSurrogateLabel.java](TestTaxonomyWriterUnpairedSurrogateLabel.java)
-- [TestTaxonomyUnpairedSurrogateLabel.java](TestTaxonomyUnpairedSurrogateLabel.java)
-- [TestUnpairedSurrogateTaxonomyLabel.java](TestUnpairedSurrogateTaxonomyLabel.java)
 
 ## Feedback
 

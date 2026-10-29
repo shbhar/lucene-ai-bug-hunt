@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You store two values in one field ('First value.' and 'Second value.'), run a query that matches the document but not that field, and ask the UnifiedHighlighter for 2 passages; you expect the documented default summary, the first 2 sentences from the field (for example 'First value.... Second value.', the way the highlight path joins values). Instead you get 'First value.\u0000': the highlighter joins the values with an internal U+0000 separator, its SplittingBreakIterator reports a boundary on both sides of that character, and FieldHighlighter.getSummaryPassagesNoHighlight turns the 1-character gap into a passage, so the NUL is returned and takes the second value's slot (3 passages give 'First value.\u0000Second value.'). With an empty first value even 1 passage returns just '\u0000'.
 
+The test shows that the UnifiedHighlighter's no-match summary of a two-valued field ('First value.', 'Second value.') with `maxPassages` 2 returns the internal U+0000 value separator as the second passage.
+
 ## Expected vs actual
 
-- Expected: `First value.... Second value.` for 2 and for 3 passages, and `Second value.` when the first value is empty.
-- Actual: `First value.\u0000`, then `First value.\u0000Second value.`, then `\u0000` alone; both controls pass.
+Expected the field's first 2 sentences with no U+0000 ("the first maxPassages sentences from the field"); actual: `First value.\u0000`, with `-ea` and `-da`.
 
 ## Files
 
@@ -21,7 +22,8 @@ You store two values in one field ('First value.' and 'Second value.'), run a qu
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -39,20 +41,13 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions on, seed C0FFEE150
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=C0FFEE150 \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.search.uhighlight.TestUHSummaryMultiValueSeparator
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestUnifiedHighlighterMultiValuedSummary.java](TestUnifiedHighlighterMultiValuedSummary.java)
-- [fix-B-skip-separator-on-copy.diff](fix-B-skip-separator-on-copy.diff)
-- [TestUHSummaryMultiValueSeparator.java](TestUHSummaryMultiValueSeparator.java)
-- [TestMultiValuedNoMatchSummary.java](TestMultiValuedNoMatchSummary.java)
 
 ## Feedback
 

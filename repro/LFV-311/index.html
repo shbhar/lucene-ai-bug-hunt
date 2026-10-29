@@ -23,13 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You strip &#x27;&lt;script&gt;&lt;!--\n// Don&#x27;t remove\nvar x = 1;\n//--&gt;&lt;/script&gt;&lt;p&gt;Welcome to our store&lt;/p&gt;&#x27; with HTMLStripCharFilter and expect &#x27;Welcome to our store&#x27;, which is what you get without the apostrophe and what the filter&#x27;s own tests expect after wrapped script and style blocks. Instead the output is empty: inside the &lt;!-- --&gt; section the apostrophe opens a quoted-string state that ignores &#x27;--&gt;&#x27; and &#x27;&lt;/script&gt;&#x27;, and because the input ends in that state everything after the quote is dropped, so the text is never indexed and a TermQuery for a word after the block misses the document. The same happens with an apostrophe in a CSS comment of a wrapped &lt;style&gt; block or with a lone &#x27;&quot;&#x27;, with no error.</p>
+<p>The test shows that an apostrophe in a JavaScript comment inside a <code>&lt;!-- --&gt;</code>-wrapped <code>&lt;script&gt;</code> block makes HTMLStripCharFilter drop all text after the block.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> &quot;\n\nWelcome to our store\n&quot; and &quot;\n\nYour order has shipped.\n&quot;, as without the apostrophe; 4 tokens [Your, order, has, shipped]</li><li><b>Actual:</b> &quot;&quot; for both blocks and &quot;token 0 does not exist&quot; through the analyzer: 3 of 4 tests fail, assertions on and off</li></ul>
+<p>Expected the output of <code>&lt;script&gt;&lt;!--\n// Don&#x27;t remove\n//--&gt;&lt;/script&gt;&lt;p&gt;Welcome to our store&lt;/p&gt;</code> to contain <code>Welcome to our store</code>; actual output: the empty string, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/analysis/charfilter/TestHTMLStripScriptCommentQuote.java"><code>src/org/apache/lucene/analysis/charfilter/TestHTMLStripScriptCommentQuote.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/analysis/charfilter/TestHTMLStripQuoteInScriptComment.java"><code>src/org/apache/lucene/analysis/charfilter/TestHTMLStripQuoteInScriptComment.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -46,7 +47,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.charfilter.TestHTMLStripScriptCommentQuote</code></pre>
+     execute --select-class org.apache.lucene.analysis.charfilter.TestHTMLStripQuoteInScriptComment</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestHTMLStripScriptCommentQuote.java"><code>TestHTMLStripScriptCommentQuote.java</code></a></li><li><a href="optionA-comment-states.diff"><code>optionA-comment-states.diff</code></a></li><li><a href="optionAB-comment-states-plus-end-tag.diff"><code>optionAB-comment-states-plus-end-tag.diff</code></a></li><li><a href="4-TestHTMLStripScriptCommentQuote.java"><code>4-TestHTMLStripScriptCommentQuote.java</code></a></li><li><a href="TestHtmlStripQuoteInScriptComment.java"><code>TestHtmlStripQuoteInScriptComment.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

@@ -8,20 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You wrap one collector manager in a MultiCollectorManager, for example new MultiCollectorManager(new MultiCollectorManager(top1, top5)) from code that builds the manager list dynamically, and expect the same results as searching with the inner manager directly. Instead, because MultiCollector.wrap returns a single collector unwrapped, the outer manager's reduce takes the inner manager's own MultiCollector for its wrapper and unwraps it, so the inner manager's second child is reduced over the first child's collectors. In the repro the top-5 list comes back with 0 hits instead of 5, and with a top-k child next to a hit-count child the count manager's reduce throws ClassCastException (TopScoreDocCollector cannot be cast to TotalHitCountCollector).
 
+The test shows that a `MultiCollectorManager` wrapping exactly one `MultiCollectorManager(top1, top2)` reduces the inner manager's second child over the first child's collector.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Because MultiCollector.wrap returns a single collector unwrapped, the outer manager's reduce takes the inner manager's own MultiCollector for its wrapper and unwraps it, so the inner manager's second child is reduced over the first child's collectors.
+Expected the inner top-2 result to have 2 hits, as when the inner manager is searched directly; actual 0 (`expected:<2> but was:<0>`), with `-ea` and `-da`.
 
 ## Files
 
 - [src/org/apache/lucene/search/TestMultiCollectorManagerSingleNested.java](src/org/apache/lucene/search/TestMultiCollectorManagerSingleNested.java) (JUnit test)
-- [src/org/apache/lucene/search/TestMultiCollectorManagerSingleNestedLegacy.java](src/org/apache/lucene/search/TestMultiCollectorManagerSingleNestedLegacy.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,11 +40,6 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.search.TestMultiCollectorManagerSingleNested
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestMultiCollectorManagerSingleNestedLegacy
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

@@ -18,19 +18,19 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>addIndexes(CodecReader) from a reader whose term vectors list a field with zero terms writes a term-vector chunk that the default codec cannot read back, and every later merge that re-encodes the segment closes the IndexWriter</h1>
-<p class="facts small"><span>Bug LFV-244</span><span>Area: core / codecs: term vectors (TermVectorsWriter.addAllDocVectors merge copier; Lucene90 compressing term-vector writer and reader), reached through IndexWriter.addIndexes(CodecReader)</span><span>Priority: medium</span><span>Impact: data corruption</span><span>Novelty: new</span></p>
+<p class="facts small"><span>Bug LFV-244</span><span>Area: core / codecs: term vectors (TermVectorsWriter.addAllDocVectors merge copier; Lucene90 compressing term-vector writer and reader), reached through IndexWriter.addIndexes(CodecReader)</span><span>Priority: low</span><span>Impact: data corruption</span><span>Novelty: new</span></p>
 <p><a href="../../bugs/LFV-244.html">Bug page for LFV-244</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You copy an index with IndexWriter.addIndexes(CodecReader...) through a reader that removes some terms consistently from the postings and the term vectors (CheckIndex at its strictest level accepts this reader), so one document&#x27;s term-vector field is left with zero terms. You expect the new segment to read back and merge like any other, as the postings do (the postings writer simply drops the emptied field). Instead the default term-vector format writes per-field AvgCharsPerTerm floats that its own reader does not expect, so when the emptied field stores offsets the other documents of the chunk throw &#x27;offset 0 is invalid&#x27; on read, and because the reader lists the emptied field but returns null for it, the next merge that re-encodes the segment fails with &#x27;Wrong number of values added&#x27; and closes the IndexWriter, on every retry.</p>
+<p>The test shows that addIndexes(CodecReader) from a reader whose term vectors list a field with zero terms (but offsets) writes a term-vector chunk that the default codec cannot read back, which damages another document of the chunk.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> doc 1&#x27;s term vectors read back as <code>[here, public, text]</code>, <code>CheckIndex</code> is clean, and the delete + commit merge succeeds.</li><li><b>Actual:</b> doc 1 throws <code>IOException: offset 0 is invalid</code>, and the commit&#x27;s merge throws <code>Wrong number of values added, expected: 2, got: 1</code> and closes the IndexWriter.</li></ul>
+<p>Expected: doc 1&#x27;s term vector for field <code>b</code> reads back as <code>y</code>. Actual: <code>expected:&lt;[y]&gt; but was:&lt;[java.io.IOException: offset 0 is invalid]&gt;</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/index/TestTermVectorsZeroTermField.java"><code>src/org/apache/lucene/index/TestTermVectorsZeroTermField.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src2/org/apache/lucene/index/TestTermVectorsZeroTermField.java"><code>src2/org/apache/lucene/index/TestTermVectorsZeroTermField.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -41,17 +41,12 @@ CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
-javac -d classes-src -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
-javac -d classes-src2 -cp &quot;$CP&quot; $(find src2 -name &#x27;*.java&#x27;)
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestTermVectorsZeroTermField
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src2:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.index.TestTermVectorsZeroTermField</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestAddIndexesZeroTermVectorField.java"><code>TestAddIndexesZeroTermVectorField.java</code></a></li><li><a href="fix-with-test.diff"><code>fix-with-test.diff</code></a></li></ul>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/termvectors-compressing/index.html">termvectors-compressing</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build a stempel table with the Compile tool and a method string that has two merge passes (for example '-M22' or '-0ME22'), or you call reduce(new Optimizer2) (or Optimizer) on a table that a merge pass already reduced, such as a loaded table; Optimizer2's javadoc says its row joining keeps the stemmer able to 'recognize words for which the original trie was built', so the training words should keep their stems, as they do after one pass. Instead the second pass silently corrupts the trie: two Optimizer2 passes over the one-word trie {aab -&gt; Da} lose its only entry, Compile '-22' stems every training form of a small table to null and '-M22' leaves every form unstemmed (while '-2' and '-M2' are correct), and one more Optimizer2 pass over the bundled Polish table changes 8,356 of 21,147 keys whose whole path is stored. The cause is Optimizer.optimize (inherited by Optimizer2): it walks the rows from the highest index down and remaps every child reference through a remap array that is still 0 for rows it has not placed yet, which is only correct when every child has a higher index than its parent; a freshly built trie has that property, but the output of a merge pass does not (shared rows, self-loops, pre-order renumbering).
 
+two Optimizer2 passes over the one-word backward trie {aab -&gt; Da} (MultiTrie2, public API) lose the word's patch; a second merge pass on an already merge-reduced trie corrupts it.
+
 ## Expected vs actual
 
-- Expected: `Da` after two `Optimizer2` passes, `Db` after two `Optimizer` passes, and all 9 training words stemmed with `-22` and `-M22`, as with `-2` and `-M2`.
-- Actual: `null` after the second `Optimizer2` pass, `Da` for `ab` after the second `Optimizer` pass; `-22` stems all 9 words to `null`, `-M22` returns all 9 unchanged. 3 of 3 tests fail, assertions on and off.
+Expected getLastOnPath("aab") = "Da" (Optimizer2 keeps the words the trie was built for); actual "" on main 645d4fe14a2 with -ea and -da.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/stempel/TestOptimizerSecondPass.java](src/org/apache/lucene/analysis/stempel/TestOptimizerSecondPass.java) (JUnit test)
+- [src/org/apache/lucene/analysis/stempel/TestOptimizer2SecondPass.java](src/org/apache/lucene/analysis/stempel/TestOptimizer2SecondPass.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,15 +42,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.stempel.TestOptimizerSecondPass
+     execute --select-class org.apache.lucene.analysis.stempel.TestOptimizer2SecondPass
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestSecondMergePass.java](TestSecondMergePass.java)
-- [TestRepeatedOptimizer2.java](TestRepeatedOptimizer2.java)
 
 ## Feedback
 

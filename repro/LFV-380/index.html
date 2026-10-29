@@ -23,13 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You train SimpleNaiveBayesDocumentClassifier on the fields title and body and classify the document {title: &#x27;apple&#x27;, body: &#x27;&#x27;} (or a body such as &#x27;the of and&#x27; that the analyzer reduces to stop words), expecting a class with a finite score, as the DocumentClassifier.assignClass javadoc and the &#x27;0-1 range&#x27; normalisation comment imply and as the same document without the body value gets (fruit). Instead getClasses returns fruit=NaN and vehicle=NaN, and assignClass returns null. calculateLogLikelihood returns result / tokenizedText.length, which is 0.0 / 0 = NaN for a value with no tokens; assignNormClasses adds that NaN to every class, and neither the log-sum-exp normalisation nor the &#x27;score &gt; maxscore&#x27; test in assignClass can recover from it.</p>
+<p>The test shows that SimpleNaiveBayesDocumentClassifier returns no class when one field value of the document has no tokens (<code>{title: &#x27;apple&#x27;, body: &#x27;&#x27;}</code>): the value&#x27;s log-likelihood is 0.0 / 0 = NaN, which makes every class score NaN.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>getClasses</code> returns finite probabilities that sum to 1 and <code>assignClass</code> a class; without the body value: fruit 0.7619, vehicle 0.2381.</li><li><b>Actual:</b> <code>getClasses=[fruit=NaN vehicle=NaN ] assignClass=null</code> for body <code>&quot;&quot;</code>, <code>&quot;To be or not to be&quot;</code> and <code>&quot;!!!&quot;</code>; no exception.</li></ul>
+<p>Expected a non-null class with a finite score; actual <code>assignClass</code> returns null and <code>getClasses</code> gives fruit=NaN and vehicle=NaN, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/classification/document/TestSimpleNaiveBayesDocumentClassifierEmptyField.java"><code>src/org/apache/lucene/classification/document/TestSimpleNaiveBayesDocumentClassifierEmptyField.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -46,11 +47,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.classification.document.TestSimpleNaiveBayesDocumentClassifierEmptyField</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestSimpleNaiveBayesDocumentClassifierZeroTokenValue.java"><code>TestSimpleNaiveBayesDocumentClassifierZeroTokenValue.java</code></a></li><li><a href="TestSimpleNaiveBayesDocumentClassifierEmptyField.java"><code>TestSimpleNaiveBayesDocumentClassifierEmptyField.java</code></a></li><li><a href="TestNaiveBayesDocZeroTokenValue.java"><code>TestNaiveBayesDocZeroTokenValue.java</code></a></li><li><a href="TestZeroTokenValueProbe.java"><code>TestZeroTokenValueProbe.java</code></a></li></ul>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/classification/index.html">classification</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

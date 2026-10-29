@@ -22,12 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You highlight a stored value with matchhighlight&#x27;s FieldValueHighlighters, for example maxLeadingCharacters(5, &#x27;...&#x27;, fields) on a value that starts with the word BOLD written in mathematical bold capitals (U+1D401 U+1D40E U+1D40B U+1D403, two UTF-16 units each), or highlighted(5,...) with a term query that matches that word. You expect a snippet of whole characters within the 5-unit budget, for example the first two letters and &#x27;...&#x27;, just as the ASCII value &#x27;boldtext&#x27; is cut inside the word but between characters (&#x27;boldt...&#x27;). Instead the snippet ends with the first half of the third letter (&#x27;\uD835\uDC01\uD835\uDC0E\uD835...&#x27; and &#x27;&gt;\uD835\uDC01\uD835\uDC0E\uD835&lt;...&#x27;), because PassageSelector cuts windows and long matches at a raw UTF-16 offset and BreakIteratorShrinkingAdjuster keeps that raw edge when no word boundary fits in the window.</p>
+<p>The test shows that the default matchhighlight PassageSelector (as used by <code>FieldValueHighlighters.maxLeadingCharacters(5,...)</code>) ends a 5-unit passage between the two halves of a supplementary character, so the snippet carries an unpaired high surrogate.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect a snippet of whole characters within the 5-unit budget, for example the first two letters and &#x27;...&#x27;, just as the ASCII value &#x27;boldtext&#x27; is cut inside the word but between characters (&#x27;boldt...&#x27;).</li><li><b>Actual:</b> The snippet ends with the first half of the third letter (&#x27;\uD835\uDC01\uD835\uDC0E\uD835...&#x27; and &#x27;&gt;\uD835\uDC01\uD835\uDC0E\uD835&lt;...&#x27;), because PassageSelector cuts windows and long matches at a raw UTF-16 offset and BreakIteratorShrinkingAdjuster keeps that raw edge when no word boundary fits in the window.</li></ul>
+<p>Expected a passage ending on a code point boundary; actual <code>[[from=0, to=5], markers=[]]</code>, offset 5 inside U+1D40B (-ea and -da).</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/search/matchhighlight/TestMatchHighlightWindowSurrogatePair.java"><code>src/org/apache/lucene/search/matchhighlight/TestMatchHighlightWindowSurrogatePair.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 Since 9.6.0 TermInSetQuery is a MultiTermQuery whose rewrite method decides which documents it matches and how it scores, but its equals/hashCode still compare only the field and terms: new TermInSetQuery("f", [a]) equals SortedSetDocValuesField.newSlowSetQuery("f", [a]) although on a field with only doc values they match 0 and 1 documents, and on an ordinary field new TermInSetQuery("f", [a, b]) equals its TopTermsScoringBooleanQueryRewrite(1) variant although they match 2 and 1 documents. You expect queries that match different documents to be unequal, as PrefixQuery, AutomatonQuery, FuzzyQuery and TermRangeQuery are when only the rewrite method differs. Instead anything keyed on the un-rewritten query treats the two as one: IndexWriter.deleteDocuments with both queries in one flush window applies only the first, so a doc-values delete silently does not happen, or a document added in between is deleted although no call matched it.
 
+The test shows that `IndexWriter.deleteDocuments(new TermInSetQuery("f", [a]), SortedSetDocValuesField.newSlowSetQuery("f", [a]))` on a document whose field `f` has only doc values does not delete it, because `TermInSetQuery.equals/hashCode` ignore the rewrite method and the delete buffer keeps only the first of the two equal-comparing queries.
+
 ## Expected vs actual
 
-- Expected: You expect queries that match different documents to be unequal, as PrefixQuery, AutomatonQuery, FuzzyQuery and TermRangeQuery are when only the rewrite method differs.
-- Actual: Anything keyed on the un-rewritten query treats the two as one: IndexWriter.deleteDocuments with both queries in one flush window applies only the first, so a doc-values delete silently does not happen, or a document added in between is deleted although no call matched it.
+Expected: the doc-values query matches the document, so 0 live docs. Actual on main with -ea and with -da: 1 live doc.
 
 ## Files
 
-- [src/org/apache/lucene/search/TestTermInSetQueryEqualsIgnoresRewriteMethod.java](src/org/apache/lucene/search/TestTermInSetQueryEqualsIgnoresRewriteMethod.java) (JUnit test)
+- [src/org/apache/lucene/search/TestTermInSetQueryDeleteByDocValuesSetQuery.java](src/org/apache/lucene/search/TestTermInSetQueryDeleteByDocValuesSetQuery.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,7 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestTermInSetQueryEqualsIgnoresRewriteMethod
+     execute --select-class org.apache.lucene.search.TestTermInSetQueryDeleteByDocValuesSetQuery
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

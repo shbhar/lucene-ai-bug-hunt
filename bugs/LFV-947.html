@@ -177,7 +177,7 @@ p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
 code.nw{white-space:nowrap}
 .sitefiles{font-size:var(--step--1);color:var(--mute)}
 h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
-</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-947 &middot; composite-verify-query-cacheable-ignores-index-query</p><h1 id='top'>CompositeVerifyQuery reports itself cacheable without asking its index query, so a query cache keeps old matches after an in-place doc-values update</h1><p class='tldr'><code>CompositeVerifyQuery</code> tells the query cache it is cacheable by asking only its shape check, never the index query it runs. If that index query reads a doc-values flag you update in place, the cached query keeps its old matches: [0, 1, 2] instead of [1, 2, 4] in the repro.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 245</span><span class='sub'>It belongs to the same stale-query-cache class as LFV-320, LFV-336 and LFV-308, with silent wrong results released since 7.2, but it needs a hand-built CompositeVerifyQuery plus in-place updates, so it closes that medium group after LFV-308.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>7.2.0 (LUCENE-8042, 2017)<span class='sub'>introduced 2017-11-07 &middot; about 8 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>7.2.0 to 10.5.2, the 10.6 branch and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div><dt>Found by</dt><dd>a model-based cached-vs-uncached harness, then a JUnit</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-29.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'><code>CompositeVerifyQuery</code> finds candidates with a cheap index query, then checks each one against an exact shape. Before reusing a cached result on a segment, the query cache asks the query whether that is safe after doc-values updates; this query answers for its shape check only.</p><div class='part' id='background'><div class="hd hd-3"><h3 id='background-h'>Background: three pieces</h3><a class="hlink" href="#background" target="_self" aria-label="Link to this section" aria-describedby="background-h"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span><code>CompositeVerifyQuery(indexQuery, predicate)</code> in spatial-extras runs <code class='nw'>indexQuery</code> to find candidate documents, then checks each candidate against an exact shape (the predicate). Its constructor is public and accepts any query.</span></li><li><span>A query cache (<code class='nw'>LRUQueryCache</code>) stores a query's matching documents per segment. Before it reuses an entry it asks the query's Weight <code>isCacheable(segment)</code>. A Weight that reads doc values must say no once those doc values were updated in place.</span></li><li><span><code>IndexWriter#updateNumericDocValue</code> changes a doc-values field without rewriting the segment. The reopened segment can keep its cache key (it does in the repro), and then only that <code class='nw'>isCacheable</code> answer stops the cache from serving old matches.</span></li></ol></div><figure class='visual' id='composite-verify-query-cacheable-ignores-index-query-short-visual'><div class='frame'><a class='still' href='../assets/LFV-947/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-947/bug.png' alt='Summary card for CompositeVerifyQuery and the query cache: the composite&#x27;s isCacheable asks only the shape predicate and not the doc-values index query, so after an in-place doc-values update and a reopen the cache serves the matches from before the update; expected versus actual results and the one-line fix.' width='1920' height='1080'></a></div><figcaption>The diagram follows its own executed example on main: a doc-values index query, an in-place update of one document, and the cached composite returning its pre-update matches while an uncached search is correct. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><div class="hd hd-3"><h3 id='the-bug-step-by-step'>The bug, step by step</h3><a class="hlink" href="#the-bug-step-by-step" target="_self" aria-label="Link to this section" aria-describedby="the-bug-step-by-step"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span>Index six shops at points (0,0) to (5,5) with a <code>CompositeSpatialStrategy</code>; shops 0-2 are open (<code class='nw'>open</code> = 1, a doc-values field). Search <code>new CompositeVerifyQuery("in the area" AND open == 1, exact shape check)</code> through a query cache: [0, 1, 2].</span></li><li><span>Shop 0 closes and shop 4 opens: two <code>updateNumericDocValue</code> calls on <code class='nw'>open</code>, then reopen the reader. You expect [1, 2, 4], and an uncached searcher on the new reader returns [1, 2, 4].</span></li><li><span>Instead the same search through the cache returns [0, 1, 2]. Asked "is your cached result still valid?", the composite checks only its shape field, which did not change, and never asks its index query, which would say no. The in-place update left the segment's cache key unchanged, so the old entry is served.</span></li><li><span>It lasts until the segment is merged or the entry is evicted or cleared. On 7.2.0-10.5.2 and the 10.6 branch the default <code class='nw'>IndexSearcher</code> cache is enough; main has no default cache, so the application must install one. <code>CompositeSpatialStrategy</code>'s own queries are not affected.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that build <code>CompositeVerifyQuery</code> themselves around an index query that reads a doc-values field (an open or visible flag next to the spatial filter), update that field in place, and keep a query cache across reopens: the default <code class='nw'>IndexSearcher</code> cache on 7.2.0-10.5.2 and the 10.6 branch, an installed one on main. Rare: no in-tree code builds such a query.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>937 words</span></summary><div class='body'><p><code>CompositeVerifyQuery(Query indexQuery, ShapeValuesPredicate predicate)</code> (spatial-extras, public constructor, <code>@lucene.experimental</code>) finds candidates with its index query and verifies each one with the shape predicate. Its Weight iterates the index query's scorer as the approximation of every match, but its <code class='nw'>isCacheable</code> asks only the predicate (<code>return predicateValueSource.isCacheable(ctx);</code>, <code>CompositeVerifyQuery.java:113-116</code> on main <code class='nw'>a9779ef3c193</code>). <code class='nw'>LRUQueryCache</code> trusts <code>Weight#isCacheable</code> and keys entries on the segment's core cache key, which a doc-values update may leave unchanged (<code class='nw'>LeafReader</code> allows it, and in the repro it stays the same). So when the index query reads a doc-values field that is updated in place (<code>IndexWriter#updateNumericDocValue</code> or <code>updateBinaryDocValue</code>), the entry cached before the update keeps being served after the reopen: [0, 1, 2] instead of [1, 2, 4] for an "in the area AND open" index query, [0, 1, 2] instead of [1, 2] for a bare <code>newSlowExactQuery</code>, 5025 instead of 5024 hits with the release-default cache settings. The index query on its own is correctly uncacheable on that segment. On 7.2.0-10.5.2 and the 10.6.0 release-candidate branch a plain <code class='nw'>IndexSearcher</code> reproduces it with zero configuration; main has had no default cache since #14187 (unreleased), so there it needs an installed cache. <code>CompositeSpatialStrategy</code>'s own queries (prefix-tree index queries) are not affected. Introduced by LUCENE-8042 (<code class='nw'>276e317e942</code>), which replaced a never-cacheable "TODO delegate to PredicateValueSource?" with the predicate check and left out the index-query Weight built in the same method. The fix ANDs <code>indexQueryWeight.isCacheable(ctx)</code> in.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>CompositeVerifyQuery</strong>: "A Query that considers an 'indexQuery' to have approximate results, and a follow-on ShapeValuesSource is called to verify each hit" (<code>CompositeVerifyQuery.java:33-35</code>; the field comment at <code class='nw'>:41</code> says "approximation (matches more than needed)"). Public constructor (<code class='nw'>:44</code>), <code>@lucene.experimental</code> (<code class='nw'>:37</code>). <code>CompositeSpatialStrategy</code> builds it around a prefix-tree (RPT) query; applications can build it around any query.</li><li><strong>Query cache</strong>: <code class='nw'>LRUQueryCache</code> stores the matching documents of a query per segment, keyed on the query and the segment's <em>core</em> cache key. It asks <code>Weight#isCacheable(leaf)</code> before it reads or writes an entry (<code>LRUQueryCache.java:816-834</code> and <code class='nw'>:903-921</code>).</li><li><strong>In-place doc-values update</strong>: <code>IndexWriter#updateNumericDocValue</code> and <code>updateBinaryDocValue</code> change a doc-values-only field without rewriting the segment. The reopened segment may keep its core key: "Two readers that have the same data but different sets of deleted documents or doc values updates may be considered equal" (<code>LeafReader.java:66-70</code>); the test asserts it does. That is why a query that reads an updated doc-values field must say it is not cacheable: "Updated doc values fields are not suitable for caching" (<code>SegmentCacheable.java:30-32</code>).</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code class='nw'>createWeight</code> builds the index query's Weight once (<code>CompositeVerifyQuery.java:95-97</code>) and feeds its scorer's iterator to the predicate's two-phase iterator (<code class='nw'>:102-108</code>): every match is an index-query match that the predicate confirmed.</li><li><code class='nw'>isCacheable</code> returns <code>predicateValueSource.isCacheable(ctx)</code> and nothing else (<code class='nw'>:113-116</code>).</li><li>A doc-values index query such as <code>NumericDocValuesField.newSlowExactQuery("open", 1)</code> reports <code>DocValues.isCacheable(ctx, "open")</code> (<code>SortedNumericDocValuesRangeQuery.java:119-121</code>), false once the field was updated in that segment (<code>DocValues.java:339-346</code>); a small <code class='nw'>BooleanQuery</code> ANDs its clauses' answers (<code>BooleanWeight.java:272-285</code>). The composite's Weight never asks it.</li><li>After the update and reopen, the cache asks the composite's Weight, gets true, finds the old entry under the unchanged core key and returns it. The index query's Weight is not consulted, because the outer entry is served before the composite's scorer is built.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><p>Six shops at (i, i), one segment, indexed with a <code>CompositeSpatialStrategy</code>; shops 0-2 open. <code>CompositeVerifyQuery(BooleanQuery(FILTER rpt Intersects area, FILTER open == 1), exact shape Intersects area)</code> returns [0, 1, 2]. After <code>updateNumericDocValue(id:0, open, 0)</code>, <code>updateNumericDocValue(id:4, open, 1)</code> and <code class='nw'>openIfChanged</code>: uncached [1, 2, 4], cached <strong>[0, 1, 2]</strong>: a closed shop returned, an open one missing. The same flag as a sibling clause outside the composite is correct through the same cache. With the bare index query <code>newSlowExactQuery("v", 1)</code> and doc 0 changed from v=1 to v=2: cached [0, 1, 2] instead of [1, 2]. With the release-default cache settings (<code>LRUQueryCache(1000, 32 MB)</code>, which is the releases' <code>min(32 MB, heap/20)</code> for heaps of 640 MB or more, and <code>UsageTrackingQueryCachingPolicy</code>; 10,050 documents, query counted 10 times): 5025 instead of 5024. The composite's <code class='nw'>isCacheable</code> is true on the updated segment while the index query's is false.</p><div class="hd hd-3"><h3 id='what-the-bug-is-when-it-happens-and-when-not'>When it happens and when not</h3><a class="hlink" href="#what-the-bug-is-when-it-happens-and-when-not" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-when-it-happens-and-when-not"><span aria-hidden="true">#</span></a></div><ul><li>Needs: an index query that reads a doc-values field, an in-place update of that field, the composite cached on that segment before the update, and a cache that survives the reopen. The composite must run without scores, as a count, a filter clause or a no-score collector does: only then does <code>IndexSearcher#createWeight</code> wrap it in the cache (<code>IndexSearcher.java:976-982</code>).</li><li>Affected index queries (model-based harness, 14 stale results): <code>newSlowExactQuery</code>, <code>newSlowRangeQuery</code>, a <code class='nw'>BooleanQuery</code> with such a <code class='nw'>FILTER</code> clause, <code class='nw'>FieldExistsQuery</code> on a doc-values field, <code>SerializedDVStrategy.makeQuery</code> after a binary doc-values update.</li><li>Not affected, by the code: <code>CompositeSpatialStrategy.makeQuery</code> (Intersects builds an <code>IntersectsRPTVerifyQuery</code>, <code>CompositeSpatialStrategy.java:122-134</code>; the other operations wrap an RPT query, <code class='nw'>:154-155</code>, whose Weight is always cacheable, <code>AbstractPrefixTreeQuery.java:107-108</code>, or a <code class='nw'>TermQuery</code> for a point shape on a points-only grid, also always cacheable, <code>RecursivePrefixTreeStrategy.java:185-187, 216-229</code>, <code>TermQuery.java:192-194</code>).</li><li>No mismatch observed in the harness (its 9 index-query kinds x 9 index operations) for <code class='nw'>TermQuery</code>, <code class='nw'>IntPoint</code> range and kNN index queries, an update of the predicate's own shape field, deletes, new segments and <code class='nw'>updateDocument</code>.</li><li>The stale entry ends when the segment is merged into a new one, the entry is evicted, the application clears the cache (<code>LRUQueryCache.java:458</code>), or searches switch to another cache; <code>LRUQueryCache#close</code> keeps the entries and only stops an optional cleanup thread (<code class='nw'>:264-275</code>). The duration in a running application was not measured.</li></ul></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>290 words</span></summary><div class='body'><ul><li><strong>Intended public use.</strong> LUCENE-5579 (#6641), which added the class, "Pulled out the inner Query instances to live in the 'composite' package, so that they might be used by users who want to build with these constructs", after asking how users "can put other query/filters in-between RPT and the SerializedDVStrategy". An index query that ANDs the prefix-tree query with a doc-values flag fits that description.</li><li><strong>7.2.0 to 10.5.2 and the 10.6 branch: the default configuration.</strong> <code class='nw'>IndexSearcher</code> has a JVM-wide default <code>LRUQueryCache(1000, min(32 MB, heap/20))</code> with <code>UsageTrackingQueryCachingPolicy</code> (10.5.2 <code>IndexSearcher.java:83-99</code>). It caches only segments of at least 10,000 documents that are large relative to the index (<code>LRUQueryCache.java:251-253, 278-296</code>), and a query only after repeated use. One 10,050-document segment and the query counted 10 times reproduce it with no cache code at all on 7.2.0, 8.11.4, 9.12.3, 10.5.2 and <code class='nw'>branch_10_6</code> (5025 instead of 5024); an independent program with 12,000 documents gives 6000 instead of 5999 on 10.5.2 and <code class='nw'>branch_10_6</code>.</li><li><strong>main: opt-in.</strong> There is no default cache since #14187 (<code>IndexSearcher.java:84</code>, not yet released); <code>MIGRATE.md:227-236</code> shows how to turn it back on.</li><li><strong>Effect.</strong> Silent wrong hit lists and counts for the documents whose field changed, in both directions; no exception. With the shared default cache, any searcher in the JVM that runs the same query without scores on the same segment core can get the stale entry.</li><li><strong>Scale.</strong> Ordinary: six documents with a cache that accepts every segment; one segment of about 10,000 documents with the default cache (<code>LRUQueryCache.java:251-253</code>).</li><li><strong>How likely: rare.</strong> The only in-tree producer, <code>CompositeSpatialStrategy</code>, passes prefix-tree queries, which cannot change in place; no Lucene query parser builds a <code>CompositeVerifyQuery</code>; no spatial-extras test touches caching; no outside report was found in the documented searches.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit class for <code>lucene/spatial-extras</code> on the public API: one segment of six documents, a query cache that caches everything, in-place doc-values updates, then cached versus uncached results. 4 of 5 tests fail on main and 10.5.2, with assertions on and off; the control passes; all 5 pass with the fix.</p><figure class='code'><figcaption><span class='fname'>TestCompositeVerifyQueryCacheability.java (lucene/spatial-extras, public API, 5 tests)</span><span class='meta'>381 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-947 &middot; composite-verify-query-cacheable-ignores-index-query</p><h1 id='top'>CompositeVerifyQuery reports itself cacheable without asking its index query, so a query cache keeps old matches after an in-place doc-values update</h1><p class='tldr'><code>CompositeVerifyQuery</code> tells the query cache it is cacheable by asking only its shape check, never the index query it runs. If that index query reads a doc-values flag you update in place, the cached query keeps its old matches: [0, 1, 2] instead of [1, 2, 4] in the repro.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 301</span><span class='sub'>Needs a hand-built CompositeVerifyQuery with a doc-values index query plus in-place updates and a query cache that survives reopens.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>7.2.0 (LUCENE-8042, 2017)<span class='sub'>introduced 2017-11-07 &middot; about 8 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>7.2.0 to 10.5.2, the 10.6 branch and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div><dt>Found by</dt><dd>a model-based cached-vs-uncached harness, then a JUnit</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-29.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'><code>CompositeVerifyQuery</code> finds candidates with a cheap index query, then checks each one against an exact shape. Before reusing a cached result on a segment, the query cache asks the query whether that is safe after doc-values updates; this query answers for its shape check only.</p><div class='part' id='background'><div class="hd hd-3"><h3 id='background-h'>Background: three pieces</h3><a class="hlink" href="#background" target="_self" aria-label="Link to this section" aria-describedby="background-h"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span><code>CompositeVerifyQuery(indexQuery, predicate)</code> in spatial-extras runs <code class='nw'>indexQuery</code> to find candidate documents, then checks each candidate against an exact shape (the predicate). Its constructor is public and accepts any query.</span></li><li><span>A query cache (<code class='nw'>LRUQueryCache</code>) stores a query's matching documents per segment. Before it reuses an entry it asks the query's Weight <code>isCacheable(segment)</code>. A Weight that reads doc values must say no once those doc values were updated in place.</span></li><li><span><code>IndexWriter#updateNumericDocValue</code> changes a doc-values field without rewriting the segment. The reopened segment can keep its cache key (it does in the repro), and then only that <code class='nw'>isCacheable</code> answer stops the cache from serving old matches.</span></li></ol></div><figure class='visual' id='composite-verify-query-cacheable-ignores-index-query-short-visual'><div class='frame'><a class='still' href='../assets/LFV-947/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-947/bug.png' alt='Summary card for CompositeVerifyQuery and the query cache: the composite&#x27;s isCacheable asks only the shape predicate and not the doc-values index query, so after an in-place doc-values update and a reopen the cache serves the matches from before the update; expected versus actual results and the one-line fix.' width='1920' height='1080'></a></div><figcaption>The diagram follows its own executed example on main: a doc-values index query, an in-place update of one document, and the cached composite returning its pre-update matches while an uncached search is correct. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><div class="hd hd-3"><h3 id='the-bug-step-by-step'>The bug, step by step</h3><a class="hlink" href="#the-bug-step-by-step" target="_self" aria-label="Link to this section" aria-describedby="the-bug-step-by-step"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span>Index six shops at points (0,0) to (5,5) with a <code>CompositeSpatialStrategy</code>; shops 0-2 are open (<code class='nw'>open</code> = 1, a doc-values field). Search <code>new CompositeVerifyQuery("in the area" AND open == 1, exact shape check)</code> through a query cache: [0, 1, 2].</span></li><li><span>Shop 0 closes and shop 4 opens: two <code>updateNumericDocValue</code> calls on <code class='nw'>open</code>, then reopen the reader. You expect [1, 2, 4], and an uncached searcher on the new reader returns [1, 2, 4].</span></li><li><span>Instead the same search through the cache returns [0, 1, 2]. Asked "is your cached result still valid?", the composite checks only its shape field, which did not change, and never asks its index query, which would say no. The in-place update left the segment's cache key unchanged, so the old entry is served.</span></li><li><span>It lasts until the segment is merged or the entry is evicted or cleared. On 7.2.0-10.5.2 and the 10.6 branch the default <code class='nw'>IndexSearcher</code> cache is enough; main has no default cache, so the application must install one. <code>CompositeSpatialStrategy</code>'s own queries are not affected.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that build <code>CompositeVerifyQuery</code> themselves around an index query that reads a doc-values field (an open or visible flag next to the spatial filter), update that field in place, and keep a query cache across reopens: the default <code class='nw'>IndexSearcher</code> cache on 7.2.0-10.5.2 and the 10.6 branch, an installed one on main. Rare: no in-tree code builds such a query.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>937 words</span></summary><div class='body'><p><code>CompositeVerifyQuery(Query indexQuery, ShapeValuesPredicate predicate)</code> (spatial-extras, public constructor, <code>@lucene.experimental</code>) finds candidates with its index query and verifies each one with the shape predicate. Its Weight iterates the index query's scorer as the approximation of every match, but its <code class='nw'>isCacheable</code> asks only the predicate (<code>return predicateValueSource.isCacheable(ctx);</code>, <code>CompositeVerifyQuery.java:113-116</code> on main <code class='nw'>a9779ef3c193</code>). <code class='nw'>LRUQueryCache</code> trusts <code>Weight#isCacheable</code> and keys entries on the segment's core cache key, which a doc-values update may leave unchanged (<code class='nw'>LeafReader</code> allows it, and in the repro it stays the same). So when the index query reads a doc-values field that is updated in place (<code>IndexWriter#updateNumericDocValue</code> or <code>updateBinaryDocValue</code>), the entry cached before the update keeps being served after the reopen: [0, 1, 2] instead of [1, 2, 4] for an "in the area AND open" index query, [0, 1, 2] instead of [1, 2] for a bare <code>newSlowExactQuery</code>, 5025 instead of 5024 hits with the release-default cache settings. The index query on its own is correctly uncacheable on that segment. On 7.2.0-10.5.2 and the 10.6.0 release-candidate branch a plain <code class='nw'>IndexSearcher</code> reproduces it with zero configuration; main has had no default cache since #14187 (unreleased), so there it needs an installed cache. <code>CompositeSpatialStrategy</code>'s own queries (prefix-tree index queries) are not affected. Introduced by LUCENE-8042 (<code class='nw'>276e317e942</code>), which replaced a never-cacheable "TODO delegate to PredicateValueSource?" with the predicate check and left out the index-query Weight built in the same method. The fix ANDs <code>indexQueryWeight.isCacheable(ctx)</code> in.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>CompositeVerifyQuery</strong>: "A Query that considers an 'indexQuery' to have approximate results, and a follow-on ShapeValuesSource is called to verify each hit" (<code>CompositeVerifyQuery.java:33-35</code>; the field comment at <code class='nw'>:41</code> says "approximation (matches more than needed)"). Public constructor (<code class='nw'>:44</code>), <code>@lucene.experimental</code> (<code class='nw'>:37</code>). <code>CompositeSpatialStrategy</code> builds it around a prefix-tree (RPT) query; applications can build it around any query.</li><li><strong>Query cache</strong>: <code class='nw'>LRUQueryCache</code> stores the matching documents of a query per segment, keyed on the query and the segment's <em>core</em> cache key. It asks <code>Weight#isCacheable(leaf)</code> before it reads or writes an entry (<code>LRUQueryCache.java:816-834</code> and <code class='nw'>:903-921</code>).</li><li><strong>In-place doc-values update</strong>: <code>IndexWriter#updateNumericDocValue</code> and <code>updateBinaryDocValue</code> change a doc-values-only field without rewriting the segment. The reopened segment may keep its core key: "Two readers that have the same data but different sets of deleted documents or doc values updates may be considered equal" (<code>LeafReader.java:66-70</code>); the test asserts it does. That is why a query that reads an updated doc-values field must say it is not cacheable: "Updated doc values fields are not suitable for caching" (<code>SegmentCacheable.java:30-32</code>).</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code class='nw'>createWeight</code> builds the index query's Weight once (<code>CompositeVerifyQuery.java:95-97</code>) and feeds its scorer's iterator to the predicate's two-phase iterator (<code class='nw'>:102-108</code>): every match is an index-query match that the predicate confirmed.</li><li><code class='nw'>isCacheable</code> returns <code>predicateValueSource.isCacheable(ctx)</code> and nothing else (<code class='nw'>:113-116</code>).</li><li>A doc-values index query such as <code>NumericDocValuesField.newSlowExactQuery("open", 1)</code> reports <code>DocValues.isCacheable(ctx, "open")</code> (<code>SortedNumericDocValuesRangeQuery.java:119-121</code>), false once the field was updated in that segment (<code>DocValues.java:339-346</code>); a small <code class='nw'>BooleanQuery</code> ANDs its clauses' answers (<code>BooleanWeight.java:272-285</code>). The composite's Weight never asks it.</li><li>After the update and reopen, the cache asks the composite's Weight, gets true, finds the old entry under the unchanged core key and returns it. The index query's Weight is not consulted, because the outer entry is served before the composite's scorer is built.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><p>Six shops at (i, i), one segment, indexed with a <code>CompositeSpatialStrategy</code>; shops 0-2 open. <code>CompositeVerifyQuery(BooleanQuery(FILTER rpt Intersects area, FILTER open == 1), exact shape Intersects area)</code> returns [0, 1, 2]. After <code>updateNumericDocValue(id:0, open, 0)</code>, <code>updateNumericDocValue(id:4, open, 1)</code> and <code class='nw'>openIfChanged</code>: uncached [1, 2, 4], cached <strong>[0, 1, 2]</strong>: a closed shop returned, an open one missing. The same flag as a sibling clause outside the composite is correct through the same cache. With the bare index query <code>newSlowExactQuery("v", 1)</code> and doc 0 changed from v=1 to v=2: cached [0, 1, 2] instead of [1, 2]. With the release-default cache settings (<code>LRUQueryCache(1000, 32 MB)</code>, which is the releases' <code>min(32 MB, heap/20)</code> for heaps of 640 MB or more, and <code>UsageTrackingQueryCachingPolicy</code>; 10,050 documents, query counted 10 times): 5025 instead of 5024. The composite's <code class='nw'>isCacheable</code> is true on the updated segment while the index query's is false.</p><div class="hd hd-3"><h3 id='what-the-bug-is-when-it-happens-and-when-not'>When it happens and when not</h3><a class="hlink" href="#what-the-bug-is-when-it-happens-and-when-not" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-when-it-happens-and-when-not"><span aria-hidden="true">#</span></a></div><ul><li>Needs: an index query that reads a doc-values field, an in-place update of that field, the composite cached on that segment before the update, and a cache that survives the reopen. The composite must run without scores, as a count, a filter clause or a no-score collector does: only then does <code>IndexSearcher#createWeight</code> wrap it in the cache (<code>IndexSearcher.java:976-982</code>).</li><li>Affected index queries (model-based harness, 14 stale results): <code>newSlowExactQuery</code>, <code>newSlowRangeQuery</code>, a <code class='nw'>BooleanQuery</code> with such a <code class='nw'>FILTER</code> clause, <code class='nw'>FieldExistsQuery</code> on a doc-values field, <code>SerializedDVStrategy.makeQuery</code> after a binary doc-values update.</li><li>Not affected, by the code: <code>CompositeSpatialStrategy.makeQuery</code> (Intersects builds an <code>IntersectsRPTVerifyQuery</code>, <code>CompositeSpatialStrategy.java:122-134</code>; the other operations wrap an RPT query, <code class='nw'>:154-155</code>, whose Weight is always cacheable, <code>AbstractPrefixTreeQuery.java:107-108</code>, or a <code class='nw'>TermQuery</code> for a point shape on a points-only grid, also always cacheable, <code>RecursivePrefixTreeStrategy.java:185-187, 216-229</code>, <code>TermQuery.java:192-194</code>).</li><li>No mismatch observed in the harness (its 9 index-query kinds x 9 index operations) for <code class='nw'>TermQuery</code>, <code class='nw'>IntPoint</code> range and kNN index queries, an update of the predicate's own shape field, deletes, new segments and <code class='nw'>updateDocument</code>.</li><li>The stale entry ends when the segment is merged into a new one, the entry is evicted, the application clears the cache (<code>LRUQueryCache.java:458</code>), or searches switch to another cache; <code>LRUQueryCache#close</code> keeps the entries and only stops an optional cleanup thread (<code class='nw'>:264-275</code>). The duration in a running application was not measured.</li></ul></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>290 words</span></summary><div class='body'><ul><li><strong>Intended public use.</strong> LUCENE-5579 (#6641), which added the class, "Pulled out the inner Query instances to live in the 'composite' package, so that they might be used by users who want to build with these constructs", after asking how users "can put other query/filters in-between RPT and the SerializedDVStrategy". An index query that ANDs the prefix-tree query with a doc-values flag fits that description.</li><li><strong>7.2.0 to 10.5.2 and the 10.6 branch: the default configuration.</strong> <code class='nw'>IndexSearcher</code> has a JVM-wide default <code>LRUQueryCache(1000, min(32 MB, heap/20))</code> with <code>UsageTrackingQueryCachingPolicy</code> (10.5.2 <code>IndexSearcher.java:83-99</code>). It caches only segments of at least 10,000 documents that are large relative to the index (<code>LRUQueryCache.java:251-253, 278-296</code>), and a query only after repeated use. One 10,050-document segment and the query counted 10 times reproduce it with no cache code at all on 7.2.0, 8.11.4, 9.12.3, 10.5.2 and <code class='nw'>branch_10_6</code> (5025 instead of 5024); an independent program with 12,000 documents gives 6000 instead of 5999 on 10.5.2 and <code class='nw'>branch_10_6</code>.</li><li><strong>main: opt-in.</strong> There is no default cache since #14187 (<code>IndexSearcher.java:84</code>, not yet released); <code>MIGRATE.md:227-236</code> shows how to turn it back on.</li><li><strong>Effect.</strong> Silent wrong hit lists and counts for the documents whose field changed, in both directions; no exception. With the shared default cache, any searcher in the JVM that runs the same query without scores on the same segment core can get the stale entry.</li><li><strong>Scale.</strong> Ordinary: six documents with a cache that accepts every segment; one segment of about 10,000 documents with the default cache (<code>LRUQueryCache.java:251-253</code>).</li><li><strong>How likely: rare.</strong> The only in-tree producer, <code>CompositeSpatialStrategy</code>, passes prefix-tree queries, which cannot change in place; no Lucene query parser builds a <code>CompositeVerifyQuery</code>; no spatial-extras test touches caching; no outside report was found in the documented searches.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>The test shows that a <code>CompositeVerifyQuery</code> whose index query reads doc values (<code>NumericDocValuesField.newSlowExactQuery("v", 1)</code>) stays cached across an in-place <code>updateNumericDocValue</code> and reopen, because its <code>Weight#isCacheable</code> asks only the shape predicate.</p><figure class='code'><figcaption><span class='fname'>TestCompositeVerifyQueryCacheability.java (JUnit test)</span><span class='meta'>88 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -196,10 +196,6 @@ h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
 package org.apache.lucene.spatial.composite;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.TreeSet;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
@@ -207,939 +203,99 @@ import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NoMergePolicy;
-import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.BooleanClause.Occur;
-import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.Collector;
-import org.apache.lucene.search.CollectorManager;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.LRUQueryCache;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryCachingPolicy;
-import org.apache.lucene.search.ScoreMode;
-import org.apache.lucene.search.SimpleCollector;
-import org.apache.lucene.search.UsageTrackingQueryCachingPolicy;
-import org.apache.lucene.search.Weight;
-import org.apache.lucene.spatial.prefix.RecursivePrefixTreeStrategy;
-import org.apache.lucene.spatial.prefix.tree.QuadPrefixTree;
-import org.apache.lucene.spatial.query.SpatialArgs;
-import org.apache.lucene.spatial.query.SpatialOperation;
-import org.apache.lucene.spatial.serialized.SerializedDVStrategy;
-import org.apache.lucene.spatial.util.ShapeValuesPredicate;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.tests.util.LuceneTestCase;
-import org.locationtech.spatial4j.context.SpatialContext;
-import org.locationtech.spatial4j.shape.Rectangle;
-
-/**
- * CompositeVerifyQuery&#x27;s weight answers isCacheable from the shape predicate only and never asks
- * the weight of the index query it executes. When the index query reads a doc-values field that is
- * then updated in place, the segment keeps its core cache key, so a query cache keeps serving the
- * result computed from the old doc values.
- */
-public class TestCompositeVerifyQueryCacheability extends LuceneTestCase {
-
-  private static final SpatialContext CTX = SpatialContext.GEO;
-
-  /** Every document has a point (i, i); docs 0-2 have v=1, docs 3-5 have v=2. */
-  private static void index(IndexWriter w, SerializedDVStrategy shapes) throws IOException {
-    for (int i = 0; i &lt; 6; i++) {
-      Document doc = new Document();
-      doc.add(new StringField(&quot;id&quot;, Integer.toString(i), Field.Store.YES));
-      doc.add(new NumericDocValuesField(&quot;v&quot;, i &lt; 3 ? 1 : 2));
-      for (Field f : shapes.createIndexableFields(CTX.getShapeFactory().pointXY(i, i))) {
-        doc.add(f);
-      }
-      w.addDocument(doc);
-    }
-    w.commit();
-  }
-
-  /** A predicate that every indexed point satisfies. */
-  private static ShapeValuesPredicate everywhere(SerializedDVStrategy shapes) {
-    return new ShapeValuesPredicate(
-        shapes.makeShapeValueSource(),
-        SpatialOperation.Intersects,
-        CTX.getShapeFactory().rect(-10, 10, -10, 10));
-  }
-
-  private static final QueryCachingPolicy ALWAYS_CACHE =
-      new QueryCachingPolicy() {
-        @Override
-        public void onUse(Query query) {}
-
-        @Override
-        public boolean shouldCache(Query query) {
-          return true;
-        }
-      };
-
-  private static IndexSearcher searcher(DirectoryReader reader, LRUQueryCache cache) {
-    IndexSearcher searcher = new IndexSearcher(reader);
-    searcher.setQueryCache(cache);
-    searcher.setQueryCachingPolicy(ALWAYS_CACHE);
-    return searcher;
-  }
-
-  /** Sorted ids of the matching documents, collected without scores (so the cache is used). */
-  private static List&lt;String&gt; ids(IndexSearcher searcher, Query query) throws IOException {
-    List&lt;Integer&gt; docs =
-        searcher.search(
-            query,
-            new CollectorManager&lt;Collector, List&lt;Integer&gt;&gt;() {
-              final List&lt;Integer&gt; all = new ArrayList&lt;&gt;();
-
-              @Override
-              public Collector newCollector() {
-                return new SimpleCollector() {
-                  int docBase;
-
-                  @Override
-                  protected void doSetNextReader(LeafReaderContext context) {
-                    docBase = context.docBase;
-                  }
-
-                  @Override
-                  public void collect(int doc) {
-                    synchronized (all) {
-                      all.add(docBase + doc);
-                    }
-                  }
-
-                  @Override
-                  public ScoreMode scoreMode() {
-                    return ScoreMode.COMPLETE_NO_SCORES;
-                  }
-                };
-              }
-
-              @Override
-              public List&lt;Integer&gt; reduce(Collection&lt;Collector&gt; collectors) {
-                return all;
-              }
-            });
-    StoredFields storedFields = searcher.getIndexReader().storedFields();
-    TreeSet&lt;String&gt; ids = new TreeSet&lt;&gt;();
-    for (int doc : docs) {
-      ids.add(storedFields.document(doc).get(&quot;id&quot;));
-    }
-    return new ArrayList&lt;&gt;(ids);
-  }
-
-  public void testCachedHitsAfterInPlaceDocValuesUpdate() throws IOException {
-    SerializedDVStrategy shapes = new SerializedDVStrategy(CTX, &quot;shape&quot;);
-    try (Directory dir = newDirectory();
-        IndexWriter w =
-            new IndexWriter(dir, new IndexWriterConfig().setMergePolicy(NoMergePolicy.INSTANCE))) {
-      index(w, shapes);
-      Query indexQuery = NumericDocValuesField.newSlowExactQuery(&quot;v&quot;, 1);
-      Query query = new CompositeVerifyQuery(indexQuery, everywhere(shapes));
-      LRUQueryCache cache = new LRUQueryCache(100, 1 &lt;&lt; 24, _ -&gt; true, Float.POSITIVE_INFINITY);
-
-      try (DirectoryReader before = DirectoryReader.open(w)) {
-        assertEquals(List.of(&quot;0&quot;, &quot;1&quot;, &quot;2&quot;), ids(searcher(before, cache), query));
-        assertTrue(&quot;the first search must fill the cache&quot;, cache.getCacheSize() &gt; 0);
-
-        // doc 0 no longer has v=1
-        w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;0&quot;), &quot;v&quot;, 2L);
-        try (DirectoryReader after = DirectoryReader.openIfChanged(before, w)) {
-          assertNotNull(after);
-          assertEquals(1, after.leaves().size());
-          assertSame(
-              &quot;an in-place doc-values update keeps the segment&#x27;s core cache key&quot;,
-              before.leaves().get(0).reader().getCoreCacheHelper().getKey(),
-              after.leaves().get(0).reader().getCoreCacheHelper().getKey());
-
-          IndexSearcher uncached = new IndexSearcher(after);
-          uncached.setQueryCache(null);
-          assertEquals(List.of(&quot;1&quot;, &quot;2&quot;), ids(uncached, query));
-          // the bare index query is correctly not cached any more
-          assertEquals(List.of(&quot;1&quot;, &quot;2&quot;), ids(searcher(after, cache), indexQuery));
-
-          assertEquals(
-              &quot;the cached CompositeVerifyQuery must see the updated doc values&quot;,
-              List.of(&quot;1&quot;, &quot;2&quot;),
-              ids(searcher(after, cache), query));
-        }
-      }
-    }
-  }
-
-  public void testWeightIsNotCacheableWhenIndexQueryIsNot() throws IOException {
-    SerializedDVStrategy shapes = new SerializedDVStrategy(CTX, &quot;shape&quot;);
-    try (Directory dir = newDirectory();
-        IndexWriter w =
-            new IndexWriter(dir, new IndexWriterConfig().setMergePolicy(NoMergePolicy.INSTANCE))) {
-      index(w, shapes);
-      w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;0&quot;), &quot;v&quot;, 2L);
-      try (DirectoryReader reader = DirectoryReader.open(w)) {
-        IndexSearcher searcher = new IndexSearcher(reader);
-        searcher.setQueryCache(null);
-        LeafReaderContext leaf = reader.leaves().get(0);
-        Query indexQuery = searcher.rewrite(NumericDocValuesField.newSlowExactQuery(&quot;v&quot;, 1));
-        Weight indexWeight = indexQuery.createWeight(searcher, ScoreMode.COMPLETE_NO_SCORES, 1f);
-        assertFalse(
-            &quot;precondition: the index query reads updated doc values&quot;,
-            indexWeight.isCacheable(leaf));
-
-        Query query = searcher.rewrite(new CompositeVerifyQuery(indexQuery, everywhere(shapes)));
-        Weight weight = query.createWeight(searcher, ScoreMode.COMPLETE_NO_SCORES, 1f);
-        assertFalse(
-            &quot;CompositeVerifyQuery executes the index query, so it cannot be more cacheable than it&quot;,
-            weight.isCacheable(leaf));
-      }
-    }
-  }
-
-  /**
-   * The same staleness with the query cache settings that IndexSearcher uses by default in the 10.x
-   * releases (LRUQueryCache(1000, 32MB) with UsageTrackingQueryCachingPolicy; main disables the
-   * default cache, see MIGRATE.md): one segment of more than 10,000 documents and a query that is
-   * reused a few times.
-   */
-  public void testStaleCountWithReleaseDefaultCacheSettings() throws IOException {
-    SerializedDVStrategy shapes = new SerializedDVStrategy(CTX, &quot;shape&quot;);
-    int numDocs = 10_050;
-    try (Directory dir = newDirectory();
-        IndexWriter w =
-            new IndexWriter(
-                dir,
-                new IndexWriterConfig()
-                    .setMergePolicy(NoMergePolicy.INSTANCE)
-                    .setMaxBufferedDocs(numDocs + 1)
-                    .setRAMBufferSizeMB(256))) {
-      for (int i = 0; i &lt; numDocs; i++) {
-        Document doc = new Document();
-        doc.add(new StringField(&quot;id&quot;, Integer.toString(i), Field.Store.YES));
-        doc.add(new NumericDocValuesField(&quot;v&quot;, i % 2 == 0 ? 1 : 2));
-        for (Field f : shapes.createIndexableFields(CTX.getShapeFactory().pointXY(i % 7, i % 5))) {
-          doc.add(f);
-        }
-        w.addDocument(doc);
-      }
-      w.commit();
-      Query query =
-          new CompositeVerifyQuery(
-              NumericDocValuesField.newSlowExactQuery(&quot;v&quot;, 1), everywhere(shapes));
-      LRUQueryCache cache = new LRUQueryCache(1000, 32L &lt;&lt; 20);
-      QueryCachingPolicy policy = new UsageTrackingQueryCachingPolicy();
-      int expectedBefore = (numDocs + 1) / 2;
-      try (DirectoryReader before = DirectoryReader.open(w)) {
-        assertEquals(1, before.leaves().size());
-        for (int i = 0; i &lt; 10; i++) {
-          IndexSearcher s = new IndexSearcher(before);
-          s.setQueryCache(cache);
-          s.setQueryCachingPolicy(policy);
-          assertEquals(expectedBefore, s.count(query));
-        }
-        assertTrue(&quot;the repeated query must have been cached&quot;, cache.getCacheSize() &gt; 0);
-
-        w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;0&quot;), &quot;v&quot;, 2L); // doc 0 no longer has v=1
-        try (DirectoryReader after = DirectoryReader.openIfChanged(before, w)) {
-          assertNotNull(after);
-          IndexSearcher uncached = new IndexSearcher(after);
-          uncached.setQueryCache(null);
-          assertEquals(expectedBefore - 1, uncached.count(query));
-
-          IndexSearcher s = new IndexSearcher(after);
-          s.setQueryCache(cache);
-          s.setQueryCachingPolicy(policy);
-          assertEquals(
-              &quot;the cached CompositeVerifyQuery must see the updated doc values&quot;,
-              expectedBefore - 1,
-              s.count(query));
-        }
-      }
-    }
-  }
-
-  /** Six shops at (i, i), indexed with a CompositeSpatialStrategy; shops 0-2 are open. */
-  private static CompositeSpatialStrategy indexShops(IndexWriter w) throws IOException {
-    CompositeSpatialStrategy geo =
-        new CompositeSpatialStrategy(
-            &quot;geo&quot;,
-            new RecursivePrefixTreeStrategy(new QuadPrefixTree(CTX, 8), &quot;geo_rpt&quot;),
-            new SerializedDVStrategy(CTX, &quot;geo_sdv&quot;));
-    for (int i = 0; i &lt; 6; i++) {
-      Document doc = new Document();
-      doc.add(new StringField(&quot;id&quot;, Integer.toString(i), Field.Store.YES));
-      doc.add(new NumericDocValuesField(&quot;open&quot;, i &lt; 3 ? 1 : 0));
-      for (Field f : geo.createIndexableFields(CTX.getShapeFactory().pointXY(i, i))) {
-        doc.add(f);
-      }
-      w.addDocument(doc);
-    }
-    w.commit();
-    return geo;
-  }
-
-  /**
-   * The realistic shape: the index query ANDs the prefix-tree query with a doc-values &quot;open&quot; flag
-   * (another filter &quot;in-between RPT and the SerializedDVStrategy&quot;), and the exact shape check
-   * verifies each hit. Shop 0 closes and shop 4 opens, both as in-place doc-values updates.
-   */
-  public void testPrefixTreeAndDocValuesFlagIndexQuery() throws IOException {
-    try (Directory dir = newDirectory();
-        IndexWriter w =
-            new IndexWriter(dir, new IndexWriterConfig().setMergePolicy(NoMergePolicy.INSTANCE))) {
-      CompositeSpatialStrategy geo = indexShops(w);
-      Rectangle area = CTX.getShapeFactory().rect(-10, 10, -10, 10);
-      Query nearby =
-          geo.getIndexStrategy().makeQuery(new SpatialArgs(SpatialOperation.Intersects, area));
-      Query openNow = NumericDocValuesField.newSlowExactQuery(&quot;open&quot;, 1);
-      ShapeValuesPredicate exactShape =
-          new ShapeValuesPredicate(
-              geo.getGeometryStrategy().makeShapeValueSource(), SpatialOperation.Intersects, area);
-      Query indexQuery =
-          new BooleanQuery.Builder().add(nearby, Occur.FILTER).add(openNow, Occur.FILTER).build();
-      Query query = new CompositeVerifyQuery(indexQuery, exactShape);
-      // control: the same flag as a sibling clause, outside the composite
-      Query flagOutside =
-          new BooleanQuery.Builder()
-              .add(new CompositeVerifyQuery(nearby, exactShape), Occur.FILTER)
-              .add(openNow, Occur.FILTER)
-              .build();
-      LRUQueryCache cache = new LRUQueryCache(100, 1 &lt;&lt; 24, _ -&gt; true, Float.POSITIVE_INFINITY);
-
-      try (DirectoryReader before = DirectoryReader.open(w)) {
-        assertEquals(List.of(&quot;0&quot;, &quot;1&quot;, &quot;2&quot;), ids(searcher(before, cache), query));
-        assertEquals(List.of(&quot;0&quot;, &quot;1&quot;, &quot;2&quot;), ids(searcher(before, cache), flagOutside));
-
-        w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;0&quot;), &quot;open&quot;, 0L); // shop 0 closes
-        w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;4&quot;), &quot;open&quot;, 1L); // shop 4 opens
-        try (DirectoryReader after = DirectoryReader.openIfChanged(before, w)) {
-          assertNotNull(after);
-          IndexSearcher uncached = new IndexSearcher(after);
-          uncached.setQueryCache(null);
-          assertEquals(List.of(&quot;1&quot;, &quot;2&quot;, &quot;4&quot;), ids(uncached, query));
-          assertEquals(
-              &quot;control: the flag outside the composite&quot;,
-              List.of(&quot;1&quot;, &quot;2&quot;, &quot;4&quot;),
-              ids(searcher(after, cache), flagOutside));
-
-          assertEquals(
-              &quot;the cached CompositeVerifyQuery must see the updated open flags&quot;,
-              List.of(&quot;1&quot;, &quot;2&quot;, &quot;4&quot;),
-              ids(searcher(after, cache), query));
-        }
-      }
-    }
-  }
-
-  /**
-   * Control: CompositeSpatialStrategy&#x27;s own composite (a prefix-tree index query) does not read the
-   * updated field, so it stays correct and is still served from the cache after the update.
-   */
-  public void testControlInTreeCompositeStillCachedAfterUpdate() throws IOException {
-    try (Directory dir = newDirectory();
-        IndexWriter w =
-            new IndexWriter(dir, new IndexWriterConfig().setMergePolicy(NoMergePolicy.INSTANCE))) {
-      CompositeSpatialStrategy geo = indexShops(w);
-      Rectangle area = CTX.getShapeFactory().rect(-10, 10, -10, 10);
-      Query query = geo.makeQuery(new SpatialArgs(SpatialOperation.IsWithin, area));
-      assertTrue(query instanceof CompositeVerifyQuery);
-      LRUQueryCache cache = new LRUQueryCache(100, 1 &lt;&lt; 24, _ -&gt; true, Float.POSITIVE_INFINITY);
-      List&lt;String&gt; all = List.of(&quot;0&quot;, &quot;1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;4&quot;, &quot;5&quot;);
-
-      try (DirectoryReader before = DirectoryReader.open(w)) {
-        assertEquals(all, ids(searcher(before, cache), query));
-
-        w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;0&quot;), &quot;open&quot;, 0L);
-        try (DirectoryReader after = DirectoryReader.openIfChanged(before, w)) {
-          assertNotNull(after);
-          long hits = cache.getHitCount();
-          assertEquals(all, ids(searcher(after, cache), query));
-          assertTrue(&quot;still served from the cache&quot;, cache.getHitCount() &gt; hits);
-        }
-      }
-    }
-  }
-}
-</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/TestCompositeVerifyQueryCacheability.java $LUCENE/lucene/spatial-extras/src/test/org/apache/lucene/spatial/composite/
-cd $LUCENE &amp;&amp; ./gradlew :lucene:spatial-extras:test --tests TestCompositeVerifyQueryCacheability -Ptests.seed=DEADBEEF -Ptests.asserts=true
-# also with -Ptests.asserts=false (the recorded run used -Ptests.seed=5EED0947)
-</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>After the update and reopen, the cached composite returns what an uncached search returns: [1, 2, 4] for the shops, [1, 2] for the bare doc-values query, 5024 hits; its Weight reports not cacheable.</dd></div><div class='got'><dt>Observed</dt><dd>Through the cache it still returns the pre-update result: [0, 1, 2], [0, 1, 2] and 5025 hits; its Weight reports cacheable.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-947/'>repro/LFV-947/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>3 more files (550 lines) · 2,704 words</span></summary><div class='body'><p><code>TestCompositeVerifyQueryCacheability</code> (381 lines with the license header, package <code>org.apache.lucene.spatial.composite</code>, public API plus the test framework, formatted with <code>:lucene:spatial-extras:tidy</code>). One segment (<code class='nw'>NoMergePolicy</code>), plain <code class='nw'>IndexSearcher</code>s, and an <code>LRUQueryCache(100, 16 MB, every segment, Float.POSITIVE_INFINITY)</code> with a policy that caches every query, so six documents are enough. Tests: the bare doc-values index query (hits and the Weight-level <code class='nw'>isCacheable</code> check); the same with <code>LRUQueryCache(1000, 32 MB)</code> (the releases' default size for heaps of 640 MB or more) and <code>UsageTrackingQueryCachingPolicy</code> on 10,050 documents; the realistic shops example (prefix-tree query AND an <code class='nw'>open</code> flag, with the flag-outside-the-composite control inside it); and a control showing that <code>CompositeSpatialStrategy</code>'s own composite stays correct and cached after an update.</p><p>10 iterations with derived seeds: 40 of 40 bug-test runs fail, 10 of 10 control runs pass. The seed picks only the test framework's random directory and settings the test does not depend on.</p><p>For a report about the default configuration, a plain <code class='nw'>main()</code> with no test framework and no cache code (one 10,050-document segment, the bare doc-values index query counted 10 times, doc 0 updated) prints the stale count on 10.5.2 and <code class='nw'>branch_10_6</code> and is correct on main, which has no default cache.</p><div class="hd hd-3"><h3 id='code-2-h'>DefaultSearcherStaleCount.java (plain main(), no cache code: the default cache of 7.2.0-10.5.2 and the 10.6 branch)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Default package, no license header. Prints <code>after update: default searcher count=5025, uncached count=5024</code> and <code class='nw'>STALE</code> (exit 1) on 10.5.2 and <code class='nw'>branch_10_6</code>; <code>default query cache: null</code> and <code class='nw'>OK</code> on main; with the fix <code>count=5024, uncached count=5024</code> and <code class='nw'>OK</code> on 10.5.2.</p><figure class='code'><figcaption><span class='fname'>DefaultSearcherStaleCount.java (plain main(), no cache code: the default cache of 7.2.0-10.5.2 and the 10.6 branch)</span><span class='meta'>67 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.NumericDocValuesField;
-import org.apache.lucene.document.StringField;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.NoMergePolicy;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.spatial.composite.CompositeVerifyQuery;
 import org.apache.lucene.spatial.query.SpatialOperation;
 import org.apache.lucene.spatial.serialized.SerializedDVStrategy;
 import org.apache.lucene.spatial.util.ShapeValuesPredicate;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
-import org.locationtech.spatial4j.context.SpatialContext;
-
-/**
- * Plain IndexSearcher defaults (no query-cache setting at all): a CompositeVerifyQuery over a doc-values index query
- * keeps returning the pre-update count after an in-place doc-values update and a reopen. Exit 1 = stale count.
- * In the 10.x releases IndexSearcher caches by default; main disables the default cache, so main prints
- * &quot;default query cache: null&quot; and passes.
- */
-public class DefaultSearcherStaleCount {
-  public static void main(String[] args) throws Exception {
-    SpatialContext ctx = SpatialContext.GEO;
-    SerializedDVStrategy shapes = new SerializedDVStrategy(ctx, &quot;shape&quot;);
-    int numDocs = 10_050;
-    try (Directory dir = new ByteBuffersDirectory();
-        IndexWriter w = new IndexWriter(dir, new IndexWriterConfig()
-            .setMergePolicy(NoMergePolicy.INSTANCE).setMaxBufferedDocs(numDocs + 1).setRAMBufferSizeMB(256))) {
-      for (int i = 0; i &lt; numDocs; i++) {
-        Document doc = new Document();
-        doc.add(new StringField(&quot;id&quot;, Integer.toString(i), Field.Store.YES));
-        doc.add(new NumericDocValuesField(&quot;v&quot;, i % 2 == 0 ? 1 : 2));
-        for (Field f : shapes.createIndexableFields(ctx.getShapeFactory().pointXY(i % 7, i % 5))) doc.add(f);
-        w.addDocument(doc);
-      }
-      w.commit();
-      Query query = new CompositeVerifyQuery(NumericDocValuesField.newSlowExactQuery(&quot;v&quot;, 1),
-          new ShapeValuesPredicate(shapes.makeShapeValueSource(), SpatialOperation.Intersects,
-              ctx.getShapeFactory().rect(-10, 10, -10, 10)));
-      System.out.println(&quot;default query cache: &quot; + IndexSearcher.getDefaultQueryCache());
-      int before;
-      try (DirectoryReader r1 = DirectoryReader.open(w)) {
-        before = -1;
-        for (int i = 0; i &lt; 10; i++) before = new IndexSearcher(r1).count(query);
-        System.out.println(&quot;before update: count=&quot; + before);
-        w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;0&quot;), &quot;v&quot;, 2L);
-        try (DirectoryReader r2 = DirectoryReader.openIfChanged(r1, w)) {
-          IndexSearcher uncached = new IndexSearcher(r2);
-          uncached.setQueryCache(null);
-          int truth = uncached.count(query);
-          int got = new IndexSearcher(r2).count(query);
-          System.out.println(&quot;after update: default searcher count=&quot; + got + &quot;, uncached count=&quot; + truth);
-          if (got != truth) {
-            System.out.println(&quot;STALE: the default IndexSearcher returned the pre-update count&quot;);
-            System.exit(1);
-          }
-          System.out.println(&quot;OK&quot;);
-        }
-      }
-    }
-  }
-}
-</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-2' data-status='command-2-st'>Copy</button><span class='copy-st' id='command-2-st' role='status' aria-live='polite'></span></figcaption><pre id='command-2' tabindex='0'><code>javac -d out -cp lucene-core.jar:lucene-spatial-extras.jar:spatial4j.jar DefaultSearcherStaleCount.java
-java -cp out:lucene-core.jar:lucene-spatial-extras.jar:spatial4j.jar DefaultSearcherStaleCount
-</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestCompositeVerifyQueryCacheability.java (the finder&#x27;s original 3-test repro)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>The first three tests of the brief's file before formatting and with a named <code>context -&gt; true</code> cache predicate. Fails 3 of 3 on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>; 30 of 30 over 10 random seeds), <code class='nw'>branch_10_6</code>, 10.5.2, 10.0.0 and 9.12.3; passes with the fix.</p><figure class='code'><figcaption><span class='fname'>TestCompositeVerifyQueryCacheability.java (the finder&#x27;s original 3-test repro)</span><span class='meta'>271 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the &quot;License&quot;); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-package org.apache.lucene.spatial.composite;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.TreeSet;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.NumericDocValuesField;
-import org.apache.lucene.document.StringField;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NoMergePolicy;
-import org.apache.lucene.index.StoredFields;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.search.Collector;
-import org.apache.lucene.search.CollectorManager;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.LRUQueryCache;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.QueryCachingPolicy;
-import org.apache.lucene.search.ScoreMode;
-import org.apache.lucene.search.SimpleCollector;
-import org.apache.lucene.search.UsageTrackingQueryCachingPolicy;
-import org.apache.lucene.search.Weight;
-import org.apache.lucene.spatial.query.SpatialOperation;
-import org.apache.lucene.spatial.serialized.SerializedDVStrategy;
-import org.apache.lucene.spatial.util.ShapeValuesPredicate;
-import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.LuceneTestCase;
 import org.locationtech.spatial4j.context.SpatialContext;
 
-/**
- * CompositeVerifyQuery&#x27;s weight answers isCacheable from the shape predicate only and never asks
- * the weight of the index query it executes. When the index query reads a doc-values field that is
- * then updated in place, the segment keeps its core cache key, so a query cache keeps serving the
- * result computed from the old doc values.
- */
 public class TestCompositeVerifyQueryCacheability extends LuceneTestCase {
 
-  private static final SpatialContext CTX = SpatialContext.GEO;
-
-  /** Every document has a point (i, i); docs 0-2 have v=1, docs 3-5 have v=2. */
-  private static void index(IndexWriter w, SerializedDVStrategy shapes) throws IOException {
-    for (int i = 0; i &lt; 6; i++) {
+  public void testCachedCountAfterDocValuesUpdate() throws IOException {
+    SpatialContext ctx = SpatialContext.GEO;
+    SerializedDVStrategy shapes = new SerializedDVStrategy(ctx, &quot;shape&quot;);
+    Query query =
+        new CompositeVerifyQuery(
+            NumericDocValuesField.newSlowExactQuery(&quot;v&quot;, 1),
+            new ShapeValuesPredicate(
+                shapes.makeShapeValueSource(),
+                SpatialOperation.Intersects,
+                ctx.getShapeFactory().rect(-10, 10, -10, 10)));
+    LRUQueryCache cache = new LRUQueryCache(100, 1 &lt;&lt; 20, leaf -&gt; true, Float.POSITIVE_INFINITY);
+    try (Directory dir = new ByteBuffersDirectory();
+        IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
       Document doc = new Document();
-      doc.add(new StringField(&quot;id&quot;, Integer.toString(i), Field.Store.YES));
-      doc.add(new NumericDocValuesField(&quot;v&quot;, i &lt; 3 ? 1 : 2));
-      for (Field f : shapes.createIndexableFields(CTX.getShapeFactory().pointXY(i, i))) {
+      doc.add(new StringField(&quot;id&quot;, &quot;0&quot;, Field.Store.NO));
+      doc.add(new NumericDocValuesField(&quot;v&quot;, 1));
+      for (Field f : shapes.createIndexableFields(ctx.getShapeFactory().pointXY(0, 0))) {
         doc.add(f);
       }
       w.addDocument(doc);
-    }
-    w.commit();
-  }
-
-  /** A predicate that every indexed point satisfies. */
-  private static ShapeValuesPredicate everywhere(SerializedDVStrategy shapes) {
-    return new ShapeValuesPredicate(
-        shapes.makeShapeValueSource(),
-        SpatialOperation.Intersects,
-        CTX.getShapeFactory().rect(-10, 10, -10, 10));
-  }
-
-  private static final QueryCachingPolicy ALWAYS_CACHE =
-      new QueryCachingPolicy() {
-        @Override
-        public void onUse(Query query) {}
-
-        @Override
-        public boolean shouldCache(Query query) {
-          return true;
+      try (DirectoryReader before = DirectoryReader.open(w)) {
+        cachingSearcher(before, cache).count(query);
+        w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;0&quot;), &quot;v&quot;, 2);
+        try (DirectoryReader after = DirectoryReader.openIfChanged(before, w)) {
+          // expected 0 hits (doc 0 now has v=2); actual 1: the pre-update cache entry is served
+          assertEquals(0, cachingSearcher(after, cache).count(query));
         }
-      };
+      }
+    }
+  }
 
-  private static IndexSearcher searcher(DirectoryReader reader, LRUQueryCache cache) {
+  private static IndexSearcher cachingSearcher(DirectoryReader reader, LRUQueryCache cache) {
     IndexSearcher searcher = new IndexSearcher(reader);
     searcher.setQueryCache(cache);
-    searcher.setQueryCachingPolicy(ALWAYS_CACHE);
+    searcher.setQueryCachingPolicy(
+        new QueryCachingPolicy() {
+          @Override
+          public void onUse(Query query) {}
+
+          @Override
+          public boolean shouldCache(Query query) {
+            return true;
+          }
+        });
     return searcher;
   }
-
-  /** Sorted ids of the matching documents, collected without scores (so the cache is used). */
-  private static List&lt;String&gt; ids(IndexSearcher searcher, Query query) throws IOException {
-    List&lt;Integer&gt; docs =
-        searcher.search(
-            query,
-            new CollectorManager&lt;Collector, List&lt;Integer&gt;&gt;() {
-              final List&lt;Integer&gt; all = new ArrayList&lt;&gt;();
-
-              @Override
-              public Collector newCollector() {
-                return new SimpleCollector() {
-                  int docBase;
-
-                  @Override
-                  protected void doSetNextReader(LeafReaderContext context) {
-                    docBase = context.docBase;
-                  }
-
-                  @Override
-                  public void collect(int doc) {
-                    synchronized (all) {
-                      all.add(docBase + doc);
-                    }
-                  }
-
-                  @Override
-                  public ScoreMode scoreMode() {
-                    return ScoreMode.COMPLETE_NO_SCORES;
-                  }
-                };
-              }
-
-              @Override
-              public List&lt;Integer&gt; reduce(Collection&lt;Collector&gt; collectors) {
-                return all;
-              }
-            });
-    StoredFields storedFields = searcher.getIndexReader().storedFields();
-    TreeSet&lt;String&gt; ids = new TreeSet&lt;&gt;();
-    for (int doc : docs) {
-      ids.add(storedFields.document(doc).get(&quot;id&quot;));
-    }
-    return new ArrayList&lt;&gt;(ids);
-  }
-
-  public void testCachedHitsAfterInPlaceDocValuesUpdate() throws IOException {
-    SerializedDVStrategy shapes = new SerializedDVStrategy(CTX, &quot;shape&quot;);
-    try (Directory dir = newDirectory();
-        IndexWriter w =
-            new IndexWriter(dir, new IndexWriterConfig().setMergePolicy(NoMergePolicy.INSTANCE))) {
-      index(w, shapes);
-      Query indexQuery = NumericDocValuesField.newSlowExactQuery(&quot;v&quot;, 1);
-      Query query = new CompositeVerifyQuery(indexQuery, everywhere(shapes));
-      LRUQueryCache cache = new LRUQueryCache(100, 1 &lt;&lt; 24, context -&gt; true, Float.POSITIVE_INFINITY);
-
-      try (DirectoryReader before = DirectoryReader.open(w)) {
-        assertEquals(List.of(&quot;0&quot;, &quot;1&quot;, &quot;2&quot;), ids(searcher(before, cache), query));
-        assertTrue(&quot;the first search must fill the cache&quot;, cache.getCacheSize() &gt; 0);
-
-        // doc 0 no longer has v=1
-        w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;0&quot;), &quot;v&quot;, 2L);
-        try (DirectoryReader after = DirectoryReader.openIfChanged(before, w)) {
-          assertNotNull(after);
-          assertEquals(1, after.leaves().size());
-          assertSame(
-              &quot;an in-place doc-values update keeps the segment&#x27;s core cache key&quot;,
-              before.leaves().get(0).reader().getCoreCacheHelper().getKey(),
-              after.leaves().get(0).reader().getCoreCacheHelper().getKey());
-
-          IndexSearcher uncached = new IndexSearcher(after);
-          uncached.setQueryCache(null);
-          assertEquals(List.of(&quot;1&quot;, &quot;2&quot;), ids(uncached, query));
-          // the bare index query is correctly not cached any more
-          assertEquals(List.of(&quot;1&quot;, &quot;2&quot;), ids(searcher(after, cache), indexQuery));
-
-          assertEquals(
-              &quot;the cached CompositeVerifyQuery must see the updated doc values&quot;,
-              List.of(&quot;1&quot;, &quot;2&quot;),
-              ids(searcher(after, cache), query));
-        }
-      }
-    }
-  }
-
-  public void testWeightIsNotCacheableWhenIndexQueryIsNot() throws IOException {
-    SerializedDVStrategy shapes = new SerializedDVStrategy(CTX, &quot;shape&quot;);
-    try (Directory dir = newDirectory();
-        IndexWriter w =
-            new IndexWriter(dir, new IndexWriterConfig().setMergePolicy(NoMergePolicy.INSTANCE))) {
-      index(w, shapes);
-      w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;0&quot;), &quot;v&quot;, 2L);
-      try (DirectoryReader reader = DirectoryReader.open(w)) {
-        IndexSearcher searcher = new IndexSearcher(reader);
-        searcher.setQueryCache(null);
-        LeafReaderContext leaf = reader.leaves().get(0);
-        Query indexQuery = searcher.rewrite(NumericDocValuesField.newSlowExactQuery(&quot;v&quot;, 1));
-        Weight indexWeight = indexQuery.createWeight(searcher, ScoreMode.COMPLETE_NO_SCORES, 1f);
-        assertFalse(
-            &quot;precondition: the index query reads updated doc values&quot;, indexWeight.isCacheable(leaf));
-
-        Query query = searcher.rewrite(new CompositeVerifyQuery(indexQuery, everywhere(shapes)));
-        Weight weight = query.createWeight(searcher, ScoreMode.COMPLETE_NO_SCORES, 1f);
-        assertFalse(
-            &quot;CompositeVerifyQuery executes the index query, so it cannot be more cacheable than it&quot;,
-            weight.isCacheable(leaf));
-      }
-    }
-  }
-
-  /**
-   * The same staleness with the query cache settings that IndexSearcher uses by default in the 10.x
-   * releases (LRUQueryCache(1000, 32MB) with UsageTrackingQueryCachingPolicy; main disables the
-   * default cache, see MIGRATE.md): one segment of more than 10,000 documents and a query that is
-   * reused a few times.
-   */
-  public void testStaleCountWithReleaseDefaultCacheSettings() throws IOException {
-    SerializedDVStrategy shapes = new SerializedDVStrategy(CTX, &quot;shape&quot;);
-    int numDocs = 10_050;
-    try (Directory dir = newDirectory();
-        IndexWriter w =
-            new IndexWriter(
-                dir,
-                new IndexWriterConfig()
-                    .setMergePolicy(NoMergePolicy.INSTANCE)
-                    .setMaxBufferedDocs(numDocs + 1)
-                    .setRAMBufferSizeMB(256))) {
-      for (int i = 0; i &lt; numDocs; i++) {
-        Document doc = new Document();
-        doc.add(new StringField(&quot;id&quot;, Integer.toString(i), Field.Store.YES));
-        doc.add(new NumericDocValuesField(&quot;v&quot;, i % 2 == 0 ? 1 : 2));
-        for (Field f : shapes.createIndexableFields(CTX.getShapeFactory().pointXY(i % 7, i % 5))) {
-          doc.add(f);
-        }
-        w.addDocument(doc);
-      }
-      w.commit();
-      Query query =
-          new CompositeVerifyQuery(NumericDocValuesField.newSlowExactQuery(&quot;v&quot;, 1), everywhere(shapes));
-      LRUQueryCache cache = new LRUQueryCache(1000, 32L &lt;&lt; 20);
-      QueryCachingPolicy policy = new UsageTrackingQueryCachingPolicy();
-      int expectedBefore = (numDocs + 1) / 2;
-      try (DirectoryReader before = DirectoryReader.open(w)) {
-        assertEquals(1, before.leaves().size());
-        for (int i = 0; i &lt; 10; i++) {
-          IndexSearcher s = new IndexSearcher(before);
-          s.setQueryCache(cache);
-          s.setQueryCachingPolicy(policy);
-          assertEquals(expectedBefore, s.count(query));
-        }
-        assertTrue(&quot;the repeated query must have been cached&quot;, cache.getCacheSize() &gt; 0);
-
-        w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;0&quot;), &quot;v&quot;, 2L); // doc 0 no longer has v=1
-        try (DirectoryReader after = DirectoryReader.openIfChanged(before, w)) {
-          assertNotNull(after);
-          IndexSearcher uncached = new IndexSearcher(after);
-          uncached.setQueryCache(null);
-          assertEquals(expectedBefore - 1, uncached.count(query));
-
-          IndexSearcher s = new IndexSearcher(after);
-          s.setQueryCache(cache);
-          s.setQueryCachingPolicy(policy);
-          assertEquals(
-              &quot;the cached CompositeVerifyQuery must see the updated doc values&quot;,
-              expectedBefore - 1,
-              s.count(query));
-        }
-      }
-    }
-  }
 }
-</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>TestCompositeVerifyQueryCache.java (independent reproducer)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>Written from the claim only, outside <code>org.apache.lucene</code>; 20 documents; compares doc-id sets (<code>[0, 1, 2]</code> instead of <code>[1, 2, 5]</code>: a stale hit and a missed hit). Fails 3 of 3 on main, 10.5.2, 9.12.3 and <code class='nw'>branch_10_6</code>; its in-test controls pass; 3 of 3 with the fix.</p><figure class='code'><figcaption><span class='fname'>TestCompositeVerifyQueryCache.java (independent reproducer)</span><span class='meta'>212 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the &quot;License&quot;); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-package verifyv1;
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code># in a copy of this bug&#x27;s repro folder (repro/LFV-947/, which holds src/)
+# Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
+LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
+CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
+CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
+CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
+CP=$CP:$LUCENE/lucene/spatial-extras/build/libs/lucene-spatial-extras-$V.jar
+CP=$CP:$LUCENE/lucene/spatial3d/build/libs/lucene-spatial3d-$V.jar
+CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
+CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
-import java.io.IOException;
-import java.util.Set;
-import java.util.TreeSet;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.NumericDocValuesField;
-import org.apache.lucene.document.StringField;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NoMergePolicy;
-import org.apache.lucene.index.StoredFields;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.search.ConstantScoreQuery;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.LRUQueryCache;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.QueryCachingPolicy;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.ScoreMode;
-import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.search.Weight;
-import org.apache.lucene.spatial.composite.CompositeVerifyQuery;
-import org.apache.lucene.spatial.query.SpatialOperation;
-import org.apache.lucene.spatial.serialized.SerializedDVStrategy;
-import org.apache.lucene.spatial.util.ShapeValuesPredicate;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.tests.util.LuceneTestCase;
-import org.locationtech.spatial4j.context.SpatialContext;
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-/**
- * Independent check (public API only, package outside org.apache.lucene): a CompositeVerifyQuery
- * whose index query reads numeric doc values must not be served from a query cache after an
- * in-place doc-values update of that field.
- */
-public class TestCompositeVerifyQueryCache extends LuceneTestCase {
-
-  private static final int NUM_DOCS = 20;
-
-  /** Caches every query on every use, so the test does not depend on usage-tracking heuristics. */
-  private static final QueryCachingPolicy CACHE_EVERYTHING =
-      new QueryCachingPolicy() {
-        @Override
-        public void onUse(Query query) {}
-
-        @Override
-        public boolean shouldCache(Query query) {
-          return true;
-        }
-      };
-
-  private final SpatialContext ctx = SpatialContext.GEO;
-  private final SerializedDVStrategy strategy = new SerializedDVStrategy(ctx, &quot;shape&quot;);
-
-  /** docs 0..2 have v=1, all others v=3; every doc has a point shape inside the world bounds. */
-  private IndexWriter index(Directory dir) throws IOException {
-    IndexWriter w =
-        new IndexWriter(dir, new IndexWriterConfig().setMergePolicy(NoMergePolicy.INSTANCE));
-    for (int i = 0; i &lt; NUM_DOCS; i++) {
-      Document d = new Document();
-      d.add(new StringField(&quot;id&quot;, Integer.toString(i), Field.Store.YES));
-      d.add(new NumericDocValuesField(&quot;v&quot;, i &lt; 3 ? 1 : 3));
-      for (Field f : strategy.createIndexableFields(ctx.makePoint(i, i))) {
-        d.add(f);
-      }
-      w.addDocument(d);
-    }
-    w.commit();
-    return w;
-  }
-
-  /** Composite query: the doc-values index query, verified by an always-true shape predicate. */
-  private Query composite(Query indexQuery) {
-    ShapeValuesPredicate everyPoint =
-        new ShapeValuesPredicate(
-            strategy.makeShapeValueSource(), SpatialOperation.Intersects, ctx.getWorldBounds());
-    return new CompositeVerifyQuery(indexQuery, everyPoint);
-  }
-
-  private static IndexSearcher cachedSearcher(DirectoryReader r, LRUQueryCache cache) {
-    IndexSearcher s = new IndexSearcher(r);
-    s.setQueryCache(cache);
-    s.setQueryCachingPolicy(CACHE_EVERYTHING);
-    return s;
-  }
-
-  private static IndexSearcher uncachedSearcher(DirectoryReader r) {
-    IndexSearcher s = new IndexSearcher(r);
-    s.setQueryCache(null);
-    return s;
-  }
-
-  /** Stored ids of the matches; the ConstantScoreQuery makes the inner query a non-scoring one. */
-  private static Set&lt;Integer&gt; ids(IndexSearcher s, Query q) throws IOException {
-    TopDocs td = s.search(new ConstantScoreQuery(q), 10 * NUM_DOCS);
-    StoredFields sf = s.storedFields();
-    Set&lt;Integer&gt; out = new TreeSet&lt;&gt;();
-    for (ScoreDoc sd : td.scoreDocs) {
-      out.add(Integer.parseInt(sf.document(sd.doc).get(&quot;id&quot;)));
-    }
-    return out;
-  }
-
-  private static LRUQueryCache newCache() {
-    return new LRUQueryCache(1000, 1L &lt;&lt; 24, leaf -&gt; true, Float.POSITIVE_INFINITY);
-  }
-
-  public void testCachedHitsAfterInPlaceNumericDocValuesUpdate() throws IOException {
-    try (Directory dir = newDirectory();
-        IndexWriter w = index(dir)) {
-      DirectoryReader r1 = DirectoryReader.open(dir);
-      LRUQueryCache cache = newCache();
-      Query indexQuery = NumericDocValuesField.newSlowExactQuery(&quot;v&quot;, 1);
-      Query cvq = composite(indexQuery);
-
-      assertEquals(Set.of(0, 1, 2), ids(cachedSearcher(r1, cache), cvq));
-      assertTrue(&quot;the first search must have filled the cache&quot;, cache.getCacheSize() &gt; 0);
-      Object coreKey1 = r1.leaves().get(0).reader().getCoreCacheHelper().getKey();
-
-      // in-place updates: doc 0 leaves the index query, doc 5 enters it
-      w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;0&quot;), &quot;v&quot;, 2);
-      w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;5&quot;), &quot;v&quot;, 1);
-      w.commit();
-      DirectoryReader r2 = DirectoryReader.openIfChanged(r1);
-      assertNotNull(r2);
-      r1.close(); // the cache entry keyed on the shared segment core survives
-      assertEquals(1, r2.leaves().size());
-      assertSame(
-          &quot;a doc-values update keeps the segment core cache key&quot;,
-          coreKey1,
-          r2.leaves().get(0).reader().getCoreCacheHelper().getKey());
-
-      try (r2) {
-        Set&lt;Integer&gt; expected = new TreeSet&lt;&gt;(Set.of(1, 2, 5));
-        // oracle: no cache
-        assertEquals(expected, ids(uncachedSearcher(r2), cvq));
-        // the bare index query is correctly not served from the cache
-        assertEquals(expected, ids(cachedSearcher(r2, cache), indexQuery));
-        // the composite must agree with the uncached search
-        assertEquals(
-            &quot;cached CompositeVerifyQuery after an in-place doc-values update&quot;,
-            expected,
-            ids(cachedSearcher(r2, cache), cvq));
-      }
-    }
-  }
-
-  public void testCachedCountAfterInPlaceNumericDocValuesUpdate() throws IOException {
-    try (Directory dir = newDirectory();
-        IndexWriter w = index(dir)) {
-      DirectoryReader r1 = DirectoryReader.open(dir);
-      LRUQueryCache cache = newCache();
-      Query cvq = composite(NumericDocValuesField.newSlowRangeQuery(&quot;v&quot;, 0, 1));
-
-      assertEquals(3, cachedSearcher(r1, cache).count(cvq));
-
-      w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;0&quot;), &quot;v&quot;, 2);
-      w.commit();
-      DirectoryReader r2 = DirectoryReader.openIfChanged(r1);
-      assertNotNull(r2);
-      r1.close();
-      try (r2) {
-        assertEquals(2, uncachedSearcher(r2).count(cvq));
-        assertEquals(
-            &quot;cached CompositeVerifyQuery count after an in-place doc-values update&quot;,
-            2,
-            cachedSearcher(r2, cache).count(cvq));
-      }
-    }
-  }
-
-  /** The structural contract alone: the wrapper must not be cacheable where its index query is not. */
-  public void testWeightNotCacheableWhenIndexQueryWeightIsNot() throws IOException {
-    try (Directory dir = newDirectory();
-        IndexWriter w = index(dir)) {
-      w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;0&quot;), &quot;v&quot;, 2);
-      w.commit();
-      try (DirectoryReader r = DirectoryReader.open(dir)) {
-        IndexSearcher s = uncachedSearcher(r);
-        LeafReaderContext leaf = r.leaves().get(0);
-        Query indexQuery = NumericDocValuesField.newSlowExactQuery(&quot;v&quot;, 1);
-        Weight indexWeight =
-            s.createWeight(s.rewrite(indexQuery), ScoreMode.COMPLETE_NO_SCORES, 1f);
-        Weight cvqWeight =
-            s.createWeight(s.rewrite(composite(indexQuery)), ScoreMode.COMPLETE_NO_SCORES, 1f);
-        assertFalse(&quot;sanity: the updated doc-values field&quot;, indexWeight.isCacheable(leaf));
-        assertFalse(
-            &quot;CompositeVerifyQuery runs the index query, so it cannot be cacheable here&quot;,
-            cvqWeight.isCacheable(leaf));
-      }
-    }
-  }
-}
-</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT); also the 10.5.2 release jars</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64 (the only platform run; by reading, a pure Java code path)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp $REPRO/TestCompositeVerifyQueryCacheability.java $LUCENE/lucene/spatial-extras/src/test/org/apache/lucene/spatial/composite/
-cd $LUCENE &amp;&amp; ./gradlew :lucene:spatial-extras:test --tests TestCompositeVerifyQueryCacheability -Ptests.seed=DEADBEEF -Ptests.asserts=true
-</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, main a9779ef3c193, -Ptests.seed=DEADBEEF -Ptests.asserts=true
-TestCompositeVerifyQueryCacheability &gt; testWeightIsNotCacheableWhenIndexQueryIsNot FAILED
-    java.lang.AssertionError: CompositeVerifyQuery executes the index query, so it cannot be more cacheable than it
-TestCompositeVerifyQueryCacheability &gt; testCachedHitsAfterInPlaceDocValuesUpdate FAILED
-    java.lang.AssertionError: the cached CompositeVerifyQuery must see the updated doc values expected:&lt;[1, 2]&gt; but was:&lt;[0, 1, 2]&gt;
-TestCompositeVerifyQueryCacheability &gt; testStaleCountWithReleaseDefaultCacheSettings FAILED
-    java.lang.AssertionError: the cached CompositeVerifyQuery must see the updated doc values expected:&lt;5024&gt; but was:&lt;5025&gt;
-TestCompositeVerifyQueryCacheability &gt; testPrefixTreeAndDocValuesFlagIndexQuery FAILED
-    java.lang.AssertionError: the cached CompositeVerifyQuery must see the updated open flags expected:&lt;[1, 2, 4]&gt; but was:&lt;[0, 1, 2]&gt;
-5 tests completed, 4 failed
-
-# the same 4 failures: gradle -Ptests.asserts=false; standalone runner on main (-ea, -da) and on the 10.5.2 jars (-ea, -da)
-# with the fix: 5 tests completed, 0 failed
-
-# DefaultSearcherStaleCount, 10.5.2 release jars, no cache code
-default query cache: org.apache.lucene.search.LRUQueryCache@...
-before update: count=5025
-after update: default searcher count=5025, uncached count=5024
-STALE: the default IndexSearcher returned the pre-update count</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The cache contract says doc-values readers must report updated fields as not cacheable (<code>SegmentCacheable.java:30-32</code>); a core test: "all composites referring to it should be uncacheable".</li><li>Core wrappers that run an inner query (<code class='nw'>FilterWeight</code>, <code>ConstantScoreQuery</code>, <code>FunctionScoreQuery</code>) include its answer; LUCENE-8042 left this one out.</li><li>Nothing restricts the index query; LUCENE-5579 made the inner queries public for users' own compositions.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>276 words</span></summary><div class='body'><ul><li><strong>Contract.</strong> <code>SegmentCacheable.java:30-32</code>: "Objects that depend on doc values should return DocValues#isCacheable(LeafReaderContext, String...), which will check to see if the doc values fields have been updated. Updated doc values fields are not suitable for caching." <code>QueryCache.java:28-30</code>: the caching wrapper "will only be equivalent if scores are not needed"; the repro collects and counts without scores.</li><li><strong>Upstream test.</strong> <code>TestSegmentCacheables.java:84-92</code>: "after field3 is updated, all composites referring to it should be uncacheable". <code>TestLRUQueryCache.java:2222</code> (<code>testDocValuesUpdatesDontBreakCache</code>) tests the cache against doc-values updates with a test query whose Weight returns <code>DocValues.isCacheable</code> (<code class='nw'>DVCacheQuery</code>, <code class='nw'>:2165</code>, <code class='nw'>:2213</code>): after the update that segment is no longer cached (<code class='nw'>:2271-2284</code>).</li><li><strong>Precedent in core and queries.</strong> <code>FilterWeight.java:47-50</code> (<code>return in.isCacheable(ctx)</code>), <code>ConstantScoreQuery.java:192-195</code> (<code>innerWeight.isCacheable(ctx)</code>), <code>BooleanWeight.java:272-285</code> and <code>FunctionScoreQuery.java:279-282</code> (<code>inner.isCacheable(ctx) &amp;&amp; valueSource.isCacheable(ctx)</code>). LUCENE-8042 gave <code>FunctionScoreQuery</code> a value-source-only answer too; LUCENE-7736 (#8787; <code class='nw'>2a4dd499bbd</code> on master and <code class='nw'>03afeb7766a</code> on the 7.x line, both committed 2017-11-15, in 7.2.0) ANDed its inner Weight in: a precedent for the fix.</li><li><strong>History.</strong> LUCENE-8017 (<code class='nw'>a886a001a4c</code>) made this Weight never cacheable: <code>return null; // TODO delegate to PredicateValueSource?</code>. LUCENE-8042 (<code class='nw'>276e317e942</code>, by romseygeek, +1 by rmuir, 107 files, 7.2.0) resolved the TODO by delegating to the predicate only; the <code class='nw'>indexQueryWeight</code> was already in the same method. LUCENE-8017 had already made <code>ConstantScoreQuery</code>, <code class='nw'>FilterWeight</code> and <code class='nw'>BooleanWeight</code> delegate to their inner Weights' cache helpers, and LUCENE-8042 kept that delegation in <code class='nw'>isCacheable</code>. No comment on #9065 or #9090 mentions <code>CompositeVerifyQuery</code> or its index query.</li><li><strong>Docs.</strong> No javadoc, package doc, CHANGES or MIGRATE entry says the index query must be segment-immutable. <code>@lucene.experimental</code> is about API stability, not correctness; the sibling <code>IntersectsRPTVerifyQuery</code> is <code class='nw'>@lucene.internal</code>.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>256 words</span></summary><div class='body'><p>The intended-behaviour checker and a reviewer from another model family (OpenAI GPT-5.6) built the strongest case: (a) the composite package was built for RPT plus serialized shapes, and the only in-tree producer passes an RPT postings query, for which asking the predicate only is exactly right; (b) the sibling <code>IntersectsRPTVerifyQuery</code> uses the same predicate-only rule (<code>IntersectsRPTVerifyQuery.java:157-158</code>), and <code>IndexOrDocValuesQuery#isCacheable</code> also asks only one sub-query (<code>IndexOrDocValuesQuery.java:211-214</code>); (c) the class is <code>@lucene.experimental</code>; (d) a user can put the doc-values filter outside the composite as a sibling clause; (e) main has no default cache.</p><p>Why it fails: (a) convention is not a contract; the constructor is public, accepts any <code class='nw'>Query</code>, and LUCENE-5579 contemplated users putting other filters between RPT and the serialized shapes. (b) <code>IntersectsRPTVerifyQuery</code> builds its approximation internally from prefix-tree terms, so predicate-only is correct there; <code>IndexOrDocValuesQuery</code> relies on its documented precondition "Both provided queries must match the same documents" (<code class='nw'>:61</code>), and the "delegate to the <code class='nw'>indexQuery</code>" remark on #9065 was about that query; here the two parts are different conditions. (c) Experimental allows API changes, not wrong results. (d) A workaround does not make the wrapping illegal, and nothing tells users to use it. (e) The cache is public, <code class='nw'>MIGRATE.md</code> shows how to re-enable it, and it is the default in every release since 7.2.0 and on the 10.6 branch. <strong>Verdict: not intended</strong>: the independent reproducer rated the intended case weak, the second cross-model review moderate and rejected it, the devil's advocate "high that it is not intended".</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Also ask the index query's Weight (validated)</strong></p><p class='short'>In <code>CompositeVerifyQuery</code>'s Weight, also ask the index query: <code>return indexQueryWeight.isCacheable(ctx) &amp;&amp; predicateValueSource.isCacheable(ctx);</code> (one line, the shape of <code>FunctionScoreQuery</code>). The new test passes 5 of 5 and the whole spatial-extras module passes, with assertions on and off; the in-tree prefix-tree composite stays cached.</p><pre class='snippet' tabindex='0'><code>@Override
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.spatial.composite.TestCompositeVerifyQueryCacheability
+# the module(s) spatial-extras also need their third-party runtime jars
+</code></pre></figure><dl class='outcome'><div><dt>Expected vs actual</dt><dd>Expected count 0 after doc 0's <code class='nw'>v</code> changes from 1 to 2; actual 1 (the pre-update cache entry), with <code class='nw'>-ea</code> and <code class='nw'>-da</code> (<code>expected:&lt;0&gt; but was:&lt;1&gt;</code>).</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-947/'>repro/LFV-947/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>34 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>Lucene main 645d4fe14a20 (2026-10-28)</code></td></tr><tr><th scope='row'>jdk</th><td><code class='nw'>25.0.3+9-LTS</code></td></tr></tbody></table></div><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># Lucene main 645d4fe14a20, assertions on (-ea), seed DEADBEEF: 1 test(s) run, 1 failed
+    =&gt; java.lang.AssertionError: expected:&lt;0&gt; but was:&lt;1&gt;
+       org.junit.Assert.fail(Assert.java:89)
+       org.junit.Assert.failNotEquals(Assert.java:835)
+       org.junit.Assert.assertEquals(Assert.java:647)
+       org.junit.Assert.assertEquals(Assert.java:633)
+       org.apache.lucene.spatial.composite.TestCompositeVerifyQueryCacheability.testCachedCountAfterDocValuesUpdate(TestCompositeVerifyQueryCacheability.java:67)</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The cache contract says doc-values readers must report updated fields as not cacheable (<code>SegmentCacheable.java:30-32</code>); a core test: "all composites referring to it should be uncacheable".</li><li>Core wrappers that run an inner query (<code class='nw'>FilterWeight</code>, <code>ConstantScoreQuery</code>, <code>FunctionScoreQuery</code>) include its answer; LUCENE-8042 left this one out.</li><li>Nothing restricts the index query; LUCENE-5579 made the inner queries public for users' own compositions.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>276 words</span></summary><div class='body'><ul><li><strong>Contract.</strong> <code>SegmentCacheable.java:30-32</code>: "Objects that depend on doc values should return DocValues#isCacheable(LeafReaderContext, String...), which will check to see if the doc values fields have been updated. Updated doc values fields are not suitable for caching." <code>QueryCache.java:28-30</code>: the caching wrapper "will only be equivalent if scores are not needed"; the repro collects and counts without scores.</li><li><strong>Upstream test.</strong> <code>TestSegmentCacheables.java:84-92</code>: "after field3 is updated, all composites referring to it should be uncacheable". <code>TestLRUQueryCache.java:2222</code> (<code>testDocValuesUpdatesDontBreakCache</code>) tests the cache against doc-values updates with a test query whose Weight returns <code>DocValues.isCacheable</code> (<code class='nw'>DVCacheQuery</code>, <code class='nw'>:2165</code>, <code class='nw'>:2213</code>): after the update that segment is no longer cached (<code class='nw'>:2271-2284</code>).</li><li><strong>Precedent in core and queries.</strong> <code>FilterWeight.java:47-50</code> (<code>return in.isCacheable(ctx)</code>), <code>ConstantScoreQuery.java:192-195</code> (<code>innerWeight.isCacheable(ctx)</code>), <code>BooleanWeight.java:272-285</code> and <code>FunctionScoreQuery.java:279-282</code> (<code>inner.isCacheable(ctx) &amp;&amp; valueSource.isCacheable(ctx)</code>). LUCENE-8042 gave <code>FunctionScoreQuery</code> a value-source-only answer too; LUCENE-7736 (#8787; <code class='nw'>2a4dd499bbd</code> on master and <code class='nw'>03afeb7766a</code> on the 7.x line, both committed 2017-11-15, in 7.2.0) ANDed its inner Weight in: a precedent for the fix.</li><li><strong>History.</strong> LUCENE-8017 (<code class='nw'>a886a001a4c</code>) made this Weight never cacheable: <code>return null; // TODO delegate to PredicateValueSource?</code>. LUCENE-8042 (<code class='nw'>276e317e942</code>, by romseygeek, +1 by rmuir, 107 files, 7.2.0) resolved the TODO by delegating to the predicate only; the <code class='nw'>indexQueryWeight</code> was already in the same method. LUCENE-8017 had already made <code>ConstantScoreQuery</code>, <code class='nw'>FilterWeight</code> and <code class='nw'>BooleanWeight</code> delegate to their inner Weights' cache helpers, and LUCENE-8042 kept that delegation in <code class='nw'>isCacheable</code>. No comment on #9065 or #9090 mentions <code>CompositeVerifyQuery</code> or its index query.</li><li><strong>Docs.</strong> No javadoc, package doc, CHANGES or MIGRATE entry says the index query must be segment-immutable. <code>@lucene.experimental</code> is about API stability, not correctness; the sibling <code>IntersectsRPTVerifyQuery</code> is <code class='nw'>@lucene.internal</code>.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>256 words</span></summary><div class='body'><p>The intended-behaviour checker and a reviewer from another model family (OpenAI GPT-5.6) built the strongest case: (a) the composite package was built for RPT plus serialized shapes, and the only in-tree producer passes an RPT postings query, for which asking the predicate only is exactly right; (b) the sibling <code>IntersectsRPTVerifyQuery</code> uses the same predicate-only rule (<code>IntersectsRPTVerifyQuery.java:157-158</code>), and <code>IndexOrDocValuesQuery#isCacheable</code> also asks only one sub-query (<code>IndexOrDocValuesQuery.java:211-214</code>); (c) the class is <code>@lucene.experimental</code>; (d) a user can put the doc-values filter outside the composite as a sibling clause; (e) main has no default cache.</p><p>Why it fails: (a) convention is not a contract; the constructor is public, accepts any <code class='nw'>Query</code>, and LUCENE-5579 contemplated users putting other filters between RPT and the serialized shapes. (b) <code>IntersectsRPTVerifyQuery</code> builds its approximation internally from prefix-tree terms, so predicate-only is correct there; <code>IndexOrDocValuesQuery</code> relies on its documented precondition "Both provided queries must match the same documents" (<code class='nw'>:61</code>), and the "delegate to the <code class='nw'>indexQuery</code>" remark on #9065 was about that query; here the two parts are different conditions. (c) Experimental allows API changes, not wrong results. (d) A workaround does not make the wrapping illegal, and nothing tells users to use it. (e) The cache is public, <code class='nw'>MIGRATE.md</code> shows how to re-enable it, and it is the default in every release since 7.2.0 and on the 10.6 branch. <strong>Verdict: not intended</strong>: the independent reproducer rated the intended case weak, the second cross-model review moderate and rejected it, the devil's advocate "high that it is not intended".</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Also ask the index query's Weight (validated)</strong></p><p class='short'>In <code>CompositeVerifyQuery</code>'s Weight, also ask the index query: <code>return indexQueryWeight.isCacheable(ctx) &amp;&amp; predicateValueSource.isCacheable(ctx);</code> (one line, the shape of <code>FunctionScoreQuery</code>). The new test passes 5 of 5 and the whole spatial-extras module passes, with assertions on and off; the in-tree prefix-tree composite stays cached.</p><pre class='snippet' tabindex='0'><code>@Override
 public boolean isCacheable(LeafReaderContext ctx) {
   return indexQueryWeight.isCacheable(ctx) &amp;&amp; predicateValueSource.isCacheable(ctx);
 }</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>3 options · 450 words</span></summary><div class='body'><p>One fix was built and validated; two alternatives were not built.</p><div class="hd hd-3"><h3 id='fix-ask-index-query'>Also ask the index query's Weight (validated) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-ask-index-query" target="_self" aria-label="Link to this section" aria-describedby="fix-ask-index-query"><span aria-hidden="true">#</span></a></div><p>A one-line change in <code>CompositeVerifyQuery.createWeight</code>'s anonymous Weight (1 file, +1/-1). It is what <code>FunctionScoreQuery</code> does for its inner query.</p><pre class='snippet' tabindex='0'><code>@Override
 public boolean isCacheable(LeafReaderContext ctx) {
   return indexQueryWeight.isCacheable(ctx) &amp;&amp; predicateValueSource.isCacheable(ctx);
-}</code></pre><p class='k'>Trade-offs</p><ul><li>On a segment where a field the index query reads was updated in place, the composite is no longer cached until that segment is merged away. The index query on its own is already treated that way, so no correct result is lost; caching is lost, though, whenever the index query is not cacheable, for any reason (below).</li><li>The in-tree path is unchanged: prefix-tree query Weights are always cacheable (<code>AbstractPrefixTreeQuery.java:107-108</code>; so is the <code class='nw'>TermQuery</code> built for a point on a points-only grid, <code>TermQuery.java:192-194</code>), and the control test shows <code>CompositeSpatialStrategy</code>'s composite still served from the cache after an unrelated doc-values update.</li><li>An index query that is not cacheable for another reason (for example a <code class='nw'>BooleanQuery</code> with more than 16 clauses, <code>BooleanWeight.java:274-280</code>) now also keeps the composite out of the cache: correct, but a change in what gets cached.</li><li>One extra <code class='nw'>isCacheable</code> call, on the index query's Weight, per leaf cacheability check. A "Bug Fixes" CHANGES line would be usual; none is drafted.</li></ul><p class='k'>What the checks validated</p><ul><li>Scratch worktree of <code class='nw'>a9779ef3c193</code>, gradle: the new test fails 4 of 5 on the stock tree and passes 5 of 5 with the fix, with assertions on and off; the whole <code>lucene/spatial-extras</code> module (27 suites, among them <code>TestCompositeStrategy</code>, <code>TestSerializedStrategy</code> and <code>TestQueryEqualsHashCode</code>; 122 tests, 0 failures, 5 skipped, 4 of them nightly-only) passes with assertions on and off; <code>:lucene:spatial-extras:check -x test</code> (format, ecjLint, forbiddenApis) passes.</li><li>Standalone runner with the fix shadowed in: the new test 5 of 5 (<code class='nw'>-ea</code>, <code class='nw'>-da</code>); the plain-defaults program on the 10.5.2 jars prints <code>default searcher count=5024, uncached count=5024</code>.</li><li>Earlier, by the hunt: the finder's 3 tests 3 of 3, the independent reproducer's 3 of 3, the model-based harness 0 mismatches and 0 property violations, upstream <code>TestCompositeStrategy</code> and <code>TestQueryEqualsHashCode</code> (5 seeds, together with the visit fix of LFV-951), and the history probe on the introducing commit <code class='nw'>6e4f9a62e7c</code>.</li><li>Not run: nightly tests, a benchmark.</li></ul><div class="hd hd-3"><h3 id='fix-document'>Document that the index query must be segment-immutable</h3><a class="hlink" href="#fix-document" target="_self" aria-label="Link to this section" aria-describedby="fix-document"><span aria-hidden="true">#</span></a></div><p>A javadoc note on the class or its constructor.</p><p class='k'>Trade-offs</p><p>Leaves the trap for anyone who misses the note, and documents an exception to the <code class='nw'>SegmentCacheable</code> contract instead of following it. Not built.</p><div class="hd hd-3"><h3 id='fix-never-cache'>Never cache the composite</h3><a class="hlink" href="#fix-never-cache" target="_self" aria-label="Link to this section" aria-describedby="fix-never-cache"><span aria-hidden="true">#</span></a></div><p>Return <code class='nw'>false</code>, as LUCENE-8017 did.</p><p class='k'>Trade-offs</p><p>Correct, but it gives up caching on the in-tree prefix-tree path, where the current answer is right. Not built.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>An application that hides documents through a doc-values flag inside this index query keeps showing them after the flag changes, until the stale entry goes; deleted documents stay hidden.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A hunt on this class's cache and visitor contracts started from a planning probe, then a model-based differential harness: 162 scenarios comparing cached and uncached search with a reference model found 14 stale results, all for index queries that read doc values after an in-place update, and 0 with the fix. A public-API JUnit confirmed it.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>201 words</span></summary><div class='body'><p><strong>Method: semi-formal</strong> (the hunt's hunt unit for <code>CompositeVerifyQuery</code>'s cache and visitor contracts, 2026-10-28, main <code class='nw'>a9779ef3c193</code>).</p><ul><li><strong>Lead.</strong> A planning probe from a cross-model ideas pack on committer contracts showed the wrapped query returning [0, 1, 2] where the uncached search returns [1, 2]; the finder re-read its outputs (a planning-stage reviewer had re-run it) and reduced it to a JUnit.</li><li><strong>Model-based harness.</strong> Reference semantics written from the class javadoc (live documents matched by the index query AND the predicate in the current state), compared with the cached search, the uncached search and the structural property "the composite is cacheable only if its index query is" on every leaf: 9 index-query kinds x 9 index operations x 2 search APIs = 162 scenarios, 324 hit-set checks, 99 property checks. Result on the stock jars (main with assertions on and off, 10.5.2): 14 stale cached results and 8 property violations, all for doc-values index queries after an in-place doc-values update; the model agreed with the uncached search in all 162 post-operation checks. With the fix: 0 and 0.</li><li><strong>JUnit.</strong> The scenario reduced to a public-API test: 3 of 3 fail with assertions on and off, 30 of 30 over 10 random seeds.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (searched 2026-10-28, re-checked): two runs of 51 queries over GitHub issues, PRs and commits, downstream repositories, the mailing lists, the JIRA archive and the web, plus manual GitHub searches and the changed files of all 414 open Lucene PRs. The only issue naming the class, #7338, is unrelated.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>6 searches</span></summary><div class='body'><p>Related, not reports of this bug: #9090 (LUCENE-8042), which introduced the line, with no comment about the index query; #9065 (LUCENE-8017), the origin of the doc-values cacheability contract, which left the TODO; #8787 (LUCENE-7736), which fixed the same pattern in <code>FunctionScoreQuery</code>; #6641 (LUCENE-5579), which introduced the class and states its public use; #7338 (LUCENE-6276, <code class='nw'>matchCost</code>), the only issue naming the class; SOLR-7379 and SOLR-10038, about Solr's own geometry cache. No open PR touches <code>CompositeVerifyQuery.java</code>. The owner's own published LFV-320 page mentions this site in three sentences; it is the owner's, so it is not a prior report. Gaps: keyword search only; GitHub Discussions and chat channels were not searched.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs, commits and downstream repositories</th><td class='when'>2026-10-28</td><td>two runs of a scripted prior-report search (16 issue/PR, 3 commit, 2 downstream queries each) and about 30 manual searches over apache/lucene, apache/lucene-solr, apache/solr, apache/lucenenet, Elasticsearch and OpenSearch; the titles of all 93 apache/lucene items updated since 2026-10-26; code search for the fix</td><td>no report; only the related items below</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-10-28</td><td>the changed files of all 414 open apache/lucene PRs</td><td>none touches CompositeVerifyQuery.java; #709, #13948, #16757 and #16847 touch the package or LRUQueryCache, not this isCacheable</td></tr><tr><th scope='row'>Mailing lists</th><td class='when'>2026-10-28</td><td>20 tool queries per run over dev@, java-user@, issues@ and commits@; 10 list-archive queries over the Lucene and Solr lists</td><td>no report</td></tr><tr><th scope='row'>JIRA archive</th><td class='when'>2026-10-28</td><td>4 tool queries per run and 5 JQL queries over LUCENE and SOLR; the migrated issues of LUCENE-5579, 8017 and 8042 read</td><td>no report</td></tr><tr><th scope='row'>Web</th><td class='when'>2026-10-28</td><td>6 tool queries per run and 8 manual queries</td><td>no report</td></tr><tr><th scope='row'>GitHub (re-check)</th><td class='when'>2026-10-28</td><td>search repo:apache/lucene CompositeVerifyQuery; isCacheable and spatial-extras items updated since 2026-10-27; the file's latest upstream commit</td><td>only #7338; nothing new; file unchanged since d0d2aa274fb (2024-06-06), upstream main 645d4fe14a2</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced in 7.2.0 by LUCENE-8042 (<code class='nw'>276e317e942</code>, 2017), which replaced a never-cacheable "TODO delegate to PredicateValueSource?" with a predicate-only answer. Executed: the introducing commits are stale and their parents correct; every executed release from 7.2.0 to 10.5.2, the 10.6 branch and main are stale.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>8 rows</span></summary><div class='body'><p><strong>Introduced by</strong> <code class='nw'>276e317e942</code> on master, "LUCENE-8042: Add SegmentCachable interface" (romseygeek, authored 2017-11-07, committed 2017-11-10; JIRA patch workflow, migrated as #9090), in 7.2.0 through the branch_7x backport <code class='nw'>6e4f9a62e7c</code>. It replaced LUCENE-8017's never-cacheable <code class='nw'>getCacheHelper</code> (<code>return null; // TODO delegate to PredicateValueSource?</code>, <code class='nw'>a886a001a4c</code>, four days earlier) with <code>predicateValueSource.isCacheable(ctx)</code>. <code>CompositeVerifyQuery</code> itself dates from 5.2.0 (LUCENE-5579, #6641).</p><p>7.1.0 also returns the stale count, but for an older, broader reason: the cache then ignored doc-values updates for every query, so the index query alone is stale too; LUCENE-8017 fixed that in 7.2.0. The <code class='nw'>isCacheable</code> line is present at all 62 release tags of the history clone (7.2.0-8.8.1, 9.0.0-10.5.2), in the bytecode of the 7.2.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0 and 10.5.2 jars, on <code class='nw'>branch_10_6</code> <code class='nw'>4ae946e5a9b</code> and on upstream main <code class='nw'>645d4fe14a2</code>. Releases before 7.1.0 were not executed.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the brief's test 4 of 5 fail (gradle and the standalone runner, assertions on and off; 10 iterations); no default cache, so the zero-configuration program is correct</td></tr><tr><th scope='row'><code class='nw'>branch_10_6</code> <code class='nw'>4ae946e5a9b</code> (10.6.0 release candidate)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the finder's test 3 of 3 (assertions on and off); zero configuration 5025 instead of 5024</td></tr><tr><th scope='row'>10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the brief's test 4 of 5 (assertions on and off); zero configuration 5025 instead of 5024</td></tr><tr><th scope='row'>7.2.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the history probe 5025 instead of 5024, the index query alone correct; zero configuration stale on 7.2.0, 8.11.4 and 9.12.3</td></tr><tr><th scope='row'>7.1.0</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> older root cause</span></td><td>stale, but the index query alone too: the pre-7.2.0 cache ignored doc-values updates for every query</td></tr><tr><th scope='row'><code class='nw'>a886a001a4c</code> / <code class='nw'>6f522dd66fe</code> (LUCENE-8017) and <code class='nw'>281e84b988a</code> / <code class='nw'>faa4293090a</code> (parents of LUCENE-8042)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> commit isolation</span></td><td>correct: the composite was never cached</td></tr><tr><th scope='row'><code class='nw'>276e317e942</code> / <code class='nw'>6e4f9a62e7c</code> (LUCENE-8042)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> commit isolation</span></td><td>stale (5025 instead of 5024); the index query alone correct; the fix shadowed onto <code class='nw'>6e4f9a62e7c</code> correct</td></tr><tr><th scope='row'>main + fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the brief's test 5 of 5; the whole <code>lucene/spatial-extras</code> module, 27 suites and 122 tests, 0 failed (assertions on and off)</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, an intended-behaviour devil's advocate and reviews by another model family (OpenAI GPT-5.6, reading-only) agree on the root cause; the adjudication re-ran the tests and confirmed it with high confidence. The brief re-ran everything on main <code class='nw'>a9779ef3c193</code> and validated the fix with gradle.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>365 words</span></summary><div class='body'><p>The cross-model reviews were reading-only: their client could not run Java. The refute-lens review returned a procedural "not real, low" while agreeing on the root cause and rating the intended argument weak; a separate re-run of the repro failed 3 of 3. An executing cross-model review is still open.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Model-based harness: 14 stale results and 8 property violations, 0 with the fix. Public-API JUnit 3 of 3 on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 30 of 30 over 10 seeds, <code class='nw'>branch_10_6</code>, 10.5.2, 9.12.3; zero configuration stale on 10.5.2 and <code class='nw'>branch_10_6</code>, correct on main.</td></tr><tr><th scope='row'>cross-model review, refute lens</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> not real, low (procedural)</span></td><td>OpenAI GPT-5.6, reading-only, could not run Java; agreed on the root cause and rated the intended argument weak. A separate run re-ran the repro: 3 of 3 fail.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own JUnit outside <code>org.apache.lucene</code> fails 3 of 3 on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>; 30 of 30 over 10 seeds), 10.5.2, 9.12.3, <code class='nw'>branch_10_6</code>: <code>[0, 1, 2]</code> instead of <code>[1, 2, 5]</code>, count 3 instead of 2; its in-test controls pass; zero configuration 6000 instead of 5999; its fix 3 of 3.</td></tr><tr><th scope='row'>Cross-model review, works-as-designed lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, medium</span></td><td>OpenAI GPT-5.6, reading-only; rated the intended argument moderate and rejected it. A separate run re-ran the repro: 3 of 3 fail on main and 10.5.2, the fix passes.</td></tr><tr><th scope='row'>Intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high that it is not intended)</span></td><td>Built the strongest intended case and showed why it fails; re-runs fail 3 of 3 on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>).</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high</span></td><td>Re-ran the independent JUnit with new seeds (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 3 of 3 fail, and the finder's, 3 of 3; the independent fix 3 of 3 pass.</td></tr><tr><th scope='row'>Follow-up: history, prior art, security</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> introduced by LUCENE-8042; new; not security-sensitive</span></td><td>Commit-level isolation on master and branch_7x; release matrix 7.1.0 to main; zero-configuration runs.</td></tr><tr><th scope='row'>brief re-runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced on a9779ef3c193</span></td><td>New 5-test JUnit through gradle and the standalone runner, stock and fixed, main and 10.5.2; the spatial-extras module with the fix; the zero-configuration program on 10.5.2, stock and fixed.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-947/bug.png' download='composite-verify-query-cacheable-ignores-index-query-bug.png' target='_self'>PNG</a> <span class='n'>551 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,499 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-947, snapshot of 2026-10-29</p><dl class='card'><div><dt>Registry title</dt><dd>CompositeVerifyQuery's Weight reports itself cacheable from its shape predicate alone and ignores the index query it runs, so after an in-place doc-values update a query cache keeps returning the old matches</dd></div><div><dt>Area</dt><dd>spatial-extras / composite: CompositeVerifyQuery (Weight#isCacheable) and the query cache</dd></div><div><dt>Priority</dt><dd>Medium, rank 245: It belongs to the same stale-query-cache class as LFV-320, LFV-336 and LFV-308, with silent wrong results released since 7.2, but it needs a hand-built CompositeVerifyQuery plus in-place updates, so it closes that medium group after LFV-308.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Applications that build a CompositeVerifyQuery with its public constructor around an index query that reads numeric or binary doc values (for example NumericDocValuesField.newSlowExactQuery, or a BooleanQuery with such a FILTER clause next to an RPT or term clause), update that field in place (IndexWriter#updateNumericDocValue or updateBinaryDocValue) and keep a query cache across reopens get the matches from before the update, with no error: a document that stopped matching is still returned, one that started matching is missing and counts are off, until the segment is merged away or the entry is evicted; on 7.2.0-10.5.2 and the 10.6.0 release-candidate branch the default IndexSearcher cache is enough (zero-configuration repro executed with a segment of 10,000+ documents and the query repeated), on main only an application-installed cache (no default cache since #14187); CompositeSpatialStrategy's own queries (an RPT postings index query) are not affected; ordinary scale.</dd></div><div><dt>Summary</dt><dd>You wrap an index query that reads a doc-values field, for example NumericDocValuesField.newSlowExactQuery("v", 1), in new CompositeVerifyQuery(indexQuery, shapePredicate), run it through a query cache, then change that field for one document in place with IndexWriter#updateNumericDocValue and reopen the reader. You expect the reopened searcher to see the new value, because a query that depends on updated doc values must report itself not cacheable (SegmentCacheable), and the index query alone does. Instead CompositeVerifyQuery's Weight#isCacheable asks only the shape predicate, the segment keeps its core cache key, and the cache keeps serving the pre-update result ([0, 1, 2] instead of [1, 2] in the repro; 5025 instead of 5024 hits with the release-default cache settings).</dd></div><div><dt>Introduced</dt><dd>276e317e9424252d89df7596851c7cd3559d79b1 (master, 'LUCENE-8042: Add SegmentCachable interface', by romseygeek, +1 by rmuir; JIRA patch workflow, no GitHub PR; migrated as apache/lucene#9090); branch_7x backport 6e4f9a62e7cc221dcb49788ab683c87f764f2f4a, the commit released in 7.2.0. It replaced the never-cacheable 'getCacheHelper ... return null; // TODO delegate to PredicateValueSource?' that LUCENE-8017 (a886a001a4c master / 6f522dd66fe branch_7x, #9065) had added four days earlier with 'return predicateValueSource.isCacheable(ctx)', and did not consult the indexQueryWeight built in the same createWeight [read: git blame and git log -L in the history clone; exec: commit-level builds of core, spatial3d and spatial-extras: the parents of LUCENE-8017 show an older framework-wide staleness (the index query alone is stale too), LUCENE-8017 and the parents of LUCENE-8042 (281e84b988a master, faa4293090a branch_7x) never cache the composite, 276e317e942 and 6e4f9a62e7c serve the stale count while the index-query-alone control is correct, and the fix shadowed onto 6e4f9a62e7c is correct] (2017-11-07 (author date of both commits; committed 2017-11-10 on master and branch_7x))</dd></div><div><dt>First affected version</dt><dd>7.2.0 [exec] (tagged 2017-12-19). 7.1.0 also serves a stale count [exec], but for an older, framework-wide root cause (the query cache then had no per-Weight cacheability, so the index query alone is stale too), fixed by LUCENE-8017 in 7.2.0; CompositeVerifyQuery itself exists since 5.2.0 (LUCENE-5579)</dd></div><div><dt>Affected versions</dt><dd>every release from 7.2.0 to 10.5.2, the 10.6.0 release-candidate branch and main. [exec] history probe (explicit LRUQueryCache, 10,050-document segment) affected on 7.2.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2, the branch_10_6 head 4ae946e5a9b and main a9779ef3c193 (-da also on 7.2.0, 10.5.2, branch_10_6 and main), with the index-query-alone control correct on each; the candidate JUnit fails 3 of 3 on main (-ea and -da; 30 of 30 over 10 random seeds), branch_10_6 4ae946e5a9b (-ea and -da), 10.5.2, 10.0.0 and 9.12.3; zero configuration (plain new IndexSearcher, default LRUQueryCache and UsageTrackingQueryCachingPolicy, query repeated) is stale on 7.2.0, 8.11.4, 9.12.3, 10.5.2 and branch_10_6 and correct on main, which has had no default query cache since #14187 (unreleased). [read] the isCacheable line is present at all 62 release tags of the history clone (7.2.0-8.8.1, 9.0.0-10.5.2) and in the bytecode of the 8.11.4 jar (8.8.2-8.11.x were tagged in the separate lucene-solr repository). Not fixed upstream: CompositeVerifyQuery.java last changed by d0d2aa274fb (2024-06-06, #13440); upstream main head 645d4fe14a2 (2026-10-28) and branch_10_6 4ae946e5a9b still carry the line. Some branch_10_6 runs combined the branch's core jars with spatial-extras classes whose composite/, serialized/ and util/ sources are identical between 10.5.2 and the branch head (recorded by the independent reproduction and the finder). All runs on Linux aarch64 with JDK 25.</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (the prior-report record, verdict new, searched 2026-10-28, read-only): two scripted prior-report searches (the follow-up's and the finder's, 51 queries each: 16 GitHub issue/PR, 3 commit, 2 downstream, 20 mailing-list (dev@, java-user@, issues@, commits@), 4 JIRA-archive and 6 web queries; 375 and 1,354 distinct hits, 0 high), manual GitHub searches over apache/lucene, apache/lucene-solr, apache/solr, apache/lucenenet, Elasticsearch and OpenSearch (including the titles of all 93 apache/lucene items updated since 2026-10-26), GitHub code search (no fork or downstream copy carries the fix), the changed-file lists of all 414 open apache/lucene PRs, 5 JQL queries on LUCENE and SOLR, Lucene and Solr mailing-list searches, and 8 web queries; 6 first attempts hit GitHub's search rate limit and were retried successfully. The only apache/lucene issue that names CompositeVerifyQuery is #7338 (LUCENE-6276, matchCost; unrelated). Related, not reports: #9090 (LUCENE-8042, introduced the line; body and all comments read, none mentions the index query), #9065 (LUCENE-8017, origin of the doc-values cacheability contract; left the TODO), #8787 (LUCENE-7736, fixed the identical pattern in FunctionScoreQuery), #6641 (LUCENE-5579, introduced the class and states its public use). Not fixed: no open PR touches CompositeVerifyQuery.java (#709, #13948, #16847 and #16757 touch the package or LRUQueryCache but change no isCacheable line). refresh 2026-10-28 (GitHub search and REST API, read-only): 'repo:apache/lucene CompositeVerifyQuery' still finds only #7338; no apache/lucene issue or PR mentioning isCacheable or spatial-extras was updated since 2026-10-27; no new commit on the file (last d0d2aa274fb, 2024-06-06); upstream main head 645d4fe14a2. Gaps: keyword search only; GitHub Discussions and chat channels not searched.</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26; tested 2026-10-28) through gradle in a scratch worktree and through the standalone JUnit runner, with assertions on and off and 10 derived seeds; the 10.5.2 release jars (assertions on and off). Release runs by the hunt on 7.1.0, 7.2.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2 and the <code class='nw'>branch_10_6</code> head <code class='nw'>4ae946e5a9b</code> (some of those runs used the branch's core jars with spatial-extras classes whose <code class='nw'>composite/</code>, <code class='nw'>serialized/</code> and <code class='nw'>util/</code> sources are identical to 10.5.2), and commit-level builds of LUCENE-8017, LUCENE-8042 and their parents. The fix was validated in the scratch worktree: the new test with assertions on and off, the whole <code>lucene/spatial-extras</code> module with assertions on and off, and <code>:lucene:spatial-extras:check -x test</code>.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>a Lucene main checkout lucene/spatial-extras/src/java/org/apache/lucene/spatial/composite/CompositeVerifyQuery.java:33-37 (class javadoc, @lucene.experimental), :40 (&#x27;approximation (matches more than needed)&#x27;), :44 (public constructor), :95-97 (indexQueryWeight), :101-109 (its scorer is the approximation of every match), :113-116 (isCacheable returns predicateValueSource.isCacheable(ctx) only); lucene/core/src/java/org/apache/lucene/search/SegmentCacheable.java:27-35; lucene/core/src/java/org/apache/lucene/search/LRUQueryCache.java:816 and :903 (the cache trusts in.isCacheable); lucene/core/src/java/org/apache/lucene/search/FilterWeight.java:48-49, ConstantScoreQuery.java:193-194, lucene/queries/src/java/org/apache/lucene/queries/function/FunctionScoreQuery.java:280-281 (wrappers delegate to or AND in the inner weight); lucene/core/src/test/org/apache/lucene/search/TestSegmentCacheables.java:84-92 (&#x27;after field3 is updated, all composites referring to it should be uncacheable&#x27;); lucene/core/src/java/org/apache/lucene/search/IndexSearcher.java:84 (DEFAULT_QUERY_CACHE = null on main) [read by the registration check]</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/composite/CompositeVerifyQuery.java:33-37 (at a9779ef3c193) (javadoc, @lucene.experimental), :41, :44, :95-97 (indexQueryWeight), :101-111 (scorerSupplier), :113-116 (isCacheable)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/LRUQueryCache.java:816-834, (at a9779ef3c193) :903-921, :264-275 (close), :458 (clear); core/src/java/org/apache/lucene/index/LeafReader.java:66-70; core/src/java/org/apache/lucene/search/SegmentCacheable.java:30-32</code></li><li><code>lucene/core/src/java/org/apache/lucene/document/NumericDocValuesField.java:110-111, (at a9779ef3c193) :144-145; core/src/java/org/apache/lucene/document/SortedNumericDocValuesRangeQuery.java:119-121; core/src/java/org/apache/lucene/index/DocValues.java:339-346; core/src/java/org/apache/lucene/search/BooleanWeight.java:272-285; core/src/java/org/apache/lucene/search/IndexSearcher.java:976-982</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/composite/CompositeSpatialStrategy.java:122-134, (at a9779ef3c193) :154-155; spatial-extras/src/java/org/apache/lucene/spatial/prefix/RecursivePrefixTreeStrategy.java:185-187, :216-229; core/src/java/org/apache/lucene/search/TermQuery.java:192-194; spatial-extras/src/java/org/apache/lucene/spatial/prefix/AbstractPrefixTreeQuery.java:107-108</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>a Lucene clone releases/lucene/10.5.2 lucene/core/src/java/org/apache/lucene/search/IndexSearcher.java:83-99</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/IndexSearcher.java:82-84; (at a9779ef3c193) lucene/MIGRATE.md:227-236; core/src/java/org/apache/lucene/search/LRUQueryCache.java:251-253, :278-296</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/search/SegmentCacheable.java:30-32; (at a9779ef3c193) core/src/java/org/apache/lucene/search/QueryCache.java:28-30</code></li><li><code>lucene/core/src/test/org/apache/lucene/search/TestSegmentCacheables.java:84-92; (at a9779ef3c193) core/src/test/org/apache/lucene/search/TestLRUQueryCache.java:2165, :2213, :2222, :2271-2284</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/FilterWeight.java:47-50; (at a9779ef3c193) core/src/java/org/apache/lucene/search/ConstantScoreQuery.java:192-195; core/src/java/org/apache/lucene/search/BooleanWeight.java:272-285; queries/src/java/org/apache/lucene/queries/function/FunctionScoreQuery.java:279-282</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/IndexOrDocValuesQuery.java:61, (at a9779ef3c193) :211-214; spatial-extras/src/java/org/apache/lucene/spatial/composite/IntersectsRPTVerifyQuery.java:46 (@lucene.internal), :157-158</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/queries/src/java/org/apache/lucene/queries/function/FunctionScoreQuery.java:279-282; (at a9779ef3c193) spatial-extras/src/java/org/apache/lucene/spatial/prefix/AbstractPrefixTreeQuery.java:107-108; core/src/java/org/apache/lucene/search/BooleanWeight.java:274-280; core/src/java/org/apache/lucene/search/AbstractMultiTermQueryConstantScoreWrapper.java:43 (threshold 16)</code></li></ul></dd></div><div><dt>Prior reports</dt><dd><ul class='paths'><li><code>read-only gh api on 2026-10-28: search/issues &#x27;repo:apache/lucene CompositeVerifyQuery&#x27; (1: #7338), &#x27;repo:apache/lucene isCacheable updated:&gt;=2026-10-27&#x27; (0), &#x27;repo:apache/lucene spatial-extras updated:&gt;=2026-10-27&#x27; (0); commits?path=.../CompositeVerifyQuery.java (d0d2aa274fb); commits?sha=main (645d4fe14a2)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestCompositeVerifyQueryCacheability.java (lucene/spatial-extras, public API, 5 tests): <a href='../repro/LFV-947/TestCompositeVerifyQueryCacheability.java'><code>repro/LFV-947/TestCompositeVerifyQueryCacheability.java</code></a> (381 lines)</li><li>DefaultSearcherStaleCount.java (plain main(), no cache code: the default cache of 7.2.0-10.5.2 and the 10.6 branch): <a href='../repro/LFV-947/DefaultSearcherStaleCount.java'><code>repro/LFV-947/DefaultSearcherStaleCount.java</code></a> (67 lines)</li><li>TestCompositeVerifyQueryCacheability.java (the finder&#x27;s original 3-test repro): <a href='../repro/LFV-947/3-TestCompositeVerifyQueryCacheability.java'><code>repro/LFV-947/3-TestCompositeVerifyQueryCacheability.java</code></a> (271 lines)</li><li>TestCompositeVerifyQueryCache.java (independent reproducer): <a href='../repro/LFV-947/TestCompositeVerifyQueryCache.java'><code>repro/LFV-947/TestCompositeVerifyQueryCache.java</code></a> (212 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>It is made in parallel with this doc, and every on-screen value comes from the code or the diagram's executed probe.</p><ul class='paths'><li><a href='../assets/LFV-947/bug.png'><code>assets/LFV-947/bug.png</code></a> (551 KB)</li></ul><p class='meta built'>Built 2026-10-29 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-29. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+}</code></pre><p class='k'>Trade-offs</p><ul><li>On a segment where a field the index query reads was updated in place, the composite is no longer cached until that segment is merged away. The index query on its own is already treated that way, so no correct result is lost; caching is lost, though, whenever the index query is not cacheable, for any reason (below).</li><li>The in-tree path is unchanged: prefix-tree query Weights are always cacheable (<code>AbstractPrefixTreeQuery.java:107-108</code>; so is the <code class='nw'>TermQuery</code> built for a point on a points-only grid, <code>TermQuery.java:192-194</code>), and the control test shows <code>CompositeSpatialStrategy</code>'s composite still served from the cache after an unrelated doc-values update.</li><li>An index query that is not cacheable for another reason (for example a <code class='nw'>BooleanQuery</code> with more than 16 clauses, <code>BooleanWeight.java:274-280</code>) now also keeps the composite out of the cache: correct, but a change in what gets cached.</li><li>One extra <code class='nw'>isCacheable</code> call, on the index query's Weight, per leaf cacheability check. A "Bug Fixes" CHANGES line would be usual; none is drafted.</li></ul><p class='k'>What the checks validated</p><ul><li>Scratch worktree of <code class='nw'>a9779ef3c193</code>, gradle: the new test fails 4 of 5 on the stock tree and passes 5 of 5 with the fix, with assertions on and off; the whole <code>lucene/spatial-extras</code> module (27 suites, among them <code>TestCompositeStrategy</code>, <code>TestSerializedStrategy</code> and <code>TestQueryEqualsHashCode</code>; 122 tests, 0 failures, 5 skipped, 4 of them nightly-only) passes with assertions on and off; <code>:lucene:spatial-extras:check -x test</code> (format, ecjLint, forbiddenApis) passes.</li><li>Standalone runner with the fix shadowed in: the new test 5 of 5 (<code class='nw'>-ea</code>, <code class='nw'>-da</code>); the plain-defaults program on the 10.5.2 jars prints <code>default searcher count=5024, uncached count=5024</code>.</li><li>Earlier, by the hunt: the finder's 3 tests 3 of 3, the independent reproducer's 3 of 3, the model-based harness 0 mismatches and 0 property violations, upstream <code>TestCompositeStrategy</code> and <code>TestQueryEqualsHashCode</code> (5 seeds, together with the visit fix of LFV-951), and the history probe on the introducing commit <code class='nw'>6e4f9a62e7c</code>.</li><li>Not run: nightly tests, a benchmark.</li></ul><div class="hd hd-3"><h3 id='fix-document'>Document that the index query must be segment-immutable</h3><a class="hlink" href="#fix-document" target="_self" aria-label="Link to this section" aria-describedby="fix-document"><span aria-hidden="true">#</span></a></div><p>A javadoc note on the class or its constructor.</p><p class='k'>Trade-offs</p><p>Leaves the trap for anyone who misses the note, and documents an exception to the <code class='nw'>SegmentCacheable</code> contract instead of following it. Not built.</p><div class="hd hd-3"><h3 id='fix-never-cache'>Never cache the composite</h3><a class="hlink" href="#fix-never-cache" target="_self" aria-label="Link to this section" aria-describedby="fix-never-cache"><span aria-hidden="true">#</span></a></div><p>Return <code class='nw'>false</code>, as LUCENE-8017 did.</p><p class='k'>Trade-offs</p><p>Correct, but it gives up caching on the in-tree prefix-tree path, where the current answer is right. Not built.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>An application that hides documents through a doc-values flag inside this index query keeps showing them after the flag changes, until the stale entry goes; deleted documents stay hidden.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A hunt on this class's cache and visitor contracts started from a planning probe, then a model-based differential harness: 162 scenarios comparing cached and uncached search with a reference model found 14 stale results, all for index queries that read doc values after an in-place update, and 0 with the fix. A public-API JUnit confirmed it.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>201 words</span></summary><div class='body'><p><strong>Method: semi-formal</strong> (the hunt's hunt unit for <code>CompositeVerifyQuery</code>'s cache and visitor contracts, 2026-10-28, main <code class='nw'>a9779ef3c193</code>).</p><ul><li><strong>Lead.</strong> A planning probe from a cross-model ideas pack on committer contracts showed the wrapped query returning [0, 1, 2] where the uncached search returns [1, 2]; the finder re-read its outputs (a planning-stage reviewer had re-run it) and reduced it to a JUnit.</li><li><strong>Model-based harness.</strong> Reference semantics written from the class javadoc (live documents matched by the index query AND the predicate in the current state), compared with the cached search, the uncached search and the structural property "the composite is cacheable only if its index query is" on every leaf: 9 index-query kinds x 9 index operations x 2 search APIs = 162 scenarios, 324 hit-set checks, 99 property checks. Result on the stock jars (main with assertions on and off, 10.5.2): 14 stale cached results and 8 property violations, all for doc-values index queries after an in-place doc-values update; the model agreed with the uncached search in all 162 post-operation checks. With the fix: 0 and 0.</li><li><strong>JUnit.</strong> The scenario reduced to a public-API test: 3 of 3 fail with assertions on and off, 30 of 30 over 10 random seeds.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (searched 2026-10-28, re-checked): two runs of 51 queries over GitHub issues, PRs and commits, downstream repositories, the mailing lists, the JIRA archive and the web, plus manual GitHub searches and the changed files of all 414 open Lucene PRs. The only issue naming the class, #7338, is unrelated.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>6 searches</span></summary><div class='body'><p>Related, not reports of this bug: #9090 (LUCENE-8042), which introduced the line, with no comment about the index query; #9065 (LUCENE-8017), the origin of the doc-values cacheability contract, which left the TODO; #8787 (LUCENE-7736), which fixed the same pattern in <code>FunctionScoreQuery</code>; #6641 (LUCENE-5579), which introduced the class and states its public use; #7338 (LUCENE-6276, <code class='nw'>matchCost</code>), the only issue naming the class; SOLR-7379 and SOLR-10038, about Solr's own geometry cache. No open PR touches <code>CompositeVerifyQuery.java</code>. The owner's own published LFV-320 page mentions this site in three sentences; it is the owner's, so it is not a prior report. Gaps: keyword search only; GitHub Discussions and chat channels were not searched.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs, commits and downstream repositories</th><td class='when'>2026-10-28</td><td>two runs of a scripted prior-report search (16 issue/PR, 3 commit, 2 downstream queries each) and about 30 manual searches over apache/lucene, apache/lucene-solr, apache/solr, apache/lucenenet, Elasticsearch and OpenSearch; the titles of all 93 apache/lucene items updated since 2026-10-26; code search for the fix</td><td>no report; only the related items below</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-10-28</td><td>the changed files of all 414 open apache/lucene PRs</td><td>none touches CompositeVerifyQuery.java; #709, #13948, #16757 and #16847 touch the package or LRUQueryCache, not this isCacheable</td></tr><tr><th scope='row'>Mailing lists</th><td class='when'>2026-10-28</td><td>20 tool queries per run over dev@, java-user@, issues@ and commits@; 10 list-archive queries over the Lucene and Solr lists</td><td>no report</td></tr><tr><th scope='row'>JIRA archive</th><td class='when'>2026-10-28</td><td>4 tool queries per run and 5 JQL queries over LUCENE and SOLR; the migrated issues of LUCENE-5579, 8017 and 8042 read</td><td>no report</td></tr><tr><th scope='row'>Web</th><td class='when'>2026-10-28</td><td>6 tool queries per run and 8 manual queries</td><td>no report</td></tr><tr><th scope='row'>GitHub (re-check)</th><td class='when'>2026-10-28</td><td>search repo:apache/lucene CompositeVerifyQuery; isCacheable and spatial-extras items updated since 2026-10-27; the file's latest upstream commit</td><td>only #7338; nothing new; file unchanged since d0d2aa274fb (2024-06-06), upstream main 645d4fe14a2</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced in 7.2.0 by LUCENE-8042 (<code class='nw'>276e317e942</code>, 2017), which replaced a never-cacheable "TODO delegate to PredicateValueSource?" with a predicate-only answer. Executed: the introducing commits are stale and their parents correct; every executed release from 7.2.0 to 10.5.2, the 10.6 branch and main are stale.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>8 rows</span></summary><div class='body'><p><strong>Introduced by</strong> <code class='nw'>276e317e942</code> on master, "LUCENE-8042: Add SegmentCachable interface" (romseygeek, authored 2017-11-07, committed 2017-11-10; JIRA patch workflow, migrated as #9090), in 7.2.0 through the branch_7x backport <code class='nw'>6e4f9a62e7c</code>. It replaced LUCENE-8017's never-cacheable <code class='nw'>getCacheHelper</code> (<code>return null; // TODO delegate to PredicateValueSource?</code>, <code class='nw'>a886a001a4c</code>, four days earlier) with <code>predicateValueSource.isCacheable(ctx)</code>. <code>CompositeVerifyQuery</code> itself dates from 5.2.0 (LUCENE-5579, #6641).</p><p>7.1.0 also returns the stale count, but for an older, broader reason: the cache then ignored doc-values updates for every query, so the index query alone is stale too; LUCENE-8017 fixed that in 7.2.0. The <code class='nw'>isCacheable</code> line is present at all 62 release tags of the history clone (7.2.0-8.8.1, 9.0.0-10.5.2), in the bytecode of the 7.2.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0 and 10.5.2 jars, on <code class='nw'>branch_10_6</code> <code class='nw'>4ae946e5a9b</code> and on upstream main <code class='nw'>645d4fe14a2</code>. Releases before 7.1.0 were not executed.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the brief's test 4 of 5 fail (gradle and the standalone runner, assertions on and off; 10 iterations); no default cache, so the zero-configuration program is correct</td></tr><tr><th scope='row'><code class='nw'>branch_10_6</code> <code class='nw'>4ae946e5a9b</code> (10.6.0 release candidate)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the finder's test 3 of 3 (assertions on and off); zero configuration 5025 instead of 5024</td></tr><tr><th scope='row'>10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the brief's test 4 of 5 (assertions on and off); zero configuration 5025 instead of 5024</td></tr><tr><th scope='row'>7.2.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the history probe 5025 instead of 5024, the index query alone correct; zero configuration stale on 7.2.0, 8.11.4 and 9.12.3</td></tr><tr><th scope='row'>7.1.0</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> older root cause</span></td><td>stale, but the index query alone too: the pre-7.2.0 cache ignored doc-values updates for every query</td></tr><tr><th scope='row'><code class='nw'>a886a001a4c</code> / <code class='nw'>6f522dd66fe</code> (LUCENE-8017) and <code class='nw'>281e84b988a</code> / <code class='nw'>faa4293090a</code> (parents of LUCENE-8042)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> commit isolation</span></td><td>correct: the composite was never cached</td></tr><tr><th scope='row'><code class='nw'>276e317e942</code> / <code class='nw'>6e4f9a62e7c</code> (LUCENE-8042)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> commit isolation</span></td><td>stale (5025 instead of 5024); the index query alone correct; the fix shadowed onto <code class='nw'>6e4f9a62e7c</code> correct</td></tr><tr><th scope='row'>main + fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the brief's test 5 of 5; the whole <code>lucene/spatial-extras</code> module, 27 suites and 122 tests, 0 failed (assertions on and off)</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, an intended-behaviour devil's advocate and reviews by another model family (OpenAI GPT-5.6, reading-only) agree on the root cause; the adjudication re-ran the tests and confirmed it with high confidence. The brief re-ran everything on main <code class='nw'>a9779ef3c193</code> and validated the fix with gradle.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>365 words</span></summary><div class='body'><p>The cross-model reviews were reading-only: their client could not run Java. The refute-lens review returned a procedural "not real, low" while agreeing on the root cause and rating the intended argument weak; a separate re-run of the repro failed 3 of 3. An executing cross-model review is still open.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Model-based harness: 14 stale results and 8 property violations, 0 with the fix. Public-API JUnit 3 of 3 on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 30 of 30 over 10 seeds, <code class='nw'>branch_10_6</code>, 10.5.2, 9.12.3; zero configuration stale on 10.5.2 and <code class='nw'>branch_10_6</code>, correct on main.</td></tr><tr><th scope='row'>cross-model review, refute lens</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> not real, low (procedural)</span></td><td>OpenAI GPT-5.6, reading-only, could not run Java; agreed on the root cause and rated the intended argument weak. A separate run re-ran the repro: 3 of 3 fail.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own JUnit outside <code>org.apache.lucene</code> fails 3 of 3 on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>; 30 of 30 over 10 seeds), 10.5.2, 9.12.3, <code class='nw'>branch_10_6</code>: <code>[0, 1, 2]</code> instead of <code>[1, 2, 5]</code>, count 3 instead of 2; its in-test controls pass; zero configuration 6000 instead of 5999; its fix 3 of 3.</td></tr><tr><th scope='row'>Cross-model review, works-as-designed lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, medium</span></td><td>OpenAI GPT-5.6, reading-only; rated the intended argument moderate and rejected it. A separate run re-ran the repro: 3 of 3 fail on main and 10.5.2, the fix passes.</td></tr><tr><th scope='row'>Intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high that it is not intended)</span></td><td>Built the strongest intended case and showed why it fails; re-runs fail 3 of 3 on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>).</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high</span></td><td>Re-ran the independent JUnit with new seeds (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 3 of 3 fail, and the finder's, 3 of 3; the independent fix 3 of 3 pass.</td></tr><tr><th scope='row'>Follow-up: history, prior art, security</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> introduced by LUCENE-8042; new; not security-sensitive</span></td><td>Commit-level isolation on master and branch_7x; release matrix 7.1.0 to main; zero-configuration runs.</td></tr><tr><th scope='row'>brief re-runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced on a9779ef3c193</span></td><td>New 5-test JUnit through gradle and the standalone runner, stock and fixed, main and 10.5.2; the spatial-extras module with the fix; the zero-configuration program on 10.5.2, stock and fixed.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-947/bug.png' download='composite-verify-query-cacheable-ignores-index-query-bug.png' target='_self'>PNG</a> <span class='n'>551 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,446 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-947, snapshot of 2026-10-29</p><dl class='card'><div><dt>Registry title</dt><dd>CompositeVerifyQuery's Weight reports itself cacheable from its shape predicate alone and ignores the index query it runs, so after an in-place doc-values update a query cache keeps returning the old matches</dd></div><div><dt>Area</dt><dd>spatial-extras / composite: CompositeVerifyQuery (Weight#isCacheable) and the query cache</dd></div><div><dt>Priority</dt><dd>Low, rank 301: Needs a hand-built CompositeVerifyQuery with a doc-values index query plus in-place updates and a query cache that survives reopens.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Applications that build a CompositeVerifyQuery with its public constructor around an index query that reads numeric or binary doc values (for example NumericDocValuesField.newSlowExactQuery, or a BooleanQuery with such a FILTER clause next to an RPT or term clause), update that field in place (IndexWriter#updateNumericDocValue or updateBinaryDocValue) and keep a query cache across reopens get the matches from before the update, with no error: a document that stopped matching is still returned, one that started matching is missing and counts are off, until the segment is merged away or the entry is evicted; on 7.2.0-10.5.2 and the 10.6.0 release-candidate branch the default IndexSearcher cache is enough (zero-configuration repro executed with a segment of 10,000+ documents and the query repeated), on main only an application-installed cache (no default cache since #14187); CompositeSpatialStrategy's own queries (an RPT postings index query) are not affected; ordinary scale.</dd></div><div><dt>Summary</dt><dd>You wrap an index query that reads a doc-values field, for example NumericDocValuesField.newSlowExactQuery("v", 1), in new CompositeVerifyQuery(indexQuery, shapePredicate), run it through a query cache, then change that field for one document in place with IndexWriter#updateNumericDocValue and reopen the reader. You expect the reopened searcher to see the new value, because a query that depends on updated doc values must report itself not cacheable (SegmentCacheable), and the index query alone does. Instead CompositeVerifyQuery's Weight#isCacheable asks only the shape predicate, the segment keeps its core cache key, and the cache keeps serving the pre-update result ([0, 1, 2] instead of [1, 2] in the repro; 5025 instead of 5024 hits with the release-default cache settings).</dd></div><div><dt>Introduced</dt><dd>276e317e9424252d89df7596851c7cd3559d79b1 (master, 'LUCENE-8042: Add SegmentCachable interface', by romseygeek, +1 by rmuir; JIRA patch workflow, no GitHub PR; migrated as apache/lucene#9090); branch_7x backport 6e4f9a62e7cc221dcb49788ab683c87f764f2f4a, the commit released in 7.2.0. It replaced the never-cacheable 'getCacheHelper ... return null; // TODO delegate to PredicateValueSource?' that LUCENE-8017 (a886a001a4c master / 6f522dd66fe branch_7x, #9065) had added four days earlier with 'return predicateValueSource.isCacheable(ctx)', and did not consult the indexQueryWeight built in the same createWeight [read: git blame and git log -L in the history clone; exec: commit-level builds of core, spatial3d and spatial-extras: the parents of LUCENE-8017 show an older framework-wide staleness (the index query alone is stale too), LUCENE-8017 and the parents of LUCENE-8042 (281e84b988a master, faa4293090a branch_7x) never cache the composite, 276e317e942 and 6e4f9a62e7c serve the stale count while the index-query-alone control is correct, and the fix shadowed onto 6e4f9a62e7c is correct] (2017-11-07 (author date of both commits; committed 2017-11-10 on master and branch_7x))</dd></div><div><dt>First affected version</dt><dd>7.2.0 [exec] (tagged 2017-12-19). 7.1.0 also serves a stale count [exec], but for an older, framework-wide root cause (the query cache then had no per-Weight cacheability, so the index query alone is stale too), fixed by LUCENE-8017 in 7.2.0; CompositeVerifyQuery itself exists since 5.2.0 (LUCENE-5579)</dd></div><div><dt>Affected versions</dt><dd>every release from 7.2.0 to 10.5.2, the 10.6.0 release-candidate branch and main. [exec] history probe (explicit LRUQueryCache, 10,050-document segment) affected on 7.2.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2, the branch_10_6 head 4ae946e5a9b and main a9779ef3c193 (-da also on 7.2.0, 10.5.2, branch_10_6 and main), with the index-query-alone control correct on each; the candidate JUnit fails 3 of 3 on main (-ea and -da; 30 of 30 over 10 random seeds), branch_10_6 4ae946e5a9b (-ea and -da), 10.5.2, 10.0.0 and 9.12.3; zero configuration (plain new IndexSearcher, default LRUQueryCache and UsageTrackingQueryCachingPolicy, query repeated) is stale on 7.2.0, 8.11.4, 9.12.3, 10.5.2 and branch_10_6 and correct on main, which has had no default query cache since #14187 (unreleased). [read] the isCacheable line is present at all 62 release tags of the history clone (7.2.0-8.8.1, 9.0.0-10.5.2) and in the bytecode of the 8.11.4 jar (8.8.2-8.11.x were tagged in the separate lucene-solr repository). Not fixed upstream: CompositeVerifyQuery.java last changed by d0d2aa274fb (2024-06-06, #13440); upstream main head 645d4fe14a2 (2026-10-28) and branch_10_6 4ae946e5a9b still carry the line. Some branch_10_6 runs combined the branch's core jars with spatial-extras classes whose composite/, serialized/ and util/ sources are identical between 10.5.2 and the branch head (recorded by the independent reproduction and the finder). All runs on Linux aarch64 with JDK 25.</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (the prior-report record, verdict new, searched 2026-10-28, read-only): two scripted prior-report searches (the follow-up's and the finder's, 51 queries each: 16 GitHub issue/PR, 3 commit, 2 downstream, 20 mailing-list (dev@, java-user@, issues@, commits@), 4 JIRA-archive and 6 web queries; 375 and 1,354 distinct hits, 0 high), manual GitHub searches over apache/lucene, apache/lucene-solr, apache/solr, apache/lucenenet, Elasticsearch and OpenSearch (including the titles of all 93 apache/lucene items updated since 2026-10-26), GitHub code search (no fork or downstream copy carries the fix), the changed-file lists of all 414 open apache/lucene PRs, 5 JQL queries on LUCENE and SOLR, Lucene and Solr mailing-list searches, and 8 web queries; 6 first attempts hit GitHub's search rate limit and were retried successfully. The only apache/lucene issue that names CompositeVerifyQuery is #7338 (LUCENE-6276, matchCost; unrelated). Related, not reports: #9090 (LUCENE-8042, introduced the line; body and all comments read, none mentions the index query), #9065 (LUCENE-8017, origin of the doc-values cacheability contract; left the TODO), #8787 (LUCENE-7736, fixed the identical pattern in FunctionScoreQuery), #6641 (LUCENE-5579, introduced the class and states its public use). Not fixed: no open PR touches CompositeVerifyQuery.java (#709, #13948, #16847 and #16757 touch the package or LRUQueryCache but change no isCacheable line). refresh 2026-10-28 (GitHub search and REST API, read-only): 'repo:apache/lucene CompositeVerifyQuery' still finds only #7338; no apache/lucene issue or PR mentioning isCacheable or spatial-extras was updated since 2026-10-27; no new commit on the file (last d0d2aa274fb, 2024-06-06); upstream main head 645d4fe14a2. Gaps: keyword search only; GitHub Discussions and chat channels not searched.</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26; tested 2026-10-28) through gradle in a scratch worktree and through the standalone JUnit runner, with assertions on and off and 10 derived seeds; the 10.5.2 release jars (assertions on and off). Release runs by the hunt on 7.1.0, 7.2.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2 and the <code class='nw'>branch_10_6</code> head <code class='nw'>4ae946e5a9b</code> (some of those runs used the branch's core jars with spatial-extras classes whose <code class='nw'>composite/</code>, <code class='nw'>serialized/</code> and <code class='nw'>util/</code> sources are identical to 10.5.2), and commit-level builds of LUCENE-8017, LUCENE-8042 and their parents. The fix was validated in the scratch worktree: the new test with assertions on and off, the whole <code>lucene/spatial-extras</code> module with assertions on and off, and <code>:lucene:spatial-extras:check -x test</code>.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>a Lucene main checkout lucene/spatial-extras/src/java/org/apache/lucene/spatial/composite/CompositeVerifyQuery.java:33-37 (class javadoc, @lucene.experimental), :40 (&#x27;approximation (matches more than needed)&#x27;), :44 (public constructor), :95-97 (indexQueryWeight), :101-109 (its scorer is the approximation of every match), :113-116 (isCacheable returns predicateValueSource.isCacheable(ctx) only); lucene/core/src/java/org/apache/lucene/search/SegmentCacheable.java:27-35; lucene/core/src/java/org/apache/lucene/search/LRUQueryCache.java:816 and :903 (the cache trusts in.isCacheable); lucene/core/src/java/org/apache/lucene/search/FilterWeight.java:48-49, ConstantScoreQuery.java:193-194, lucene/queries/src/java/org/apache/lucene/queries/function/FunctionScoreQuery.java:280-281 (wrappers delegate to or AND in the inner weight); lucene/core/src/test/org/apache/lucene/search/TestSegmentCacheables.java:84-92 (&#x27;after field3 is updated, all composites referring to it should be uncacheable&#x27;); lucene/core/src/java/org/apache/lucene/search/IndexSearcher.java:84 (DEFAULT_QUERY_CACHE = null on main) [read by the registration check]</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/composite/CompositeVerifyQuery.java:33-37 (at a9779ef3c193) (javadoc, @lucene.experimental), :41, :44, :95-97 (indexQueryWeight), :101-111 (scorerSupplier), :113-116 (isCacheable)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/LRUQueryCache.java:816-834, (at a9779ef3c193) :903-921, :264-275 (close), :458 (clear); core/src/java/org/apache/lucene/index/LeafReader.java:66-70; core/src/java/org/apache/lucene/search/SegmentCacheable.java:30-32</code></li><li><code>lucene/core/src/java/org/apache/lucene/document/NumericDocValuesField.java:110-111, (at a9779ef3c193) :144-145; core/src/java/org/apache/lucene/document/SortedNumericDocValuesRangeQuery.java:119-121; core/src/java/org/apache/lucene/index/DocValues.java:339-346; core/src/java/org/apache/lucene/search/BooleanWeight.java:272-285; core/src/java/org/apache/lucene/search/IndexSearcher.java:976-982</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/composite/CompositeSpatialStrategy.java:122-134, (at a9779ef3c193) :154-155; spatial-extras/src/java/org/apache/lucene/spatial/prefix/RecursivePrefixTreeStrategy.java:185-187, :216-229; core/src/java/org/apache/lucene/search/TermQuery.java:192-194; spatial-extras/src/java/org/apache/lucene/spatial/prefix/AbstractPrefixTreeQuery.java:107-108</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>a Lucene clone releases/lucene/10.5.2 lucene/core/src/java/org/apache/lucene/search/IndexSearcher.java:83-99</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/IndexSearcher.java:82-84; (at a9779ef3c193) lucene/MIGRATE.md:227-236; core/src/java/org/apache/lucene/search/LRUQueryCache.java:251-253, :278-296</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/search/SegmentCacheable.java:30-32; (at a9779ef3c193) core/src/java/org/apache/lucene/search/QueryCache.java:28-30</code></li><li><code>lucene/core/src/test/org/apache/lucene/search/TestSegmentCacheables.java:84-92; (at a9779ef3c193) core/src/test/org/apache/lucene/search/TestLRUQueryCache.java:2165, :2213, :2222, :2271-2284</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/FilterWeight.java:47-50; (at a9779ef3c193) core/src/java/org/apache/lucene/search/ConstantScoreQuery.java:192-195; core/src/java/org/apache/lucene/search/BooleanWeight.java:272-285; queries/src/java/org/apache/lucene/queries/function/FunctionScoreQuery.java:279-282</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/IndexOrDocValuesQuery.java:61, (at a9779ef3c193) :211-214; spatial-extras/src/java/org/apache/lucene/spatial/composite/IntersectsRPTVerifyQuery.java:46 (@lucene.internal), :157-158</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/queries/src/java/org/apache/lucene/queries/function/FunctionScoreQuery.java:279-282; (at a9779ef3c193) spatial-extras/src/java/org/apache/lucene/spatial/prefix/AbstractPrefixTreeQuery.java:107-108; core/src/java/org/apache/lucene/search/BooleanWeight.java:274-280; core/src/java/org/apache/lucene/search/AbstractMultiTermQueryConstantScoreWrapper.java:43 (threshold 16)</code></li></ul></dd></div><div><dt>Prior reports</dt><dd><ul class='paths'><li><code>read-only gh api on 2026-10-28: search/issues &#x27;repo:apache/lucene CompositeVerifyQuery&#x27; (1: #7338), &#x27;repo:apache/lucene isCacheable updated:&gt;=2026-10-27&#x27; (0), &#x27;repo:apache/lucene spatial-extras updated:&gt;=2026-10-27&#x27; (0); commits?path=.../CompositeVerifyQuery.java (d0d2aa274fb); commits?sha=main (645d4fe14a2)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestCompositeVerifyQueryCacheability.java (JUnit test): <a href='../repro/LFV-947/src/org/apache/lucene/spatial/composite/TestCompositeVerifyQueryCacheability.java'><code>repro/LFV-947/src/org/apache/lucene/spatial/composite/TestCompositeVerifyQueryCacheability.java</code></a> (88 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>It is made in parallel with this doc, and every on-screen value comes from the code or the diagram's executed probe.</p><ul class='paths'><li><a href='../assets/LFV-947/bug.png'><code>assets/LFV-947/bug.png</code></a> (551 KB)</li></ul><p class='meta built'>Built 2026-10-29 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-29. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
 (function () {
   function copyText(btn) {
     var pre = document.getElementById(btn.getAttribute('data-copy'));

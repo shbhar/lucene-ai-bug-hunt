@@ -1,6 +1,6 @@
 # FSTCompletionLookup sorts weights as unsigned bytes, so negative weights get the highest buckets and are suggested before positive ones
 
-Bug LFV-479 · Area: suggest / FST completion suggester (FSTCompletionLookup.build weight bucketing) · Priority: medium · Impact: silent wrong results · Novelty: new
+Bug LFV-479 · Area: suggest / FST completion suggester (FSTCompletionLookup.build weight bucketing) · Priority: low · Impact: silent wrong results · Novelty: new
 
 Bug page: [../../bugs/LFV-479.html](../../bugs/LFV-479.html)
 
@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build an FSTCompletionLookup from two suggestions, apple with weight 10 and apricot with weight -10, and ask lookup("ap", true, 2) for the best completions first. You expect apple first, because the class javadoc says buckets come from 'sorting the input by weight', InputIterator says 'higher numbers mean better suggestions', and encodeWeight accepts every int. Instead you get [apricot/5, apple/0], with no error: build sorts the weights by their unsigned big-endian bytes, where every negative int (first byte 0x80 or above) comes after every non-negative int, so all negative weights land in the highest buckets and are suggested first.
 
+The test shows that `FSTCompletionLookup` sorts weights as unsigned bytes, so a negative weight lands in the highest bucket and is suggested before a positive one.
+
 ## Expected vs actual
 
-- Expected: `lookup("ap", true, 2)` returns apple (weight 10) before apricot (weight -10): `[apple/5, apricot/0]`.
-- Actual: `[apricot/5, apple/0]`: the -10 entry gets the top bucket and is suggested first, with no error.
+Expected `apple` (weight 10) before `apricot` (weight -10) for `lookup("ap", true, 2)`; actual `[apricot/5, apple/0]`, with `-ea` and `-da`.
 
 ## Files
 
@@ -21,7 +22,8 @@ You build an FSTCompletionLookup from two suggestions, apple with weight 10 and 
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -45,13 +47,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestFSTCompletionLookupNegativeWeights.java](TestFSTCompletionLookupNegativeWeights.java)
-- [TestV1FSTCompletionLookupSignOrder.java](TestV1FSTCompletionLookupSignOrder.java)
-- [FstNegativeWeightProbe.java](FstNegativeWeightProbe.java)
-- [TestSecurityProbeFSTCompletionSignedWeights.java](TestSecurityProbeFSTCompletionSignedWeights.java)
 
 ## Feedback
 

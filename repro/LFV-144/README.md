@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You store float or double values as raw IEEE bits in a single-valued NUMERIC doc-values field with a skip index and no points (for example NumericDocValuesField.indexedField("f", Float.floatToRawIntBits(v)), the layout of Lucene's own skip-index sort test) and sort on it with SortField.Type.FLOAT or DOUBLE. You expect the same hits as on the same values without a skip index, lowest value first. Instead, with 10,000 docs holding 0, -1,..., -9999 and a TermQuery that matches all of them, the ascending top 3 is [-8191, -8190, -8189] instead of [-9999, -9998, -9997] and a descending searchAfter(-9000) returns no hits, because the pruning compares bounds in NumericUtils sortable order with skipper block min/max in raw-bit order, and the two orders disagree for values with the sign bit set.
 
+The test shows that an ascending `SortField.Type.FLOAT` sort on raw-float-bit NUMERIC doc values with a skip index and no points (`NumericDocValuesField.indexedField`) misses the smallest negative values once doc-values-skipper pruning engages (10,000 docs valued 0..-9999, TermQuery).
+
 ## Expected vs actual
 
-- Expected: ascending top 3 -9999, -9998, -9997; descending `searchAfter(-9000)` -9001, -9002, -9003 (what the control field returns).
-- Actual: ascending top 3 -8191, -8190, -8189; descending `searchAfter(-9000)` returns no hits; all -0.0 with a doc tie-break returns docs 8191, 8190, 8189 instead of 9999, 9998, 9997.
+Expected the top 3 `[-9999.0, -9998.0, -9997.0]`; actual `[-8191.0, -8190.0, -8189.0]`, with `-ea` and `-da`.
 
 ## Files
 
@@ -21,8 +22,8 @@ You store float or double values as raw IEEE bits in a single-valued NUMERIC doc
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -44,12 +45,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestFloatSortSkipIndexNegative.java](TestFloatSortSkipIndexNegative.java)
-- [TestRawBitsSkipperSortDifferential.java](TestRawBitsSkipperSortDifferential.java)
-- [SkipperBitsProbe.java](SkipperBitsProbe.java)
 
 ## Feedback
 

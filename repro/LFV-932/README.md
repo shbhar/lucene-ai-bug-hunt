@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You load a Hunspell dictionary whose affix file says FLAG UTF-8 (flags are UTF-8 characters) and SET ISO8859-2, KOI8-R, microsoft-cp1251 or another 8-bit encoding except ISO8859-1, with two suffix classes whose flags are, say, U+00E1 and U+00E2, and expect what C Hunspell 1.3.2 and 1.7.2 do on the same bytes: a word that carries only the first flag takes only the first suffix. Instead Lucene reads the flags from text already decoded with the SET charset, so each 2-byte flag becomes two characters and an affix rule keeps only the first one, the shared lead byte: both classes merge, spell accepts the forbidden forms (kote, lasa in the repro) and the stemmer returns kot for kote, with no error. Only no SET, SET ISO8859-1 and SET UTF-8 work; ISO8859-14 merges too (its decoder reports ISO-8859-1 as its charset, and the re-encode turns remapped flag bytes into '?'), and with ISO8859-3, -6 or -8 the load throws UnmappableCharacterException because a flag byte is unassigned in that charset.
 
+The test shows that with `SET ISO8859-2` and `FLAG UTF-8`, the suffix classes U+00E1 (`-a`) and U+00E2 (`-e`) share the UTF-8 lead byte 0xC3; Lucene parses flags from ISO8859-2-decoded text, so both affix flags become that lead byte and `kot/á` takes the `-e` suffix too.
+
 ## Expected vs actual
 
-- Expected: `kota` and `lase` accepted, `kote` and `lasa` rejected and `stem("kote")` empty for every SET value, as with SET ISO8859-1.
-- Actual: 7 of 8 tests fail: `kote` is accepted under ISO8859-2, -15, -5 and -14 (and `żółwe` next to an ISO8859-2 word), `stem("kote")` is `[kot]`, and ISO8859-3 throws `UnmappableCharacterException`.
+Expected `spell("kote")` false, as C Hunspell answers (kot has only flag U+00E1); actual: true.
 
 ## Files
 
@@ -21,7 +22,8 @@ You load a Hunspell dictionary whose affix file says FLAG UTF-8 (flags are UTF-8
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,20 +39,13 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.analysis.hunspell.TestFlagUtf8With8BitSet
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestFlagUtf8WithEightBitSet.java](TestFlagUtf8WithEightBitSet.java)
-- [TestFlagUtf8With8BitSet.java](TestFlagUtf8With8BitSet.java)
-- [TestFlagUtf8Under8BitSet.java](TestFlagUtf8Under8BitSet.java)
-- [FlagUtf8SetFlagsProbe.java](FlagUtf8SetFlagsProbe.java)
 
 ## Feedback
 

@@ -20,53 +20,36 @@ import java.util.Arrays;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.search.PhraseQuery;
-import org.apache.lucene.search.Query;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * Fragmenter#start "Initializes the Fragmenter", and Highlighter reuses its fragmenter for every
- * call. SimpleSpanFragmenter#start resets its position and fragment count but not waitForPos, so a
- * span still open at the end of one text keeps suppressing fragment boundaries in the next text
- * highlighted with the same Highlighter.
- */
 public class TestSimpleSpanFragmenterReuse extends LuceneTestCase {
 
-  private static final Query QUERY = new PhraseQuery("body", "search", "library");
-  private static final int SIZE = 20;
+  private static Highlighter newHighlighter() {
+    QueryScorer scorer = new QueryScorer(new PhraseQuery("body", "search", "library"), "body");
+    Highlighter highlighter = new Highlighter(scorer);
+    highlighter.setTextFragmenter(new SimpleSpanFragmenter(scorer, 20));
+    return highlighter;
+  }
 
   private static String fragments(Highlighter highlighter, Analyzer analyzer, String text)
       throws Exception {
     TextFragment[] frags =
         highlighter.getBestTextFragments(analyzer.tokenStream("body", text), text, false, 100);
     Arrays.sort(frags, (a, b) -> Integer.compare(a.getFragNum(), b.getFragNum()));
-    return Arrays.toString(Arrays.stream(frags).map(TextFragment::toString).toArray());
+    return Arrays.toString(frags);
   }
 
-  private static Highlighter newHighlighter() {
-    QueryScorer scorer = new QueryScorer(QUERY, "body");
-    Highlighter highlighter = new Highlighter(scorer);
-    highlighter.setTextFragmenter(new SimpleSpanFragmenter(scorer, SIZE));
-    return highlighter;
-  }
-
-  public void testSecondTextIsFragmentedLikeWithAFreshHighlighter() throws Exception {
+  public void testReusedHighlighterFragmentsLikeAFreshOne() throws Exception {
+    String first = "Lucene is an open source project that ships a search library";
+    String second =
+        "Highlighting picks short fragments of text around each match so that a reader of the"
+            + " search library manual sees why a document matched";
     try (Analyzer analyzer = new StandardAnalyzer()) {
-      String first = "Lucene is an open source project that ships a search library";
-      String second =
-          "Highlighting picks short fragments of text around each match so that a reader of the"
-              + " search library manual sees why a document matched";
-
       Highlighter reused = newHighlighter();
-      fragments(reused, analyzer, first); // the phrase is still "open" when this text ends
-      String actual = fragments(reused, analyzer, second);
-      String expected = fragments(newHighlighter(), analyzer, second);
-      assertEquals(expected, actual);
-
-      Highlighter reusedBest = newHighlighter();
-      reusedBest.getBestFragment(analyzer, "body", first);
+      fragments(reused, analyzer, first);
+      // expected: the fragments of a fresh Highlighter; actual: one 70-char fragment, then 1-word ones
       assertEquals(
-          newHighlighter().getBestFragment(analyzer, "body", second),
-          reusedBest.getBestFragment(analyzer, "body", second));
+          fragments(newHighlighter(), analyzer, second), fragments(reused, analyzer, second));
     }
   }
 }

@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You subclass KnnFloatVectorQuery and override mergeLeafResults, whose javadoc says it returns 'index-level kNN results (no constraint on their ordering)' and is 'useful for reading and / or modifying the final results', so that it returns exactly the default merge's hits in another order (same documents, same scores). You expect the same search results as the stock query. Instead rewrite takes the k-th score from the last entry and DocAndScoreQuery the max score from the first, so with doc-id order a top-1 search for the kNN query OR a 0.5-boosted term returns doc 0 (score 0.51) instead of the exact match, doc 200000 (score 1.0), and on a 10-segment index the k = 50 query re-enters no segment and returns farther documents (first differing doc 16000 instead of 19950).
 
+The test shows that a `KnnFloatVectorQuery` whose `mergeLeafResults` returns the default hits in doc-id order (its javadoc allows any order) gets a rewritten scorer whose `getMaxScore` is taken from the first hit, so the bound is below a score that the scorer then returns.
+
 ## Expected vs actual
 
-- Expected: You expect the same search results as the stock query.
-- Actual: rewrite takes the k-th score from the last entry and DocAndScoreQuery the max score from the first, so with doc-id order a top-1 search for the kNN query OR a 0.5-boosted term returns doc 0 (score 0.51) instead of the exact match, doc 200000 (score 1.0), and on a 10-segment index the k = 50 query re-enters no segment and returns farther documents (first differing doc 16000 instead of 19950).
+Expected `getMaxScore >= 1.0` (doc 1 is the exact match); actual `getMaxScore 0.5 < score 1.0`, with `-ea` and `-da`.
 
 ## Files
 
@@ -19,8 +20,8 @@ You subclass KnnFloatVectorQuery and override mergeLeafResults, whose javadoc sa
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

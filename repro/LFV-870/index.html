@@ -22,12 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You build Word2VecSynonymFilter with minAcceptedSimilarity 0.8 (the factory default), whose only documentation says it is the &#x27;minimal value of cosine similarity between the searched vector and the retrieved ones&#x27;, so you expect only model terms at cosine 0.8 or more as synonyms. Word2VecSynonymProvider compares the threshold with the DOT_PRODUCT score of the unit-length model vectors, which is (1 + cosine) / 2, so the real cosine cutoff is 2m - 1: at 0.8 a term at cosine 0.65 is emitted, at 0.5 an orthogonal term (cosine 0) is emitted, and at 0.2 a term at cosine -0.5 is emitted. The authors&#x27; intent points to the score scale (the factory accepts only (0, 1]), so the fix is a javadoc clarification, not a code change.</p>
+<p>The test shows that Word2VecSynonymFilter&#x27;s minAcceptedSimilarity, documented as a minimal cosine similarity, is compared with the score (1 + cosine) / 2: at 0.8 (the factory default) a term at cosine 0.707 is emitted as a synonym.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect only model terms at cosine 0.8 or more as synonyms.</li><li><b>Actual:</b> While the bug is present the test fails; the failure message states expected against actual.</li></ul>
+<p>Expected only the token <code>a</code> (b&#x27;s cosine 0.707 is below 0.8); actual: <code>b</code> is added too (<code>TokenStream has more tokens than expected (expected count=1); extra token=b</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/analysis/synonym/word2vec/TestWord2VecMinAcceptedSimilarityScale.java"><code>src/org/apache/lucene/analysis/synonym/word2vec/TestWord2VecMinAcceptedSimilarityScale.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/analysis/synonym/word2vec/TestWord2VecMinAcceptedSimilarityCosine.java"><code>src/org/apache/lucene/analysis/synonym/word2vec/TestWord2VecMinAcceptedSimilarityCosine.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -41,10 +43,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.synonym.word2vec.TestWord2VecMinAcceptedSimilarityScale</code></pre>
+     execute --select-class org.apache.lucene.analysis.synonym.word2vec.TestWord2VecMinAcceptedSimilarityCosine</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/word2vec-synonym-provider-vs-exact-cosine-reference/index.html">word2vec-synonym-provider-vs-exact-cosine-reference</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

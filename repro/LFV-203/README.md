@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index a numeric doc-values field with a skip index (NumericDocValuesField.indexedField("delta", v)) and search BooleanQuery(SHOULD FunctionScoreQuery(MatchAllDocsQuery, DoubleValuesSource.fromLongField("delta")), SHOULD TermQuery(body:b)) for the top hit, expecting the same hit as an exhaustive search, because FunctionScoreQuery documents that a negative value simply scores 0 (MIGRATE.md, LUCENE-7996). Instead, with 5,000 documents where doc 0 has delta 1, all others have -1000, and only doc 4999 matches body:b, TOP_SCORES and the plain IndexSearcher.search(q, 1) return doc 0 (score 1.0) instead of doc 4999. The cause is that the scorer's getMaxScore returns innerMaxScore * valueMaxScore * boost without the clamp at 0 that score applies, so a block of negative values reports a bound of -1000 for documents that all score 0, and MaxScoreBulkScorer skips windows that hold competitive documents.
 
+The test shows that a `FunctionScoreQuery` whose skip-indexed field value is negative (scored as 0) reports a negative `getMaxScore`, so a top-k disjunction skips a matching document (1 doc, `body:b`, `delta = -1000`).
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: With 5,000 documents where doc 0 has delta 1, all others have -1000, and only doc 4999 matches body:b, TOP_SCORES and the plain IndexSearcher.search(q, 1) return doc 0 (score 1.0) instead of doc 4999.
+Expected `IndexSearcher.search(q, 1)` to return the document (term score + 0); actual: no hit (`expected:<1> but was:<0>`), with `-ea` and `-da`.
 
 ## Files
 
@@ -19,8 +20,8 @@ You index a numeric doc-values field with a skip index (NumericDocValuesField.in
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

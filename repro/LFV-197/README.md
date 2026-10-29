@@ -8,21 +8,21 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You compile an expression such as '0x8000000000000000', '01000000000000000000000' or '1 + 0xffffffffffffffff' with JavascriptCompiler.compile, and you expect it either to compile (JavaScript reads 0x8000000000000000 as 2^63) or to fail with ParseException, because every compile overload documents '@throws ParseException on failure to compile' and the grammar accepts hex and octal literals of any length. Instead compile throws java.lang.NumberFormatException ('For input string: "8000000000000000" under radix 16'): visitNumeric parses hex and octal tokens with signed Long.parseLong, and compileExpression rethrows every RuntimeException that does not wrap a ParseException. The largest in-range literals, 0x7fffffffffffffff and 0777777777777777777777, compile and evaluate correctly, so the boundary is exactly Long.MAX_VALUE.
 
+The test shows that `JavascriptCompiler.compile("0x8000000000000000")`, a hex literal one above Long.MAX_VALUE that the grammar accepts, escapes with an unchecked exception instead of the documented `ParseException`.
+
 ## Expected vs actual
 
-- Expected: You expect it either to compile (JavaScript reads 0x8000000000000000 as 2^63) or to fail with ParseException, because every compile overload documents '@throws ParseException on failure to compile' and the grammar accepts hex and octal literals of any length.
-- Actual: Compile throws java.lang.NumberFormatException ('For input string: "8000000000000000" under radix 16'): visitNumeric parses hex and octal tokens with signed Long.parseLong, and compileExpression rethrows every RuntimeException that does not wrap a ParseException.
+Expected the expression to compile or to fail with `ParseException`; actual: `NumberFormatException: For input string: "8000000000000000" under radix 16` from `Long.parseLong` in `visitNumeric`, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/expressions/js/TestHexOctalLiteralOverflow.java](src/org/apache/lucene/expressions/js/TestHexOctalLiteralOverflow.java) (JUnit test)
-- [src/HexOctalLiteralOverflowMain.java](src/HexOctalLiteralOverflowMain.java) (main() class)
+- [src/org/apache/lucene/expressions/js/TestHexLiteralAboveLongMaxValue.java](src/org/apache/lucene/expressions/js/TestHexLiteralAboveLongMaxValue.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -40,11 +40,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.expressions.js.TestHexOctalLiteralOverflow
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" HexOctalLiteralOverflowMain
+     execute --select-class org.apache.lucene.expressions.js.TestHexLiteralAboveLongMaxValue
 ```
 
 The module(s) expressions also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.

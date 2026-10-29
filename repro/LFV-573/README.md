@@ -10,19 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index points with LatLonPoint (or LatLonDocValuesField or LatLonShape) and run a distance query whose radius is exactly a point's distance from the center as Lucene computes it (SloppyMath.haversinMeters, the same value a distance sort or LatLonPoint.nearest reports), and expect that point to match, because the query matches 'points within the specified distance' and Lucene's own test oracle is haversinMeters(center, point) &lt;= radius; with the radius one ulp smaller you expect it not to match. Instead the point is often missing in the first case and often still matches in the second (each in roughly a fifth to a third of random cases, depending on the points): for example, two points that both the distance sort and haversinMeters put 8154434.476304402 m apart are not matched by any of the three distance queries with exactly that radius. The cause is GeoUtils.distanceQuerySortKey, which turns the radius into a sort-key threshold by binary search: it returns the first key it meets whose distance equals the radius, not the largest such key, so a point on a larger key of the same distance fails 'key &lt;= threshold', and when no key has exactly that distance it returns the smallest key whose distance exceeds the radius.
 
+The test shows that `LatLonPoint.newDistanceQuery` does not match a point whose `SloppyMath.haversinMeters` distance equals the radius, because `GeoUtils.distanceQuerySortKey` does not return the largest sort key within the radius.
+
 ## Expected vs actual
 
-- Expected: Radius 8154434.476304402, the point's own sort distance, returns the point; radius 1.6056103066824857E7, one ulp below the other point's distance, does not.
-- Actual: 0 hits and 1 hit, for `LatLonPoint`, `LatLonDocValuesField` and `LatLonShape` circle queries alike, with no error.
+Expected count 1 at radius 8154434.476304402 m (the point's own distance); actual 0 (`expected:<1> but was:<0>`), with `-ea` and `-da`.
 
 ## Files
 
 - [src/org/apache/lucene/document/TestDistanceQueryRadiusBoundary.java](src/org/apache/lucene/document/TestDistanceQueryRadiusBoundary.java) (JUnit test)
-- [src/org/apache/lucene/document/TestDistanceQueryRadiusBoundaryOld.java](src/org/apache/lucene/document/TestDistanceQueryRadiusBoundaryOld.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,21 +42,9 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.document.TestDistanceQueryRadiusBoundary
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.document.TestDistanceQueryRadiusBoundaryOld
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestDistanceQueryRadiusBoundary.java](TestDistanceQueryRadiusBoundary.java)
-- [test-TestGeoUtils.diff](test-TestGeoUtils.diff)
-- [TestRadiusBoundaryV1.java](TestRadiusBoundaryV1.java)
-- [BriefProbe.java](BriefProbe.java)
 
 ## Feedback
 

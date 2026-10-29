@@ -18,35 +18,16 @@ package org.apache.lucene.queryparser.surround.parser;
 
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * The surround QueryParser.parse declares only ParseException, and parse2 already converts the
- * generated parser's TokenMgrError (an Error) into a ParseException. Nested groups instead let a
- * StackOverflowError escape: FieldsQuery -> OrQuery -> AndQuery -> NotQuery -> NQuery -> WQuery ->
- * PrimaryQuery -> FieldsQuery recurses seven frames per '(' with no depth bound.
- */
 public class TestSurroundDeepNesting extends LuceneTestCase {
 
-  private static final int DEPTH = 100_000;
-
-  private static void assertParsesOrThrowsParseException(String query) {
+  public void testDeeplyNestedGroups() {
+    String query = "(".repeat(100_000) + "a" + ")".repeat(100_000);
     try {
       QueryParser.parse(query);
     } catch (ParseException expected) {
-      // the documented failure mode
+      // the declared failure mode, acceptable for too-deep input
     } catch (StackOverflowError e) {
-      throw new AssertionError(
-          "surround QueryParser.parse let a StackOverflowError escape for "
-              + query.length()
-              + " chars of nested groups; declared outcome is a query or a ParseException",
-          e);
+      throw new AssertionError("expected a query or ParseException, got StackOverflowError", e);
     }
-  }
-
-  public void testNestedParentheses() {
-    assertParsesOrThrowsParseException("(".repeat(DEPTH) + "a" + ")".repeat(DEPTH));
-  }
-
-  public void testNestedOrGroups() {
-    assertParsesOrThrowsParseException("(a OR ".repeat(DEPTH) + "a" + ")".repeat(DEPTH));
   }
 }

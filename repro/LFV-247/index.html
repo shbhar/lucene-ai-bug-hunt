@@ -23,13 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You store locations with Geo3DDocValuesField on the default WGS84 model and sort hits with Geo3DDocValuesField.newDistanceSort(field, lat, lon, 1000, WGS84), expecting ascending distance from the centre with the distance in metres (and, with newOutsideDistanceSort, 0.0 for points inside the circle). Instead about half of the documents inside the 1 km radius, even ones 10 m from the centre, get +Infinity and sort last as if they had no location, some documents 2-3 km away get finite distances and sort ahead of them, and inside documents get outside distances of up to 988 m, while LatLonDocValuesField&#x27;s distance sort orders the same points correctly. The cause: each doc value decodes to a point up to about 4.5 m off the planet surface, and the comparators pass that point unprojected to the circle&#x27;s membership test, a single plane that for a 1 km circle lies only about 8 cm below the surface at the centre, so the decode error, not the distance, decides in or out.</p>
+<p>The test shows that <code>Geo3DDocValuesField.newDistanceSort(&quot;point&quot;, 40, -74, 1000, WGS84)</code> gives distance +Infinity to a document stored exactly at the sort centre, because its 21-bit decoded point lies below the surface and is tested against the circle&#x27;s nearly tangent plane without being projected back.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The 36 documents at 500 m sort first, each about 500 m away; with <code>newOutsideDistanceSort</code> each gets 0.0.</li><li><b>Actual:</b> Only 19 sort before every 3 km document; 17 get +Infinity and sort after 14 documents 3 km away with finite distances (22 of the first 36 hits are 500 m documents); the outside sort gives the same 17 up to 722 m.</li></ul>
+<p>Expected: a finite distance near 0 m (the document is at the centre of the 1 km circle). Actual: <code>Infinity</code>, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/spatial3d/TestGeo3DDistanceSortSmallRadius.java"><code>src/org/apache/lucene/spatial3d/TestGeo3DDistanceSortSmallRadius.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/spatial3d/TestGeo3DDistanceSortCentreDocument.java"><code>src/org/apache/lucene/spatial3d/TestGeo3DDistanceSortCentreDocument.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -46,7 +47,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.spatial3d.TestGeo3DDistanceSortSmallRadius</code></pre>
+     execute --select-class org.apache.lucene.spatial3d.TestGeo3DDistanceSortCentreDocument</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestGeo3DDocValuesSmallRadiusSort.java"><code>TestGeo3DDocValuesSmallRadiusSort.java</code></a></li><li><a href="TestGeo3DDocValuesSortSmallCircle.java"><code>TestGeo3DDocValuesSortSmallCircle.java</code></a></li><li><a href="TestGeo3DDistanceSortSmallRadius.java"><code>TestGeo3DDistanceSortSmallRadius.java</code></a></li><li><a href="Geo3DSortHistoryMain.java"><code>Geo3DSortHistoryMain.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

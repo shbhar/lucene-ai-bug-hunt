@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index with IndexWriter's InfoStream turned on, and one logging call throws (an OutOfMemoryError while Lucene builds its 'now stalling flushes' message, or an exception from the logging backend) just as a full in-memory buffer is handed over to be flushed. You expect what the IndexWriter javadoc promises: after an Error the writer closes itself, and after an exception close or rollback still finish. Instead the buffer is already registered as 'flushing' when the log call throws, nothing ever flushes or releases it, and every later wait for running flushes waits forever: after an Error addDocument hangs inside the writer's own rollback, and after an exception close and rollback hang (and, by code reading, commit and an NRT reopen too).
 
+The test shows that an OutOfMemoryError thrown by the InfoStream while IndexWriter logs 'now stalling flushes' during the hand-off of a full buffer (DocumentsWriterFlushControl.checkOutForFlush) leaves addDocument blocked forever in the writer's own tragic rollback (waitForFlush).
+
 ## Expected vs actual
 
-- Expected: You expect what the IndexWriter javadoc promises: after an Error the writer closes itself, and after an exception close or rollback still finish.
-- Actual: The buffer is already registered as 'flushing' when the log call throws, nothing ever flushes or releases it, and every later wait for running flushes waits forever: after an Error addDocument hangs inside the writer's own rollback, and after an exception close and rollback hang (and, by code reading, commit and an NRT reopen too).
+Expected addDocument to rethrow the Error and the writer to close itself (getTragicException() set, isOpen() false); actual: addDocument is still blocked after 10 s (`addDocument should rethrow the Error, but is still blocked`, plus the runner's ThreadLeakError showing the thread in waitForFlush), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/index/TestFlushCheckoutStrandedByLogging.java](src/org/apache/lucene/index/TestFlushCheckoutStrandedByLogging.java) (JUnit test)
+- [src/org/apache/lucene/index/TestErrorInStallMessageClosesWriter.java](src/org/apache/lucene/index/TestErrorInStallMessageClosesWriter.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 2 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,7 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestFlushCheckoutStrandedByLogging
+     execute --select-class org.apache.lucene.index.TestErrorInStallMessageClosesWriter
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

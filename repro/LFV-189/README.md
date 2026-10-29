@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index doubles as raw IEEE bits in a NUMERIC doc-values field with a skip index (NumericDocValuesField.indexedField('rating', Double.doubleToRawLongBits(v))) and search BooleanQuery(SHOULD FunctionScoreQuery(MatchAllDocsQuery, DoubleValuesSource.fromDoubleField('rating')), SHOULD TermQuery) for the top hit, expecting the same top hit as an exhaustive search (a NaN value simply scores 0, as upstream TestFunctionScoreQuery#testNaN expects). Instead, with 5,000 docs valued 0.5, one NaN at doc 4500 and 50.0 at doc 4999, TOP_SCORES returns doc 1 (score 4.19) instead of doc 4999 (score 50). The cause is that fromDoubleField declares Double::longBitsToDouble INCREASING, so a block's maximum is read as the decoded largest raw long: NaN's raw bits are above every number's, giving a NaN bound, and negative values are in reverse raw order, so a block holding {-1.0, -2.0} reports getMaxScore -2.0 and getMinScore -1.0.
 
+The test shows that `DoubleValuesSource.fromDoubleField` reads skip-index bounds as if raw IEEE bits were ordered like doubles, so a block of {-1.0, -2.0} gets a max bound of -2.0, and one NaN in a block makes `FunctionScoreQuery` in a disjunction lose the true top hit.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: With 5,000 docs valued 0.5, one NaN at doc 4500 and 50.0 at doc 4999, TOP_SCORES returns doc 1 (score 4.19) instead of doc 4999 (score 50).
+Expected: `getMaxScore >= -1.0`, and doc 4097 (rating 50) as the top hit of `search(q, 1)`. Actual: `getMaxScore = -2.0`, and doc 1 as the top hit.
 
 ## Files
 
-- [src/org/apache/lucene/queries/function/TestDoubleFieldSkipperBounds.java](src/org/apache/lucene/queries/function/TestDoubleFieldSkipperBounds.java) (JUnit test)
+- [src/org/apache/lucene/queries/function/TestRawBitsDoubleFieldBounds.java](src/org/apache/lucene/queries/function/TestRawBitsDoubleFieldBounds.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 2 test(s) run, 2 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -39,7 +40,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queries.function.TestDoubleFieldSkipperBounds
+     execute --select-class org.apache.lucene.queries.function.TestRawBitsDoubleFieldBounds
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

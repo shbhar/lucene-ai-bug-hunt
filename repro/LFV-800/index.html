@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You configure a WordBreakSpellChecker with setMaxChanges(0), documented as &#x27;The maximum numbers of changes (word breaks or combinations) to make on the original term(s)&#x27;, and expect no word-break and no combination suggestions. suggestWordCombinations indeed returns none, but suggestWordBreaks still returns every one-break split: with the terms a, b and ab indexed, suggestWordBreaks(&#x27;ab&#x27;) returns [a, b] with score 1 (one break), and with sun and flower indexed &#x27;sunflower&#x27; returns [sun, flower]; negative values behave the same. The method always makes the first break and reads maxChanges only before it tries a second one.</p>
+<p>The test shows that <code>WordBreakSpellChecker.suggestWordBreaks</code> ignores <code>setMaxChanges(0)</code> (&quot;the maximum numbers of changes (word breaks or combinations)&quot;): with the terms <code>a</code> and <code>b</code> indexed it still splits <code>ab</code> into <code>[a, b]</code>.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> No break suggestion at <code>maxChanges</code> 0 and -1, just as <code>suggestWordCombinations</code> gives no combination at 0.</li><li><b>Actual:</b> <code>[sun flower (1.0)]</code> at both 0 and -1: 2 of 4 tests fail; the two controls pass.</li></ul>
+<p>Expected 0 suggestions for <code>ab</code> with <code>maxChanges = 0</code>; actual 1 (<code>expected:&lt;0&gt; but was:&lt;1&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/search/spell/TestWordBreakMaxChangesZero.java"><code>src/org/apache/lucene/search/spell/TestWordBreakMaxChangesZero.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -48,5 +50,4 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.search.spell.TestWordBreakMaxChangesZero</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestWordBreakSpellCheckerMaxChangesZero.java"><code>TestWordBreakSpellCheckerMaxChangesZero.java</code></a></li><li><a href="TestWordBreakMaxChangesZero.java"><code>TestWordBreakMaxChangesZero.java</code></a></li><li><a href="TestWordBreakMaxChangesBound.java"><code>TestWordBreakMaxChangesBound.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

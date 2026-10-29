@@ -17,60 +17,23 @@
 package org.apache.lucene.document;
 
 import org.apache.lucene.geo.Polygon;
-import org.apache.lucene.geo.Tessellator;
-import org.apache.lucene.geo.XYPolygon;
+import org.apache.lucene.geo.SimpleWKTShapeParser;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * A valid polygon with three holes that all meet at the vertex P=(7,6) (each pair of holes touches
- * at that one vertex only; no hole touches the outer ring). For the hole whose left-most vertex is P,
- * Tessellator picks the first copy of P in ring order as the connection, and the polygon is rejected
- * with "Unable to Tessellate shape" by XYShape/LatLonShape.createIndexableFields.
- *
- * <pre>
- *  outer ring (clockwise): (0,0) (7,12) (12,2)
- *  hole 0: (8,8) (6,7) (7,6)         triangle with vertex P
- *  hole 1: (9,3) (10,4) (7,6)        triangle whose left-most vertex is P
- *  hole 2: (6,6) (6,4) (7,4) (7,6)   square, top-right corner P
- * </pre>
- */
 public class TestTessellatorThreeHolesSharedVertex extends LuceneTestCase {
 
-  static final float[] SX = {0, 7, 12, 0}, SY = {0, 12, 2, 0};
-  // holes, counter-clockwise (Polygon NOTES), in this order (the result depends on the hole order)
-  static final float[][] HX = {{8, 6, 7, 8}, {9, 10, 7, 9}, {6, 6, 7, 7, 6}};
-  static final float[][] HY = {{8, 7, 6, 8}, {3, 4, 6, 3}, {6, 4, 4, 6, 6}};
-
-  static XYPolygon xy(int... holes) {
-    XYPolygon[] hs = new XYPolygon[holes.length];
-    for (int i = 0; i < holes.length; i++) hs[i] = new XYPolygon(HX[holes[i]], HY[holes[i]]);
-    return new XYPolygon(SX, SY, hs);
-  }
-
-  static double[] d(float[] f) {
-    double[] r = new double[f.length];
-    for (int i = 0; i < f.length; i++) r[i] = f[i];
-    return r;
-  }
-
-  public void testControlsTwoHoles() {
-    Tessellator.tessellate(xy(0, 1), false);
-    Tessellator.tessellate(xy(0, 2), false);
-    Tessellator.tessellate(xy(1, 2), false);
-  }
-
-  public void testControlSameHolesOtherOrder() {
-    // the same three rings with the square hole first tessellate
-    Tessellator.tessellate(xy(2, 0, 1), false);
-  }
-
-  public void testXYShapeThreeHolesSharingOneVertex() {
-    XYShape.createIndexableFields("shape", xy(0, 1, 2)); // must not throw
-  }
-
-  public void testLatLonShapeThreeHolesSharingOneVertex() {
-    Polygon[] hs = new Polygon[3];
-    for (int i = 0; i < 3; i++) hs[i] = new Polygon(d(HY[i]), d(HX[i]));
-    LatLonShape.createIndexableFields("shape", new Polygon(d(SY), d(SX), hs)); // must not throw
+  public void testComplexPolygon41WithLastHoleFirst() throws Exception {
+    // TestTessellator#testComplexPolygon41 (LUCENE-9400), its third hole moved to the front
+    String wkt =
+        "POLYGON((-1.569137181294115 54.4855283059375, -1.5692505240440333 54.48535373128068, -1.5684753656387294 54.48534438253056, -1.568606793880459 54.485674703738624, -1.5694141387939453 54.48611720532629, -1.569137181294115 54.4855283059375),"
+            + "(-1.5689449291711688 54.48547663706703,  -1.5689879483854345 54.485580118416785, -1.5687756358893499 54.485612860811244, -1.568765285875931 54.485496217554285, -1.5689449291711688 54.48547663706703),"
+            + "(-1.569137181294115 54.4855283059375, -1.5690783030431206 54.48545352137167, -1.5689449291711688 54.48547663706703, -1.569137181294115 54.4855283059375),"
+            + "(-1.5689449291711688 54.48547663706703, -1.5689437289004642 54.48535482680399, -1.5687730514221028 54.48538045082698, -1.5689449291711688 54.48547663706703))";
+    Polygon polygon = (Polygon) SimpleWKTShapeParser.parse(wkt);
+    try {
+      LatLonShape.createIndexableFields("shape", polygon);
+    } catch (IllegalArgumentException e) {
+      fail("expected: indexes as with the original hole order; actual: " + e.getMessage());
+    }
   }
 }

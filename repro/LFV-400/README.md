@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You filter with a Geo3DPoint polygon or path query, for example newLargePolygonQuery with 2,000 edges or newPathQuery with 200 points, and expect its ramBytesUsed to estimate the heap it holds, which is what Accountable promises and what LRUQueryCache charges against its maxRamBytesUsed budget. Instead PointInGeo3DShapeQuery.ramBytesUsed passes the shape and its bounds to RamUsageEstimator.sizeOfObject, which prices every object that is not Accountable (no GeoShape is) at a fixed 256 bytes, so every such query reports 592 bytes whatever its size: 4.9x too low for an 8-edge polygon, 47x for 99 edges, about 2,300x for the 2,000-edge large polygon (1,360,960 bytes retained). An LRUQueryCache with a 1 MiB budget therefore keeps 8 such filters that retain 10.9 MB, accounts about 6 KB for them and evicts nothing; the hits are correct.
 
+The test shows that `Geo3DPoint.newLargePolygonQuery` reports the same `ramBytesUsed()` for 8 and for 2,000 polygon edges, because `PointInGeo3DShapeQuery` prices its `GeoShape` as a fixed 256-byte unknown object.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: PointInGeo3DShapeQuery.ramBytesUsed passes the shape and its bounds to RamUsageEstimator.sizeOfObject, which prices every object that is not Accountable (no GeoShape is) at a fixed 256 bytes, so every such query reports 592 bytes whatever its size: 4.9x too low for an 8-edge polygon, 47x for 99 edges, about 2,300x for the 2,000-edge large polygon (1,360,960 bytes retained).
+Expected: the 2,000-edge query (about 1.36 MB retained) reports more than the 8-edge one (about 6 KB). Actual: `8 edges: 592 bytes, 2000 edges: 592 bytes`, with `-ea` and `-da`.
 
 ## Files
 
@@ -19,8 +20,8 @@ You filter with a Geo3DPoint polygon or path query, for example newLargePolygonQ
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

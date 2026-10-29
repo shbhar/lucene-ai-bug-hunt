@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You build a path with a width (GeoPathFactory.makeGeoPath, or the pathWidthMeters of Geo3DDocValuesField.newOutsidePathSort) and ask for the outside distance of a point beyond one of its ends, expecting &#x27;the distance from a point to the closest outside edge&#x27; (GeoOutsideDistance), which is how the same path measures points beside its segments and how GeoCircle measures a circle. Instead you get the distance to the path&#x27;s end point, i.e. the gap plus up to the half-width: on the unit sphere a point 0.001 rad beyond the end of a path of half-width 0.01 gets 0.011, a one-point path reports 0.011 where the same-size GeoCircle reports 0.001, the value jumps from 0 to about the half-width as a point crosses the end cap&#x27;s edge, and on WGS84 the outside-path sort ranks a document 1 km beyond the end of a path of half-width 5 km (5992 m) after one 3 km beside it (3067 m). The cause is BaseSegmentEndpoint.outsideDistance, which every endpoint with a width inherits: it measures to the end point itself, which is the edge only for a zero-width path.</p>
+<p>The test shows that a <code>GeoStandardPath</code> measures the outside distance beyond an end cap to the end point, not to the cap edge: SPHERE path (0,0)-(0,0.1) of half-width 0.01, point (0, 0.111).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The document 1 km past the end sorts first (about 1,000 m), the one-point path reports 0.001 like the circle, and 1e-6 rad outside the cap gives about 1e-6.</li><li><b>Actual:</b> 5 of 5 fail: sort values 3,067 m (beside) before 5,992 m (past the end); one-point path 0.011 against the circle&#x27;s 0.001; 0.010001 just outside the cap; 0.011 beyond the end.</li></ul>
+<p>Expected (GeoOutsideDistance: distance to the closest outside edge, which is at longitude 0.11): 0.001. Actual: 0.010999999999988425 (<code>expected:&lt;0.001&gt; but was:&lt;0.010999999999988425&gt;</code>).</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/spatial3d/TestGeo3DPathOutsideDistanceEndCap.java"><code>src/org/apache/lucene/spatial3d/TestGeo3DPathOutsideDistanceEndCap.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/spatial3d/geom/TestGeoPathOutsideDistanceEndCap.java"><code>src/org/apache/lucene/spatial3d/geom/TestGeoPathOutsideDistanceEndCap.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -45,7 +47,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.spatial3d.TestGeo3DPathOutsideDistanceEndCap</code></pre>
+     execute --select-class org.apache.lucene.spatial3d.geom.TestGeoPathOutsideDistanceEndCap</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestGeoPathOutsideDistanceEndCap.java"><code>TestGeoPathOutsideDistanceEndCap.java</code></a></li><li><a href="TestGeo3DPathOutsideDistanceEndCap.java"><code>TestGeo3DPathOutsideDistanceEndCap.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

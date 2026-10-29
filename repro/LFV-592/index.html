@@ -22,12 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You call forceMerge(1) on an IndexWriter and, while it is still merging, another thread calls forceMerge(2) on the same writer. You expect forceMerge(1) to return only once the index is down to 1 segment, because its javadoc defines maxNumSegments as the &#x27;maximum number of segments left in the index after merging finishes&#x27; and IndexWriter allows concurrent calls to any method. Instead forceMerge(1) returns normally with 2 segments: both calls share one writer-wide target, the second call overwrites it (also on the first call&#x27;s running merges), and the first call&#x27;s wait loop only checks that no forced merge is left, never its own target.</p>
+<p>The test shows that <code>forceMerge(1)</code> over 3 segments (LogDocMergePolicy, mergeFactor 2, so 2 merge rounds) returns normally with 2 segments when another thread calls <code>forceMerge(2)</code> while the first round&#x27;s merge is still running.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect forceMerge(1) to return only once the index is down to 1 segment, because its javadoc defines maxNumSegments as the &#x27;maximum number of segments left in the index after merging finishes&#x27; and IndexWriter allows concurrent calls to any method.</li><li><b>Actual:</b> forceMerge(1) returns normally with 2 segments: both calls share one writer-wide target, the second call overwrites it (also on the first call&#x27;s running merges), and the first call&#x27;s wait loop only checks that no forced merge is left, never its own target.</li></ul>
+<p>Expected, per the <code>forceMerge</code> javadoc (maxNumSegments is the &quot;maximum number of segments left in the index after merging finishes&quot;): 1 segment. Actual: <code>segments when forceMerge(1) returned expected:&lt;1&gt; but was:&lt;2&gt;</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/index/TestOverlappingForceMergeDifferentN.java"><code>src/org/apache/lucene/index/TestOverlappingForceMergeDifferentN.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/index/TestOverlappingForceMerge.java"><code>src/org/apache/lucene/index/TestOverlappingForceMerge.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -43,7 +45,7 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestOverlappingForceMergeDifferentN</code></pre>
+     execute --select-class org.apache.lucene.index.TestOverlappingForceMerge</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/iw-forcemerge-wait-protocol-tla/index.html">iw-forcemerge-wait-protocol-tla</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

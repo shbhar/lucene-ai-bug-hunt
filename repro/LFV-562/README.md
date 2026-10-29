@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You call Polygon.fromGeoJSON on a standard GeoJSON Feature whose geometry is a single Polygon and whose properties contain an ordinary data member named "type", for example {"type": "Feature", "geometry": {...Polygon...}, "properties": {"type": "multipolygon"}}, and expect the polygon back, because the javadoc accepts a Polygon 'optionally embedded under a "type: Feature"' and GeoJSON allows any JSON object as properties. Instead it throws ParseException 'can only handle type FeatureCollection (if it has a single polygon geometry), Feature, Polygon or MultiPolygon, but got multipolygon' ('type should be a string, but got: 3.0' for {"type": 3}), because the parser reads every "type" member outside crs as a GeoJSON object type, wherever it sits, while it reads "coordinates" only at geometry positions. The same Feature without the "type" property parses, and a "coordinates" key inside properties is ignored.
 
+The test shows that `Polygon.fromGeoJSON` rejects a GeoJSON Feature whose `properties` object contains an ordinary member named `"type"` (`{"type": "x"}`).
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: It throws ParseException 'can only handle type FeatureCollection (if it has a single polygon geometry), Feature, Polygon or MultiPolygon, but got multipolygon' ('type should be a string, but got: 3.0' for {"type": 3}), because the parser reads every "type" member outside crs as a GeoJSON object type, wherever it sits, while it reads "coordinates" only at geometry positions.
+Expected: the same polygon as the bare Polygon geometry. Actual: `ParseException` "can only handle type FeatureCollection..., Feature, Polygon or MultiPolygon, but got x", with -ea and -da.
 
 ## Files
 
-- [src/org/apache/lucene/geo/TestGeoJSONTypeMemberInProperties.java](src/org/apache/lucene/geo/TestGeoJSONTypeMemberInProperties.java) (JUnit test)
-- [src/org/apache/lucene/geo/TestGeoJSONTypeMemberInPropertiesOld.java](src/org/apache/lucene/geo/TestGeoJSONTypeMemberInPropertiesOld.java) (JUnit test)
+- [src/org/apache/lucene/geo/TestGeoJSONFeatureTypeProperty.java](src/org/apache/lucene/geo/TestGeoJSONFeatureTypeProperty.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,12 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.geo.TestGeoJSONTypeMemberInProperties
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.geo.TestGeoJSONTypeMemberInPropertiesOld
+     execute --select-class org.apache.lucene.geo.TestGeoJSONFeatureTypeProperty
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

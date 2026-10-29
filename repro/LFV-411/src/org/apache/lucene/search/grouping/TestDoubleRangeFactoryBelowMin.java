@@ -18,20 +18,11 @@ package org.apache.lucene.search.grouping;
 
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * DoubleRange is "a contiguous range of double values, with an inclusive minimum and exclusive
- * maximum"; DoubleRangeFactory groups "all doubles below" min into one range. The range returned
- * for a value must contain that value.
- */
 public class TestDoubleRangeFactoryBelowMin extends LuceneTestCase {
 
-  private static void assertContains(DoubleRange r, double v) {
-    assertTrue(r + " should contain " + v, r.min <= v && v < r.max);
-  }
-
-  public void testBelowMin() {
-    DoubleRangeFactory factory = new DoubleRangeFactory(-10, 5, 10);
-    // Double.MIN_VALUE is the smallest positive double, so this range is [4.9E-324, -10.0)
-    assertContains(factory.getRange(-20, null), -20);
+  public void testBelowMinRangeContainsValue() {
+    DoubleRange range = new DoubleRangeFactory(-10, 5, 10).getRange(-20, null);
+    // expected a [min, -10.0) range that contains -20; main returns DoubleRange(4.9E-324, -10.0)
+    assertTrue(range + " should contain -20.0", range.min <= -20 && -20 < range.max);
   }
 }

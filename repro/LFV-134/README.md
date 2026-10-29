@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You call IndexWriter#updateDocValues (or softUpdateDocument(s) / tryUpdateDocValue) with a field that no document has used yet, and the call is correctly rejected with IllegalArgumentException, for example because the field is part of the index sort or because SORTED and SORTED_SET doc values cannot be updated. You expect the rejected call to leave the writer unchanged, so that the first real document with that field defines its schema, as on a fresh writer and as the document path does when it rejects a document for its index-sort doc-values type. Instead buildDocValuesUpdate has already registered the field as doc-values-only in the writer-wide FieldNumbers map before those checks run, and nothing undoes it: for the rest of the writer session a legal document such as LongField('price') or StringField('tag') plus SortedDocValuesField('tag') is refused ('cannot change field "price" from points dimensionCount=0... to inconsistent dimensionCount=1'), and getFieldNames lists a field that no segment or accepted operation has.
 
+The test shows that a rejected `IndexWriter#updateDocValues` call (SORTED doc values cannot be updated) on a never-seen field "tag" still registers "tag" as a doc-values-only field in the writer's schema (default config).
+
 ## Expected vs actual
 
-- Expected: You expect the rejected call to leave the writer unchanged, so that the first real document with that field defines its schema, as on a fresh writer and as the document path does when it rejects a document for its index-sort doc-values type.
-- Actual: buildDocValuesUpdate has already registered the field as doc-values-only in the writer-wide FieldNumbers map before those checks run, and nothing undoes it: for the rest of the writer session a legal document such as LongField('price') or StringField('tag') plus SortedDocValuesField('tag') is refused ('cannot change field "price" from points dimensionCount=0... to inconsistent dimensionCount=1'), and getFieldNames lists a field that no segment or accepted operation has.
+Expected the first real document with `StringField("tag")` + `SortedDocValuesField("tag")` to be accepted, as on a fresh writer; actual: `IllegalArgumentException: cannot change field "tag" from index options=NONE to inconsistent index options=DOCS`, with `-ea` and `-da`.
 
 ## Files
 
@@ -19,8 +20,8 @@ You call IndexWriter#updateDocValues (or softUpdateDocument(s) / tryUpdateDocVal
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

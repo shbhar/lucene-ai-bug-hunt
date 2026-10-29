@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You write a block of non-negative, increasing longs with MonotonicBlockPackedWriter, for example {1, Long.MAX_VALUE}, and read it back with MonotonicBlockPackedReader. You expect the same values back: the writer is documented as 'A writer for large monotonically increasing sequences of positive longs' with no upper bound, and flush says 'adjust min so that all deltas will be positive'. Instead the predicted value min + (long) (avg * i) wraps past Long.MAX_VALUE, so the adjustment of min is skipped and the resulting negative delta is ignored when the bit width is chosen; get(1) returns Long.MIN_VALUE with no error (a larger block trips an AssertionError in BulkOperationPacked.encode under -ea and reads back wrong values under -da).
 
+The test shows that MonotonicBlockPackedWriter mis-encodes the block {1, Long.MAX_VALUE} (block size 64): `min + (long) (avg * i)` wraps in flush(), so the delta gets too few bits.
+
 ## Expected vs actual
 
-- Expected: You expect the same values back: the writer is documented as 'A writer for large monotonically increasing sequences of positive longs' with no upper bound, and flush says 'adjust min so that all deltas will be positive'.
-- Actual: The predicted value min + (long) (avg * i) wraps past Long.MAX_VALUE, so the adjustment of min is skipped and the resulting negative delta is ignored when the bit width is chosen; get(1) returns Long.MIN_VALUE with no error (a larger block trips an AssertionError in BulkOperationPacked.encode under -ea and reads back wrong values under -da).
+Expected `reader.get(1) == Long.MAX_VALUE`; actual `Long.MIN_VALUE` (same with -ea and -da).
 
 ## Files
 
@@ -19,8 +20,8 @@ You write a block of non-negative, increasing longs with MonotonicBlockPackedWri
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -35,8 +36,8 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.util.packed.TestMonotonicBlockPackedNearMaxValue
 ```

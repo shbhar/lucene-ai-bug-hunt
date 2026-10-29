@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You load a Hunspell dictionary with &#x27;COMPOUNDFLAG C&#x27;, &#x27;COMPOUNDMIN 1&#x27;, &#x27;COMPOUNDWORDMAX 1&#x27; and the words foo/C and bar/C, call Hunspell.spell(&quot;foobar&quot;), and expect false: hunspell(5) defines COMPOUNDWORDMAX as the maximum word count in a compound, and C Hunspell 1.3.2 and 1.7.2 reject foobar. Instead Lucene returns true, with and without -ea; COMPOUNDWORDMAX 0, which the parser clamps to 1, behaves the same, while with COMPOUNDWORDMAX 2 Lucene correctly accepts foobar and rejects foobarfoo. The cause: checkCompounds counts parts only when a previous part exists (&#x27;prev != null &amp;&amp; prev.index &gt; compoundMax - 2&#x27;), so the first part is never counted and checkCompoundsAfter accepts first part + last part at any limit; the original LUCENE-9699 check, which did enforce a limit of 1, was lost in a 2021 refactoring (LUCENE-9729).</p>
+<p>The test shows that with <code>COMPOUNDFLAG C</code>, <code>COMPOUNDMIN 1</code>, <code>COMPOUNDWORDMAX 1</code> and the words foo/C, bar/C, <code>Hunspell.spell(&quot;foobar&quot;)</code> accepts the 2-word compound.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> At <code>COMPOUNDWORDMAX 1</code> and <code>0</code>, <code>spell(&quot;foobar&quot;)</code> is <code>false</code> in both flag styles, as in C Hunspell; the limit-2 control passes.</li><li><b>Actual:</b> 3 of 4 tests fail: <code>spell(&quot;foobar&quot;)</code> is <code>true</code> at 1, at 0 and with COMPOUNDBEGIN/END; only the control passes.</li></ul>
+<p>Expected: false (hunspell(5): COMPOUNDWORDMAX is the maximum word count in a compound; C Hunspell rejects it); actual (-ea and -da): true, because checkCompounds never counts the first part.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/analysis/hunspell/TestCompoundWordMaxOne.java"><code>src/org/apache/lucene/analysis/hunspell/TestCompoundWordMaxOne.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -47,5 +49,4 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.analysis.hunspell.TestCompoundWordMaxOne</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestCompoundWordMax.java"><code>TestCompoundWordMax.java</code></a></li><li><a href="TestCompoundWordMaxOne.java"><code>TestCompoundWordMaxOne.java</code></a></li><li><a href="TestCompoundWordMaxLimit.java"><code>TestCompoundWordMaxLimit.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

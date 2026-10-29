@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 On main you install an LRUQueryCache, run a query so that it is cached, and call clearQuery(query) or clearCoreCacheKey(key), whose javadocs say 'Remove all cache entries for the given query' and '... for the given core cache key'. You expect the entries to be gone when the call returns, as on 10.x; instead #15558 made both methods only add the query or key to a pending set, so getCacheSize still counts the entry and the next search is a cache hit (with correct documents) until cleanUp runs. The deferral is deliberate and the class javadoc describes it, but the two method javadocs were left unchanged, and MIGRATE.md, whose 11.0 recipe builds a cache with no cleanup, never mentions the new cleanUp or CacheCleanUpParameters duty.
 
+The test shows that on main `LRUQueryCache.clearQuery(q)` and `clearCoreCacheKey(key)` leave the cache entry in place until `cleanUp()`, although their javadocs still say "Remove all cache entries for the given query" / "... core cache key" (a documentation defect; the deferral itself is the intended #15558 design).
+
 ## Expected vs actual
 
-- Expected: You expect the entries to be gone when the call returns, as on 10.x; instead #15558 made both methods only add the query or key to a pending set, so getCacheSize still counts the entry and the next search is a cache hit (with correct documents) until cleanUp runs.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+Expected (method javadocs): cache size 0 after each call. Actual: `cache size after clearQuery / after clearCoreCacheKey expected:<[0 / 0]> but was:<[1 / 1]>` (-ea and -da).
 
 ## Files
 
-- [src/org/apache/lucene/search/TestLRUQueryCacheClearMethodsRemove.java](src/org/apache/lucene/search/TestLRUQueryCacheClearMethodsRemove.java) (JUnit test)
+- [src/org/apache/lucene/search/TestLRUQueryCacheClearRemovesEntries.java](src/org/apache/lucene/search/TestLRUQueryCacheClearRemovesEntries.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -34,10 +36,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestLRUQueryCacheClearMethodsRemove
+     execute --select-class org.apache.lucene.search.TestLRUQueryCacheClearRemovesEntries
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

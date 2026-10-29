@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You use LogDocMergePolicy or LogByteSizeMergePolicy and call IndexWriter.forceMergeDeletes(true) while another merge is pending or running, for example the natural merge that the call's own flush starts. You expect what LogMergePolicy's javadoc says ('Finds merges necessary to force-merge all deletes from the index'): every segment with deletes that is not already being merged is merged before the blocking call returns. Instead the policy groups adjacent segments with deletes into runs without skipping the ones that are already merging, IndexWriter rejects every run that contains such a segment (it only writes an infoStream message), and the call returns with the other segments of that run still holding their deletes, for example a 5000-document segment that keeps all 500 of its deletes.
 
+The test shows that with LogDocMergePolicy (mergeFactor 2), `forceMergeDeletes(true)` called while the natural merge of segments b and c is pending returns with segment a's deleted doc still in place. The policy groups a with the already-merging b, and IndexWriter rejects that merge.
+
 ## Expected vs actual
 
-- Expected: You expect what LogMergePolicy's javadoc says ('Finds merges necessary to force-merge all deletes from the index'): every segment with deletes that is not already being merged is merged before the blocking call returns.
-- Actual: The policy groups adjacent segments with deletes into runs without skipping the ones that are already merging, IndexWriter rejects every run that contains such a segment (it only writes an infoStream message), and the call returns with the other segments of that run still holding their deletes, for example a 5000-document segment that keeps all 500 of its deletes.
+Expected 0 deleted docs after the call; actual 1 (`expected:<0> but was:<1>`), with -ea and -da.
 
 ## Files
 
@@ -19,8 +20,8 @@ You use LogDocMergePolicy or LogByteSizeMergePolicy and call IndexWriter.forceMe
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

@@ -8,20 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You add a batch with IndexWriter#addBatch whose doc-values-only DictionaryColumn (SORTED or SORTED_SET) has a tuple cursor that returns a batch doc-id equal to numDocs or -1, or whose SORTED_NUMERIC or SORTED_SET column returns doc-ids in decreasing order, for example (1, v) then (0, v'). You expect an IllegalArgumentException with the writer still open and no other document touched, which is what the same addBatch call does for LongColumn, BinaryColumn, vector and stored or indexed (row-pass) columns that break the same documented contract. Instead the out-of-range value is silently attached to the document indexed just before or just after the batch (it survives commit, and CheckIndex reports a clean index), and the out-of-order tuples either throw an AssertionError that closes the writer (-ea) or are accepted (-da), after which a later valid addDocument is rejected with 'Out of order doc ids: last=1, next=0', another later document reads a value from the batch, and the next commit can fail and close the writer.
 
+The test shows that IndexWriter#addBatch accepts an out-of-range tuple doc-id (2 when numDocs=2) on a doc-values-only SORTED DictionaryColumn and writes that value onto the next document added to the index.
+
 ## Expected vs actual
 
-- Expected: You expect an IllegalArgumentException with the writer still open and no other document touched, which is what the same addBatch call does for LongColumn, BinaryColumn, vector and stored or indexed (row-pass) columns that break the same documented contract.
-- Actual: The out-of-range value is silently attached to the document indexed just before or just after the batch (it survives commit, and CheckIndex reports a clean index), and the out-of-order tuples either throw an AssertionError that closes the writer (-ea) or are accepted (-da), after which a later valid addDocument is rejected with 'Out of order doc ids: last=1, next=0', another later document reads a value from the batch, and the next commit can fail and close the writer.
+Expected: the document added after the batch has no "tag" value (or the batch is rejected). Actual: it reads "b" from the batch (`expected null, but was:<b>`, with -ea and -da).
 
 ## Files
 
-- [src/org/apache/lucene/index/TestColumnBatchDictionaryDocIdRange.java](src/org/apache/lucene/index/TestColumnBatchDictionaryDocIdRange.java) (JUnit test)
-- [src/org/apache/lucene/index/TestColumnBatchMultiValuedTupleOrder.java](src/org/apache/lucene/index/TestColumnBatchMultiValuedTupleOrder.java) (JUnit test)
+- [src/org/apache/lucene/document/column/TestDictionaryColumnDocIdOutOfRange.java](src/org/apache/lucene/document/column/TestDictionaryColumnDocIdOutOfRange.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -39,8 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestColumnBatchMultiValuedTupleOrder \
-       --select-class org.apache.lucene.index.TestColumnBatchDictionaryDocIdRange
+     execute --select-class org.apache.lucene.document.column.TestDictionaryColumnDocIdOutOfRange
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

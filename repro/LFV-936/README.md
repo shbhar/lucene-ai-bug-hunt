@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You read a TREC topics file with TrecTopicsReader or Trec1MQReader (as QueryDriver does) whose ids are mostly numbers but include a few sub-topic ids such as 1a or 10.1, or a few digit-only ids larger than Integer.MAX_VALUE, and expect the topics back sorted by id, as the readers' '// sort result array (by ID)' comment says. Instead QualityQuery.compareTo compares two int ids as numbers and every other pair as strings, which forms cycles (2 &lt; 100 as numbers, 100 &lt; 1a and 1a &lt; 2 as strings), so Arrays.sort can throw IllegalArgumentException 'Comparison method violates its general contract!' (the repro: ids 1..111 plus 1a, 20a, 64a and 99a, each listed after its parent); when the sort does not detect the cycle, the topics come back in an order that depends on the file order. Separately, the int branch returns n - nOther, which overflows for extreme ids such as 2147483647 vs -1 (this needs a negative id).
 
+The test shows that `QualityQuery.compareTo` (the order `TrecTopicsReader` / `Trec1MQReader` sort topics with) is not transitive when int and non-int ids are mixed, with the three ids `2`, `100`, `1a`.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: QualityQuery.compareTo compares two int ids as numbers and every other pair as strings, which forms cycles (2 &lt; 100 as numbers, 100 &lt; 1a and 1a &lt; 2 as strings), so Arrays.sort can throw IllegalArgumentException 'Comparison method violates its general contract!' (the repro: ids 1..111 plus 1a, 20a, 64a and 99a, each listed after its parent); when the sort does not detect the cycle, the topics come back in an order that depends on the file order.
+Expected a total order (`Comparable` contract); actual `2 < 100` (compared as ints), `100 < 1a` and `1a < 2` (compared as strings), a cycle, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/benchmark/quality/TestQualityQueryOrder.java](src/org/apache/lucene/benchmark/quality/TestQualityQueryOrder.java) (JUnit test)
+- [src/org/apache/lucene/benchmark/quality/TestQualityQueryCompareTo.java](src/org/apache/lucene/benchmark/quality/TestQualityQueryCompareTo.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,7 +40,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.benchmark.quality.TestQualityQueryOrder
+     execute --select-class org.apache.lucene.benchmark.quality.TestQualityQueryCompareTo
 ```
 
 The module(s) benchmark also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.

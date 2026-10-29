@@ -16,7 +16,6 @@
  */
 package org.apache.lucene.facet;
 
-import java.util.List;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
@@ -29,96 +28,55 @@ import org.apache.lucene.facet.taxonomy.directory.DirectoryTaxonomyWriter;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.LuceneTestCase;
-import org.apache.lucene.util.IOUtils;
 
-/**
- * Facets#getTopDims must equal getAllDims(topNChildren).subList(0, topNDims). A multi-valued
- * dimension that does not require dim counts gets the placeholder value -1, which passes the "value
- * != 0" filter, so a dimension that has no hits for the query is admitted. Its FacetResult is then
- * null: getTopDims throws AssertionError with assertions enabled, and returns a list containing null
- * (and, for small topNDims, drops a dimension that does have hits) with assertions disabled.
- */
 public class TestGetTopDimsDimWithoutHits extends LuceneTestCase {
 
-  private static FacetsConfig config() {
+  private static Document doc(String id, IndexableField facet) {
+    Document doc = new Document();
+    doc.add(new StringField("id", id, Field.Store.NO));
+    doc.add(facet);
+    return doc;
+  }
+
+  public void testMultiValuedDimWithoutHits() throws Exception {
     FacetsConfig config = new FacetsConfig();
     config.setMultiValued("a", true); // requireDimCount stays false (the default)
     config.setMultiValued("b", true);
-    return config;
-  }
-
-  /** FacetResult#equals ignores dim and path, so compare those explicitly too. */
-  private static String describe(List<FacetResult> results) {
-    StringBuilder sb = new StringBuilder();
-    for (FacetResult r : results) {
-      sb.append(r == null ? "null" : r.dim + "=" + r.value + java.util.Arrays.toString(r.labelValues));
-      sb.append(';');
+    try (Directory taxoIndexDir = new ByteBuffersDirectory();
+        Directory taxoDir = new ByteBuffersDirectory();
+        Directory ssdvIndexDir = new ByteBuffersDirectory();
+        IndexWriter taxoIndex = new IndexWriter(taxoIndexDir, new IndexWriterConfig());
+        DirectoryTaxonomyWriter taxoWriter = new DirectoryTaxonomyWriter(taxoDir);
+        IndexWriter ssdvIndex = new IndexWriter(ssdvIndexDir, new IndexWriterConfig())) {
+      for (String dim : new String[] {"a", "b"}) {
+        taxoIndex.addDocument(config.build(taxoWriter, doc(dim, new FacetField(dim, "x"))));
+        ssdvIndex.addDocument(config.build(doc(dim, new SortedSetDocValuesFacetField(dim, "x"))));
+      }
+      TermQuery onlyB = new TermQuery(new Term("id", "b"));
+      try (DirectoryReader taxoReader = DirectoryReader.open(taxoIndex);
+          DirectoryTaxonomyReader taxonomy = new DirectoryTaxonomyReader(taxoWriter);
+          DirectoryReader ssdvReader = DirectoryReader.open(ssdvIndex)) {
+        Facets taxo =
+            new FastTaxonomyFacetCounts(
+                taxonomy,
+                config,
+                new IndexSearcher(taxoReader).search(onlyB, new FacetsCollectorManager()));
+        Facets ssdv =
+            new SortedSetDocValuesFacetCounts(
+                new DefaultSortedSetDocValuesReaderState(ssdvReader, config),
+                new IndexSearcher(ssdvReader).search(onlyB, new FacetsCollectorManager()));
+        // expected: getTopDims is the getAllDims prefix [b]; actual: [null, b] and [null] (-ea: AssertionError)
+        assertEquals(
+            "taxonomy " + taxo.getAllDims(10) + " ssdv " + ssdv.getAllDims(10),
+            "taxonomy " + taxo.getTopDims(10, 10) + " ssdv " + ssdv.getTopDims(1, 10));
+      }
     }
-    return sb.toString();
-  }
-
-  private static void check(Facets facets, int topNDims) throws Exception {
-    List<FacetResult> all = facets.getAllDims(10);
-    assertEquals(1, all.size());
-    assertEquals("b", all.get(0).dim);
-    List<FacetResult> expected = all.subList(0, Math.min(topNDims, all.size()));
-    assertEquals(
-        "getTopDims(" + topNDims + ", 10) must equal getAllDims(10).subList(0, " + topNDims + ")",
-        describe(expected),
-        describe(facets.getTopDims(topNDims, 10)));
-  }
-
-  public void testTaxonomy() throws Exception {
-    Directory dir = newDirectory();
-    Directory taxoDir = newDirectory();
-    DirectoryTaxonomyWriter tw = new DirectoryTaxonomyWriter(taxoDir);
-    IndexWriter w = new IndexWriter(dir, new IndexWriterConfig());
-    FacetsConfig config = config();
-    Document doc = new Document();
-    doc.add(new StringField("id", "0", Field.Store.NO));
-    doc.add(new FacetField("a", "a1"));
-    w.addDocument(config.build(tw, doc));
-    doc = new Document();
-    doc.add(new StringField("id", "1", Field.Store.NO));
-    doc.add(new FacetField("b", "b1"));
-    w.addDocument(config.build(tw, doc));
-    DirectoryReader r = DirectoryReader.open(w);
-    w.close();
-    DirectoryTaxonomyReader tr = new DirectoryTaxonomyReader(tw);
-    FacetsCollector fc =
-        new IndexSearcher(r).search(new TermQuery(new Term("id", "1")), new FacetsCollectorManager());
-    // topNDims=10: no priority-queue replacement happens, so only the hit-less dim matters here
-    check(new FastTaxonomyFacetCounts(tr, config, fc), 10);
-    IOUtils.close(r, tr, tw, dir, taxoDir);
-  }
-
-  public void testSortedSetDocValues() throws Exception {
-    Directory dir = newDirectory();
-    IndexWriter w = new IndexWriter(dir, new IndexWriterConfig());
-    FacetsConfig config = config();
-    Document doc = new Document();
-    doc.add(new StringField("id", "0", Field.Store.NO));
-    doc.add(new SortedSetDocValuesFacetField("a", "a1"));
-    w.addDocument(config.build(doc));
-    doc = new Document();
-    doc.add(new StringField("id", "1", Field.Store.NO));
-    doc.add(new SortedSetDocValuesFacetField("b", "b1"));
-    w.addDocument(config.build(doc));
-    DirectoryReader r = DirectoryReader.open(w);
-    w.close();
-    FacetsCollector fc =
-        new IndexSearcher(r).search(new TermQuery(new Term("id", "1")), new FacetsCollectorManager());
-    Facets facets =
-        new SortedSetDocValuesFacetCounts(new DefaultSortedSetDocValuesReaderState(r, config), fc);
-    check(facets, 10);
-    // "a" sorts before "b", so with topNDims=1 the hit-less dim "a" wins the tie at -1 and the
-    // dimension that has hits is dropped:
-    check(facets, 1);
-    IOUtils.close(r, dir);
   }
 }

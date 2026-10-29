@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You run CheckIndex -verbose at level 2 or more (or call Terms.getStats) on an index written with the default codec and expect each field's block-tree statistics to say how many bytes its terms index takes, as the field's javadoc 'Byte size of the index' and the printed label 'index trie: N bytes' promise. Since 10.3.0 the Lucene103 block tree never assigns Stats.indexNumBytes, so every field prints 'index trie: 0 bytes', even a 20,000-term field with 607 blocks in a segment whose.tip file is 2,473 bytes. Nothing else reads the number, so search and indexing are unaffected, and the older Lucene90 block tree had already stopped reporting the real size (a constant such as 56 bytes since 8.6.0), so this is a small diagnostic defect, not a regression of a working metric.
 
+The test shows that the Lucene103 block tree never sets `Stats.indexNumBytes` ("Byte size of the index"): `Terms.getStats()` of a one-term `StringField` under the default codec reports 0 (`TestStatsIndexNumBytes#testIndexNumBytesIsSet`).
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+Expected: the field's trie bytes in the.tip file, &gt; 0. Actual: `expected indexNumBytes > 0 but was 0`, the same with -ea and -da.
 
 ## Files
 
@@ -19,8 +20,8 @@ You run CheckIndex -verbose at level 2 or more (or call Terms.getStats) on an in
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

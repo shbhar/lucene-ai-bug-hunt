@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You call SoraniAnalyzer.getDefaultStopSet, LatvianAnalyzer.getDefaultStopSet or GalicianAnalyzer.getDefaultStopSet, documented as 'the default stop words set' built from the analyzer's bundled 'File containing default Kurdish/Latvian/Galician stopwords', and expect the stop words of that file; its '#' lines are comments, the format that about two dozen sibling analyzers load with the '#' comment marker and that StopFilterFactory's default 'wordset' format skips. Instead the three analyzers load the file with WordlistLoader.getWordSet(InputStream), which 'adds every line as an entry', so 60 of Sorani's 122 entries, 9 of Latvian's 170 (including a bare '#') and 1 of Galician's 161 are comment text such as '# set of kurdish stopwords', '# and' or '# galican stopwords'. The stock analyzers' tokens do not change, but code that lists, counts or reuses these sets sees the comments, and with a WhitespaceTokenizer the Latvian set removes a standalone '#' token ('lucene # search' gives [lucene, search]).
 
+The test shows that SoraniAnalyzer, LatvianAnalyzer and GalicianAnalyzer.getDefaultStopSet() contain the '#' comment lines of their bundled stopwords.txt as stop words.
+
 ## Expected vs actual
 
-- Expected: Each of the three default sets has 0 entries that start with `#` (62, 161 and 160 words), like the Bulgarian control.
-- Actual: Sorani has 60 of 122, Latvian 9 of 170 (including a bare `#`), Galician 1 of 161: 4 tests, 3 failed.
+Expected no entry starting with '#'; actual 60, 9 and 1 such entries (`expected:<Sorani [0, Latvian 0, Galician 0]> but was:<Sorani [60, Latvian 9, Galician 1]>`), with `-ea` and `-da`.
 
 ## Files
 
@@ -21,7 +22,8 @@ You call SoraniAnalyzer.getDefaultStopSet, LatvianAnalyzer.getDefaultStopSet or 
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -44,11 +46,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestDefaultStopSetCommentLines.java](TestDefaultStopSetCommentLines.java)
-- [TestBundledStopSetCommentsV1.java](TestBundledStopSetCommentsV1.java)
 
 ## Feedback
 

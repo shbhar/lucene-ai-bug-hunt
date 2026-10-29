@@ -10,22 +10,21 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build two indexes in lockstep, as ParallelLeafReader requires (index A stores title='Lucene in Action', index B stores price='42'), wrap them in a ParallelLeafReader, which itself returns both fields correctly, and copy it into a new index with IndexWriter.addIndexes(SlowCodecReaderWrapper.wrap(reader)), expecting the copy to hold title and price. Instead the copy holds title='Lucene in Action' and title='42' and no price field, with no error and a clean CheckIndex: storedFields lets B report price with B's own field number 0, the parallel reader's getFieldInfos numbers price 1, and because the target's merged numbers equal the parallel reader's, the stored-fields merge skips its remap-by-name step and writes the value under number 0, which is title. A merge whose OneMerge.wrapForMerge adds a parallel index with stored fields behind each segment goes wrong the same way (a 'summary' value stored as a second 'id').
 
+The test shows that `IndexWriter#addIndexes(SlowCodecReaderWrapper.wrap(new ParallelLeafReader(a, b)))` into a fresh index stores b's stored field under a's field name (a: title="Lucene in Action", b: price="42").
+
 ## Expected vs actual
 
-- Expected: The copied document holds `title="Lucene in Action"` and `price="42"` (after the merge: `id`, `body` and `summary`).
-- Actual: It holds `title="Lucene in Action"` and `title="42"` and no `price` (after the merge `summary0` is a second `id`); 2 of 2 tests fail, with assertions on and off.
+Expected the copy to have price=42; actual `Document<stored<title:Lucene in Action> stored<title:42>> expected:<42> but was:<null>`, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/index/TestParallelReaderCopyKeepsStoredFieldNames.java](src/org/apache/lucene/index/TestParallelReaderCopyKeepsStoredFieldNames.java) (JUnit test)
-- [src/org/apache/lucene/index/TestParallelLeafReaderStoredCopyIntentReview.java](src/org/apache/lucene/index/TestParallelLeafReaderStoredCopyIntentReview.java) (JUnit test)
-- [src/org/apache/lucene/index/TestParallelReaderExpertStoredFieldsReaders.java](src/org/apache/lucene/index/TestParallelReaderExpertStoredFieldsReaders.java) (JUnit test)
-- [src/repro/ParallelCopyStoredNamesMain.java](src/repro/ParallelCopyStoredNamesMain.java) (main() class)
+- [src/org/apache/lucene/index/TestParallelLeafReaderAddIndexesStoredFields.java](src/org/apache/lucene/index/TestParallelLeafReaderAddIndexesStoredFields.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -42,25 +41,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestParallelReaderCopyKeepsStoredFieldNames
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestParallelLeafReaderStoredCopyIntentReview \
-       --select-class org.apache.lucene.index.TestParallelReaderExpertStoredFieldsReaders
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" repro.ParallelCopyStoredNamesMain
+     execute --select-class org.apache.lucene.index.TestParallelLeafReaderAddIndexesStoredFields
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestParallelReaderCopyKeepsStoredFieldNames.java](TestParallelReaderCopyKeepsStoredFieldNames.java)
-- [TestParallelLeafReaderCopyStoredFieldNames.java](TestParallelLeafReaderCopyStoredFieldNames.java)
-- [TestParallelReaderExpertStoredFieldsReaders.java](TestParallelReaderExpertStoredFieldsReaders.java)
-- [ParallelCopyStoredNamesMain.java](ParallelCopyStoredNamesMain.java)
 
 ## Feedback
 

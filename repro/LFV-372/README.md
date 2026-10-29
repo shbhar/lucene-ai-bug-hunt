@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You sort a legal slice with IntroSorter, for example ArrayUtil.introSort on the last 1,000 elements of an array of length ArrayUtil.MAX_ARRAY_LENGTH (or a slice of more than 2^30 elements starting at 0), and the element order makes IntroSorter give up on quicksort and fall back to heap sort. You expect the slice [from, to) to be sorted using only slots inside it. Instead Sorter.heapChild computes 2*(i - from) + 1 + from in int, which wraps to a negative number for a node that has no child, siftDown's 'leftChild &lt; to' check lets it through, and compare is called with a negative slot, so the array-backed sort throws ArrayIndexOutOfBoundsException ('Index -2147482757 out of bounds for length 2147483631').
 
+The test shows that IntroSorter.sort on the last 60 slots of an ArrayUtil.MAX_ARRAY_LENGTH-long range, in an order that uses up its quicksort depth budget, falls back to heapSort, whose int heapChild wraps and asks the sorter for a negative slot.
+
 ## Expected vs actual
 
-- Expected: You expect the slice [from, to) to be sorted using only slots inside it.
-- Actual: Sorter.heapChild computes 2*(i - from) + 1 + from in int, which wraps to a negative number for a node that has no child, siftDown's 'leftChild &lt; to' check lets it through, and compare is called with a negative slot, so the array-backed sort throws ArrayIndexOutOfBoundsException ('Index -2147482757 out of bounds for length 2147483631').
+Expected: only slots in [2147483571, 2147483631) are compared or swapped. Actual (-ea and -da): AssertionError: slot -2147483639 is outside [2147483571, 2147483631), from Sorter.siftDown(Sorter.java:279) &lt;- heapSort &lt;- IntroSorter.sort(IntroSorter.java:61).
 
 ## Files
 
-- [src/org/apache/lucene/util/TestSorterHeapChildOverflow.java](src/org/apache/lucene/util/TestSorterHeapChildOverflow.java) (JUnit test)
+- [src/org/apache/lucene/util/TestIntroSorterHeapSortAtArrayEnd.java](src/org/apache/lucene/util/TestIntroSorterHeapSortAtArrayEnd.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,7 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.util.TestSorterHeapChildOverflow
+     execute --select-class org.apache.lucene.util.TestIntroSorterHeapSortAtArrayEnd
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

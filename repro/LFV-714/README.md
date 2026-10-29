@@ -1,6 +1,6 @@
 # ComplexPhraseQueryParser: a quoted phrase that is only one parenthesized group is read as a sequence of positions, so "(john OR jonathan)" matches only the sequence 'john jonathan' and "(jo* -john)" matches documents whose only jo* term is john
 
-Bug LFV-714 · Area: queryparser / complexPhrase: ComplexPhraseQueryParser (ComplexPhraseQuery.parsePhraseElements second-pass parse, read by ComplexPhraseQuery.rewrite) · Priority: medium · Impact: silent wrong results · Novelty: new
+Bug LFV-714 · Area: queryparser / complexPhrase: ComplexPhraseQueryParser (ComplexPhraseQuery.parsePhraseElements second-pass parse, read by ComplexPhraseQuery.rewrite) · Priority: low · Impact: silent wrong results · Novelty: new
 
 Bug page: [../../bugs/LFV-714.html](../../bugs/LFV-714.html)
 
@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You parse "(john OR jonathan)" or "(jo* -john)" with ComplexPhraseQueryParser and search; inside a complex phrase a bracketed group is one position with alternatives (class javadoc example "(john jon jonathan~) peters*", upstream tests "(john OR johathon) smith" and "(jo* -john) smith") and one-element phrases are supported, so you expect the documents that contain john or jonathan, or a jo* term other than john. Instead the classic grammar drops parentheses around the whole input (QueryParser.jj:289-293 and:311), so the second pass gets the same BooleanQuery as for "john OR jonathan", and ComplexPhraseQuery.rewrite makes each member a consecutive position: "(john OR jonathan)" becomes spanNear([john, jonathan], 0, true) and matches only documents that contain the sequence 'john jonathan', and "(jo* -john)" becomes spanNot(spanOr(jo*), spanNear([spanOr(jo*), john])) and also matches 'john smith', whose only jo* term is john.
 
+The test shows that `ComplexPhraseQueryParser` reads a phrase that is only one parenthesized group as a sequence: `"(john OR jonathan)"` becomes `spanNear([john, jonathan], 0, true)` instead of one position with alternatives.
+
 ## Expected vs actual
 
-- Expected: `"(john OR jonathan)"` and `"(jo* -john)"` each return 4 documents, as one position with alternatives, like the control.
-- Actual: `"(john OR jonathan)"` returns 1, "john jonathan" (rewritten `spanNear([john, jonathan])`), and `"(jo* -john)"` returns all 5, including "john smith".
+Expected 1 hit on the document `john smith`; actual 0 (`expected:<1> but was:<0>`), with `-ea` and `-da`; passes with the bug's fix (the group kept as one clause).
 
 ## Files
 
@@ -21,7 +22,8 @@ You parse "(john OR jonathan)" or "(jo* -john)" with ComplexPhraseQueryParser an
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,7 +42,7 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions on, seed DEADBEEF, default flags
+# run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.queryparser.complexPhrase.TestComplexPhraseLoneGroup
@@ -49,13 +51,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestComplexPhraseLoneGroup.java](TestComplexPhraseLoneGroup.java)
-- [test-lines.diff](test-lines.diff)
-- [TestLoneGroupCompatProbe.java](TestLoneGroupCompatProbe.java)
-- [TestLoneGroupEdgeProbe.java](TestLoneGroupEdgeProbe.java)
 
 ## Feedback
 

@@ -2,7 +2,7 @@
 
 Bug LFV-297 · Area: search / rescoring · Priority: medium · Impact: crash · Novelty: known upstream
 
-AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Maintainer triage: Fixed, triaged by Greg Miller (Lucene committer, PR #16926) on 2026-10-28 (https://github.com/apache/lucene/pull/16926). Greg Miller fixed it on main and branch_11x (11.0) by returning MatchNoDocsQuery when the inner query leaves nothing to rescore, the same guard as our fix. They left it out of 10.6 because they were not sure it is severe enough, so the 10.x line keeps the bug. This site files nothing upstream.
 
 ## What it shows
 

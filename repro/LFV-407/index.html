@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You group documents with new LongRangeFactory(10, 10, 25), meaning buckets 10 wide starting at 10 and everything at or above 25 in one bucket, and expect what the javadoc says: [10, 20), a shorter final bucket [20, 25), and [25, MAX). Instead the value 22 is labelled LongRange(20, 30) while 27 is labelled LongRange(25, MAX), so the two reported ranges overlap; each group holds the right documents, but a range query built from the label [20, 30), the way Lucene&#x27;s own selector tests rebuild a group, also returns the document with value 27 from the other group. DoubleRangeFactory behaves the same, because both getRange methods set the bucket&#x27;s upper bound to its lower bound + width and never cap it at max.</p>
+<p>The test shows that <code>LongRangeFactory</code> and <code>DoubleRangeFactory</code> do not end the final range below <code>max</code> at <code>max</code> when <code>max - min</code> is not a multiple of <code>width</code>.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> The value 22 is labelled LongRange(20, 30) while 27 is labelled LongRange(25, MAX), so the two reported ranges overlap; each group holds the right documents, but a range query built from the label [20, 30), the way Lucene&#x27;s own selector tests rebuild a group, also returns the document with value 27 from the other group.</li></ul>
+<p>Expected <code>new LongRangeFactory(10, 10, 25).getRange(22, null)</code> = <code>LongRange(20, 25)</code> (and <code>DoubleRange(20.0, 25.0)</code>); actual <code>LongRange(20, 30)</code> / <code>DoubleRange(20.0, 30.0)</code>, overlapping the <code>[25, MAX)</code> range, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/search/grouping/TestRangeFactoryFinalRange.java"><code>src/org/apache/lucene/search/grouping/TestRangeFactoryFinalRange.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 2 test(s) run, 2 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

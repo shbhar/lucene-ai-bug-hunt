@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index a numeric doc-values field with a skip index (NumericDocValuesField.indexedField(&quot;delta&quot;, v)) and search BooleanQuery(SHOULD FunctionScoreQuery(MatchAllDocsQuery, DoubleValuesSource.fromLongField(&quot;delta&quot;)), SHOULD TermQuery(body:b)) for the top hit, expecting the same hit as an exhaustive search, because FunctionScoreQuery documents that a negative value simply scores 0 (MIGRATE.md, LUCENE-7996). Instead, with 5,000 documents where doc 0 has delta 1, all others have -1000, and only doc 4999 matches body:b, TOP_SCORES and the plain IndexSearcher.search(q, 1) return doc 0 (score 1.0) instead of doc 4999. The cause is that the scorer&#x27;s getMaxScore returns innerMaxScore * valueMaxScore * boost without the clamp at 0 that score applies, so a block of negative values reports a bound of -1000 for documents that all score 0, and MaxScoreBulkScorer skips windows that hold competitive documents.</p>
+<p>The test shows that a <code>FunctionScoreQuery</code> whose skip-indexed field value is negative (scored as 0) reports a negative <code>getMaxScore</code>, so a top-k disjunction skips a matching document (1 doc, <code>body:b</code>, <code>delta = -1000</code>).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> With 5,000 documents where doc 0 has delta 1, all others have -1000, and only doc 4999 matches body:b, TOP_SCORES and the plain IndexSearcher.search(q, 1) return doc 0 (score 1.0) instead of doc 4999.</li></ul>
+<p>Expected <code>IndexSearcher.search(q, 1)</code> to return the document (term score + 0); actual: no hit (<code>expected:&lt;1&gt; but was:&lt;0&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/queries/function/TestFunctionScoreQueryNegativeValueMaxScore.java"><code>src/org/apache/lucene/queries/function/TestFunctionScoreQueryNegativeValueMaxScore.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

@@ -1,0 +1,62 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.FilterLeafReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+public class TestMinSegmentSizePredicateOverflow extends LuceneTestCase {
+
+  public void testSingleSegmentOf2Pow30Docs() throws IOException {
+    try (Directory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+        w.addDocument(new Document());
+      }
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        LeafReader leaf =
+            new FilterLeafReader(reader.leaves().get(0).reader()) {
+              @Override
+              public int maxDoc() {
+                return 1 << 30;
+              }
+
+              @Override
+              public CacheHelper getCoreCacheHelper() {
+                return null;
+              }
+
+              @Override
+              public CacheHelper getReaderCacheHelper() {
+                return null;
+              }
+            };
+        assertTrue(
+            "expected true for the only segment (2^30 docs >= 10000 and > half the average 2^30),"
+                + " got false",
+            new LRUQueryCache.MinSegmentSizePredicate(10000).test(leaf.getContext()));
+      }
+    }
+  }
+}

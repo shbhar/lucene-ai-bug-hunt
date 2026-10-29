@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You write a one-dimensional binary key into a scratch byte, build BinaryPoint.newExactQuery(field, scratch), write the next key into the same array, build a second query and OR the two; you expect each query to match the key it was built for, as BinaryPoint&#x27;s two-dimension range queries and its one-value newSetQuery do. Instead both queries now mean the second key (they compare equal and print the same bounds) and the OR finds 1 document instead of 2; likewise a one-dimensional newRangeQuery whose lo/hi arrays the caller overwrites afterwards matches 0 documents instead of the range it was built for. BinaryPoint.pack returns new BytesRef(point[0]), a wrapper over the caller&#x27;s array, when there is one dimension, and PointRangeQuery stores that array as its bounds, so matching, equals, hashCode and toString read whatever the caller&#x27;s array holds at the time.</p>
+<p>The test shows that <code>BinaryPoint.newExactQuery</code> on a one-dimensional field keeps the caller&#x27;s <code>byte[]</code> as its bounds, so writing into that array after building the query changes what the query matches.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The OR of three exact queries matches 3 documents, the range built for keys [1, 2] matches 2, and the first query still prints key 1.</li><li><b>Actual:</b> The OR matches 1 (<code>expected:&lt;3&gt; but was:&lt;1&gt;</code>), the range matches 1 (<code>expected:&lt;2&gt; but was:&lt;1&gt;</code>), and the query prints key 2.</li></ul>
+<p>Expected 1 hit (the query was built for value {1}, which the only document holds); actual 0 after the caller writes 2 into the array (<code>expected:&lt;1&gt; but was:&lt;0&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/search/TestBinaryPointQueryArrayAliasing.java"><code>src/org/apache/lucene/search/TestBinaryPointQueryArrayAliasing.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/document/TestBinaryPointExactQueryOwnsValue.java"><code>src/org/apache/lucene/document/TestBinaryPointExactQueryOwnsValue.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -44,7 +46,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestBinaryPointQueryArrayAliasing</code></pre>
+     execute --select-class org.apache.lucene.document.TestBinaryPointExactQueryOwnsValue</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestBinaryPointQueryArrayOwnership.java"><code>TestBinaryPointQueryArrayOwnership.java</code></a></li><li><a href="TestBinaryPointQueryArrayAliasing.java"><code>TestBinaryPointQueryArrayAliasing.java</code></a></li><li><a href="TestBinaryPointQueryOwnershipV1.java"><code>TestBinaryPointQueryOwnershipV1.java</code></a></li><li><a href="TestBinaryPointOneDimOwnership.java"><code>TestBinaryPointOneDimOwnership.java</code></a></li><li><a href="TestAudit4BinaryPointOwnership.java"><code>TestAudit4BinaryPointOwnership.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You build a Geo3D distance query with a very small radius, for example Geo3DPoint.newDistanceQuery with 1.24 cm, and expect it to match only points near the centre, or to be rejected as too small. The circle&#x27;s cut plane passes within about r^2/2 of the circle&#x27;s centre (here about 2e-18), far below double rounding, and SidedPlane takes the plane&#x27;s inside from the sign of evaluate(center), which at that size is rounding noise. When the noise has the wrong sign the circle is the whole planet minus a speck, and the query silently returns every indexed point: in the repro, all 3 documents thousands of kilometres away.</p>
+<p>The test shows that <code>Geo3DPoint.newDistanceQuery</code> with a 1.24 cm radius (WGS84) builds a circle whose cut plane faces the wrong way, so the query matches a document at the centre&#x27;s antipode.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> While the bug is present the test fails; the failure message states expected against actual.</li></ul>
+<p>Expected 0 hits for the antipode; actual: 1 (<code>hits for the antipode expected:&lt;0&gt; but was:&lt;1&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/spatial3d/TestGeo3DTinyRadiusMatchesWholeWorld.java"><code>src/org/apache/lucene/spatial3d/TestGeo3DTinyRadiusMatchesWholeWorld.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

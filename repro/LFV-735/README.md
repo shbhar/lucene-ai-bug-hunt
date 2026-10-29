@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build a path with a width (GeoPathFactory.makeGeoPath, or the pathWidthMeters of Geo3DDocValuesField.newOutsidePathSort) and ask for the outside distance of a point beyond one of its ends, expecting 'the distance from a point to the closest outside edge' (GeoOutsideDistance), which is how the same path measures points beside its segments and how GeoCircle measures a circle. Instead you get the distance to the path's end point, i.e. the gap plus up to the half-width: on the unit sphere a point 0.001 rad beyond the end of a path of half-width 0.01 gets 0.011, a one-point path reports 0.011 where the same-size GeoCircle reports 0.001, the value jumps from 0 to about the half-width as a point crosses the end cap's edge, and on WGS84 the outside-path sort ranks a document 1 km beyond the end of a path of half-width 5 km (5992 m) after one 3 km beside it (3067 m). The cause is BaseSegmentEndpoint.outsideDistance, which every endpoint with a width inherits: it measures to the end point itself, which is the edge only for a zero-width path.
 
+The test shows that a `GeoStandardPath` measures the outside distance beyond an end cap to the end point, not to the cap edge: SPHERE path (0,0)-(0,0.1) of half-width 0.01, point (0, 0.111).
+
 ## Expected vs actual
 
-- Expected: The document 1 km past the end sorts first (about 1,000 m), the one-point path reports 0.001 like the circle, and 1e-6 rad outside the cap gives about 1e-6.
-- Actual: 5 of 5 fail: sort values 3,067 m (beside) before 5,992 m (past the end); one-point path 0.011 against the circle's 0.001; 0.010001 just outside the cap; 0.011 beyond the end.
+Expected (GeoOutsideDistance: distance to the closest outside edge, which is at longitude 0.11): 0.001. Actual: 0.010999999999988425 (`expected:<0.001> but was:<0.010999999999988425>`).
 
 ## Files
 
-- [src/org/apache/lucene/spatial3d/TestGeo3DPathOutsideDistanceEndCap.java](src/org/apache/lucene/spatial3d/TestGeo3DPathOutsideDistanceEndCap.java) (JUnit test)
+- [src/org/apache/lucene/spatial3d/geom/TestGeoPathOutsideDistanceEndCap.java](src/org/apache/lucene/spatial3d/geom/TestGeoPathOutsideDistanceEndCap.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,15 +42,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.spatial3d.TestGeo3DPathOutsideDistanceEndCap
+     execute --select-class org.apache.lucene.spatial3d.geom.TestGeoPathOutsideDistanceEndCap
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestGeoPathOutsideDistanceEndCap.java](TestGeoPathOutsideDistanceEndCap.java)
-- [TestGeo3DPathOutsideDistanceEndCap.java](TestGeo3DPathOutsideDistanceEndCap.java)
 
 ## Feedback
 

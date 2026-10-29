@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You expose a ValueSource as a DoubleValuesSource with asDoubleValuesSource and score with it through FunctionScoreQuery (for example FunctionScoreQuery.boostByValue, the documented replacement for the removed BoostedQuery), or sort by asLongValuesSource.getSortField, and expect the per-document values the same ValueSource gives through FunctionQuery or its own getSortField (3 for ttf(text, test) in the repro). Instead the bridge builds a fresh context in getValues and explain and calls in.getValues without ever calling in.createWeight, so ttf and sttf, which compute their statistic in createWeight and return context.get(this) from getValues, throw NullPointerException ('this.val$fv' is null at ValueSource.java:210 or:144), and a user ValueSource that stores per-query state in createWeight, as the ValueSource javadoc describes, finds its context entry missing. FunctionQuery, FunctionRangeQuery and ValueSource#getSortField all call createWeight first, and the bridge's rewrite(searcher) already holds the searcher such a call needs.
 
+The test shows that `ValueSource#asDoubleValuesSource` never calls `createWeight`, so `FunctionScoreQuery.boostByValue(new MatchAllDocsQuery(), ttf.asDoubleValuesSource())` cannot score with `ttf(text, test)`.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The bridge builds a fresh context in getValues and explain and calls in.getValues without ever calling in.createWeight, so ttf and sttf, which compute their statistic in createWeight and return context.get(this) from getValues, throw NullPointerException ('this.val$fv' is null at ValueSource.java:210 or:144), and a user ValueSource that stores per-query state in createWeight, as the ValueSource javadoc describes, finds its context entry missing.
+Expected score 2 (the ttf of the one document "test test", as `FunctionQuery` gives); actual `NullPointerException` ("this.val$fv" is null at ValueSource.java:210), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/queries/function/TestValueSourceBridgeCreateWeight.java](src/org/apache/lucene/queries/function/TestValueSourceBridgeCreateWeight.java) (JUnit test)
+- [src/org/apache/lucene/queries/function/TestValueSourceBridgeTotalTermFreq.java](src/org/apache/lucene/queries/function/TestValueSourceBridgeTotalTermFreq.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,7 +40,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queries.function.TestValueSourceBridgeCreateWeight
+     execute --select-class org.apache.lucene.queries.function.TestValueSourceBridgeTotalTermFreq
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

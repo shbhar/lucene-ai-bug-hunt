@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You load a Hunspell dictionary with &#x27;NEEDAFFIX X&#x27;, &#x27;SFX A 0 s/XB&#x27; (so foos needs one more suffix), &#x27;SFX B 0 en&#x27; and an unrelated class &#x27;SFX C 0 s&#x27;, with the entries foo/A and bar/C, and call Hunspell.getAllWordForms(&quot;foo&quot;). You expect [foo, foosen]: spell rejects foos (C Hunspell 1.7.2 does too), and the generator&#x27;s check canStemToOriginal is documented to keep only forms that are &#x27;accepted by the spell-checker and analyzed to be the form of the original dictionary entry&#x27;. Instead you get [foo, foos, foosen], because canStemToOriginal accepts as soon as any affix-stripping path gives back the stem text, here class C, which foo does not even have, and ignores which affixes were stripped (WordFormGenerator.java:211); generateAllSimpleWords leaks the same words, and compress([kat, kater, katern]) suggests kat/PQ, which does not accept kater.</p>
+<p>The test shows that with <code>NEEDAFFIX X</code>, <code>SFX A 0 s/XB</code>, <code>SFX B 0 en</code>, an unused <code>SFX C 0 s</code> and the entry foo/A, <code>Hunspell.getAllWordForms(&quot;foo&quot;)</code> returns foos, which the same dictionary&#x27;s <code>spell()</code> rejects.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>getAllWordForms(&quot;foo&quot;)</code> is <code>[foo, foosen]</code>, no generated form is rejected by <code>spell</code>, and <code>compress</code> suggests an entry that accepts <code>foos</code>.</li><li><b>Actual:</b> <code>[foo, foos, foosen]</code>; needaffix5 plus two lines leaks <code>foopseudosuf</code>, <code>pseudoprefoo</code>, <code>pseudoprefoopseudosuf</code>; <code>compress</code> suggests <code>foo/AB</code>, which rejects <code>foos</code>.</li></ul>
+<p>Expected: every generated form passes <code>spell()</code> (empty list of rejected forms); actual (-ea and -da): <code>[foos]</code>, because canStemToOriginal accepts class C&#x27;s path that strips foos back to the text foo.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/analysis/hunspell/TestWordFormsSanityCheckFlags.java"><code>src/org/apache/lucene/analysis/hunspell/TestWordFormsSanityCheckFlags.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/analysis/hunspell/TestWordFormsNeedAffixLeak.java"><code>src/org/apache/lucene/analysis/hunspell/TestWordFormsNeedAffixLeak.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -42,10 +44,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.hunspell.TestWordFormsSanityCheckFlags</code></pre>
+     execute --select-class org.apache.lucene.analysis.hunspell.TestWordFormsNeedAffixLeak</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestGeneratedWordFormsMustSpell.java"><code>TestGeneratedWordFormsMustSpell.java</code></a></li><li><a href="TestWordFormsSanityCheckFlags.java"><code>TestWordFormsSanityCheckFlags.java</code></a></li><li><a href="TestGeneratedFormsMustSpell.java"><code>TestGeneratedFormsMustSpell.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

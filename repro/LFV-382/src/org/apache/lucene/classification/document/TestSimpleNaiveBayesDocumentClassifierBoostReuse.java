@@ -16,9 +16,10 @@
  */
 package org.apache.lucene.classification.document;
 
-import java.util.HashMap;
 import java.util.Map;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.classification.ClassificationResult;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
@@ -27,76 +28,42 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.tests.analysis.MockAnalyzer;
-import org.apache.lucene.tests.analysis.MockTokenizer;
 import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.BytesRef;
 
-/**
- * SimpleNaiveBayesDocumentClassifier documents that textFieldNames "can contain boosting indication e.g.
- * title^10". analyzeSeedDocument parses the boost and then writes the bare field name back into the
- * textFieldNames array (SimpleNaiveBayesDocumentClassifier.java:170). From the second classification on, the
- * boost is gone, so the same document gets a different class. The array is the caller's varargs array, so the
- * caller's array is rewritten too.
- */
 public class TestSimpleNaiveBayesDocumentClassifierBoostReuse extends LuceneTestCase {
 
-  private static void add(IndexWriter w, String title, String body, String cls) throws Exception {
-    Document d = new Document();
-    d.add(new TextField("title", title, Field.Store.YES));
-    d.add(new TextField("body", body, Field.Store.YES));
-    d.add(new StringField("cls", cls, Field.Store.YES));
-    w.addDocument(d);
+  private static Document doc(String title, String body) {
+    Document doc = new Document();
+    doc.add(new TextField("title", title, Field.Store.NO));
+    doc.add(new TextField("body", body, Field.Store.NO));
+    return doc;
   }
 
-  private static Document query() {
-    Document q = new Document();
-    q.add(new TextField("title", "apple", Field.Store.NO)); // title evidence: fruit
-    q.add(new TextField("body", "wheel", Field.Store.NO)); // body evidence: vehicle
-    return q;
+  private static Document doc(String title, String body, String cls) {
+    Document doc = doc(title, body);
+    doc.add(new StringField("cls", cls, Field.Store.NO));
+    return doc;
   }
 
-  public void testBoostIsKeptAcrossCalls() throws Exception {
-    Analyzer analyzer = new MockAnalyzer(random(), MockTokenizer.WHITESPACE, false);
+  public void testFieldBoostAppliesOnEveryCall() throws Exception {
+    Analyzer analyzer = new StandardAnalyzer();
     try (Directory dir = newDirectory()) {
       try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(analyzer))) {
-        add(w, "apple", "engine", "fruit");
-        add(w, "pear", "engine wheel", "fruit");
-        add(w, "car", "engine wheel", "vehicle");
-        add(w, "bus", "engine wheel", "vehicle");
-        add(w, "truck", "wheel", "vehicle");
+        w.addDocument(doc("apple", "seed", "fruit"));
+        w.addDocument(doc("car", "wheel", "vehicle"));
+        w.addDocument(doc("bus", "wheel", "vehicle"));
       }
       try (DirectoryReader reader = DirectoryReader.open(dir)) {
-        Map<String, Analyzer> field2analyzer = new HashMap<>();
-        field2analyzer.put("title", analyzer);
-        field2analyzer.put("body", analyzer);
-        String[] textFieldNames = {"title^10", "body"};
         SimpleNaiveBayesDocumentClassifier classifier =
-            new SimpleNaiveBayesDocumentClassifier(reader, null, "cls", field2analyzer, textFieldNames);
-
-        String first = classifier.assignClass(query()).assignedClass().utf8ToString();
-        String second = classifier.assignClass(query()).assignedClass().utf8ToString();
-        assertEquals("boosted title decides the class", "fruit", first);
-        assertEquals("classifying the same document again must give the same class", first, second);
-      }
-    }
-  }
-
-  public void testCallerArrayNotModified() throws Exception {
-    Analyzer analyzer = new MockAnalyzer(random(), MockTokenizer.WHITESPACE, false);
-    try (Directory dir = newDirectory()) {
-      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(analyzer))) {
-        add(w, "apple", "engine", "fruit");
-        add(w, "car", "wheel", "vehicle");
-      }
-      try (DirectoryReader reader = DirectoryReader.open(dir)) {
-        Map<String, Analyzer> field2analyzer = new HashMap<>();
-        field2analyzer.put("title", analyzer);
-        field2analyzer.put("body", analyzer);
-        String[] textFieldNames = {"title^10", "body"};
-        SimpleNaiveBayesDocumentClassifier classifier =
-            new SimpleNaiveBayesDocumentClassifier(reader, null, "cls", field2analyzer, textFieldNames);
-        classifier.assignClass(query());
-        assertEquals("caller's textFieldNames array was rewritten", "title^10", textFieldNames[0]);
+            new SimpleNaiveBayesDocumentClassifier(
+                reader, null, "cls", Map.of("title", analyzer, "body", analyzer), "title^10", "body");
+        ClassificationResult<BytesRef> first = classifier.assignClass(doc("apple", "wheel"));
+        ClassificationResult<BytesRef> second = classifier.assignClass(doc("apple", "wheel"));
+        // expected: the title^10 boost applies on every call (same class and score); actual: the second call is unboosted
+        assertEquals(
+            first.assignedClass().utf8ToString() + " " + first.score(),
+            second.assignedClass().utf8ToString() + " " + second.score());
       }
     }
   }

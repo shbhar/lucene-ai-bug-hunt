@@ -22,12 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index two documents, &#x27;a|5 b|5&#x27; and &#x27;a|5 b|5 c|5 d|5&#x27;, into a field with IndexOptions.DOCS_AND_CUSTOM_FREQS (DelimitedTermFrequencyTokenFilter, a TextField type with norms). Lucene stores their lengths as term counts, 2 and 4. FieldInfo#isTermDocField says such frequencies count as 1 &#x27;for statistical and scoring purposes&#x27;, and FieldStats says sumTotalTermFreq &#x27;is also the sum of each document&#x27;s field length&#x27;. So you expect sumTotalTermFreq to be 6 and BM25&#x27;s average length to be 3. Instead, sumTotalTermFreq and totalTermFreq sum the custom values (30), and BM25 explains dl=2.0 against avgdl=15.0. Each document&#x27;s length is compared with an average inflated by the mean custom value, which quietly weakens length normalisation.</p>
+<p>The test shows that on a <code>DOCS_AND_CUSTOM_FREQS</code> field the field length counts terms while <code>sumTotalTermFreq</code> sums the custom frequencies, so <code>FieldStats#sumTotalTermFreq</code> is not &quot;the sum of each document&#x27;s field length&quot; as its javadoc says.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect sumTotalTermFreq to be 6 and BM25&#x27;s average length to be 3.</li><li><b>Actual:</b> sumTotalTermFreq and totalTermFreq sum the custom values (30), and BM25 explains dl=2.0 against avgdl=15.0.</li></ul>
+<p>Expected <code>sumTotalTermFreq</code> 1 (one document whose field length is 1: one term <code>a</code> with custom frequency 5); actual 5 (<code>sumTotalTermFreq expected:&lt;1&gt; but was:&lt;5&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/search/TestTermDocFieldLengthVsStats.java"><code>src/org/apache/lucene/search/TestTermDocFieldLengthVsStats.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/search/TestTermDocFieldStatsVsFieldLength.java"><code>src/org/apache/lucene/search/TestTermDocFieldStatsVsFieldLength.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -35,7 +37,6 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
-CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
@@ -44,6 +45,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestTermDocFieldLengthVsStats</code></pre>
+     execute --select-class org.apache.lucene.search.TestTermDocFieldStatsVsFieldLength</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

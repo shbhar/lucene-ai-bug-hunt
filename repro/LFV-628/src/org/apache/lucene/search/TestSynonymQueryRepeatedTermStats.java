@@ -16,119 +16,50 @@
  */
 package org.apache.lucene.search;
 
-import java.io.StringReader;
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.LowerCaseFilter;
-import org.apache.lucene.analysis.Tokenizer;
-import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
-import org.apache.lucene.analysis.core.WhitespaceTokenizer;
-import org.apache.lucene.analysis.synonym.SolrSynonymParser;
-import org.apache.lucene.analysis.synonym.SynonymGraphFilter;
-import org.apache.lucene.analysis.synonym.SynonymMap;
-import org.apache.lucene.document.Document;
+import java.util.List;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.TextField;
-import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.similarities.LMDirichletSimilarity;
 import org.apache.lucene.search.similarities.Similarity;
+import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.tests.index.RandomIndexWriter;
 import org.apache.lucene.tests.util.LuceneTestCase;
-import org.apache.lucene.util.QueryBuilder;
 
-/**
- * SynonymQuery scores its terms "as if you had indexed them as one term". When the same term is
- * added twice, SynonymWeight takes the max of the docFreqs (one term) but adds the totalTermFreq
- * once per copy, so the pseudo-term has more occurrences than the whole field. SimilarityBase
- * asserts that this cannot happen (termStats.totalTermFreq() <= fieldStats.sumTotalTermFreq()).
- */
 public class TestSynonymQueryRepeatedTermStats extends LuceneTestCase {
 
-  /** Delegating similarity that checks the invariant SimilarityBase asserts, also with -da. */
-  private static final class StatsCheckingSimilarity extends Similarity {
-    private final Similarity in = new LMDirichletSimilarity();
-
-    @Override
-    public long computeNorm(org.apache.lucene.index.FieldInvertState state) {
-      return in.computeNorm(state);
-    }
-
-    @Override
-    public SimScorer scorer(
-        float boost, FieldStats collectionStats, TermStats... termStats) {
-      for (TermStats ts : termStats) {
-        assertTrue(
-            "pseudo-term totalTermFreq="
-                + ts.totalTermFreq()
-                + " exceeds the field's sumTotalTermFreq="
-                + collectionStats.sumTotalTermFreq(),
-            ts.totalTermFreq() <= collectionStats.sumTotalTermFreq());
+  public void testRepeatedTermStatsStayWithinFieldTotals() throws Exception {
+    try (Directory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+        w.addDocument(List.of(new TextField("f", "a", Field.Store.NO)));
+        w.addDocument(List.of(new TextField("f", "a a b", Field.Store.NO)));
       }
-      return in.scorer(boost, collectionStats, termStats);
-    }
-  }
-
-  private void search(Analyzer analyzer, Similarity sim, Query query, String... docs)
-      throws Exception {
-    try (Directory dir = newDirectory()) {
-      try (RandomIndexWriter w = new RandomIndexWriter(random(), dir, analyzer)) {
-        for (String text : docs) {
-          Document doc = new Document();
-          doc.add(new TextField("f", text, Field.Store.NO));
-          w.addDocument(doc);
-        }
-        try (IndexReader reader = w.getReader()) {
-          IndexSearcher searcher = newSearcher(reader);
-          searcher.setSimilarity(sim);
-          searcher.search(query, 10);
-        }
-      }
-    }
-  }
-
-  /** The same term added twice through the public builder. */
-  public void testRepeatedTerm() throws Exception {
-    Term a = new Term("f", "a");
-    Query q = new SynonymQuery.Builder("f").addTerm(a).addTerm(a).build();
-    // field: 4 tokens, 3 of them 'a'; the query reports 6 occurrences of its pseudo-term
-    search(new WhitespaceAnalyzer(), new StatsCheckingSimilarity(), q, "a", "a a b");
-  }
-
-  /** The same with a stock similarity: with -ea SimilarityBase.fillBasicStats trips. */
-  public void testRepeatedTermLMDirichlet() throws Exception {
-    Term a = new Term("f", "a");
-    Query q = new SynonymQuery.Builder("f").addTerm(a).addTerm(a).build();
-    search(new WhitespaceAnalyzer(), new LMDirichletSimilarity(), q, "a", "a a b");
-  }
-
-  /**
-   * QueryBuilder produces such a query from a synonym rule whose entries coincide after the rule
-   * analyzer: "Dog, dog, puppy" parsed with lower-casing gives SynonymQuery(dog, dog, puppy).
-   */
-  public void testQueryBuilderWithCollapsingSynonymRule() throws Exception {
-    SolrSynonymParser parser =
-        new SolrSynonymParser(
-            true,
-            true,
-            new Analyzer() {
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        long[] seen = new long[2];
+        IndexSearcher searcher = new IndexSearcher(reader);
+        searcher.setSimilarity(
+            new Similarity() {
               @Override
-              protected TokenStreamComponents createComponents(String fieldName) {
-                Tokenizer t = new WhitespaceTokenizer();
-                return new TokenStreamComponents(t, new LowerCaseFilter(t));
+              public SimScorer scorer(float boost, FieldStats fieldStats, TermStats... termStats) {
+                seen[0] = termStats[0].totalTermFreq();
+                seen[1] = fieldStats.sumTotalTermFreq();
+                return new SimScorer() {
+                  @Override
+                  public float score(float freq, long norm) {
+                    return freq;
+                  }
+                };
               }
             });
-    parser.parse(new StringReader("Dog, dog, puppy\n"));
-    SynonymMap map = parser.build();
-    Analyzer queryAnalyzer =
-        new Analyzer() {
-          @Override
-          protected TokenStreamComponents createComponents(String fieldName) {
-            Tokenizer t = new WhitespaceTokenizer();
-            return new TokenStreamComponents(t, new SynonymGraphFilter(new LowerCaseFilter(t), map, true));
-          }
-        };
-    Query q = new QueryBuilder(queryAnalyzer).createBooleanQuery("f", "dog");
-    search(new WhitespaceAnalyzer(), new StatsCheckingSimilarity(), q, "dog", "dog dog cat");
+        Term a = new Term("f", "a");
+        searcher.search(new SynonymQuery.Builder("f").addTerm(a).addTerm(a).build(), 10);
+        // Expected (TermStats javadoc): totalTermFreq <= the field's sumTotalTermFreq (4); actual: 6.
+        assertTrue(
+            "pseudo-term totalTermFreq " + seen[0] + " > field sumTotalTermFreq " + seen[1],
+            seen[0] <= seen[1]);
+      }
+    }
   }
 }

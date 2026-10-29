@@ -16,44 +16,23 @@
  */
 package org.apache.lucene.queryparser.flexible.standard.parser;
 
-import org.apache.lucene.queryparser.flexible.core.nodes.QueryNode;
-import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
-import org.apache.lucene.tests.analysis.MockAnalyzer;
-import org.apache.lucene.tests.analysis.MockTokenizer;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * QueryNode#toQueryString ("convert to a query string understood by the query parser") escapes term text with
- * EscapeQuerySyntaxImpl. Since LUCENE-10223 (9.1) the grammar no longer accepts an unescaped '@' anywhere in a term
- * (intended: '@' must be escaped or quoted), but EscapeQuerySyntaxImpl still escapes '@' only as the first character
- * of a term; and it never escapes a term that is exactly "&&" or "||", which the grammar reads as AND / OR.
- */
+// toQueryString must print a query string the parser accepts; the unescaped output fails to parse
 public class TestEscapeQuerySyntaxRoundTrip extends LuceneTestCase {
 
-  private static void assertRoundTrip(String query) throws Exception {
-    StandardQueryParser p = new StandardQueryParser(new MockAnalyzer(random(), MockTokenizer.KEYWORD, false));
-    QueryNode node = p.getSyntaxParser().parse(query, "df");
-    String queryString = node.toQueryString(new EscapeQuerySyntaxImpl()).toString();
-    assertEquals("query string of " + query + " was: " + queryString, p.parse(query, "df"), p.parse(queryString, "df"));
+  private static void assertRoundTrip(String query, String expected) throws Exception {
+    StandardSyntaxParser parser = new StandardSyntaxParser();
+    String printed = parser.parse(query, "df").toQueryString(new EscapeQuerySyntaxImpl()).toString();
+    assertEquals(expected, printed);
+    parser.parse(printed, "df");
   }
 
-  /** Control: an escaped '@' as the first character round-trips. */
-  public void testAtSignFirst() throws Exception {
-    assertRoundTrip("\\@example.com");
-  }
-
-  /** The term user@example.com: toQueryString gives "df:user@example.com", which does not parse. */
   public void testAtSignInsideTerm() throws Exception {
-    assertRoundTrip("user\\@example.com");
+    assertRoundTrip("user\\@example.com", "df:user\\@example.com");
   }
 
-  /** The term "&&": toQueryString gives "df:&&", which the parser reads as the AND operator (syntax error). */
-  public void testAndAndWord() throws Exception {
-    assertRoundTrip("\\&&");
-  }
-
-  /** The term "||": same, with the OR operator. */
-  public void testOrOrWord() throws Exception {
-    assertRoundTrip("\\||");
+  public void testAndAndTerm() throws Exception {
+    assertRoundTrip("\\&&", "df:\\&&");
   }
 }

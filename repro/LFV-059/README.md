@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 With the flexible StandardQueryParser and a Float/Double PointsConfig, you query x:[* TO 0} on an index that holds -0.0. You expect every document to match exactly one of x &lt; 0 and x &gt;= 0. Instead the parser uses Math.nextUp/nextDown for exclusive bounds, so x:[* TO 0} misses -0.0 documents and such a document matches neither x &lt; 0 nor x &gt;= 0.
 
+The test shows that the flexible StandardQueryParser's `f:[* TO 0}` ("f &lt; 0") on a Float points field does not match a document indexed with -0f.
+
 ## Expected vs actual
 
-- Expected: You expect every document to match exactly one of x &lt; 0 and x &gt;= 0.
-- Actual: The parser uses Math.nextUp/nextDown for exclusive bounds, so x:[* TO 0} misses -0.0 documents and such a document matches neither x &lt; 0 nor x &gt;= 0.
+Expected: 1 hit, since FloatPoint ranges follow Float.compareTo (-0f &lt; 0f). Actual (-ea and -da): 0 hits; the parsed query is `f:[-Infinity TO -1.4E-45]` (Math.nextDown(0f)).
 
 ## Files
 
-- [src/TestFlexParserSignedZeroExclusive.java](src/TestFlexParserSignedZeroExclusive.java) (JUnit test)
+- [src/org/apache/lucene/queryparser/flexible/standard/TestPointRangeExclusiveZeroBound.java](src/org/apache/lucene/queryparser/flexible/standard/TestPointRangeExclusiveZeroBound.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,9 +41,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class TestFlexParserSignedZeroExclusive
+     execute --select-class org.apache.lucene.queryparser.flexible.standard.TestPointRangeExclusiveZeroBound
 ```
 
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.

@@ -18,44 +18,32 @@ package org.apache.lucene.queryparser.xml;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.tests.analysis.MockAnalyzer;
-import org.apache.lucene.tests.analysis.MockTokenizer;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * LuceneCoreQuery.dtd declares {@code <!ATTLIST Clause occurs (should | must | mustnot) "should">}, and
- * BooleanQueryBuilder.getOccursValue returns SHOULD when the attribute is absent ({@code occs == null}). But
- * Element.getAttribute returns "" (never null) for an absent attribute, so a Clause without "occurs" is rejected.
- */
 public class TestClauseDefaultOccurs extends LuceneTestCase {
 
-  private static Query parse(String xml) throws ParserException {
-    CoreParser parser = new CoreParser("contents", new MockAnalyzer(random(), MockTokenizer.WHITESPACE, false));
-    return parser.parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
-  }
-
-  public void testClauseWithoutOccursDefaultsToShould() throws Exception {
+  public void testClauseWithoutOccursIsShould() throws Exception {
+    String xml =
+        "<BooleanQuery fieldName='f'><Clause><TermQuery>a</TermQuery></Clause></BooleanQuery>";
     Query expected =
-        new BooleanQuery.Builder()
-            .add(new TermQuery(new Term("f", "a")), Occur.SHOULD)
-            .add(new TermQuery(new Term("f", "b")), Occur.MUST)
-            .build();
-    // passes: occurs="should" spelled out
-    assertEquals(
-        expected,
-        parse(
-            "<BooleanQuery fieldName='f'><Clause occurs='should'><TermQuery>a</TermQuery></Clause>"
-                + "<Clause occurs='must'><TermQuery>b</TermQuery></Clause></BooleanQuery>"));
-    // fails: ParserException 'Invalid value for "occurs" attribute of clause:'
-    assertEquals(
-        expected,
-        parse(
-            "<BooleanQuery fieldName='f'><Clause><TermQuery>a</TermQuery></Clause>"
-                + "<Clause occurs='must'><TermQuery>b</TermQuery></Clause></BooleanQuery>"));
+        new BooleanQuery.Builder().add(new TermQuery(new Term("f", "a")), Occur.SHOULD).build();
+    try (Analyzer analyzer = new StandardAnalyzer()) {
+      Query actual;
+      try {
+        actual =
+            new CoreParser("f", analyzer)
+                .parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
+      } catch (ParserException e) {
+        throw new AssertionError("expected one SHOULD clause f:a (default occurs), got " + e, e);
+      }
+      assertEquals(expected, actual);
+    }
   }
 }

@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You configure StopFilterFactory (or KeepWordFilterFactory, CommonGramsFilterFactory, CommonGramsQueryFilterFactory or SuggestStopFilterFactory) with format=&quot;snowball&quot; and a UTF-8 words file that begins with a byte order mark, and expect the same words that the default &quot;wordset&quot; format reads from such a file, because that format skips a leading BOM (WordlistLoader.getLines, &#x27;skip initial bom marker&#x27;, a rule recorded in SOLR-1865). Instead the snowball loader keeps the invisible U+FEFF glued to the first word, so the set holds &quot;\uFEFFthe&quot; instead of &quot;the&quot; (getStopWords = [a, \uFEFFthe, an]): StopFilter no longer removes &#x27;the&#x27;, KeepWordFilter drops the tokens of the first keep word, CommonGrams does not treat it as common, and a BOM before a comment or blank first line adds a stray &quot;\uFEFF&quot; entry. No error is raised.</p>
+<p>The test shows that StopFilterFactory with <code>format=&quot;snowball&quot;</code> keeps a leading UTF-8 byte order mark on the first word of the words file (the default &quot;wordset&quot; format skips it).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>the cat</code> -&gt; <code>[cat]</code>, the snowball stop set contains <code>the</code>, and <code>apple cherry banana</code> keeps <code>[apple, banana]</code>.</li><li><b>Actual:</b> 3 of 4 tests fail, assertions on and off: <code>the cat</code> -&gt; <code>[the, cat]</code>, stop set <code>[a, \uFEFFthe, an]</code>, keep words give <code>[banana]</code>; the <code>wordset</code> control passes.</li></ul>
+<p>Expected the stop set <code>[the]</code> for the file <code>\uFEFFthe\n</code>; actual <code>[\uFEFFthe]</code>, so &quot;the&quot; is not a stop word, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/analysis/core/TestSnowballFormatUtf8Bom.java"><code>src/org/apache/lucene/analysis/core/TestSnowballFormatUtf8Bom.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/analysis/core/TestSnowballStopWordsBom.java"><code>src/org/apache/lucene/analysis/core/TestSnowballStopWordsBom.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -45,7 +47,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.core.TestSnowballFormatUtf8Bom</code></pre>
+     execute --select-class org.apache.lucene.analysis.core.TestSnowballStopWordsBom</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestSnowballFormatUtf8Bom.java"><code>TestSnowballFormatUtf8Bom.java</code></a></li><li><a href="fix-option-B-factory.diff"><code>fix-option-B-factory.diff</code></a></li><li><a href="TestSnowballWordsFileUtf8Bom.java"><code>TestSnowballWordsFileUtf8Bom.java</code></a></li><li><a href="TestSnowballBomOnDisk.java"><code>TestSnowballBomOnDisk.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You subclass SweetSpotSimilarity so that tf returns hyperbolicTf(freq), as its javadoc suggests, call setHyperbolicTfFactors(0, 2, 10, 400) and search, expecting the documented curve min+(max-min)/2*(tanh((freq-xoffset)*ln(base))+1): a tf near min (0) for frequencies far below the midpoint 400, rising to max (2) above it. Instead hyperbolicTf returns the maximum 2.0 for every frequency from 1 to 91 and drops to 0.0 at 92, so a document that contains the term once outranks an equally long one that contains it 400 times. Far below the midpoint Math.pow(base, xoffset - freq) overflows to Infinity (once xoffset - freq exceeds about 308 at base 10, about 2705 at the default base 1.3), the ratio becomes NaN, and the guard 'return Float.isNaN(result) ? max: result', which is right only for the overflow above the midpoint, returns max.
 
+The test shows that `SweetSpotSimilarity.hyperbolicTf` returns max, not about min, for a frequency far below the midpoint: with `setHyperbolicTfFactors(0, 2, 10, 400)`, `Math.pow(10, 399)` overflows, the ratio is NaN and the NaN guard returns max.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: hyperbolicTf returns the maximum 2.0 for every frequency from 1 to 91 and drops to 0.0 at 92, so a document that contains the term once outranks an equally long one that contains it 400 times.
+Expected `hyperbolicTf(1)` = 0.0 (the javadoc formula `min+(max-min)/2*(tanh((x-xoffset)*ln(base))+1)`); actual 2.0 (`expected:<0.0> but was:<2.0>`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/misc/TestSweetSpotHyperbolicTfOverflow.java](src/org/apache/lucene/misc/TestSweetSpotHyperbolicTfOverflow.java) (JUnit test)
+- [src/org/apache/lucene/misc/TestSweetSpotHyperbolicTfFarBelowMidpoint.java](src/org/apache/lucene/misc/TestSweetSpotHyperbolicTfFarBelowMidpoint.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,7 +40,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.misc.TestSweetSpotHyperbolicTfOverflow
+     execute --select-class org.apache.lucene.misc.TestSweetSpotHyperbolicTfFarBelowMidpoint
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

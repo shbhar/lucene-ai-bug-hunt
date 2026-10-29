@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You run &#x27;coffee at the café&#x27; through WhitespaceTokenizer, StopFilter{the}, ASCIIFoldingFilter(preserveOriginal=true) and FixedShingleFilter(2), and expect the filler that stands for the removed &#x27;the&#x27; in every shingle that crosses it, as the folded &#x27;cafe&#x27; gets it (&#x27;at _&#x27;), because the class javadoc says the filter &#x27;handles position increments &gt; 1 by inserting filler tokens&#x27; and &#x27;will output stacked shingles&#x27; for stacked tokens. Instead the original &#x27;café&#x27;, stacked behind &#x27;cafe&#x27; with position increment 0, is joined straight to &#x27;at&#x27;: you get [coffee at, at _, at café], at size 3 &#x27;coffee at café&#x27; appears and &#x27;at _ café&#x27; is missing, and on a canned stream a(+1) b(+2) c(+0) swapping only the stream order of the two stacked tokens changes the output from [a _, a c] to [a _, a b]. The same misreading gives &#x27;login _&#x27; instead of &#x27;login page&#x27; after a two-position token &#x27;login&#x27; over &#x27;log&#x27; plus a removed &#x27;in&#x27;, and nothing throws, with assertions on or off.</p>
+<p>FixedShingleFilter(2) on a(+1) b(+2) c(+0) joins a and c across the hole, because the stacked c keeps its stream increment 0 instead of the route gap.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> &quot;coffee at the café&quot; gives <code>[coffee at, at _]</code>; a, gap, b/c gives <code>[a _]</code> whatever the order of b and c; &quot;login&quot; (two positions) then &quot;page&quot; gives &quot;login page&quot;.</li><li><b>Actual:</b> <code>[coffee at, at _, at café]</code>; <code>[a _, a c]</code> or <code>[a _, a b]</code> depending on the stack order; <code>login _</code> instead of <code>login page</code>. No error.</li></ul>
+<p>Expected no shingle &quot;a c&quot; (c is two positions after a), actual <code>[a _, a c]</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/analysis/shingle/TestFixedShingleFilterRouteGaps.java"><code>src/org/apache/lucene/analysis/shingle/TestFixedShingleFilterRouteGaps.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/analysis/shingle/TestFixedShingleFilterStackedAfterHole.java"><code>src/org/apache/lucene/analysis/shingle/TestFixedShingleFilterStackedAfterHole.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -42,10 +44,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.shingle.TestFixedShingleFilterRouteGaps</code></pre>
+     execute --select-class org.apache.lucene.analysis.shingle.TestFixedShingleFilterStackedAfterHole</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestFixedShingleFilterGapsOnGraphs.java"><code>TestFixedShingleFilterGapsOnGraphs.java</code></a></li><li><a href="TestFixedShingleFilterRouteGaps.java"><code>TestFixedShingleFilterRouteGaps.java</code></a></li><li><a href="TestFixedShingleRouteGapV1.java"><code>TestFixedShingleRouteGapV1.java</code></a></li><li><a href="RouteGapHistoryCheck.java"><code>RouteGapHistoryCheck.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

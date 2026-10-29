@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You give the UnifiedHighlighter LengthGoalBreakIterator.createMinLength(base, 0, a) or createClosestToLength(base, 0, a): both factories accept a goal of 0, and with it matches are highlighted exactly as with the base iterator. When a hit has no match in the field, you expect the documented default summary, the first maxPassages sentences (for example 'First sentence. '). Instead next computes the target 0 + 0 = 0 and calls the base iterator's following(-1), which every java.text.BreakIterator rejects, so IllegalArgumentException 'offset out of bounds' escapes and the whole highlight call fails; goal 0 worked on this path from 6.4.0 through 8.4.1.
 
+The test shows that the UnifiedHighlighter with `LengthGoalBreakIterator.createMinLength(sentenceIterator, 0, 0.5f)` cannot build the default summary for content without a match.
+
 ## Expected vs actual
 
-- Expected: You expect the documented default summary, the first maxPassages sentences (for example 'First sentence. ').
-- Actual: next computes the target 0 + 0 = 0 and calls the base iterator's following(-1), which every java.text.BreakIterator rejects, so IllegalArgumentException 'offset out of bounds' escapes and the whole highlight call fails; goal 0 worked on this path from 6.4.0 through 8.4.1.
+Expected the default summary `"First sentence. "`; actual: `IllegalArgumentException: offset out of bounds` from `LengthGoalBreakIterator.next()` (`following(-1)` on the base iterator), with `-ea` and `-da`.
 
 ## Files
 
@@ -19,7 +20,8 @@ You give the UnifiedHighlighter LengthGoalBreakIterator.createMinLength(base, 0,
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,8 +39,8 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions on, seed C0FFEE150
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=C0FFEE150 \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.search.uhighlight.TestLengthGoalZeroGoalSummary
 ```

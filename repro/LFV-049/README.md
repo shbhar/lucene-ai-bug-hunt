@@ -10,19 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You call Operations.isTotal, or build an AutomatonQuery, on a deterministic automaton that rejects some strings and has a reachable dead state, such as a complete DFA with an explicit sink state built by hand. You expect false, as Lucene 9.12.0 returns. Instead, since 10.0.0, isTotal checks only live states, so a transition into the dead state counts as coverage and it returns true; CompiledAutomaton then compiles the query to AUTOMATON_TYPE.ALL, and in the repro an AutomatonQuery matched 3 documents instead of 2.
 
+The test shows that `Operations.isTotal` returns true for a deterministic automaton with a reachable dead state, although the automaton rejects "0".
+
 ## Expected vs actual
 
-- Expected: `isTotal(a)=false`, and the `AutomatonQuery` matches 2 documents (`b`, `zz`), as on 9.12.3.
-- Actual: `isTotal(a)=true`; the query compiles to `ALL` and matches 3 documents, including the rejected `0` (10.0.0, 10.5.2 and main, assertions on and off).
+Expected: `isTotal(a) == false` (javadoc: "Returns true if the given automaton accepts all strings"); actual: `true` (`expected:<false> but was:<true>`).
 
 ## Files
 
-- [src/TestIsTotalVerify.java](src/TestIsTotalVerify.java) (JUnit test)
+- [src/org/apache/lucene/util/automaton/TestIsTotalDeadState.java](src/org/apache/lucene/util/automaton/TestIsTotalDeadState.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,19 +39,12 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx4g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class TestIsTotalVerify
+     execute --select-class org.apache.lucene.util.automaton.TestIsTotalDeadState
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [IsTotalDeadState.java](IsTotalDeadState.java)
-- [TestIsTotalDeadState.java](TestIsTotalDeadState.java)
-- [ProviderProbe.java](ProviderProbe.java)
-- [istotal-reachable-states.diff](istotal-reachable-states.diff)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/study-automaton-verification/](../../models/study-automaton-verification/)
 

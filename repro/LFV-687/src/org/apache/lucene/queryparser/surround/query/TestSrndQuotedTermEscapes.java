@@ -19,70 +19,28 @@ package org.apache.lucene.queryparser.surround.query;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
-import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.queryparser.surround.parser.QueryParser;
-import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.index.RandomIndexWriter;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * Surround: the lexer accepts the escapes \" and \\ inside a quoted term (QueryParser.jj, token QUOTED:
- * "Literal non empty term between single quotes, escape quoted quote or backslash by backslash"), but the
- * parser passes the raw text between the quotes to SrndTermQuery, so the backslashes stay in the term. A
- * term that contains a double quote, or a quoted term that contains a backslash, can never be matched.
- */
 public class TestSrndQuotedTermEscapes extends LuceneTestCase {
 
-  private Directory dir;
-  private IndexReader reader;
-  private IndexSearcher searcher;
-
-  @Override
-  public void setUp() throws Exception {
-    super.setUp();
-    dir = newDirectory();
-    try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(new MockAnalyzer(random())))) {
-      for (String v : new String[] {"a\"b", "c:\\temp dir", "plain"}) {
-        Document d = new Document();
-        d.add(new StringField("k", v, Field.Store.YES)); // one untokenized term per document
-        w.addDocument(d);
-      }
-    }
-    reader = DirectoryReader.open(dir);
-    searcher = newSearcher(reader);
-  }
-
-  @Override
-  public void tearDown() throws Exception {
+  public void testEscapedQuoteInQuotedTerm() throws Exception {
+    Directory dir = newDirectory();
+    RandomIndexWriter w = new RandomIndexWriter(random(), dir);
+    Document doc = new Document();
+    doc.add(new StringField("k", "a\"b", Field.Store.NO));
+    w.addDocument(doc);
+    IndexReader reader = w.getReader();
+    w.close();
+    Query q = QueryParser.parse("\"a\\\"b\"").makeLuceneQueryField("k", new BasicQueryFactory());
+    int hits = newSearcher(reader).count(q);
     reader.close();
     dir.close();
-    super.tearDown();
-  }
-
-  private int count(String surround) throws Exception {
-    return searcher.count(QueryParser.parse(surround).makeLuceneQueryField("k", new BasicQueryFactory()));
-  }
-
-  public void testControlQuotedTermWithoutEscapes() throws Exception {
-    assertEquals(1, count("\"plain\""));
-  }
-
-  public void testEscapedQuoteInQuotedTerm() throws Exception {
-    // the query text is  "a\"b"  : the term a"b with its quote escaped
-    assertEquals("hits for the term a\"b", 1, count("\"a\\\"b\""));
-    SrndTermQuery q = (SrndTermQuery) QueryParser.parse("\"a\\\"b\"");
-    assertEquals("a\"b", q.getTermText());
-  }
-
-  public void testEscapedBackslashInQuotedTerm() throws Exception {
-    // the query text is  "c:\\temp dir"  : the term c:\temp dir (it needs quotes for the space and the colon,
-    // and a lone backslash inside quotes is a lexical error, so the escape is the only way to write it)
-    assertEquals("hits for the term c:\\temp dir", 1, count("\"c:\\\\temp dir\""));
-    SrndTermQuery q = (SrndTermQuery) QueryParser.parse("\"c:\\\\temp dir\"");
-    assertEquals("c:\\temp dir", q.getTermText());
+    // "a\"b" must match the term a"b: expected 1 hit, actual 0 (it searches for a\"b)
+    assertEquals("hits for the term a\"b", 1, hits);
   }
 }

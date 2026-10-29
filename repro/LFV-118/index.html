@@ -23,14 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index documents whose field id is a StringField plus a SortedDocValuesField, adding the StringField first, and then a document that has only the StringField. You expect IllegalArgumentException, as Lucene&#x27;s per-field consistency rule (LUCENE-9334, MIGRATE.md) requires, as 9.0-10.4 do, and as main still does when the doc-values value comes first, the type is an unfrozen copy, or a flush comes in between. Instead the document is accepted, because the frozen-FieldType cache added in 10.5.0 (#15886) caches the first value&#x27;s type after the union of all the document&#x27;s values was validated and then skips the check for every later document whose first value has that type; on the same fast path the schema state is not rebuilt, so after a rejected addBatch a valid StringField + StoredField document fails with &#x27;index options: expected DOCS, but it has NONE&#x27;.</p>
+<p>The test shows that after a document whose field <code>id</code> is a StringField followed by a SortedDocValuesField, the frozen-FieldType cache lets a second document with only the StringField <code>id</code> skip the per-field schema check (<code>TestFrozenTypeCacheMultiTypeField#testDocumentWithoutDocValuesRejected</code>).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> Both documents without doc values are rejected (&quot;doc values type: expected &#x27;SORTED&#x27;, but it has &#x27;NONE&#x27;&quot;), and the valid document after the rejected batch is accepted.</li><li><b>Actual:</b> 3 of 4 tests fail: both documents without doc values are accepted, and the valid document is rejected with &quot;index options: expected &#x27;DOCS&#x27;, but it has &#x27;NONE&#x27;&quot;.</li></ul>
+<p>Expected <code>IllegalArgumentException</code> (the LUCENE-9334 per-field consistency rule; 10.4 and main with the other value order reject it); actual: the document is accepted (<code>Expected exception IllegalArgumentException but no exception was thrown</code>), with -ea and -da.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/index/TestFrozenTypeCacheMultiTypeField.java"><code>src/org/apache/lucene/index/TestFrozenTypeCacheMultiTypeField.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/org/apache/lucene/document/TestPerFieldConsistencyReversedOrder.java"><code>src/org/apache/lucene/document/TestPerFieldConsistencyReversedOrder.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -46,13 +46,7 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestFrozenTypeCacheMultiTypeField
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.document.TestPerFieldConsistencyReversedOrder</code></pre>
+     execute --select-class org.apache.lucene.index.TestFrozenTypeCacheMultiTypeField</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestFrozenTypeCacheSchemaCheck.java"><code>TestFrozenTypeCacheSchemaCheck.java</code></a></li><li><a href="regression-tests.diff"><code>regression-tests.diff</code></a></li><li><a href="TestFrozenTypeCacheMultiTypeField.java"><code>TestFrozenTypeCacheMultiTypeField.java</code></a></li><li><a href="OutcomeProbe.java"><code>OutcomeProbe.java</code></a></li></ul>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/indexingchain-schema/index.html">indexingchain-schema</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

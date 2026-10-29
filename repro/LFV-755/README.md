@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index a valid polygon with holes, for example an L-shaped outer ring (0,0) (0,12) (4,12) (4,4) (12,4) (12,0) with three small triangular holes that touch the ring and each other only at single shared corners, which the Tessellator javadoc allows ('Holes may only touch at one vertex'), and you expect XYShape.createIndexableFields or LatLonShape.createIndexableFields to return its triangles, as 10.4.0 does. Instead, since #15739 (first released in 10.5.0), both calls throw IllegalArgumentException 'Unable to Tessellate shape. Possible malformed shape detected.', so the document cannot be indexed, although every proper subset of the holes tessellates. The cause is that #15739 changed the reflex-vertex branch of Tessellator.isLocallyInside from '&lt; 0' to '&lt;= 0', which accepts a candidate exactly collinear with a neighbouring edge; reverting that comparison fixes this polygon but breaks the #15731 polygon #15739 was written for, so a correct fix has to be more selective.
 
+The test shows that `XYShape.createIndexableFields` rejects a valid polygon whose three holes touch the outer ring and each other only at single shared vertices (a regression from #15739; 10.4.0 accepts it).
+
 ## Expected vs actual
 
-- Expected: Both calls return the polygon's triangles (13, total area 75.5, as on 10.4.0), and the control passes.
-- Actual: Both throw `IllegalArgumentException: Unable to Tessellate shape. Possible malformed shape detected.`; the control passes (2 of 3 tests fail).
+Expected the polygon to be tessellated; actual on main: `IllegalArgumentException: Unable to Tessellate shape. Possible malformed shape detected.` (from `Tessellator.earcutLinkedList` via `splitEarcut`), with `-ea` and `-da`.
 
 ## Files
 
@@ -21,7 +22,8 @@ You index a valid polygon with holes, for example an L-shaped outer ring (0,0) (
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -43,11 +45,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestTessellatorChainedTouchingHoles.java](TestTessellatorChainedTouchingHoles.java)
-- [test-tessellator.diff](test-tessellator.diff)
 
 ## Feedback
 

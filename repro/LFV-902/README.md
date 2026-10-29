@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You configure LMDirichletSimilarity with mu = 0, which both constructors accept ('must be a non-negative finite value') and which upstream's TestLMDirichletSimilarity uses as its 'minimum value'. You expect documents that contain the query term more often than the collection model predicts to get a positive score and be ranked, as they are for every mu &gt; 0 down to Float.MIN_VALUE, where the score already equals its finite mu -&gt; 0 limit log(tf/(dl*P)). Instead score computes log(1 + tf/0) + log(0/dl) = +Infinity + -Infinity = NaN, the 'score &gt; 0 ? score: 0' clamp returns 0.0, and every hit scores 0.0, so the best match can come back last; explain shows 'Infinity = term weight' and '-Infinity = document norm' under a 0.0 total.
 
+The test shows that with `new LMDirichletSimilarity(0f)` (accepted, "non-negative finite"), a TermQuery hit that is far above the collection model scores 0 (`TestLMDirichletMuZero#testMuZeroScoresBestMatchAboveZero`, 3 documents).
+
 ## Expected vs actual
 
-- Expected: You expect documents that contain the query term more often than the collection model predicts to get a positive score and be ranked, as they are for every mu &gt; 0 down to Float.MIN_VALUE, where the score already equals its finite mu -&gt; 0 limit log(tf/(dl*P)).
-- Actual: score computes log(1 + tf/0) + log(0/dl) = +Infinity + -Infinity = NaN, the 'score &gt; 0 ? score: 0' clamp returns 0.0, and every hit scores 0.0, so the best match can come back last; explain shows 'Infinity = term weight' and '-Infinity = document norm' under a 0.0 total.
+Expected: doc "a" (tf/dl = 1, P = 3/8) scores &gt; 0. Actual: 0.0, because log(1 + tf/0) + log(0/dl) = +Infinity + -Infinity = NaN is clamped to 0; fails with -ea and -da.
 
 ## Files
 
@@ -19,7 +20,8 @@ You configure LMDirichletSimilarity with mu = 0, which both constructors accept 
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

@@ -8,7 +8,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 - IndexSearcher#count hangs forever when Weight#count throws, for example on a query timeout, on a segment split into intra-segment partitions (bug LFV-045; [repro](../../repro/LFV-045/), [bug page](../../bugs/LFV-045.html))
 - Reusing a TotalHitCountCollectorManager after a failed search silently returns count 0 or hangs (bug LFV-053; [repro](../../repro/LFV-053/))
-- LRUQueryCache's 16 hard partitions give a 0% hit rate with the class-javadoc configuration (main only) (bug LFV-054; [repro](../../repro/LFV-054/))
+- LRUQueryCache's 16 hard partitions give a 0% hit rate with the class-javadoc configuration (main only) (bug LFV-054; [repro](../../repro/LFV-054/), [bug page](../../bugs/LFV-054.html))
 - A timed-out search reports its partial hit count as TotalHits.Relation.EQUAL_TO (bug LFV-077; [repro](../../repro/LFV-077/))
 - TaskExecutor#invokeAll returns while a task is still running if the caller is interrupted (bug LFV-056; [repro](../../repro/LFV-056/))
 

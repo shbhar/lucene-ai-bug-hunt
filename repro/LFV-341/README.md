@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You call KatakanaRomanizer.getInstance.romanize(...) with a CharsRef that is a slice of a larger array, for example CharsRef.subSequence(2, 6) of 'ハシヤキュウ' (the slice 'ヤキュウ' at offset 2), and expect the romaji of the slice, [yakyuu], because CharsRef is documented as 'a slice (offset + length) into an existing char' and the same text at offset 0 gives [yakyuu]. Instead romanize reads chars[0, length), here 'ハシヤキ', and returns [hasiyaki, hashiyaki]; a slice at offset 1 of 'アトウキョウ' gives [atoukyo] instead of [toukyou], and one at offset 1 of 'xトウキョウt' gives instead of [toukyout]. There is no exception, with or without assertions, and Lucene's own JapaneseCompletionFilter is not affected because it always passes offset 0.
 
+The test shows that `KatakanaRomanizer.romanize(CharsRef)` ignores `CharsRef.offset`: the slice `トウキョウ` at offset 1 of `アトウキョウ` is romanized from `chars[0, 5)` instead.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Romanize reads chars[0, length), here 'ハシヤキ', and returns [hasiyaki, hashiyaki]; a slice at offset 1 of 'アトウキョウ' gives [atoukyo] instead of [toukyou], and one at offset 1 of 'xトウキョウt' gives instead of [toukyout].
+Expected `[toukyou]`; actual `[atoukyo]` (`expected:<[toukyou]> but was:<[atoukyo]>`), with `-ea` and `-da`; passes with the 2-line `input.offset` fix.
 
 ## Files
 
@@ -19,8 +20,8 @@ You call KatakanaRomanizer.getInstance.romanize(...) with a CharsRef that is a s
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

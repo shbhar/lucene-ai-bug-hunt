@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build Geo3DPoint.newPolygonQuery from an org.apache.lucene.geo.Polygon that Polygon accepts but whose vertices all lie on one great circle, for example lat {0,0,0,0} and lon {0,1,2,0}, and expect a query that matches nothing: Geo3DUtil.fromPolygon recognizes the polygon as degenerate ('// Polygon is degenerate') and deliberately replaces it with an empty GeoCompositePolygon. Instead every search with the query throws NullPointerException ('Cannot invoke Double.doubleValue because the return value of XYZBounds.getMinimumX is null'), because the empty shape adds nothing to its XYZBounds and the PointInShapeIntersectVisitor constructor unboxes the null bounds. Geo3DPoint.newShapeQuery with an empty GeoCompositePolygon fails the same way, while LatLonPoint.newPolygonQuery returns 0 hits for the same Polygon and newLargePolygonQuery rejects it with IllegalArgumentException when the query is built.
 
+The test shows that `Geo3DPoint.newPolygonQuery` for a legal Polygon whose vertices all lie on the equator (lat {0,0,0,0}, lon {0,1,2,0}) builds an empty GeoCompositePolygon, and searching with that query throws.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Every search with the query throws NullPointerException ('Cannot invoke Double.doubleValue because the return value of XYZBounds.getMinimumX is null'), because the empty shape adds nothing to its XYZBounds and the PointInShapeIntersectVisitor constructor unboxes the null bounds.
+Expected `count == 0`; actual `NullPointerException` (`XYZBounds.getMinimumX()` is null) at `PointInShapeIntersectVisitor.<init>:48` (-ea and -da).
 
 ## Files
 
@@ -19,8 +20,8 @@ You build Geo3DPoint.newPolygonQuery from an org.apache.lucene.geo.Polygon that 
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

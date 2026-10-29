@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You search with a BooleanQuery that combines a ParentsChildrenBlockJoinQuery with another clause and call IndexSearcher.explain on a hit, and you expect an explanation, because the Weight#scorer and Weight#scorerSupplier javadoc say a scorer (supplier) for the same LeafReaderContext may be requested multiple times as part of a single search call. Instead explain throws IllegalStateException 'ParentsChildrenBlockJoinQuery does not support intraSegment concurrency. Context... was already seen.': the join query's Weight records every leaf it has built a scorer supplier for and refuses a second request, and BooleanWeight#explain makes exactly that second request (the join clause's own explain pulls a scorer, then BooleanWeight pulls its scorer for the same leaf to compute the score). The search itself returns the right hits; explain fails for every document that the BooleanQuery matches, including documents matched only by the other clause.
 
+The test shows that `IndexSearcher.explain` of `BooleanQuery(SHOULD ParentsChildrenBlockJoinQuery, SHOULD color:blue)` on a one-block index (child doc 0, parent doc 1) throws, because the join Weight refuses a second scorer request for the same leaf, which `BooleanWeight#explain` makes (`TestParentsChildrenBlockJoinExplain#testExplainOfBooleanQueryWithJoinClause`).
+
 ## Expected vs actual
 
-- Expected: You expect an explanation, because the Weight#scorer and Weight#scorerSupplier javadoc say a scorer (supplier) for the same LeafReaderContext may be requested multiple times as part of a single search call.
-- Actual: Explain throws IllegalStateException 'ParentsChildrenBlockJoinQuery does not support intraSegment concurrency.
+Expected: a match explanation for doc 0 (Weight javadoc: a scorer for the same leaf may be requested multiple times); actual: `IllegalStateException: ParentsChildrenBlockJoinQuery does not support intraSegment concurrency... was already seen` on a plain single-threaded searcher, with -ea and -da.
 
 ## Files
 
-- [src/org/apache/lucene/search/join/TestParentsChildrenRepeatedScorer.java](src/org/apache/lucene/search/join/TestParentsChildrenRepeatedScorer.java) (JUnit test)
+- [src/org/apache/lucene/search/join/TestParentsChildrenBlockJoinExplain.java](src/org/apache/lucene/search/join/TestParentsChildrenBlockJoinExplain.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,7 +41,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.join.TestParentsChildrenRepeatedScorer
+     execute --select-class org.apache.lucene.search.join.TestParentsChildrenBlockJoinExplain
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

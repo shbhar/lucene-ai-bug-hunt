@@ -8,18 +8,19 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You read the Lucene 10.3.0 release notes ('MultiIndexMergeScheduler: a production multi-tenant merge scheduler') and the class javadoc ('can be used easily by creating a MultiIndexMergeScheduler instance for each index'), and write iwc.setMergeScheduler(new MultiIndexMergeScheduler(dir)) in your application, using the public constructor the javadoc calls 'The main MultiIndexMergeScheduler constructor -- use this one'. You expect it to compile, as the same line with ConcurrentMergeScheduler does. Instead javac rejects it because the class itself is declared 'class MultiIndexMergeScheduler' without 'public' (MultiIndexMergeScheduler.java:36), and it has been package-private in every release that contains it, so only code inside org.apache.lucene.index (in practice Lucene's own test) can use it.
 
+The test shows that application code (any package other than `org.apache.lucene.index`) cannot create the `MultiIndexMergeScheduler` that the 10.3.0 CHANGES entry advertises and whose javadoc says to create once per index: the class is package-private.
+
 ## Expected vs actual
 
-- Expected: You expect it to compile, as the same line with ConcurrentMergeScheduler does.
-- Actual: Javac rejects it because the class itself is declared 'class MultiIndexMergeScheduler' without 'public' (MultiIndexMergeScheduler.java:36), and it has been package-private in every release that contains it, so only code inside org.apache.lucene.index (in practice Lucene's own test) can use it.
+Expected: the test compiles and passes, as with `new ConcurrentMergeScheduler()`. Actual: javac fails with `MultiIndexMergeScheduler is not public in org.apache.lucene.index; cannot be accessed from outside package`.
 
 ## Files
 
-- [src/org/apache/lucene/search/TestMultiIndexMergeSchedulerVisibility.java](src/org/apache/lucene/search/TestMultiIndexMergeSchedulerVisibility.java) (JUnit test)
+- [src/org/example/TestMultiIndexMergeSchedulerFromApplication.java](src/org/example/TestMultiIndexMergeSchedulerFromApplication.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,7 +38,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestMultiIndexMergeSchedulerVisibility
+     execute --select-class org.example.TestMultiIndexMergeSchedulerFromApplication
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You analyze Sorani Kurdish text with the stock SoraniAnalyzer or SoraniNormalizationFilter. The normalizer's javadoc says formatting characters are removed, and it does remove BMP ones such as the right-to-left mark, so کورد + X + ستان should become کوردستان for any invisible format character X. Instead it calls Character.getType on one UTF-16 char at a time, so a format character outside the BMP (for example U+E0001 or a tag character), which Java stores as two surrogate chars, is never recognized: it stays in the term, and the word no longer matches the same word without it, with no error.
 
+The test shows that SoraniNormalizationFilter removes BMP format characters such as U+200F, but it keeps the format character U+E0001, which is outside the BMP, because SoraniNormalizer tests Character.getType on one UTF-16 char at a time.
+
 ## Expected vs actual
 
-- Expected: Every format character is removed: کورد + U+E0001 + ستان becomes کوردستان, and the plain word finds all 3 documents.
-- Actual: 3 of 4 tests fail: U+E0001, U+E0067, U+1BCA0 and U+1D173 stay in the term, `normalize` keeps U+E0001, and the plain word finds 1 of 3 documents.
+Expected: \u06A9\u0648\u0631\u062F + U+E0001 + \u0633\u062A\u0627\u0646 becomes \u06A9\u0648\u0631\u062F\u0633\u062A\u0627\u0646. Actual (-ea and -da): U+E0001 stays in the term (the ComparisonFailure shows it as an invisible character inside `[]`).
 
 ## Files
 
-- [src/org/apache/lucene/analysis/ckb/TestSoraniSupplementaryFormatChars.java](src/org/apache/lucene/analysis/ckb/TestSoraniSupplementaryFormatChars.java) (JUnit test)
+- [src/org/apache/lucene/analysis/ckb/TestSoraniNormalizationFilterSupplementaryFormatChar.java](src/org/apache/lucene/analysis/ckb/TestSoraniNormalizationFilterSupplementaryFormatChar.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,14 +42,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.ckb.TestSoraniSupplementaryFormatChars
+     execute --select-class org.apache.lucene.analysis.ckb.TestSoraniNormalizationFilterSupplementaryFormatChar
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestSoraniSupplementaryFormatRemoval.java](TestSoraniSupplementaryFormatRemoval.java)
 
 ## Feedback
 

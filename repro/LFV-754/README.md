@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You score with SweetSpotSimilarity (default factors) and index one document whose DOCS_AND_FREQS field has a length of at least 1,073,741,848, for example one token with custom term frequency 1.1e9 or about 1.07e9 ordinary tokens, expecting the documented lengthNorm 1/sqrt(x) (about 3.05e-5, the ClassicSimilarity value) and an ordinary, low-ranked hit. Instead lengthNorm's int sum |x-1| + |x-1| wraps negative, so the norm and the score are NaN and the document is never collected (exhaustive collection returns 5,999 of 6,000 matches); because the NaN also makes the postings block's maximum score NaN, default top-k search skips that block and the skip range above it, so search(q, 7) on a 10,000-document index misses three documents that score 1.0 and returns documents that score 0.5 instead. ClassicSimilarity on the same index is correct.
 
+The test shows that SweetSpotSimilarity.lengthNorm with the default factors returns NaN for a field length above 2^30, because abs(x-min) + abs(x-max) overflows int.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: lengthNorm's int sum |x-1| + |x-1| wraps negative, so the norm and the score are NaN and the document is never collected (exhaustive collection returns 5,999 of 6,000 matches); because the NaN also makes the postings block's maximum score NaN, default top-k search skips that block and the skip range above it, so search(q, 7) on a 10,000-document index misses three documents that score 1.0 and returns documents that score 0.5 instead.
+Expected 1/sqrt(1073741825) = 3.0517578E-5 (the javadoc says the default degrades to 1/sqrt(x)); actual NaN.
 
 ## Files
 
@@ -19,7 +20,8 @@ You score with SweetSpotSimilarity (default factors) and index one document whos
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

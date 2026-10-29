@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You load a hunspell dictionary that sets COMPLEXPREFIXES (twofold prefix stripping) with the outer prefix 'PFX A 0 re', an inner prefix class C with two rules, 'un' without a continuation class and 'dis/A', and the root foo/C, and expect what hunspell(5), C Hunspell 1.3.2 and 1.7.2 and Lucene up to 9.4.2 do: re may only precede dis, so redisfoo is a word and reunfoo is not, just as Lucene still checks the mirror-image twofold suffixes rule by rule. Instead spell("reunfoo") is true, getRoots("reunfoo") is [foo] and HunspellStemFilter turns the token reunfoo into foo, because since 9.5.0 Stemmer.isAffixCompatible returns true for any prefix stripped after another prefix (Stemmer.java:541, 566) and the only remaining gate is the dictionary-wide check that some prefix rule carries the flag A (Dictionary.isSecondStagePrefix).
 
+The test shows that with COMPLEXPREFIXES, `PFX A 0 re`, `PFX C 0 un`, `PFX C 0 dis/A` and `foo/C`, Hunspell accepts `re` before `un` although only `dis` carries A.
+
 ## Expected vs actual
 
-- Expected: `reunfoo` is rejected with no roots (controls: `unfoo`, `disfoo`, `redisfoo` accepted, `refoo` rejected), and the stem filter emits `foo reunfoo`.
-- Actual: `spell=true roots=[foo]` for `reunfoo` while every control passes, and the stem filter emits `foo foo`.
+Expected: `spell("reunfoo")` is false (as in C Hunspell and Lucene 9.4.2); actual (-ea and -da): true, because `Stemmer.isAffixCompatible` returns true for any prefix after a prefix (Stemmer.java:566).
 
 ## Files
 
@@ -21,7 +22,8 @@ You load a hunspell dictionary that sets COMPLEXPREFIXES (twofold prefix strippi
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,19 +39,13 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.analysis.hunspell.TestComplexPrefixesSecondPrefix
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestComplexPrefixesSecondPrefix.java](TestComplexPrefixesSecondPrefix.java)
-- [2-TestComplexPrefixesSecondPrefix.java](2-TestComplexPrefixesSecondPrefix.java)
-- [TestTwofoldPrefixContinuation.java](TestTwofoldPrefixContinuation.java)
 
 ## Feedback
 

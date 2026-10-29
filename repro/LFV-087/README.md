@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You wrap an ordinary query, for example a TermQuery, in RescoreTopNQuery to re-score its matches with a DoubleValuesSource and keep the best n, on an index where some matching documents are deleted but not yet merged away. You expect the n best live matches, and IndexSearcher#count to count only live documents. Instead a deleted document whose rescore value ranks in the top n takes one of the n slots, so the search returns fewer than n hits (n=2: [2] instead of [2, 1]) while IndexSearcher#count still reports 2; the deleted document itself is never returned.
 
+The test shows that `RescoreTopNQuery` over a non-kNN query keeps a deleted document in its top n: 4 docs with v = 0..3, best doc 3 deleted, n = 2.
+
 ## Expected vs actual
 
-- Expected: best match deleted, n=2: hits `[2, 1]` and count 2; the only match deleted: no hits and count 0.
-- Actual: hits `[2]` with count 2; with n=10 the hits `[1, 0]` are right but the count is 3; the only match deleted gives no hits and count 1.
+Expected hits `[2, 1]` and `IndexSearcher#count` 2; actual `[2]` while count still says 2 (`expected:<[2[, 1]] count=2> but was:<[2[]] count=2>`), with `-ea` and `-da`.
 
 ## Files
 
@@ -21,8 +22,8 @@ You wrap an ordinary query, for example a TermQuery, in RescoreTopNQuery to re-s
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -44,12 +45,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestRescoreTopNQueryDeletedDocs.java](TestRescoreTopNQueryDeletedDocs.java)
-- [rescoretopn-live-docs.diff](rescoretopn-live-docs.diff)
-- [TestRescoreTopNQueryEmptyInnerProbe.java](TestRescoreTopNQueryEmptyInnerProbe.java)
 
 ## Feedback
 

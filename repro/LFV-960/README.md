@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You merge two shards' second-pass grouping results with TopGroups.merge(shardTopGroups, groupSort, docSort, 1, Integer.MAX_VALUE,...) to get every document after the first in each group, and expect the same groups as with docTopN = 10 on the same small data, just as docOffset 0 with docTopN = Integer.MAX_VALUE already gives. Instead merge throws NegativeArraySizeException: -2147483648: it passes the int sum docOffset + docTopN to TopDocs.merge, the sum wraps negative, and TopDocs.mergeAux sizes its result array with it. Every pair with docOffset + docTopN &gt;= 2^31 fails, for relevance and field order within groups; a sum of 2^31 - 1 still works.
 
+The test shows that `TopGroups.merge` of two hand-built shard results with docOffset 1 and docTopN Integer.MAX_VALUE overflows the int sum docOffset + docTopN.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Merge throws NegativeArraySizeException: -2147483648: it passes the int sum docOffset + docTopN to TopDocs.merge, the sum wraps negative, and TopDocs.mergeAux sizes its result array with it.
+Expected group g's second document (1 ScoreDoc); actual `NegativeArraySizeException: -2147483648` from TopDocs.mergeAux via TopGroups.merge:241 (-ea and -da).
 
 ## Files
 
-- [src/org/apache/lucene/search/grouping/TestTopGroupsMergeNoLimit.java](src/org/apache/lucene/search/grouping/TestTopGroupsMergeNoLimit.java) (JUnit test)
+- [src/org/apache/lucene/search/grouping/TestTopGroupsMergeOffsetOverflow.java](src/org/apache/lucene/search/grouping/TestTopGroupsMergeOffsetOverflow.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -36,10 +38,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.grouping.TestTopGroupsMergeNoLimit
+     execute --select-class org.apache.lucene.search.grouping.TestTopGroupsMergeOffsetOverflow
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

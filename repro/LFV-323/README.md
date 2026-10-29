@@ -8,21 +8,21 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You ask RamUsageEstimator.sizeOfCollection (or sizeOfObject) for the size of a very large list, for example Arrays.asList(new Object[536870908]). You expect a size in bytes that is at least the 2,147,483,648 bytes of its backing array, which shallowSizeOf(Object) reports correctly. Instead the method adds the array header and the per-element references in int arithmetic, which wraps, so it returns -2,147,483,616; in general the estimate is too low by a multiple of 2^32 bytes from 536,870,908 elements on (268,435,453 with 8-byte references), and it is negative only when the elements' own sizes add little.
 
+The test shows that RamUsageEstimator.sizeOfCollection adds the backing-array bytes in int arithmetic (RamUsageEstimator.java:307), so a collection of 536,870,908 elements (compressed oops) gets a negative size.
+
 ## Expected vs actual
 
-- Expected: You expect a size in bytes that is at least the 2,147,483,648 bytes of its backing array, which shallowSizeOf(Object) reports correctly.
-- Actual: The method adds the array header and the per-element references in int arithmetic, which wraps, so it returns -2,147,483,616; in general the estimate is too low by a multiple of 2^32 bytes from 536,870,908 elements on (268,435,453 with 8-byte references), and it is negative only when the elements' own sizes add little.
+Expected: a size in bytes &gt;= 0. Actual (-ea and -da): sizeOfCollection(Collections.nCopies(536870908, null)) = -2147483616.
 
 ## Files
 
-- [src/org/apache/lucene/util/TestRamUsageEstimatorCollectionSizeOverflow.java](src/org/apache/lucene/util/TestRamUsageEstimatorCollectionSizeOverflow.java) (JUnit test)
-- [src/repro/RamUsageCollectionOverflowMain.java](src/repro/RamUsageCollectionOverflowMain.java) (main() class)
+- [src/org/apache/lucene/util/TestRamUsageEstimatorLargeCollection.java](src/org/apache/lucene/util/TestRamUsageEstimatorLargeCollection.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -36,14 +36,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false -Xmx4g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.util.TestRamUsageEstimatorCollectionSizeOverflow
-
-# run 2: assertions on, seed DEADBEEF, default flags
+# run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" repro.RamUsageCollectionOverflowMain
+     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.util.TestRamUsageEstimatorLargeCollection
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

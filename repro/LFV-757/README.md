@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index a valid polygon with two holes, where hole A touches the outer ring at one corner (the Tessellator javadoc allows 'Holes may only touch at one vertex') and hole B touches nothing, for example the outer ring (0,0) (2,5) (0,10) (10,10) (10,0) with hole A (2,5) (5,6) (4,8) and hole B (6,5) (8,4) (8,6), and you expect a point inside hole A not to match. Since #15211 the Tessellator leaves several copies of the shared corner (2,5) next to each other while it joins the holes to the outer ring; when it then chooses the bridge for hole B, whose left-most corner (6,5) is level with (2,5), it rejects every copy and bridges to (0,10) instead, a line that cuts through hole A. The triangles then cover hole A, and an INTERSECTS query for a point in it matches the document with no error, while with checkSelfIntersections=true the same valid polygon is rejected with 'Polygon self-intersection'.
 
+The test shows that a valid XY polygon with two holes, one touching the outer ring at a single vertex, is tessellated over that hole, so a point inside the hole matches the indexed shape.
+
 ## Expected vs actual
 
-- Expected: Triangles with twice-area 169; the point (3.75, 6.5) inside hole A gives INTERSECTS 0 and DISJOINT 1; `checkSelfIntersections=true` accepts the polygon.
-- Actual: Twice-area 225; INTERSECTS 1 and DISJOINT 0 for `XYShape` and `LatLonShape`, and the doc-values box matches; `checkSelfIntersections=true` throws `Polygon self-intersection at lat=7.142857142857143 lon=3.4285714285714284`.
+Expected 0 hits for an XYShape INTERSECTS point query at (3.75, 6.5) inside hole A; actual 1: `expected:<0> but was:<1>` (-ea and -da).
 
 ## Files
 
@@ -21,7 +22,8 @@ You index a valid polygon with two holes, where hole A touches the outer ring at
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -43,11 +45,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestTessellatorSharedVertexLaterHoleBridge.java](TestTessellatorSharedVertexLaterHoleBridge.java)
-- [test-tessellator.diff](test-tessellator.diff)
 
 ## Feedback
 

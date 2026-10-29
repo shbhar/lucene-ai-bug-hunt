@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You convert an automaton whose language is empty, for example Automata.makeEmpty or Operations.intersection(Automata.makeString("a"), Automata.makeString("b")), with AutomatonToTokenStream.toTokenStream, whose only stated precondition is a finite DAG. You expect a TokenStream with no tokens (what the same method already returns for Automata.makeEmptyString and for the same empty language written with one dead state) or at least a clear IllegalArgumentException. Instead it throws ArrayIndexOutOfBoundsException 'Index 0 out of bounds for length 0', because these automata have 0 states and the method reads indegree[0], the in-degree of the start state, without checking that a state exists.
 
+The test shows that `AutomatonToTokenStream.toTokenStream(Automata.makeEmpty())` crashes on the 0-state empty-language automaton.
+
 ## Expected vs actual
 
-- Expected: You expect a TokenStream with no tokens (what the same method already returns for Automata.makeEmptyString and for the same empty language written with one dead state) or at least a clear IllegalArgumentException.
-- Actual: It throws ArrayIndexOutOfBoundsException 'Index 0 out of bounds for length 0', because these automata have 0 states and the method reads indegree[0], the in-degree of the start state, without checking that a state exists.
+Expected: an empty TokenStream or an IllegalArgumentException; actual (-ea and -da): ArrayIndexOutOfBoundsException "Index 0 out of bounds for length 0" from the unguarded `indegree[0]` read (AutomatonToTokenStream.java:61).
 
 ## Files
 
-- [src/org/apache/lucene/analysis/TestAutomatonToTokenStreamEmptyAutomaton.java](src/org/apache/lucene/analysis/TestAutomatonToTokenStreamEmptyAutomaton.java) (JUnit test)
+- [src/org/apache/lucene/analysis/TestAutomatonToTokenStreamZeroStates.java](src/org/apache/lucene/analysis/TestAutomatonToTokenStreamZeroStates.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -34,10 +36,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions on, seed 3430DEADBEEF
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=3430DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.TestAutomatonToTokenStreamEmptyAutomaton
+     execute --select-class org.apache.lucene.analysis.TestAutomatonToTokenStreamZeroStates
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

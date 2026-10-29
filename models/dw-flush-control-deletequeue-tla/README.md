@@ -7,8 +7,8 @@ These are the working models and scripts this part of the hunt used. Some encode
 ## Bugs found
 
 - A non-tragic exception during an NRT reopen or commit full flush aborts the DWPTs other threads filled during that flush, silently losing acknowledged documents and updates while the writer stays open (bug LFV-473; [repro](../../repro/LFV-473/))
-- tryDeleteDocument / tryUpdateDocValue running while commit flushes returns a sequence number above the commit's, yet its change is in that commit (bug LFV-471; [repro](../../repro/LFV-471/), [bug page](../../bugs/LFV-471.html))
 - IndexWriter.deleteAll misses a segment flush that another thread is already running, so documents added before deleteAll survive it and are committed (bug LFV-474; [repro](../../repro/LFV-474/))
+- tryDeleteDocument / tryUpdateDocValue running while commit flushes returns a sequence number above the commit's, yet its change is in that commit (bug LFV-471; [repro](../../repro/LFV-471/), [bug page](../../bugs/LFV-471.html))
 
 ## Files
 

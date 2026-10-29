@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You take a slice of an MMapDirectory file with IndexInput#slice(name, offset, length, IOContext) and a context that asks for RANDOM or SEQUENTIAL read advice, as the compound-file reader does for each inner file, and you expect the madvise hint to land on the slice's own pages. When the slice starts inside an mmap chunk and crosses into the next chunk, the hint is applied from the start of that chunk instead: in the repro, a slice of [512 KiB, 1.5 MiB) with 1 MiB chunks puts the RANDOM hint on [0, 1 MiB), so other inner files of a compound file get it, and a short slice that straddles a chunk boundary can get none of its own pages advised. Reads and query results stay correct; only the operating system's readahead and caching behaviour on those pages changes.
 
+The test shows that `IndexInput#slice(name, 512 KiB, 1 MiB, RANDOM context)` on an `MMapDirectory` with 1 MiB chunks (ADVISE_BY_CONTEXT) puts the MADV_RANDOM hint on the wrong bytes, because `MultiSegmentImpl` does not add its slice offset in `advise()` (Linux only; read from the `rr` flag in /proc/self/smaps).
+
 ## Expected vs actual
 
-- Expected: You expect the madvise hint to land on the slice's own pages.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+Expected: RANDOM advice only inside the slice [524288, 1572864); actual (-ea and -da): file bytes [0, 1048576) get it, half of them before the slice.
 
 ## Files
 
@@ -19,8 +20,8 @@ You take a slice of an MMapDirectory file with IndexInput#slice(name, offset, le
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

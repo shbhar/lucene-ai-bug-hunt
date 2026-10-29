@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You create an OpenNLPSentenceBreakIterator, give it a text that starts with whitespace, for example ' Sentence number 1 has 6 words. Sentence number 2, 5 words.', and walk it backward with last/previous (the reverse loop shown in the BreakIterator javadoc), expecting the forward boundaries [0, 33, 60] in reverse order and then DONE. Instead previous returns 2, which is not a boundary, and the next previous throws ArrayIndexOutOfBoundsException (Index -1); following(0) on a one-sentence text with leading whitespace recurses until StackOverflowError. The OpenNLP sentence detector trims whitespace from its spans and setText stores those starts unchanged, so the first stored sentence start lies after the begin index that first and next treat as the first boundary.
 
+The test shows that OpenNLPSentenceBreakIterator.following(0) on a one-sentence text that starts with two spaces recurses until StackOverflowError.
+
 ## Expected vs actual
 
-- Expected: The backward walk gives 60, 33, 0, then `DONE`; `following(0)` returns a boundary (32 or 33) or `DONE`.
-- Actual: The backward walk gives 60, 33, 2, then `ArrayIndexOutOfBoundsException: Index -1`; `following(0)` on one sentence throws `StackOverflowError` (3 of 3 tests fail with assertions on, 2 of 3 off).
+Expected: text.length() or DONE (DONE is what the class returns without the leading spaces); actual on main 645d4fe: StackOverflowError in moveToSentenceAt (with -ea and -da).
 
 ## Files
 
-- [src/org/apache/lucene/analysis/opennlp/TestSentenceBreakIteratorLeadingWhitespace.java](src/org/apache/lucene/analysis/opennlp/TestSentenceBreakIteratorLeadingWhitespace.java) (JUnit test)
+- [src/org/apache/lucene/analysis/opennlp/TestOpenNLPSentenceBreakIteratorLeadingSpace.java](src/org/apache/lucene/analysis/opennlp/TestOpenNLPSentenceBreakIteratorLeadingSpace.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,22 +40,15 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions on, seed 1880C0DE
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=1880C0DE \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.opennlp.TestSentenceBreakIteratorLeadingWhitespace
+     execute --select-class org.apache.lucene.analysis.opennlp.TestOpenNLPSentenceBreakIteratorLeadingSpace
 ```
 
 The module(s) analysis-opennlp also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestOpenNLPSentenceBreakIteratorLeadingWhitespace.java](TestOpenNLPSentenceBreakIteratorLeadingWhitespace.java)
-- [fix-option-A.diff](fix-option-A.diff)
-- [TestSentenceBreakIteratorLeadingWhitespace.java](TestSentenceBreakIteratorLeadingWhitespace.java)
-- [TestSentenceBreakIteratorLeadingBlank.java](TestSentenceBreakIteratorLeadingBlank.java)
 
 ## Feedback
 

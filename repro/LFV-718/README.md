@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You configure StopFilterFactory (or KeepWordFilterFactory, CommonGramsFilterFactory, CommonGramsQueryFilterFactory or SuggestStopFilterFactory) with format="snowball" and a UTF-8 words file that begins with a byte order mark, and expect the same words that the default "wordset" format reads from such a file, because that format skips a leading BOM (WordlistLoader.getLines, 'skip initial bom marker', a rule recorded in SOLR-1865). Instead the snowball loader keeps the invisible U+FEFF glued to the first word, so the set holds "\uFEFFthe" instead of "the" (getStopWords = [a, \uFEFFthe, an]): StopFilter no longer removes 'the', KeepWordFilter drops the tokens of the first keep word, CommonGrams does not treat it as common, and a BOM before a comment or blank first line adds a stray "\uFEFF" entry. No error is raised.
 
+The test shows that StopFilterFactory with `format="snowball"` keeps a leading UTF-8 byte order mark on the first word of the words file (the default "wordset" format skips it).
+
 ## Expected vs actual
 
-- Expected: `the cat` -&gt; `[cat]`, the snowball stop set contains `the`, and `apple cherry banana` keeps `[apple, banana]`.
-- Actual: 3 of 4 tests fail, assertions on and off: `the cat` -&gt; `[the, cat]`, stop set `[a, \uFEFFthe, an]`, keep words give `[banana]`; the `wordset` control passes.
+Expected the stop set `[the]` for the file `\uFEFFthe\n`; actual `[\uFEFFthe]`, so "the" is not a stop word, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/core/TestSnowballFormatUtf8Bom.java](src/org/apache/lucene/analysis/core/TestSnowballFormatUtf8Bom.java) (JUnit test)
+- [src/org/apache/lucene/analysis/core/TestSnowballStopWordsBom.java](src/org/apache/lucene/analysis/core/TestSnowballStopWordsBom.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,17 +42,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.core.TestSnowballFormatUtf8Bom
+     execute --select-class org.apache.lucene.analysis.core.TestSnowballStopWordsBom
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestSnowballFormatUtf8Bom.java](TestSnowballFormatUtf8Bom.java)
-- [fix-option-B-factory.diff](fix-option-B-factory.diff)
-- [TestSnowballWordsFileUtf8Bom.java](TestSnowballWordsFileUtf8Bom.java)
-- [TestSnowballBomOnDisk.java](TestSnowballBomOnDisk.java)
 
 ## Feedback
 

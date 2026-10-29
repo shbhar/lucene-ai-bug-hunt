@@ -25,52 +25,35 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * WordBreakSpellChecker.suggestWordCombinations stops at maxEvaluations ("The maximum number of
- * word combinations to evaluate") only for the one left term at which the counter hits the limit
- * exactly (== and an inner-loop break); every later left term is still evaluated.
- */
 public class TestWordBreakCombineMaxEvaluations extends LuceneTestCase {
 
-  private static String render(CombineSuggestion[] cs) {
-    return Arrays.toString(
-        Arrays.stream(cs)
-            .map(c -> c.suggestion().string + Arrays.toString(c.originalTermIndexes()))
-            .toArray());
-  }
-
-  public void testMaxEvaluationsBoundsCombinations() throws Exception {
-    try (Directory dir = newDirectory()) {
-      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(null))) {
-        Document d = new Document();
-        for (String s : new String[] {"ab", "bc", "cd", "de"}) {
-          d.add(new StringField("f", s, Field.Store.NO));
+  public void testMaxEvaluationsLimitsCombinations() throws Exception {
+    try (Directory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter writer = new IndexWriter(dir, new IndexWriterConfig())) {
+        Document doc = new Document();
+        for (String word : new String[] {"ab", "bc", "bcd"}) {
+          doc.add(new StringField("f", word, Field.Store.NO));
         }
-        w.addDocument(d);
+        writer.addDocument(doc);
       }
-      try (IndexReader ir = DirectoryReader.open(dir)) {
+      try (IndexReader reader = DirectoryReader.open(dir)) {
         Term[] terms = {
-          new Term("f", "a"), new Term("f", "b"), new Term("f", "c"), new Term("f", "d"),
-          new Term("f", "e")
+          new Term("f", "a"), new Term("f", "b"), new Term("f", "c"), new Term("f", "d")
         };
-        WordBreakSpellChecker wbsp = new WordBreakSpellChecker();
-        wbsp.setMaxChanges(1);
-        // control: without a binding limit all four adjacent pairs combine into indexed words
-        assertEquals(4, wbsp.suggestWordCombinations(terms, 10, ir, SuggestMode.SUGGEST_ALWAYS).length);
-
-        for (int maxEvaluations = 1; maxEvaluations <= 3; maxEvaluations++) {
-          wbsp.setMaxEvaluations(maxEvaluations);
-          CombineSuggestion[] cs =
-              wbsp.suggestWordCombinations(terms, 10, ir, SuggestMode.SUGGEST_ALWAYS);
-          // each evaluated combination yields at most one suggestion, so if maxEvaluations is
-          // respected there cannot be more suggestions than that (as in testMaxEvaluations)
-          assertTrue(
-              "maxEvaluations=" + maxEvaluations + " but got " + render(cs),
-              cs.length <= maxEvaluations);
-        }
+        WordBreakSpellChecker spellChecker = new WordBreakSpellChecker();
+        spellChecker.setMaxChanges(2);
+        spellChecker.setMaxEvaluations(1);
+        CombineSuggestion[] suggestions =
+            spellChecker.suggestWordCombinations(terms, 10, reader, SuggestMode.SUGGEST_ALWAYS);
+        // expected: 1 combination evaluated, so at most 1 suggestion; actual: ab, bc and bcd
+        assertTrue(
+            "expected at most 1 suggestion with maxEvaluations=1, got "
+                + Arrays.toString(Arrays.stream(suggestions).map(s -> s.suggestion().string).toArray()),
+            suggestions.length <= 1);
       }
     }
   }

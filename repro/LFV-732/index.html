@@ -22,12 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You parse (the fox)@1 (&#x27;at least one of the, fox&#x27;) with the flexible StandardQueryParser and an analyzer that drops the stopword &#x27;the&#x27;, or the boosted group (fox dog)^2@1; the class javadoc documents @N for disjunction groups and boosts on grouped clauses, and parse declares QueryNodeException for failures, so you expect a query (at least one of the remaining clauses, boosted as written). Instead parse throws java.lang.ClassCastException (&#x27;TermQuery / BoostQuery cannot be cast to BooleanQuery&#x27;) from MinShouldMatchNodeBuilder.build, which casts the group&#x27;s query to BooleanQuery without a check: after the stopword is removed the one-clause group is collapsed to a TermQuery, and the grammar puts the boost inside the min-should-match node, so the group&#x27;s query is a BoostQuery. Groups holding a single term, phrase, prefix or other non-Boolean query, such as (fox)@1 or (&quot;quick fox&quot;)@1, fail the same way, while (fox dog)@1 works.</p>
+<p>The test shows that StandardQueryParser with a stop-word analyzer cannot parse the documented min-should-match group &quot;(the fox)@1&quot;.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect a query (at least one of the remaining clauses, boosted as written).</li><li><b>Actual:</b> parse throws java.lang.ClassCastException (&#x27;TermQuery / BoostQuery cannot be cast to BooleanQuery&#x27;) from MinShouldMatchNodeBuilder.build, which casts the group&#x27;s query to BooleanQuery without a check: after the stopword is removed the one-clause group is collapsed to a TermQuery, and the grammar puts the boost inside the min-should-match node, so the group&#x27;s query is a BoostQuery.</li></ul>
+<p>Expected: parse() returns a query (at least 1 of {fox}); actual: ClassCastException &quot;TermQuery cannot be cast to BooleanQuery&quot; from MinShouldMatchNodeBuilder.java:40 (-ea and -da).</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/queryparser/flexible/standard/TestMinShouldMatchNonBooleanGroup.java"><code>src/org/apache/lucene/queryparser/flexible/standard/TestMinShouldMatchNonBooleanGroup.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/queryparser/flexible/standard/TestMinShouldMatchStopwordGroup.java"><code>src/org/apache/lucene/queryparser/flexible/standard/TestMinShouldMatchStopwordGroup.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -44,10 +46,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed 73200001
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=73200001 \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queryparser.flexible.standard.TestMinShouldMatchNonBooleanGroup</code></pre>
+     execute --select-class org.apache.lucene.queryparser.flexible.standard.TestMinShouldMatchStopwordGroup</code></pre>
 <p class="small">The module(s) facet also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

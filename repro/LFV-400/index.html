@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You filter with a Geo3DPoint polygon or path query, for example newLargePolygonQuery with 2,000 edges or newPathQuery with 200 points, and expect its ramBytesUsed to estimate the heap it holds, which is what Accountable promises and what LRUQueryCache charges against its maxRamBytesUsed budget. Instead PointInGeo3DShapeQuery.ramBytesUsed passes the shape and its bounds to RamUsageEstimator.sizeOfObject, which prices every object that is not Accountable (no GeoShape is) at a fixed 256 bytes, so every such query reports 592 bytes whatever its size: 4.9x too low for an 8-edge polygon, 47x for 99 edges, about 2,300x for the 2,000-edge large polygon (1,360,960 bytes retained). An LRUQueryCache with a 1 MiB budget therefore keeps 8 such filters that retain 10.9 MB, accounts about 6 KB for them and evicts nothing; the hits are correct.</p>
+<p>The test shows that <code>Geo3DPoint.newLargePolygonQuery</code> reports the same <code>ramBytesUsed()</code> for 8 and for 2,000 polygon edges, because <code>PointInGeo3DShapeQuery</code> prices its <code>GeoShape</code> as a fixed 256-byte unknown object.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> PointInGeo3DShapeQuery.ramBytesUsed passes the shape and its bounds to RamUsageEstimator.sizeOfObject, which prices every object that is not Accountable (no GeoShape is) at a fixed 256 bytes, so every such query reports 592 bytes whatever its size: 4.9x too low for an 8-edge polygon, 47x for 99 edges, about 2,300x for the 2,000-edge large polygon (1,360,960 bytes retained).</li></ul>
+<p>Expected: the 2,000-edge query (about 1.36 MB retained) reports more than the 8-edge one (about 6 KB). Actual: <code>8 edges: 592 bytes, 2000 edges: 592 bytes</code>, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/spatial3d/TestGeo3DShapeQueryRamBytesUsed.java"><code>src/org/apache/lucene/spatial3d/TestGeo3DShapeQueryRamBytesUsed.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

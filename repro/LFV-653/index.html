@@ -18,20 +18,20 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>ICUTokenizer with cjkAsWords=false silently drops the Japanese iteration mark 々 (U+3005), as in 人々, 時々 and 様々, and the other Han-script letters that are not Ideographic (U+303B, U+16FE3), because Default.rbbi gives them rule status 0</h1>
-<p class="facts small"><span>Bug LFV-653</span><span>Area: analysis / ICU (DefaultICUTokenizerConfig break rules Default.rbbi / Default.brk, used for CJK text when cjkAsWords=false; ICUTokenizerFactory &#x27;icu&#x27; with cjkAsWords=&quot;false&quot;)</span><span>Priority: medium</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
+<p class="facts small"><span>Bug LFV-653</span><span>Area: analysis / ICU (DefaultICUTokenizerConfig break rules Default.rbbi / Default.brk, used for CJK text when cjkAsWords=false; ICUTokenizerFactory &#x27;icu&#x27; with cjkAsWords=&quot;false&quot;)</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
 <p><a href="../../bugs/LFV-653.html">Bug page for LFV-653</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You build ICUTokenizer with cjkAsWords=false, whose javadoc promises that text &#x27;will be segmented according to UAX#29 defaults&#x27;, and index Japanese text such as 人々 (&#x27;people&#x27;), 時々 (&#x27;sometimes&#x27;) or 様々な人々; you expect 々, a Word_Break=ALetter letter under UAX #29, to end up in a token, as it does with StandardTokenizer, with the default cjkAsWords=true mode and with Lucene 4.6.1. Instead Default.rbbi takes every Han-script character out of its letter rule and gives a status only to Ideographic characters, and 々 is Han but not Ideographic, so its segment gets rule status 0 and ICUTokenizer skips it like punctuation: 人々 -&gt; [人], 様々な人々 -&gt; [様, な, 人], and with CJKBigramFilter 人々 becomes the unigram 人. Nothing throws; the character is simply missing from the index.</p>
+<p>The test shows that <code>ICUTokenizer</code> with <code>new DefaultICUTokenizerConfig(false, true)</code> (cjkAsWords=false) drops the Japanese iteration mark 々 (U+3005, a UAX #29 letter) from 人々, because Default.rbbi gives its segment rule status 0.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> 人々 -&gt; <code>[人, 々]</code> (and the bigram <code>[人々]</code> through <code>CJKBigramFilter</code>), as with StandardTokenizer, Lucene 4.6.1 and the default <code>cjkAsWords=true</code>.</li><li><b>Actual:</b> 人々 -&gt; <code>[人]</code> and 様々な人々 -&gt; <code>[様, な, 人]</code>: 4 of 5 tests fail (&quot;token 1 does not exist&quot;), with no exception.</li></ul>
+<p>Expected tokens <code>[人, 々]</code> (as StandardTokenizer gives); actual <code>[人]</code> (<code>expected:&lt;[人, 々]&gt; but was:&lt;[人]&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/analysis/icu/segmentation/TestICUTokenizerIterationMark.java"><code>src/org/apache/lucene/analysis/icu/segmentation/TestICUTokenizerIterationMark.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/demo/IterationMarkMain.java"><code>src/demo/IterationMarkMain.java</code></a> <span class="dim">(main() class)</span></li>
-<li><a href="src/demo/IterationMark4x.java"><code>src/demo/IterationMark4x.java</code></a> <span class="dim">(main() class)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
+<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
@@ -47,14 +47,7 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.icu.segmentation.TestICUTokenizerIterationMark
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; demo.IterationMarkMain
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; demo.IterationMark4x</code></pre>
+     execute --select-class org.apache.lucene.analysis.icu.segmentation.TestICUTokenizerIterationMark</code></pre>
 <p class="small">The module(s) analysis-icu also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestICUTokenizerHanIterationMark.java"><code>TestICUTokenizerHanIterationMark.java</code></a></li><li><a href="TestICUTokenizerIterationMark.java"><code>TestICUTokenizerIterationMark.java</code></a></li><li><a href="TestHanLetterNotDropped.java"><code>TestHanLetterNotDropped.java</code></a></li><li><a href="IterationMarkAnyVersion.java"><code>IterationMarkAnyVersion.java</code></a></li><li><a href="Lfv653Probe.java"><code>Lfv653Probe.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

@@ -22,12 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You call MatchRegionRetriever.highlightDocument with your own FieldValueProvider, for example one backed by a Map built from the document&#x27;s stored fields, and for a field that is indexed but not stored it returns null, exactly as FieldValueProvider#getValues documents (&#x27;null if the field is not loaded or does not exist&#x27;). You expect no hit regions for that field, which is what the same provider gives when it returns an empty list and what the in-tree highlightDocuments path gives on the same index. Instead the default offset strategy uses the null list and the call throws NullPointerException (OffsetsFromPositions.java:70 for a positions-only field, OffsetsFromTokens.java:74 for a DOCS or DOCS_AND_FREQS field, OffsetsFromValues.java:51).</p>
+<p>The test shows that <code>MatchRegionRetriever.highlightDocument</code> throws a NullPointerException when a custom <code>FieldValueProvider</code> returns <code>null</code> for a matched, unstored positions field, which <code>FieldValueProvider#getValues</code> documents as allowed (&quot;null if the field is not loaded or does not exist&quot;).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect no hit regions for that field, which is what the same provider gives when it returns an empty list and what the in-tree highlightDocuments path gives on the same index.</li><li><b>Actual:</b> The default offset strategy uses the null list and the call throws NullPointerException (OffsetsFromPositions.java:70 for a positions-only field, OffsetsFromTokens.java:74 for a DOCS or DOCS_AND_FREQS field, OffsetsFromValues.java:51).</li></ul>
+<p>Expected: no hit regions (empty map); actual: <code>NullPointerException</code> at <code>OffsetsFromPositions.java:70</code> (&quot;Cannot invoke List.isEmpty() because values is null&quot;), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/search/matchhighlight/TestFieldValueProviderNullValues.java"><code>src/org/apache/lucene/search/matchhighlight/TestFieldValueProviderNullValues.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

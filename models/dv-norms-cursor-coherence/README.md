@@ -7,7 +7,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 ## Bugs found
 
 - LFV-415 (bug LFV-415; [repro](../../repro/LFV-415/))
-- SortedDocValues#ordinalRangeIntoBitSet's default implementation, called after advanceExact(d) returned false, reads ordValue for doc d, which has no value, so it marks d using a neighbouring document's ordinal (or throws EOFException) (bug LFV-419; [repro](../../repro/LFV-419/))
+- SortedDocValues#ordinalRangeIntoBitSet's default implementation, called after advanceExact(d) returned false, reads ordValue for doc d, which has no value, so it marks d using a neighbouring document's ordinal (or throws EOFException) (bug LFV-419; [repro](../../repro/LFV-419/), [bug page](../../bugs/LFV-419.html))
 - The flush-time doc-values iterators that IndexWriter hands to a DocValuesConsumer move only their doc-ID cursor in intoBitSet, so values read afterwards belong to earlier documents (NUMERIC, BINARY, SORTED, SORTED_NUMERIC, SORTED_SET; latent: Lucene's own consumers never read values after intoBitSet on the same iterator) (bug LFV-418; [repro](../../repro/LFV-418/))
 
 ## Files

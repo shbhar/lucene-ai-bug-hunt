@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You take the level-0 node iterator of an HNSW graph (getNodesOnLevel(0), a DenseNodesIterator over the node ids [0, size)) and read it in chunks with consume(buf), expecting each call to hand out the next block of ids, as the javadoc (&#x27;Consume integers from the iterator&#x27;) and the two sibling iterator classes do. Instead DenseNodesIterator.consume copies the block but never moves its cursor, so every call returns the same first block, hasNext stays true and the loop never ends; a nextInt after consume also starts again at 0. Lucene&#x27;s own code never calls consume on level 0, so indexes and search results are not affected.</p>
+<p>The test shows that <code>HnswGraph.DenseNodesIterator.consume()</code> (the level-0 node iterator) does not advance its cursor, so a second <code>consume()</code> returns the first chunk again.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> DenseNodesIterator.consume copies the block but never moves its cursor, so every call returns the same first block, hasNext stays true and the loop never ends; a nextInt after consume also starts again at 0.</li></ul>
+<p>Expected the second chunk of <code>new DenseNodesIterator(4)</code> read into an <code>int[2]</code> to be <code>[2, 3]</code>; actual <code>[0, 1]</code>, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/util/hnsw/TestDenseNodesIteratorConsume.java"><code>src/org/apache/lucene/util/hnsw/TestDenseNodesIteratorConsume.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

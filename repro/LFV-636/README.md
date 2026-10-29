@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You construct DrillSideways with an ExecutorService so that its drill-down and drill-sideways searches run concurrently, and one of those searches fails, for example because the base query has more clauses than IndexSearcher's clause limit, an ExitableDirectoryReader timeout fires, or a query or collector throws IOException. You expect the exception the sequential DrillSideways throws for the same search: the class javadoc presents the two modes as alternative implementations that differ in speed and duplicate work, every search overload declares IOException, and IndexSearcher has rethrown task failures as-is since 9.8.0 (GITHUB#12516) precisely so that sequential and concurrent searches throw the same exceptions. Instead DrillSideways.searchConcurrently catches the ExecutionException from Future.get and throws new RuntimeException(e), so the caller receives RuntimeException -&gt; ExecutionException -&gt; the original exception, and catch blocks for TooManyClauses, ExitingReaderException or IOException do not fire.
 
+The test shows that a DrillSideways search whose base query throws IOException from createWeight surfaces that IOException without an executor, but wrapped when DrillSideways has an ExecutorService.
+
 ## Expected vs actual
 
-- Expected: You expect the exception the sequential DrillSideways throws for the same search: the class javadoc presents the two modes as alternative implementations that differ in speed and duplicate work, every search overload declares IOException, and IndexSearcher has rethrown task failures as-is since 9.8.0 (GITHUB#12516) precisely so that sequential and concurrent searches throw the same exceptions.
-- Actual: DrillSideways.searchConcurrently catches the ExecutionException from Future.get and throws new RuntimeException(e), so the caller receives RuntimeException -&gt; ExecutionException -&gt; the original exception, and catch blocks for TooManyClauses, ExitingReaderException or IOException do not fire.
+Expected: the same `IOException` in both modes (as sequential DrillSideways and IndexSearcher with an executor throw). Actual: `RuntimeException` -&gt; `ExecutionException` -&gt; `IOException`.
 
 ## Files
 
-- [src/org/apache/lucene/facet/TestDrillSidewaysConcurrentExceptionType.java](src/org/apache/lucene/facet/TestDrillSidewaysConcurrentExceptionType.java) (JUnit test)
+- [src/org/apache/lucene/facet/TestDrillSidewaysExecutorExceptionType.java](src/org/apache/lucene/facet/TestDrillSidewaysExecutorExceptionType.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,7 +40,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.facet.TestDrillSidewaysConcurrentExceptionType
+     execute --select-class org.apache.lucene.facet.TestDrillSidewaysExecutorExceptionType
 ```
 
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.

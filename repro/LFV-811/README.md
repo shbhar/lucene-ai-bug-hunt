@@ -19,12 +19,13 @@ You build a vector index with HNSW maxConn 16 (the default), later open a writer
 
 ## Run it
 
+- Tested on Lucene branch_10_6 4ae946e5a9b9 (2026-10-26): reproduced.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
 # Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
-LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
+LUCENE=/path/to/lucene; V=10.6.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar

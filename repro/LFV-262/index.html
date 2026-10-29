@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You merge two shards&#x27; results (5 hits in total) with TopDocs.merge(1, Integer.MAX_VALUE, shards) to get every hit after the first, and expect the 4 remaining hits in score order, the same as TopDocs.merge(1, 4, shards) returns. Instead you get an array of length 4 in which every entry is null, and no exception: merge adds start + topN in int, the sum wraps to a negative number, and the loop that copies hits never runs. The Sort and tie-breaker overloads behave the same way; start + topN = 2^31 - 1 still works and 2^31 fails.</p>
+<p>The test shows that <code>TopDocs.merge(start, topN, shardHits)</code> returns null hits when <code>start + topN</code> overflows int, here <code>merge(1, Integer.MAX_VALUE,...)</code> over one TopDocs with 2 hits.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> You get an array of length 4 in which every entry is null, and no exception: merge adds start + topN in int, the sum wraps to a negative number, and the loop that copies hits never runs.</li></ul>
+<p>Expected: the page <code>[second hit]</code>. Actual: <code>[null]</code> (<code>expected:&lt;doc=1 score=1.0 shardIndex=-1&gt; but was:&lt;null&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/search/TestTopDocsMergeWindowOverflow.java"><code>src/org/apache/lucene/search/TestTopDocsMergeWindowOverflow.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

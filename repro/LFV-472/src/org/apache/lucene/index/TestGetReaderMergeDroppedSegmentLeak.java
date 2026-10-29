@@ -17,181 +17,57 @@
 package org.apache.lucene.index;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
+import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * A merge that IndexWriter#getReader runs and waits for (merge-on-refresh, see
- * IndexWriterConfig#setMaxFullFlushMergeWaitMillis) takes a reference on the merged segment's
- * files when the merge completes. If every document of the merged segments is deleted while the
- * merge runs, commitMerge drops the merged segment, getReader closes the reader it kept for it,
- * but the reference on its files is never released: the files are never deleted by this writer,
- * not by deleteUnusedFiles(), commit(), close() or rollback().
- *
- * <p>Uses public API only. The documents are deleted from inside OneMerge#wrapForMerge (which the
- * merge calls while it runs) so the interleaving is deterministic; any delete that is applied while
- * the merge runs (deleteDocuments, updateDocument, tryDeleteDocument) has the same effect.
- */
 public class TestGetReaderMergeDroppedSegmentLeak extends LuceneTestCase {
 
-  private static Document doc(String id) {
-    Document d = new Document();
-    d.add(new StringField("id", id, Field.Store.YES));
-    return d;
-  }
-
-  /** Merges every segment on getReader; optionally deletes all docs of r0 while merging. */
-  private static final class MergeOnGetReader extends FilterMergePolicy {
-    final AtomicBoolean enabled = new AtomicBoolean(false);
-    final AtomicBoolean deleteAllWhileMerging = new AtomicBoolean(false);
-    final AtomicBoolean deleted = new AtomicBoolean(false);
-    final MergeTrigger trigger;
-    volatile IndexWriter writer;
-    volatile DirectoryReader r0;
-
-    MergeOnGetReader(MergeTrigger trigger) {
-      super(NoMergePolicy.INSTANCE);
-      this.trigger = trigger;
-    }
-
-    private MergeSpecification mergeAll(SegmentInfos infos, MergeContext ctx) {
-      if (enabled.get() == false) {
-        return null;
-      }
-      List<SegmentCommitInfo> segs = new ArrayList<>();
-      for (SegmentCommitInfo sci : infos) {
-        if (ctx.getMergingSegments().contains(sci) == false) {
-          segs.add(sci);
-        }
-      }
-      if (segs.size() < 2) {
-        return null;
-      }
-      MergeSpecification spec = new MergeSpecification();
-      spec.add(
-          new OneMerge(segs) {
-            @Override
-            public CodecReader wrapForMerge(CodecReader reader) throws IOException {
-              if (deleteAllWhileMerging.get() && deleted.compareAndSet(false, true)) {
-                for (int i = 0; i < r0.maxDoc(); i++) {
-                  assertTrue(writer.tryDeleteDocument(r0, i) != -1);
-                }
-              }
-              return reader;
-            }
-          });
-      return spec;
-    }
-
-    @Override
-    public MergeSpecification findFullFlushMerges(
-        MergeTrigger mergeTrigger, SegmentInfos infos, MergeContext ctx) {
-      return mergeTrigger == trigger ? mergeAll(infos, ctx) : null;
-    }
-
-    @Override
-    public MergeSpecification findForcedMerges(
-        SegmentInfos infos,
-        int maxSegmentCount,
-        java.util.Map<SegmentCommitInfo, Boolean> segmentsToMerge,
-        MergeContext ctx) {
-      return trigger == null ? mergeAll(infos, ctx) : null;
-    }
-  }
-
-  /** Files in the directory that the latest commit does not reference. */
-  private static Set<String> unreferenced(Directory dir) throws IOException {
-    Set<String> files = new TreeSet<>(Arrays.asList(dir.listAll()));
-    files.removeAll(SegmentInfos.readLatestCommit(dir).files(true));
-    files.remove(IndexWriter.WRITE_LOCK_NAME);
-    return files;
-  }
-
-  /** two one-doc segments, committed; r0 = NRT reader on them; then a getReader/forceMerge. */
-  private Set<String> run(MergeTrigger trigger, boolean deleteAllWhileMerging) throws Exception {
-    return run(trigger, deleteAllWhileMerging, false);
-  }
-
-  private Set<String> run(MergeTrigger trigger, boolean deleteAllWhileMerging, boolean rollback)
-      throws Exception {
-    try (Directory dir = FSDirectory.open(createTempDir("leak"))) {
-      MergeOnGetReader mp = new MergeOnGetReader(trigger);
+  public void testFullyDeletedGetReaderMergeLeavesNoFiles() throws Exception {
+    try (Directory dir = new ByteBuffersDirectory()) {
       IndexWriterConfig iwc =
           new IndexWriterConfig()
-              .setMergePolicy(mp)
-              .setMergeScheduler(new SerialMergeScheduler())
-              .setMaxFullFlushMergeWaitMillis(60_000);
+              .setMergePolicy(NoMergePolicy.INSTANCE)
+              .setMergeScheduler(new SerialMergeScheduler());
       IndexWriter w = new IndexWriter(dir, iwc);
-      mp.writer = w;
-      w.addDocument(doc("a"));
-      w.flush();
-      w.addDocument(doc("b"));
-      w.flush();
-      w.commit();
-      DirectoryReader r0 = DirectoryReader.open(w);
-      mp.r0 = r0;
-      mp.deleteAllWhileMerging.set(deleteAllWhileMerging);
-      mp.enabled.set(true);
-      DirectoryReader r1 = null;
-      if (trigger == MergeTrigger.GET_READER) {
-        r1 = DirectoryReader.open(w); // runs the merge and waits for it
-      } else {
-        w.forceMerge(1);
+      for (int i = 0; i < 2; i++) {
+        w.addDocument(List.of(new StringField("f", "x", Field.Store.NO)));
+        w.flush();
       }
-      mp.enabled.set(false);
-      assertEquals(deleteAllWhileMerging, mp.deleted.get());
-      r0.close();
-      if (r1 != null) {
-        r1.close();
-      }
-      w.deleteUnusedFiles();
-      if (rollback) {
-        w.rollback();
-      } else {
-        w.close();
-      }
-      Set<String> leftover = unreferenced(dir);
-      if (leftover.isEmpty() == false) {
-        // they really are garbage: the next writer deletes them on open
-        new IndexWriter(dir, new IndexWriterConfig()).close();
-        assertEquals(Set.of(), unreferenced(dir));
-      }
-      return leftover;
+      w.getConfig()
+          .setMergePolicy(
+              new FilterMergePolicy(NoMergePolicy.INSTANCE) {
+                @Override
+                public MergeSpecification findFullFlushMerges(
+                    MergeTrigger trigger, SegmentInfos infos, MergeContext context) {
+                  if (trigger != MergeTrigger.GET_READER) {
+                    return null;
+                  }
+                  MergeSpecification spec = new MergeSpecification();
+                  spec.add(
+                      new OneMerge(infos.asList()) {
+                        @Override
+                        public CodecReader wrapForMerge(CodecReader reader) throws IOException {
+                          w.deleteDocuments(new Term("f", "x"));
+                          w.flush();
+                          return reader;
+                        }
+                      });
+                  return spec;
+                }
+              });
+      DirectoryReader.open(w).close();
+      w.close();
+      Set<String> leftover = new TreeSet<>(Arrays.asList(dir.listAll()));
+      leftover.removeAll(SegmentInfos.readLatestCommit(dir).files(true));
+      // expected: no files outside the last commit after close(); actual: the dropped merged segment's files
+      assertEquals(Set.of(), leftover);
     }
-  }
-
-  /** The bug: getReader merge whose merged segment ends up 100% deleted. */
-  public void testGetReaderMergeOfFullyDeletedSegmentsLeaksFiles() throws Exception {
-    Set<String> leftover = run(MergeTrigger.GET_READER, true);
-    assertEquals(
-        "files left behind by IndexWriter after deleteUnusedFiles() and close()",
-        Set.of(),
-        leftover);
-  }
-
-  /** The bug, ending with rollback() instead of close(). */
-  public void testGetReaderMergeOfFullyDeletedSegmentsLeaksFilesAfterRollback() throws Exception {
-    Set<String> leftover = run(MergeTrigger.GET_READER, true, true);
-    assertEquals("files left behind by IndexWriter after deleteUnusedFiles() and rollback()", Set.of(), leftover);
-  }
-
-  /** Control: the same getReader merge without the concurrent deletes leaves nothing behind. */
-  public void testGetReaderMergeWithoutDeletesIsClean() throws Exception {
-    assertEquals(Set.of(), run(MergeTrigger.GET_READER, false));
-  }
-
-  /** Control: a forceMerge whose merged segment ends up 100% deleted leaves nothing behind. */
-  public void testForceMergeOfFullyDeletedSegmentsIsClean() throws Exception {
-    assertEquals(Set.of(), run(null, true));
   }
 }

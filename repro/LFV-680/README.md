@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index two training documents labelled false, 'bb' and 'aa aa', train BooleanPerceptronClassifier with bias 1.5 and batchSize 2, and expect assignClass('aa aa') = false, which is what batchSize 1 gives on the same data and what both an online and a mini-batch perceptron give. Instead it returns true (score 0.81): the update for the misclassified 'aa aa' (batch position 1) is written only to the pending weight map, because the FST that holds the weights is rebuilt only when a misclassified document sits at a position that is a multiple of batchSize, and the constructor ends by clearing that map without a final rebuild. Updates inside a batch are also computed from the last FST build and overwrite each other, so with batchSize 10 and three training documents 'aa' labelled false only the first update is applied and the model still answers true.
 
+The test shows that BooleanPerceptronClassifier with batchSize 2, trained on 'bb' and 'aa aa' (both labelled false, bias 1.5), never applies the weight update for the misclassified 'aa aa' (batch position 1), because the FST is rebuilt only when a misclassified document is at a multiple of batchSize and never after the last batch.
+
 ## Expected vs actual
 
-- Expected: With batchSize 2 and 3, `assignClass` returns false for "aa aa" and "aa", as with batchSize 1.
-- Actual: All three return true (scores 0.81, 0.81 and 0.28): `3 tests completed, 3 failed`.
+Expected: assignClass("aa aa") = false, as with batchSize 1 on the same data. Actual on main with -ea and with -da: true (expected:&lt;false&gt; but was:&lt;true&gt;).
 
 ## Files
 
-- [src/org/apache/lucene/classification/TestBooleanPerceptronBatchUpdates.java](src/org/apache/lucene/classification/TestBooleanPerceptronBatchUpdates.java) (JUnit test)
+- [src/org/apache/lucene/classification/TestBooleanPerceptronBatchSize.java](src/org/apache/lucene/classification/TestBooleanPerceptronBatchSize.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,21 +42,13 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.classification.TestBooleanPerceptronBatchUpdates
+     execute --select-class org.apache.lucene.classification.TestBooleanPerceptronBatchSize
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestBooleanPerceptronBatchSize.java](TestBooleanPerceptronBatchSize.java)
-- [TestBooleanPerceptronBatchUpdates.java](TestBooleanPerceptronBatchUpdates.java)
-- [TestPerceptronBatchV1.java](TestPerceptronBatchV1.java)
-- [TestPerceptronBatchSemantics.java](TestPerceptronBatchSemantics.java)
-- [Audit4PerceptronProbe.java](Audit4PerceptronProbe.java)
 
 ## Feedback
 

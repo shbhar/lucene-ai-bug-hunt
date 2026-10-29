@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You configure Word2VecSynonymFilterFactory with maxSynonymsPerTerm=2147483647 (Integer.MAX_VALUE), which its validation accepts ('must be a positive integer greater than 0'), to keep every synonym above minAcceptedSimilarity, and you expect those synonyms or a rejection at configuration time. The analyzer builds, but Word2VecSynonymProvider.getSynonyms passes maxSynonymsPerTerm + 1 (int arithmetic) as topK to HnswGraphSearcher.search, which wraps to Integer.MIN_VALUE, so the first token with a model vector throws IllegalArgumentException 'initialCapacity must be &gt; 0 and &lt; 2147483630; got: -2147483648' from TernaryLongHeap (on 9.7.0 to 10.3.2: 'maxSize must be &gt; 0...' from LongHeap). Because the search size is never clamped to the model size and the search allocates its queues of topK entries up front, values close to Integer.MAX_VALUE fail the same way and values from roughly heap-bytes/16 up (1e8 at a 1 GiB heap) throw OutOfMemoryError, even for a 3-term model.
 
+The test shows that `Word2VecSynonymFilterFactory` accepts `maxSynonymsPerTerm=Integer.MAX_VALUE`, but the first token that has a model vector then fails, because the HNSW search size `maxSynonymsPerTerm + 1` overflows and is never clamped to the model size.
+
 ## Expected vs actual
 
-- Expected: You expect those synonyms or a rejection at configuration time.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+Expected "alpha" to analyse to [alpha, beta] (or a rejection at configuration time); actual: `IllegalArgumentException: initialCapacity must be > 0 and < 2147483630; got: -2147483648` from `TernaryLongHeap`, with `-ea` and `-da`.
 
 ## Files
 
@@ -19,7 +20,8 @@ You configure Word2VecSynonymFilterFactory with maxSynonymsPerTerm=2147483647 (I
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -35,8 +37,8 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.analysis.synonym.word2vec.TestWord2VecLargeMaxSynonymsPerTerm
 ```

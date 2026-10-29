@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You call forceMerge(1) on an IndexWriter and, while it is still merging, another thread calls forceMerge(2) on the same writer. You expect forceMerge(1) to return only once the index is down to 1 segment, because its javadoc defines maxNumSegments as the 'maximum number of segments left in the index after merging finishes' and IndexWriter allows concurrent calls to any method. Instead forceMerge(1) returns normally with 2 segments: both calls share one writer-wide target, the second call overwrites it (also on the first call's running merges), and the first call's wait loop only checks that no forced merge is left, never its own target.
 
+The test shows that `forceMerge(1)` over 3 segments (LogDocMergePolicy, mergeFactor 2, so 2 merge rounds) returns normally with 2 segments when another thread calls `forceMerge(2)` while the first round's merge is still running.
+
 ## Expected vs actual
 
-- Expected: You expect forceMerge(1) to return only once the index is down to 1 segment, because its javadoc defines maxNumSegments as the 'maximum number of segments left in the index after merging finishes' and IndexWriter allows concurrent calls to any method.
-- Actual: forceMerge(1) returns normally with 2 segments: both calls share one writer-wide target, the second call overwrites it (also on the first call's running merges), and the first call's wait loop only checks that no forced merge is left, never its own target.
+Expected, per the `forceMerge` javadoc (maxNumSegments is the "maximum number of segments left in the index after merging finishes"): 1 segment. Actual: `segments when forceMerge(1) returned expected:<1> but was:<2>`.
 
 ## Files
 
-- [src/org/apache/lucene/index/TestOverlappingForceMergeDifferentN.java](src/org/apache/lucene/index/TestOverlappingForceMergeDifferentN.java) (JUnit test)
+- [src/org/apache/lucene/index/TestOverlappingForceMerge.java](src/org/apache/lucene/index/TestOverlappingForceMerge.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,7 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestOverlappingForceMergeDifferentN
+     execute --select-class org.apache.lucene.index.TestOverlappingForceMerge
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

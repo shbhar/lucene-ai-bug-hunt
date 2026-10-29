@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You want the plain Jaro similarity from JaroWinklerDistance, so, as the setThreshold javadoc says ('Set to a negative value to get the Jaro distance'), you call setThreshold(-1) and expect getDistance("martha", "marhta") to return the Jaro value 0.9444. Instead it returns 0.9611, the Jaro-Winkler value: getDistance skips the Winkler bonus only when the Jaro value is below the threshold, which never happens for a negative threshold, so every pair gets the bonus, exactly as with threshold 0. Only a threshold of 1 or more gives plain Jaro; the sentence has been false since the class was added in 2008, so the javadoc is the side to fix by default.
 
+The test shows (javadoc defect) that `JaroWinklerDistance.setThreshold` says "Set to a negative value to get the Jaro distance", but after `setThreshold(-1)` `getDistance` still adds the Winkler bonus.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: It returns 0.9611, the Jaro-Winkler value: getDistance skips the Winkler bonus only when the Jaro value is below the threshold, which never happens for a negative threshold, so every pair gets the bonus, exactly as with threshold 0.
+Expected: the Jaro value for martha/marhta, 0.9444444. Actual (-ea and -da): the Jaro-Winkler value, 0.96111107.
 
 ## Files
 
@@ -19,7 +20,8 @@ You want the plain Jaro similarity from JaroWinklerDistance, so, as the setThres
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

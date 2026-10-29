@@ -22,12 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You want the plain Jaro similarity from JaroWinklerDistance, so, as the setThreshold javadoc says (&#x27;Set to a negative value to get the Jaro distance&#x27;), you call setThreshold(-1) and expect getDistance(&quot;martha&quot;, &quot;marhta&quot;) to return the Jaro value 0.9444. Instead it returns 0.9611, the Jaro-Winkler value: getDistance skips the Winkler bonus only when the Jaro value is below the threshold, which never happens for a negative threshold, so every pair gets the bonus, exactly as with threshold 0. Only a threshold of 1 or more gives plain Jaro; the sentence has been false since the class was added in 2008, so the javadoc is the side to fix by default.</p>
+<p>The test shows (javadoc defect) that <code>JaroWinklerDistance.setThreshold</code> says &quot;Set to a negative value to get the Jaro distance&quot;, but after <code>setThreshold(-1)</code> <code>getDistance</code> still adds the Winkler bonus.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> It returns 0.9611, the Jaro-Winkler value: getDistance skips the Winkler bonus only when the Jaro value is below the threshold, which never happens for a negative threshold, so every pair gets the bonus, exactly as with threshold 0.</li></ul>
+<p>Expected: the Jaro value for martha/marhta, 0.9444444. Actual (-ea and -da): the Jaro-Winkler value, 0.96111107.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/search/spell/TestJaroWinklerNegativeThreshold.java"><code>src/org/apache/lucene/search/spell/TestJaroWinklerNegativeThreshold.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

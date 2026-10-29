@@ -8,21 +8,21 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You give the XML query parser (CoreParser.parse) a &lt;BooleanQuery&gt; whose &lt;Clause&gt; has no occurs attribute and expect an optional (SHOULD) clause, because LuceneCoreQuery.dtd declares occurs with the default "should", BooleanQueryBuilder.getOccursValue has its own 'attribute absent -&gt; SHOULD' branch, and 5.0.0 and earlier parsed it that way. Instead the whole parse fails with ParserException 'Invalid value for "occurs" attribute of clause:' (nothing after the colon): org.w3c.dom.Element.getAttribute returns an empty string, never null, for an absent attribute, so the 'occs == null' default branch never runs; an explicit occurs="" is rejected the same way. Explicit should, must, mustNot and filter values work as before, and writing occurs="should" is a workaround.
 
+The test shows that `CoreParser.parse` rejects `<BooleanQuery fieldName='f'><Clause><TermQuery>a</TermQuery></Clause></BooleanQuery>`, a `<Clause>` without `occurs`.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The whole parse fails with ParserException 'Invalid value for "occurs" attribute of clause:' (nothing after the colon): org.w3c.dom.Element.getAttribute returns an empty string, never null, for an absent attribute, so the 'occs == null' default branch never runs; an explicit occurs="" is rejected the same way.
+Expected: one SHOULD clause `f:a` (the DTD default and the builder's own null branch); actual (-ea and -da): ParserException 'Invalid value for "occurs" attribute of clause:' (BooleanQueryBuilder.java:81), because `Element.getAttribute` returns "" and the `occs == null` check (:72) never matches.
 
 ## Files
 
 - [src/org/apache/lucene/queryparser/xml/TestClauseDefaultOccurs.java](src/org/apache/lucene/queryparser/xml/TestClauseDefaultOccurs.java) (JUnit test)
-- [src/ClauseDefaultOccursProbe.java](src/ClauseDefaultOccursProbe.java) (main() class)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -31,7 +31,6 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
-CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
 CP=$CP:$LUCENE/lucene/facet/build/libs/lucene-facet-$V.jar
 CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
 CP=$CP:$LUCENE/lucene/queryparser/build/libs/lucene-queryparser-$V.jar
@@ -45,10 +44,6 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.queryparser.xml.TestClauseDefaultOccurs
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" ClauseDefaultOccursProbe
 ```
 
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.

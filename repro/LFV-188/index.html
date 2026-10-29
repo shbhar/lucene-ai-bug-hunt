@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You call IndexWriter.forceMergeDeletes(false), which starts the merges in the background and returns a MergeObserver, and then call observer.await to learn whether they worked; its javadoc says it returns true if all merges completed successfully and false on error. Instead it returns true even when the merge failed with an IOException or was aborted by rollback or deleteAll, because every merge&#x27;s completion future is completed normally with a success flag that await never reads. A caller that trusts the result believes the deleted documents were merged away although the merge never finished.</p>
+<p>The test shows that after <code>IndexWriter.forceMergeDeletes(false)</code> whose merge fails with an IOException, <code>MergeObserver.await()</code> reports success.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> It returns true even when the merge failed with an IOException or was aborted by rollback or deleteAll, because every merge&#x27;s completion future is completed normally with a success flag that await never reads.</li></ul>
+<p>Expected <code>await()</code> == false (its javadoc: &quot;true if all merges completed successfully..., false on error&quot;); actual <code>true</code>, with <code>-ea</code> and <code>-da</code>, while the writer has recorded the merge failure as its tragic exception.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/index/TestMergeObserverAwaitOnFailure.java"><code>src/org/apache/lucene/index/TestMergeObserverAwaitOnFailure.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

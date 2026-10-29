@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You parse i:{2147483647 TO *], i&gt;2147483647, l&gt;9223372036854775807 or i&lt;"-2147483648" with the flexible StandardQueryParser and a PointsConfig for the field. You expect no hits, because no int is larger than Integer.MAX_VALUE (or smaller than MIN_VALUE). Instead PointRangeQueryNodeBuilder adds or subtracts 1 for the exclusive bound without an overflow check, so MAX+1 wraps to MIN, the query becomes the full range and matches every document with the field (5 of 5 in the repro; {MAX TO MAX} matches all but one).
 
+The test shows that the flexible `StandardQueryParser` with an Integer `PointsConfig` turns `i:{2147483647 TO *]` (greater than `Integer.MAX_VALUE`) into a query that matches every document with the field, because `MAX_VALUE + 1` wraps to `MIN_VALUE`.
+
 ## Expected vs actual
 
-- Expected: You expect no hits, because no int is larger than Integer.MAX_VALUE (or smaller than MIN_VALUE).
-- Actual: PointRangeQueryNodeBuilder adds or subtracts 1 for the exclusive bound without an overflow check, so MAX+1 wraps to MIN, the query becomes the full range and matches every document with the field (5 of 5 in the repro; {MAX TO MAX} matches all but one).
+Expected 0 hits on an index with one `IntPoint` doc (`i=0`); actual: 1 hit (`expected:<0> but was:<1>`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/TestVerifyExclusivePointOverflow.java](src/TestVerifyExclusivePointOverflow.java) (JUnit test)
+- [src/org/apache/lucene/queryparser/flexible/standard/TestExclusivePointBoundAtMaxValue.java](src/org/apache/lucene/queryparser/flexible/standard/TestExclusivePointBoundAtMaxValue.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,9 +41,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class TestVerifyExclusivePointOverflow
+     execute --select-class org.apache.lucene.queryparser.flexible.standard.TestExclusivePointBoundAtMaxValue
 ```
 
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.

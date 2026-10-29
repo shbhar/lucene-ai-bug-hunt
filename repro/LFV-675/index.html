@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You use the Geo3d spatial context (Geo3dSpatialContextFactory) with BBoxStrategy and read each document&#x27;s box with makeShapeValueSource or rank by makeOverlapRatioValueSource(queryBox,...), or you call reset(10, 20, 30, 40) on a Geo3d rectangle yourself. You expect reset to replace the whole rectangle (the spatial4j Rectangle.reset javadoc: &#x27;Resets the state of this shape given the arguments&#x27;; spatial4j&#x27;s own RectangleImpl.reset assigns all four bounds), so getMinX..getMaxY return 10, 20, 30, 40, the shape values return each document&#x27;s indexed box, and a document box equal to the query scores 1.0, as it does with the default SpatialContext.GEO. Instead Geo3dRectangleShape.reset rebuilds only the wrapped GeoBBox and clears the center and bounding-box caches, never assigning the four fields that getMinX..getMaxY, getWidth, getHeight and getCrossesDateLine read: the rectangle equals rect(10, 20, 30, 40) but reports its previous bounds, BBoxValueSource (which creates one rect(0, 0, 0, 0) per segment and resets it for each document) reports (0, 0, 0, 0) for every document, and the self-overlap score is 0.0.</p>
+<p>The test shows that in the Geo3d spatial context, <code>Rectangle.reset(minX, maxX, minY, maxY)</code> does not update the bounds that <code>getMinX()</code>..<code>getMaxY()</code> return.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> Each Geo3d leg answers like the spatial4j leg: bounds 10, 20, 30, 40 after the reset; shape values P and Q as indexed; scores 1.0 and 0.25.</li><li><b>Actual:</b> 3 of 3 tests fail in the Geo3d leg: bounds still -50, -40, -30, -20; both shape values (0, 0, 0, 0); both scores 0.0; no exception.</li></ul>
+<p>Expected <code>rect(-50, -40, -30, -20).reset(10, 20, 30, 40).getMinX() == 10</code>; actual <code>-50</code> (<code>expected:&lt;10.0&gt; but was:&lt;-50.0&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/spatial/spatial4j/TestGeo3dRectangleReset.java"><code>src/org/apache/lucene/spatial/spatial4j/TestGeo3dRectangleReset.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/spatial/spatial4j/TestGeo3dRectangleResetBounds.java"><code>src/org/apache/lucene/spatial/spatial4j/TestGeo3dRectangleResetBounds.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -43,11 +45,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.spatial.spatial4j.TestGeo3dRectangleReset</code></pre>
+     execute --select-class org.apache.lucene.spatial.spatial4j.TestGeo3dRectangleResetBounds</code></pre>
 <p class="small">The module(s) spatial-extras also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestGeo3dRectangleResetBounds.java"><code>TestGeo3dRectangleResetBounds.java</code></a></li><li><a href="TestGeo3dRectangleReset.java"><code>TestGeo3dRectangleReset.java</code></a></li><li><a href="TestGeo3dRectResetVerify.java"><code>TestGeo3dRectResetVerify.java</code></a></li><li><a href="TestGeo3dBridgeRectangleResetBisect.java"><code>TestGeo3dBridgeRectangleResetBisect.java</code></a></li><li><a href="FixOrderProbe.java"><code>FixOrderProbe.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

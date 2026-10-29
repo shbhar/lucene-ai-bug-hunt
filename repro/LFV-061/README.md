@@ -8,24 +8,22 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build or merge HNSW graphs with more than one merge worker. You expect each node's neighbours to be scored against that node's vector. Instead, when an entry-node promotion is lost to another worker and retried, the shared scorer is not reset, so wrong scores are stored and the persisted topology changes.
 
+The test shows that when two HnswConcurrentMergeBuilder workers both try to promote a new entry node and worker 0 loses, worker 0's retry of the new upper levels scores with its shared scorer still pointed at another node (node 0), not at the node it inserts (node 1).
+
 ## Expected vs actual
 
-- Expected: You expect each node's neighbours to be scored against that node's vector.
-- Actual: When an entry-node promotion is lost to another worker and retried, the shared scorer is not reset, so wrong scores are stored and the persisted topology changes.
+Expected every stored neighbour score to be sim(owner, neighbour), e.g. level 1: 1 -&gt; 3 = 0.027027028 (1/37). Actual: 0.02 (1/50 = sim(0, 3)).
 
 ## Files
 
-- [src/org/apache/lucene/util/hnsw/Ce1UnforcedAudit.java](src/org/apache/lucene/util/hnsw/Ce1UnforcedAudit.java) (main() class)
-- [src/org/apache/lucene/util/hnsw/TestCe1VerifyRetryScorer.java](src/org/apache/lucene/util/hnsw/TestCe1VerifyRetryScorer.java) (JUnit test)
-- [src/org/apache/lucene/util/hnsw/TestCe1VerifyTopology.java](src/org/apache/lucene/util/hnsw/TestCe1VerifyTopology.java) (JUnit test)
+- [src/org/apache/lucene/util/hnsw/TestHnswConcurrentMergeRetryScorer.java](src/org/apache/lucene/util/hnsw/TestHnswConcurrentMergeRetryScorer.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
-- This repro reads private Lucene state by reflection (setAccessible), so it depends on internals that may change.
 
 ```bash
 # Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -39,16 +37,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.util.hnsw.TestCe1VerifyRetryScorer
-
-# run 2: assertions on, seed DEADBEEF, default flags
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.util.hnsw.TestCe1VerifyTopology
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.apache.lucene.util.hnsw.Ce1UnforcedAudit
+     execute --select-class org.apache.lucene.util.hnsw.TestHnswConcurrentMergeRetryScorer
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

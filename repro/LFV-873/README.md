@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index Thai text with the default ThaiAnalyzer (or ThaiNormalizationFilter) in which the word น้ำ ('water') is typed with a decomposed Sara Am and an extra tone mark inside it, น + Nikhahit + Mai Ek + Mai Tho + Sara Aa, and you expect the term น้ำ, because ThaiNormalizer documents that it recomposes Nikhahit + tone + Sara Aa into Sara Am and (per its code comment and upstream test) keeps the last of two different tone marks. ThaiNormalizer tests for the decomposed Sara Am in one forward pass over the raw characters, before it converts a following Lakkhangyao and before its last step removes the extra or repeated tone mark, and it never checks again, so the output is นํ้า (U+0E19 U+0E4D U+0E49 U+0E32), still the decomposed form; a query for น้ำ misses the document, while a second normalize call, or the same two tone marks typed in the other order, gives น้ำ. When the token filter runs without ThaiCharFilter, ท + Nikhahit + Lakkhangyao likewise gives ทํา instead of ทำ, and a doubled tone mark inside the decomposed form gives นํ้า.
 
+The test shows that the default `ThaiAnalyzer` (ThaiNormalizer) leaves a decomposed Sara Am in place when two different tone marks sit inside it: น + Nikhahit + Mai Ek + Mai Tho + Sara Aa is not recomposed to น้ำ ("water").
+
 ## Expected vs actual
 
-- Expected: น้ำ typed as Nikhahit + Mai Ek + Mai Tho + Sara Aa normalizes to น้ำ, so a `TermQuery` for น้ำ finds both documents.
-- Actual: It stays นํ้า (U+0E19 U+0E4D U+0E49 U+0E32): the `TermQuery` finds 1 of 2, and `Analyzer.normalize` returns นํ้า.
+`ThaiAnalyzer.normalize` should give U+0E19 U+0E49 U+0E33; actual U+0E19 U+0E4D U+0E49 U+0E32 (still Nikhahit + Sara Aa), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/th/TestThaiNormalizerRuleOrder.java](src/org/apache/lucene/analysis/th/TestThaiNormalizerRuleOrder.java) (JUnit test)
+- [src/org/apache/lucene/analysis/th/TestThaiSaraAmTwoTones.java](src/org/apache/lucene/analysis/th/TestThaiSaraAmTwoTones.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,20 +39,13 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed 3390C2B7
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=3390C2B7 \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.th.TestThaiNormalizerRuleOrder
+     execute --select-class org.apache.lucene.analysis.th.TestThaiSaraAmTwoTones
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestThaiNormalizerCombinedTypos.java](TestThaiNormalizerCombinedTypos.java)
-- [fix-option-A.diff](fix-option-A.diff)
-- [TestThaiNormalizerRuleOrder.java](TestThaiNormalizerRuleOrder.java)
-- [TestThaiNormalizerSaraAmCombined.java](TestThaiNormalizerSaraAmCombined.java)
 
 ## Feedback
 

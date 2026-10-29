@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You load a Hunspell dictionary whose affix file says SET ISO8859-10 (Latin-6, Nordic), a value the hunspell(5) man page lists among the possible SET values, or says ISO8859-14 (Latin-8, Celtic) spelled ISO-8859-14 or iso8859-14, and expect it to load: C Hunspell lower-cases the SET value and drops non-alphanumerics before its table lookup, and in Lucene every other listed ISO-8859 part loads in its hyphenated and lower-case spellings (ISO-8859-2, iso8859-2,...). Instead the Dictionary constructor throws java.nio.charset.UnsupportedCharsetException, because Dictionary.getDecoder uses Lucene's own ISO8859_14Decoder only for the exact string "ISO8859-14" and otherwise calls Charset.forName, and the JDK has no ISO-8859-10 or ISO-8859-14 charset under any name. Spellings that do load decode every letter byte correctly, so nothing is silently wrong; the dictionary is refused.
 
+The test shows that a Hunspell `Dictionary` whose affix file says `SET ISO8859-10` (a value hunspell(5) lists) cannot be loaded.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The Dictionary constructor throws java.nio.charset.UnsupportedCharsetException, because Dictionary.getDecoder uses Lucene's own ISO8859_14Decoder only for the exact string "ISO8859-14" and otherwise calls Charset.forName, and the JDK has no ISO-8859-10 or ISO-8859-14 charset under any name.
+Expected the dictionary to load (byte 0xBF read as U+014B); actual: the constructor throws `UnsupportedCharsetException: ISO8859-10` from `Charset.forName` in `Dictionary.getDecoder` (`expected SET ISO8859-10 to load, got java.nio.charset.UnsupportedCharsetException: ISO8859-10`), with -ea and -da.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/hunspell/TestSetEncodingNames.java](src/org/apache/lucene/analysis/hunspell/TestSetEncodingNames.java) (JUnit test)
+- [src/org/apache/lucene/analysis/hunspell/TestSetEncodingIso8859_10.java](src/org/apache/lucene/analysis/hunspell/TestSetEncodingIso8859_10.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -35,10 +37,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.hunspell.TestSetEncodingNames
+     execute --select-class org.apache.lucene.analysis.hunspell.TestSetEncodingIso8859_10
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

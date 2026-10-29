@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You parse a quoted phrase such as "jo* id:2*" or "jo* id:/2/" with ComplexPhraseQueryParser on the default field name; its class javadoc says the second pass checks that all embedded clauses refer to the same field, and it rejects "jo* id:2", "jo* id:2?", "jo* id:2~1" and "jo* id:[1 TO 2]" at parse time, so you expect a parse error. Instead parse succeeds, because the check is wired into newTermQuery, getWildcardQuery, getRangeQuery and getFuzzyQuery but the class never overrides getPrefixQuery or getRegexpQuery, and the search then throws IllegalArgumentException 'Clauses must have same field.'. A one-clause phrase such as name:"id:2*" also parses, and because rewrite returns a lone multi-term query unchanged, it searches field id and returns the document whose id is 2.
 
+The test shows that ComplexPhraseQueryParser skips its same-field check for a prefix clause nested in a phrase, so parse("\"jo* id:2*\"") on default field name is accepted.
+
 ## Expected vs actual
 
-- Expected: You expect a parse error.
-- Actual: parse succeeds, because the check is wired into newTermQuery, getWildcardQuery, getRangeQuery and getFuzzyQuery but the class never overrides getPrefixQuery or getRegexpQuery, and the search then throws IllegalArgumentException 'Clauses must have same field.'.
+Expected: ParseException ("Cannot have clause for field \"id\" nested in phrase for field \"name\""), as for "jo* id:2?". Actual (-ea and -da): parse() succeeds.
 
 ## Files
 
-- [src/org/apache/lucene/queryparser/complexPhrase/TestComplexPhraseOtherFieldClauses.java](src/org/apache/lucene/queryparser/complexPhrase/TestComplexPhraseOtherFieldClauses.java) (JUnit test)
+- [src/org/apache/lucene/queryparser/complexPhrase/TestComplexPhrasePrefixClauseOtherField.java](src/org/apache/lucene/queryparser/complexPhrase/TestComplexPhrasePrefixClauseOtherField.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,10 +40,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions on, seed DEADBEEF, default flags
+# run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queryparser.complexPhrase.TestComplexPhraseOtherFieldClauses
+     execute --select-class org.apache.lucene.queryparser.complexPhrase.TestComplexPhrasePrefixClauseOtherField
 ```
 
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.

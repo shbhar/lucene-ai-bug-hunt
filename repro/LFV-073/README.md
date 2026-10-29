@@ -8,25 +8,22 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You validate a custom Similarity with lucene-test-framework's BaseSimilarityTestCase. You expect it to check that scores do not decrease as terms get rarer, as documented. Instead the check rescores term instead of prevTerm and can never fail; fixing it fails TestBasicModelG 8/8, Indri 4/8 and SPL 1/8 seeds.
 
+The test shows that BaseSimilarityTestCase.testRandomScoring accepts a Similarity whose scores drop as terms get rarer, although its javadoc says it checks that.
+
 ## Expected vs actual
 
-- Expected: You expect it to check that scores do not decrease as terms get rarer, as documented.
-- Actual: The check rescores term instead of prevTerm and can never fail; fixing it fails TestBasicModelG 8/8, Indri 4/8 and SPL 1/8 seeds.
+Expected an AssertionError from testRandomScoring() for a log1p(docFreq)-weighted similarity; actual: no exception, because doTestScoring scores term again instead of prevTerm.
 
 ## Files
 
-- [src/AntiIdfSimilarity.java](src/AntiIdfSimilarity.java)
-- [src/AntiIdfSimilarityConformanceTest.java](src/AntiIdfSimilarityConformanceTest.java) (JUnit test)
-- [src/RealisticRarerTermTest.java](src/RealisticRarerTermTest.java) (JUnit test)
-- [src/VerifyRarerTermCheckTest.java](src/VerifyRarerTermCheckTest.java) (JUnit test)
+- [src/org/apache/lucene/search/similarities/TestBaseSimilarityRarerTermCheck.java](src/org/apache/lucene/search/similarities/TestBaseSimilarityRarerTermCheck.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
-- This repro reads private Lucene state by reflection (setAccessible), so it depends on internals that may change.
 
 ```bash
 # Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -40,15 +37,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class VerifyRarerTermCheckTest
-
-# run 2: assertions on, seed DEADBEEF, default flags
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class AntiIdfSimilarityConformanceTest \
-       --select-class RealisticRarerTermTest
+     execute --select-class org.apache.lucene.search.similarities.TestBaseSimilarityRarerTermCheck
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

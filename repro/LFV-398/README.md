@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 Since 9.1 the standard flexible parser reads an '@' anywhere in a term as syntax (it must be escaped, as in user\@example.com), and &amp;&amp; and || are its AND and OR operators, so QueryNode#toQueryString, documented to return 'a query string understood by the query parser', has to escape them. Its escaper EscapeQuerySyntaxImpl escapes '@' only when it is the first character of a term and lists AND, OR and NOT but not &amp;&amp; or || as reserved words, so the node for 'user\@example.com' prints 'df:user@example.com' and the nodes for '\&amp;&amp;' and '\||' print 'df:&amp;&amp;' and 'df:||'. Parsing any of these strings again throws INVALID_SYNTAX_CANNOT_PARSE; with a two-line fix to the escaper's tables every printable-ASCII term of length 1-3 round-trips.
 
+The test shows that flexible `QueryNode#toQueryString(new EscapeQuerySyntaxImpl())` does not escape an inner `@` (`user\@example.com`) or the term `&&` (`\&&`), so the printed query string does not parse.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+Expected: `df:user\@example.com` and `df:\&&` (both parse back). Actual: `df:user@example.com` and `df:&&` (INVALID_SYNTAX_CANNOT_PARSE when re-parsed).
 
 ## Files
 
@@ -19,8 +20,8 @@ Since 9.1 the standard flexible parser reads an '@' anywhere in a term as syntax
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 2 test(s) run, 2 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

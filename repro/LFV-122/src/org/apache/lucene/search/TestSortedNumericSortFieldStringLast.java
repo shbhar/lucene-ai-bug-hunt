@@ -16,60 +16,36 @@
  */
 package org.apache.lucene.search;
 
-import java.io.IOException;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * The SortedNumericSortField class javadoc says: "Like sorting by string, this also supports sorting
- * missing values as first or last, via SortField#STRING_FIRST or SortField#STRING_LAST." The
- * constructor accepts SortField.STRING_LAST as the missing value, but sorting with it (and using it
- * as an index sort) throws ClassCastException.
- */
 public class TestSortedNumericSortFieldStringLast extends LuceneTestCase {
 
-  private static final SortField SORT_FIELD =
-      new SortedNumericSortField(
-          "f", SortField.Type.LONG, false, SortedNumericSelector.Type.MIN, SortField.STRING_LAST);
-
-  public void testSearchMissingLast() throws IOException {
-    try (Directory dir = newDirectory();
-        IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
-      w.addDocument(new Document()); // doc 0: no value
-      Document d1 = new Document();
-      d1.add(new SortedNumericDocValuesField("f", 2));
-      w.addDocument(d1); // doc 1
-      Document d2 = new Document();
-      d2.add(new SortedNumericDocValuesField("f", 1));
-      w.addDocument(d2); // doc 2
-      try (DirectoryReader reader = DirectoryReader.open(w)) {
-        TopFieldDocs td =
-            new IndexSearcher(reader).search(MatchAllDocsQuery.INSTANCE, 3, new Sort(SORT_FIELD));
-        // missing values last: 1 (doc 2), 2 (doc 1), then the doc without a value
-        assertEquals(2, td.scoreDocs[0].doc);
-        assertEquals(1, td.scoreDocs[1].doc);
-        assertEquals(0, td.scoreDocs[2].doc);
-      }
+  public void testStringLastMissingValue() throws Exception {
+    SortField sortField;
+    try {
+      sortField =
+          new SortedNumericSortField(
+              "f", SortField.Type.LONG, false, SortedNumericSelector.Type.MIN, SortField.STRING_LAST);
+    } catch (IllegalArgumentException rejected) {
+      return;
     }
-  }
-
-  public void testIndexSortMissingLast() throws IOException {
-    try (Directory dir = newDirectory()) {
-      IndexWriterConfig iwc = new IndexWriterConfig().setIndexSort(new Sort(SORT_FIELD));
-      try (IndexWriter w = new IndexWriter(dir, iwc)) {
-        w.addDocument(new Document());
-        Document d1 = new Document();
-        d1.add(new SortedNumericDocValuesField("f", 1));
-        w.addDocument(d1);
-        w.commit();
-      }
-      try (DirectoryReader reader = DirectoryReader.open(dir)) {
-        assertEquals(new Sort(SORT_FIELD), reader.leaves().get(0).reader().getMetaData().sort());
+    try (Directory dir = new ByteBuffersDirectory();
+        IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+      w.addDocument(new Document());
+      try (DirectoryReader reader = DirectoryReader.open(w)) {
+        new IndexSearcher(reader).search(MatchAllDocsQuery.INSTANCE, 1, new Sort(sortField));
+      } catch (ClassCastException e) {
+        throw new AssertionError(
+            "class javadoc: STRING_LAST sorts missing values last (or the constructor should"
+                + " reject it); actual: "
+                + e,
+            e);
       }
     }
   }

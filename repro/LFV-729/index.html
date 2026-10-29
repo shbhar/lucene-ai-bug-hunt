@@ -18,19 +18,20 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>A facet dimension set to DrillDownTermsIndexing.NONE that shares its index field ($facets by default) with term-indexing dimensions makes FacetsConfig emit two schemas for that field, so since 9.0.0 IndexWriter rejects documents of one kind once a document of the other kind is indexed, and after a commit until the index is cleared or rebuilt</h1>
-<p class="facts small"><span>Bug LFV-729</span><span>Area: facet / FacetsConfig drill-down term indexing (DrillDownTermsIndexing.NONE in a shared indexFieldName) vs the core per-field schema check (IndexingChain FieldSchema, FieldInfo.verifySameIndexOptions)</span><span>Priority: medium</span><span>Impact: wrong error</span><span>Novelty: new</span></p>
+<p class="facts small"><span>Bug LFV-729</span><span>Area: facet / FacetsConfig drill-down term indexing (DrillDownTermsIndexing.NONE in a shared indexFieldName) vs the core per-field schema check (IndexingChain FieldSchema, FieldInfo.verifySameIndexOptions)</span><span>Priority: low</span><span>Impact: wrong error</span><span>Novelty: new</span></p>
 <p><a href="../../bugs/LFV-729.html">Bug page for LFV-729</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You call config.setDrillDownTermsIndexing(&quot;rating&quot;, NONE), leave every dimension in the default index field $facets, and index one document with only FacetField(&quot;rating&quot;, &quot;5&quot;) and then one with FacetField(&quot;author&quot;, &quot;Bob&quot;); you expect both to be indexed, as they are on Lucene 8.9 to 8.11 and as they are when rating gets its own index field. FacetsConfig.build gives the first document a doc-values-only $facets (NONE adds no drill-down terms) and the second a $facets with drill-down terms, and since 9.0 Lucene requires one schema per field, so the second addDocument throws IllegalArgumentException &#x27;Inconsistency of field data structures across documents for field [$facets] of doc [1]. index options: expected &#x27;NONE&#x27;, but it has &#x27;DOCS&#x27;&#x27; (with taxonomy facets the reverse order fails the same way). After a commit, a new IndexWriter keeps rejecting documents of the other kind (&#x27;cannot change field &quot;$facets&quot; from index options=NONE to inconsistent index options=DOCS&#x27;) until the index is cleared or rebuilt.</p>
+<p>The test shows that with <code>FacetsConfig.setDrillDownTermsIndexing(&quot;rating&quot;, NONE)</code> and every dimension in the default <code>$facets</code> field, a sorted-set facet document with only &quot;rating&quot; followed by one with only &quot;author&quot; makes <code>IndexWriter</code> reject the second document, because FacetsConfig gives <code>$facets</code> two different schemas.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> Both documents indexed in every order, <code>rating/5</code> and <code>author/Bob</code> counted once each, and <code>author</code> drills down.</li><li><b>Actual:</b> The second <code>addDocument</code> throws <code>IllegalArgumentException</code> (&quot;... field [$facets]... index options: expected &#x27;NONE&#x27;, but it has &#x27;DOCS&#x27;&quot;, or the reverse); after a commit: &quot;cannot change field &quot;$facets&quot;...&quot;.</li></ul>
+<p>Expected: both documents are indexed. Actual: the second <code>addDocument</code> throws <code>IllegalArgumentException: Inconsistency of field data structures across documents for field [$facets] of doc [1]. index options: expected &#x27;NONE&#x27;, but it has &#x27;DOCS&#x27;.</code></p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/facet/TestDrillDownNoneSharedField.java"><code>src/org/apache/lucene/facet/TestDrillDownNoneSharedField.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/DrillDownNoneSharedFieldMain.java"><code>src/DrillDownNoneSharedFieldMain.java</code></a> <span class="dim">(main() class)</span></li>
+<li><a href="src/org/apache/lucene/facet/TestDrillDownNoneSharedIndexField.java"><code>src/org/apache/lucene/facet/TestDrillDownNoneSharedIndexField.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
+<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
@@ -46,12 +47,7 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.facet.TestDrillDownNoneSharedField
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; DrillDownNoneSharedFieldMain</code></pre>
+     execute --select-class org.apache.lucene.facet.TestDrillDownNoneSharedIndexField</code></pre>
 <p class="small">The module(s) facet also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestDrillDownTermsNoneSharedIndexField.java"><code>TestDrillDownTermsNoneSharedIndexField.java</code></a></li><li><a href="TestDrillDownNoneSharedField.java"><code>TestDrillDownNoneSharedField.java</code></a></li><li><a href="TestNoneDimSharedIndexField.java"><code>TestNoneDimSharedIndexField.java</code></a></li><li><a href="DrillDownNoneHistoryMain.java"><code>DrillDownNoneHistoryMain.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

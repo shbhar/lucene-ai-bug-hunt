@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You set a text on an OpenNLPSentenceBreakIterator and call next(n) to jump n sentence boundaries, expecting the n-th boundary, as java.text.BreakIterator#next(int) promises ('Returns the nth boundary from the current boundary') and as n calls of next give. When that boundary is the end of the text, next(n) returns DONE (-1) instead: with the model-free NLPSentenceDetectorOp on 'Whole text is one sentence.', next from first returns 27 but next(1) returns -1, and on the module's three-sentence test text (boundaries 0, 31, 59, 102) next(3) from first returns -1 instead of 102 while next(2) correctly returns 59. The iterator is still moved to the end, so only the returned value is wrong; code that steps with next(n) until DONE loses the final sentence group.
 
+The test shows that OpenNLPSentenceBreakIterator.next(1) returns DONE instead of the end of the text when that is the next boundary (no model file: new NLPSentenceDetectorOp()).
+
 ## Expected vs actual
 
-- Expected: `next(1)` from `first` returns 27, like `next`; `next(3)` from `first` returns 102, the end of the text.
-- Actual: Both return -1 (`DONE`): 2 of 3 tests fail, with assertions on and off; the controls pass, and `current` is 102 after `next(3)`.
+Expected next(1) from first() on "One sentence." to return 13, as next() does; actual -1 (DONE) on main, with -ea and -da.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/opennlp/TestSentenceBreakIteratorNextN.java](src/org/apache/lucene/analysis/opennlp/TestSentenceBreakIteratorNextN.java) (JUnit test)
+- [src/org/apache/lucene/analysis/opennlp/TestSentenceBreakIteratorNextOne.java](src/org/apache/lucene/analysis/opennlp/TestSentenceBreakIteratorNextOne.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,23 +40,15 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions on, seed 1880C0DE
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=1880C0DE \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.opennlp.TestSentenceBreakIteratorNextN
+     execute --select-class org.apache.lucene.analysis.opennlp.TestSentenceBreakIteratorNextOne
 ```
 
 The module(s) analysis-opennlp also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestOpenNLPSentenceBreakIteratorNextN.java](TestOpenNLPSentenceBreakIteratorNextN.java)
-- [test-additions.diff](test-additions.diff)
-- [fix-option-A.diff](fix-option-A.diff)
-- [TestSentenceBreakIteratorNextN.java](TestSentenceBreakIteratorNextN.java)
-- [NextNHistoryProbe.java](NextNHistoryProbe.java)
 
 ## Feedback
 

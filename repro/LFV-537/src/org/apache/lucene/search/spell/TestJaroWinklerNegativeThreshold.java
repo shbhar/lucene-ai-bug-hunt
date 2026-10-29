@@ -18,26 +18,16 @@ package org.apache.lucene.search.spell;
 
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * JaroWinklerDistance.setThreshold: "Set to a negative value to get the Jaro distance." The bonus
- * is skipped only when the Jaro similarity is below the threshold, so a negative threshold applies
- * the Winkler bonus to every pair instead; only a threshold above 1 gives the Jaro distance.
- */
 public class TestJaroWinklerNegativeThreshold extends LuceneTestCase {
 
   public void testNegativeThresholdGivesJaro() {
-    // martha / marhta: 6 matches, 1 transposition -> Jaro = (6/6 + 6/6 + 5/6) / 3 = 0.9444...
-    float jaro = (1f + 1f + 5f / 6f) / 3f;
     JaroWinklerDistance jw = new JaroWinklerDistance();
-    float jaroWinkler = jw.getDistance("martha", "marhta"); // with the Winkler bonus: 0.9611
-    assertTrue(jaroWinkler > jaro + 0.01f);
-
-    JaroWinklerDistance above1 = new JaroWinklerDistance();
-    above1.setThreshold(2f); // control: a threshold above 1 does disable the bonus
-    assertEquals(jaro, above1.getDistance("martha", "marhta"), 1e-6f);
-
-    jw.setThreshold(-1f);
+    jw.setThreshold(-1);
+    // expected the Jaro value (1 + 1 + 5/6) / 3 = 0.9444, actual the Jaro-Winkler value 0.9611
     assertEquals(
-        "setThreshold(-1) should give the Jaro distance", jaro, jw.getDistance("martha", "marhta"), 1e-6f);
+        "setThreshold javadoc: a negative value gives the Jaro distance",
+        (1f + 1f + 5f / 6f) / 3f,
+        jw.getDistance("martha", "marhta"),
+        1e-6f);
   }
 }

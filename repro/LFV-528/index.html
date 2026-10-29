@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index &#x27;a cup of tea&#x27; with WhitespaceTokenizer, StopFilter{a, of, the} and ShingleFilter(min 3, max 3) with unigrams on (the default), and expect every real word to be indexed as a unigram, because the javadoc says unigrams &#x27;are always output, regardless of whether any shingles are available&#x27; and that the unigram option &#x27;is independent of the min shingle size&#x27;. Instead, when the window starts with the filler left by the removed stop word, incrementToken skips the all-filler unigram, finds fewer than minShingleSize positions left for a shingle and returns false, which ends the stream although &#x27;tea&#x27; is still in its window: &#x27;tea&#x27; is never indexed and TermQuery(tea) finds 0 documents. With min 4 up to two trailing words are lost, a value such as &#x27;the cat&#x27; yields no token at all, and nothing throws, with assertions on or off.</p>
+<p>The test shows that ShingleFilter(3, 3) with unigrams on ends the stream early after a removed stop word, so &quot;the cat&quot; yields no token at all.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> Every word as a unigram: <code>tea</code>@3 for &quot;a cup of tea&quot; (min 3), <code>two</code>@2 and <code>three</code>@3 for &quot;one of two three&quot; (min 4), <code>cat</code>@1 for &quot;the cat&quot;; <code>TermQuery(title:tea)</code> finds 1 document.</li><li><b>Actual:</b> No <code>tea</code>, <code>two</code>, <code>three</code> or <code>cat</code> (&quot;the cat&quot; yields no token at all) and 0 hits for <code>title:tea</code>: 4 of 5 tests fail, assertions on and off.</li></ul>
+<p>Expected: [cat] (the javadoc says unigrams are always output, even when no shingle fits). Actual (-ea and -da): [].</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/analysis/shingle/TestShingleFilterTrailingHoleUnigrams.java"><code>src/org/apache/lucene/analysis/shingle/TestShingleFilterTrailingHoleUnigrams.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/analysis/shingle/TestShingleFilterHoleBeforeLastWord.java"><code>src/org/apache/lucene/analysis/shingle/TestShingleFilterHoleBeforeLastWord.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -45,7 +47,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.shingle.TestShingleFilterTrailingHoleUnigrams</code></pre>
+     execute --select-class org.apache.lucene.analysis.shingle.TestShingleFilterHoleBeforeLastWord</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestShingleFilterHoleNearEnd.java"><code>TestShingleFilterHoleNearEnd.java</code></a></li><li><a href="shingle-skip-empty-position.diff"><code>shingle-skip-empty-position.diff</code></a></li><li><a href="ShingleHoleProbe.java"><code>ShingleHoleProbe.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

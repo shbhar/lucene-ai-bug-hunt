@@ -1,55 +1,41 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.lucene.analysis.hunspell;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.List;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * A suffix that a prefix allows through its continuation class ("PFX U 0 kilo/S") is accepted by the
- * spell-checker and analysed as a form of the root, but getAllWordForms never generates it.
- * Public API only.
- */
 public class TestWordFormsPrefixEnabledSuffix extends LuceneTestCase {
 
-  private static Hunspell load(String aff, String dic) throws Exception {
-    Dictionary d =
+  public void testSuffixEnabledByPrefixIsGenerated() throws Exception {
+    String aff = "PFX U Y 1\nPFX U 0 kilo/S .\nSFX S Y 1\nSFX S 0 s .\n";
+    Dictionary dictionary =
         new Dictionary(
             new ByteBuffersDirectory(),
             "dict",
             new ByteArrayInputStream(aff.getBytes(StandardCharsets.UTF_8)),
-            new ByteArrayInputStream(dic.getBytes(StandardCharsets.UTF_8)));
-    return new Hunspell(d);
-  }
-
-  public void testSuffixEnabledByPrefixContinuationIsGenerated() throws Exception {
-    // A unit-prefix class: the empty prefix and "kilo", both allowing the plural suffix S.
-    String aff =
-        """
-        SET UTF-8
-
-        PFX U Y 2
-        PFX U 0 0/S .
-        PFX U 0 kilo/S .
-
-        SFX S Y 1
-        SFX S 0 s .
-        """;
-    Hunspell h = load(aff, "1\nampere/U\n");
-
-    // The spell-checker accepts the plural forms and analyses them as forms of ampere/U.
-    for (String w : new String[] {"ampere", "amperes", "kiloampere", "kiloamperes"}) {
-      assertTrue(w, h.spell(w));
-      assertTrue(
-          w + " analysed as a form of ampere/U",
-          h.analyzeSimpleWord(w).stream().anyMatch(a -> a.getDictEntry().getStem().equals("ampere")));
-    }
-
-    Set<String> forms = new TreeSet<>();
-    for (AffixedWord w : h.getAllWordForms("ampere")) forms.add(w.getWord());
-    // "Generate all word forms for all dictionary entries with the given root word."
-    assertEquals(Set.of("ampere", "amperes", "kiloampere", "kiloamperes"), forms);
+            new ByteArrayInputStream("1\nampere/U\n".getBytes(StandardCharsets.UTF_8)));
+    List<String> forms =
+        new Hunspell(dictionary)
+            .getAllWordForms("ampere").stream().map(AffixedWord::getWord).sorted().toList();
+    // expected kiloamperes too (the prefix kilo/S allows the suffix s); actual [ampere, kiloampere]
+    assertEquals(List.of("ampere", "kiloampere", "kiloamperes"), forms);
   }
 }

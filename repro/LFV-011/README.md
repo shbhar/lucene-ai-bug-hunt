@@ -10,20 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You use index sorting with a parent field and document blocks, and delete only the parent document of a block. You expect later merges to work. Instead MultiSorter finds no parent for the orphaned child (nextSetBit returns NO_MORE_DOCS), every later merge of that segment throws (an EOFException with the default codec on a file-system directory, IndexOutOfBoundsException on ByteBuffersDirectory), the writer closes tragically and uncommitted documents are lost.
 
+The test shows that with an index sort and `setParentField`, deleting only the parent of a block `[c1, p1]` leaves the merged segment `[x, c1]` ending with a parentless child, and the next `forceMerge(1)` throws.
+
 ## Expected vs actual
 
-- Expected: Every `forceMerge(1)` works, the writer stays open, the uncommitted z survives, and `SortingCodecReader.wrap` returns a 2-document reader.
-- Actual: The second merge throws `EOFException: read past EOF (pos=268435455)` and closes the writer; `SortingCodecReader.wrap` throws `ArrayIndexOutOfBoundsException: Index 2147483647`.
+Expected: the second merge succeeds; actual (-ea and -da): IndexOutOfBoundsException from `MultiSorter.setComparableValues` (MultiSorter.java:166-168) reading the sort value at `parents.nextSetBit(docID)` = NO_MORE_DOCS.
 
 ## Files
 
-- [src/TestOrphanMinimal.java](src/TestOrphanMinimal.java) (JUnit test)
+- [src/org/apache/lucene/index/TestIndexSortDeletedParentMerge.java](src/org/apache/lucene/index/TestIndexSortDeletedParentMerge.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
-- Recorded outcome of run 1 on main a9779ef3c193: 2 test(s) run, 2 failed (testMergeAfterDeletingBlockParent, testMergeAfterDeletingBlockParentAssertingCodec).
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -39,18 +39,12 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class TestOrphanMinimal
+     execute --select-class org.apache.lucene.index.TestIndexSortDeletedParentMerge
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestIndexSortParentOnlyDelete.java](TestIndexSortParentOnlyDelete.java)
-- [TestIndexSortOrphanChildMerge.java](TestIndexSortOrphanChildMerge.java)
-- [parent-or-self.diff](parent-or-self.diff)
 
 ## Feedback
 

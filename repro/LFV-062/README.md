@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You call Operations.topoSortStates on an automaton whose only cycles are self-loops on states that push no child, such as determinized ab* or a+. You expect IllegalArgumentException for a cyclic automaton. Instead it returns an order.
 
+The test shows that `Operations.topoSortStates` does not detect a cycle made only of a self-loop on a non-initial state (automaton `0 -a-> 1(accept)`, `1 -b-> 1`).
+
 ## Expected vs actual
 
-- Expected: You expect IllegalArgumentException for a cyclic automaton.
-- Actual: It returns an order.
+Expected `IllegalArgumentException` (the javadoc says it throws when a cycle is detected); actual: it returns the order `[0, 1]` (`Expected exception IllegalArgumentException but no exception was thrown`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/TestTopoSortSelfLoopV3.java](src/TestTopoSortSelfLoopV3.java) (JUnit test)
+- [src/org/apache/lucene/util/automaton/TestTopoSortSelfLoop.java](src/org/apache/lucene/util/automaton/TestTopoSortSelfLoop.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -36,9 +37,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class TestTopoSortSelfLoopV3
+     execute --select-class org.apache.lucene.util.automaton.TestTopoSortSelfLoop
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

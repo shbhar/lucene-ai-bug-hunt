@@ -10,19 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You run DrillSideways without an executor on a DrillDownQuery with two or more dimensions, one of which is a two-phase query such as a distance or range drill-down with a fast-match query or a PhraseQuery, and expect the hits to match every dimension and each dimension's sideways counts to cover the documents that match all the other dimensions. Instead, on a segment with no deleted documents, when that dimension is the second-cheapest by approximation cost and the base query is broad, DrillSidewaysScorer never calls its TwoPhaseIterator#matches, because the condition 'acceptDocs == null || acceptDocs.get(docID) &amp;&amp; (dc.twoPhase == null || dc.twoPhase.matches)' parses as 'acceptDocs == null || (get &amp;&amp; matches)'. So every document in that dimension's approximation (inside the bounding box but outside the radius, the phrase words in another order) is treated as matching it, returned as a hit and counted in the facets, while concurrent DrillSideways and plain boolean queries on the same searcher give the correct sets.
 
+The test shows that sequential DrillSideways (no executor) on a deletion-free segment never calls the two-phase `matches()` of the second-cheapest drill-down dimension (here a PhraseQuery) in the drill-down-advance strategy, so a doc that is only in the phrase approximation is returned as a hit.
+
 ## Expected vs actual
 
-- Expected: 1 hit (doc 0, acme at 5) and brand sideways counts `{acme=1, other=1}`, as `searcher.count(ddq)` and concurrent DrillSideways return.
-- Actual: 2 hits (docs 0 and 1; doc 1 costs 50) and brand sideways counts `{acme=2, other=2}`, with assertions on and off.
+Expected: drill-down hits [0] (only doc 0 has a:1 and the phrase "x y"). Actual: [0, 1] (doc 1 has "y x"), with -ea and -da.
 
 ## Files
 
-- [src/org/apache/lucene/facet/TestDrillSidewaysDim1TwoPhase.java](src/org/apache/lucene/facet/TestDrillSidewaysDim1TwoPhase.java) (JUnit test)
+- [src/org/apache/lucene/facet/TestDrillSidewaysTwoPhaseSecondDim.java](src/org/apache/lucene/facet/TestDrillSidewaysTwoPhaseSecondDim.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,18 +42,12 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.facet.TestDrillSidewaysDim1TwoPhase
+     execute --select-class org.apache.lucene.facet.TestDrillSidewaysTwoPhaseSecondDim
 ```
 
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestDrillSidewaysTwoPhaseDrillDown.java](TestDrillSidewaysTwoPhaseDrillDown.java)
-- [fix-with-test.diff](fix-with-test.diff)
-- [TestDrillSidewaysDim1TwoPhase.java](TestDrillSidewaysDim1TwoPhase.java)
 
 ## Feedback
 

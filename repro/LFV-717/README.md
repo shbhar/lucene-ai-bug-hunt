@@ -10,19 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You compile a custom nori system dictionary with DictionaryBuilder from MeCab-format rows in which the noun 가 (NNG) and the particle 는 (JX) share left context id 1, and expect the builder either to reject the source (the compiled format keeps only one part of speech per left id, and kuromoji's builder throws 'Multiple entries found for leftID' for the same case) or each word to keep its own part of speech. Instead, with assertions off, the builder overwrites the single slot for left id 1 with the part of speech of the row it writes last, because the only check is an assert (TokenInfoDictionaryEntryWriter.java:100): 가 then reports left POS JX, and KoreanTokenizer followed by KoreanPartOfSpeechStopFilter with DEFAULT_STOP_TAGS returns no token instead of [가]. With -ea the build fails with a bare AssertionError rather than an IllegalArgumentException that names the problem.
 
+The test shows that nori's DictionaryBuilder checks a left-id/part-of-speech collision (가 NNG and 는 JX on left id 1) only with a Java assert: with -da the build succeeds and 가 silently gets the part of speech of the last row written.
+
 ## Expected vs actual
 
-- Expected: The builder rejects the two rows with an exception naming left id 1, or 가 keeps NNG and survives the default stop tags as `[가]`.
-- Actual: Assertions off: the build succeeds, 가 reports JX and the stop filter returns ``; assertions on: a bare `AssertionError` at `TokenInfoDictionaryEntryWriter.java:100`.
+Expected: an IllegalArgumentException from DictionaryBuilder.build, or 가 keeps NNG. Actual: with -da `expected:<NNG> but was:<JX>`; with -ea a bare AssertionError at TokenInfoDictionaryEntryWriter.putEntry:100.
 
 ## Files
 
 - [src/org/apache/lucene/analysis/ko/dict/TestNoriBuilderLeftIdPosCollision.java](src/org/apache/lucene/analysis/ko/dict/TestNoriBuilderLeftIdPosCollision.java) (JUnit test)
-- [src/org/apache/lucene/analysis/ko/dict/TestNoriBuilderLeftIdPosCollision9x.java](src/org/apache/lucene/analysis/ko/dict/TestNoriBuilderLeftIdPosCollision9x.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -39,28 +40,15 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.ko.dict.TestNoriBuilderLeftIdPosCollision
-
-# run 2: assertions on, seed DEADBEEF, default flags
+# run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.ko.dict.TestNoriBuilderLeftIdPosCollision9x
+     execute --select-class org.apache.lucene.analysis.ko.dict.TestNoriBuilderLeftIdPosCollision
 ```
 
 The module(s) analysis-nori also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestNoriBuilderLeftIdPosCollision.java](TestNoriBuilderLeftIdPosCollision.java)
-- [TestNoriLeftIdPosCollision.java](TestNoriLeftIdPosCollision.java)
-- [TestNoriBuilderLeftIdPosCollision9x.java](TestNoriBuilderLeftIdPosCollision9x.java)
-- [TestLeftIdPosIntent.java](TestLeftIdPosIntent.java)
-- [NoriHistoryBuild.java](NoriHistoryBuild.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/cjk-compiled-dictionary-source-round-trip/](../../models/cjk-compiled-dictionary-source-round-trip/)
 

@@ -23,15 +23,15 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You analyse &#x27;abc the&#x27; with a whitespace tokenizer, StopFilter and then NGramTokenFilter(3,3) or EdgeNGramTokenFilter(1,3); StopFilter reports the removed trailing &#x27;the&#x27; as a final position increment of 1 in end, and because the n-gram filter drops nothing here you expect end to still report 1. Instead both filters call super.end and then replace that value with only the increments of tokens they dropped themselves, so end reports 0 (&#x27;abc x the&#x27; gives 1 instead of 2) and the trailing hole is lost. In a multi-valued field with Lucene&#x27;s default gap 0, the second value &#x27;def&#x27; of [&#x27;abc the&#x27;, &#x27;def&#x27;] is then indexed at position 1 instead of 2, and PhraseQuery(&#x27;abc&#x27;,&#x27;def&#x27;) matches the document (1 hit) where the same chain without the n-gram filter gives 0 hits (executed).</p>
+<p>The test shows that <code>NGramTokenFilter.end()</code> overwrites the final position increment of its input, so the trailing hole <code>StopFilter</code> leaves for a removed last word is lost.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> Final increments 1 for <code>abc the</code> and 2 for <code>abc x the</code>; over the values <code>abc the</code> and <code>def</code>, 0 hits for the phrase <code>abc def</code> and 1 for the hole-keeping phrase, as without the n-gram filter.</li><li><b>Actual:</b> <code>end=0</code> and <code>end=1</code> for both filters, and 1 and 0 phrase hits: 3 of 3 tests fail, assertions on and off; the two controls pass.</li></ul>
+<p>For whitespace -&gt; <code>StopFilter(&quot;the&quot;)</code> -&gt; <code>NGramTokenFilter(3, 3)</code> on <code>abc the</code>, expected a final position increment of 1 after <code>end()</code>; actual 0, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/analysis/ngram/TestNGramFiltersFinalPositionIncrement.java"><code>src/org/apache/lucene/analysis/ngram/TestNGramFiltersFinalPositionIncrement.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/repro/NGramEndPosIncMain.java"><code>src/repro/NGramEndPosIncMain.java</code></a> <span class="dim">(main() class)</span></li>
+<li><a href="src/org/apache/lucene/analysis/ngram/TestNGramTokenFilterFinalPositionIncrement.java"><code>src/org/apache/lucene/analysis/ngram/TestNGramTokenFilterFinalPositionIncrement.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
+<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
@@ -47,11 +47,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.ngram.TestNGramFiltersFinalPositionIncrement
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; repro.NGramEndPosIncMain</code></pre>
+     execute --select-class org.apache.lucene.analysis.ngram.TestNGramTokenFilterFinalPositionIncrement</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestNGramFiltersEndPositionIncrement.java"><code>TestNGramFiltersEndPositionIncrement.java</code></a></li><li><a href="fix.diff"><code>fix.diff</code></a></li><li><a href="TestNGramFiltersFinalPositionIncrement.java"><code>TestNGramFiltersFinalPositionIncrement.java</code></a></li><li><a href="TestNGramEndKeepsInputFinalPosInc.java"><code>TestNGramEndKeepsInputFinalPosInc.java</code></a></li><li><a href="NGramEndPosIncMain.java"><code>NGramEndPosIncMain.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

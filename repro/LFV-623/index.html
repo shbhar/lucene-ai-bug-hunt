@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You create an OpenNLPSentenceBreakIterator, give it a text that starts with whitespace, for example &#x27; Sentence number 1 has 6 words. Sentence number 2, 5 words.&#x27;, and walk it backward with last/previous (the reverse loop shown in the BreakIterator javadoc), expecting the forward boundaries [0, 33, 60] in reverse order and then DONE. Instead previous returns 2, which is not a boundary, and the next previous throws ArrayIndexOutOfBoundsException (Index -1); following(0) on a one-sentence text with leading whitespace recurses until StackOverflowError. The OpenNLP sentence detector trims whitespace from its spans and setText stores those starts unchanged, so the first stored sentence start lies after the begin index that first and next treat as the first boundary.</p>
+<p>The test shows that OpenNLPSentenceBreakIterator.following(0) on a one-sentence text that starts with two spaces recurses until StackOverflowError.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The backward walk gives 60, 33, 0, then <code>DONE</code>; <code>following(0)</code> returns a boundary (32 or 33) or <code>DONE</code>.</li><li><b>Actual:</b> The backward walk gives 60, 33, 2, then <code>ArrayIndexOutOfBoundsException: Index -1</code>; <code>following(0)</code> on one sentence throws <code>StackOverflowError</code> (3 of 3 tests fail with assertions on, 2 of 3 off).</li></ul>
+<p>Expected: text.length() or DONE (DONE is what the class returns without the leading spaces); actual on main 645d4fe: StackOverflowError in moveToSentenceAt (with -ea and -da).</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/analysis/opennlp/TestSentenceBreakIteratorLeadingWhitespace.java"><code>src/org/apache/lucene/analysis/opennlp/TestSentenceBreakIteratorLeadingWhitespace.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/analysis/opennlp/TestOpenNLPSentenceBreakIteratorLeadingSpace.java"><code>src/org/apache/lucene/analysis/opennlp/TestOpenNLPSentenceBreakIteratorLeadingSpace.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -43,11 +45,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions on, seed 1880C0DE
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=1880C0DE \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.opennlp.TestSentenceBreakIteratorLeadingWhitespace</code></pre>
+     execute --select-class org.apache.lucene.analysis.opennlp.TestOpenNLPSentenceBreakIteratorLeadingSpace</code></pre>
 <p class="small">The module(s) analysis-opennlp also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestOpenNLPSentenceBreakIteratorLeadingWhitespace.java"><code>TestOpenNLPSentenceBreakIteratorLeadingWhitespace.java</code></a></li><li><a href="fix-option-A.diff"><code>fix-option-A.diff</code></a></li><li><a href="TestSentenceBreakIteratorLeadingWhitespace.java"><code>TestSentenceBreakIteratorLeadingWhitespace.java</code></a></li><li><a href="TestSentenceBreakIteratorLeadingBlank.java"><code>TestSentenceBreakIteratorLeadingBlank.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

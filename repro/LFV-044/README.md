@@ -2,6 +2,8 @@
 
 Bug LFV-044 · Area: codecs / doc values · Priority: high · Impact: silent wrong results · Novelty: known upstream
 
+Bug page: [../../bugs/LFV-044.html](../../bugs/LFV-044.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index numeric doc values with a skip index (NumericDocValuesField.indexedFie
 
 ## Expected vs actual
 
-- Expected: You expect the same hits as 10.5.2.
-- Actual: The encoded-domain bound transform wraps: 100k random latitudes queried for [45, 90] gave 0 hits instead of 25,157, 64-bit hashes gave 2 instead of 49,931, and some cases add wrong hits.
+- Expected: `count(q)` = 512 and `search(q, 10)` returns 10 hits, as on 10.5.2 and on the same data without a skip index.
+- Actual: `count(q)` = 0 and `search(q, 10)` returns 0 hits: `AssertionError: count(q); search(q, 10) returned 0 hits expected:<512> but was:<0>`.
 
 ## Files
 
@@ -44,6 +46,10 @@ java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=A
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestSkipIndexedDocValuesRangeWideSpan.java](TestSkipIndexedDocValuesRangeWideSpan.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/study-simd-equivalence/](../../models/study-simd-equivalence/)
 

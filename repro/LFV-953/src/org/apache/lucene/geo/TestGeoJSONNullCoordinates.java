@@ -19,34 +19,13 @@ package org.apache.lucene.geo;
 import java.text.ParseException;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * SimpleGeoJSONPolygonParser checks that "coordinates" (and every element of a MultiPolygon's
- * coordinates) is an array and throws ParseException "... should be an array, but got: " +
- * o.getClass() otherwise. A JSON null, or an object (which the parser represents as null), makes
- * o.getClass() throw NullPointerException while the message is built, so the declared
- * ParseException becomes a NullPointerException.
- */
 public class TestGeoJSONNullCoordinates extends LuceneTestCase {
 
-  public void testNonArrayCoordinatesControl() {
-    // the check works for a string value
-    expectThrows(
-        ParseException.class,
-        () -> Polygon.fromGeoJSON("{\"type\":\"Polygon\",\"coordinates\":\"x\"}"));
-  }
-
-  public void testNullCoordinates() {
+  public void testNonArrayCoordinates() {
+    // expected ParseException "...should be an array", actual NPE from o.getClass() on null
     expectThrows(
         ParseException.class,
         () -> Polygon.fromGeoJSON("{\"type\":\"Polygon\",\"coordinates\":null}"));
-  }
-
-  public void testObjectCoordinates() {
-    expectThrows(
-        ParseException.class, () -> Polygon.fromGeoJSON("{\"type\":\"Polygon\",\"coordinates\":{}}"));
-  }
-
-  public void testMultiPolygonObjectElement() {
     expectThrows(
         ParseException.class,
         () -> Polygon.fromGeoJSON("{\"type\":\"MultiPolygon\",\"coordinates\":[{}]}"));

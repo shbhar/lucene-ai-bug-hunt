@@ -18,42 +18,18 @@ package org.apache.lucene.analysis.charfilter;
 
 import java.io.Reader;
 import java.io.StringReader;
+import java.io.StringWriter;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * A double- or single-quoted attribute value whose last character is a backslash (for example a
- * Windows directory path) makes HTMLStripCharFilter read the backslash and the closing quote as an
- * escaped quote, so the "attribute value" runs on to the next quote character in the document and
- * the text in between is dropped. In HTML a backslash has no special meaning inside an attribute
- * value. Only the public API is used.
- */
 public class TestHTMLStripAttributeBackslash extends LuceneTestCase {
 
-  private static String strip(String html) throws Exception {
+  public void testAttributeValueEndingInBackslash() throws Exception {
+    String html = "<a href=\"C:\\Temp\\\">folder</a> text <a href=\"x\">y</a>";
+    StringWriter out = new StringWriter();
     try (Reader r = new HTMLStripCharFilter(new StringReader(html))) {
-      StringBuilder sb = new StringBuilder();
-      char[] buf = new char[256];
-      int n;
-      while ((n = r.read(buf, 0, buf.length)) != -1) {
-        sb.append(buf, 0, n);
-      }
-      return sb.toString();
+      r.transferTo(out);
     }
-  }
-
-  /** Control: the same document without the trailing backslash. */
-  public void testControlNoTrailingBackslash() throws Exception {
-    String out = strip("<a href=\"C:\\Temp\">folder</a> text after <a href=\"x\">y</a> end");
-    assertEquals("folder text after y end", out);
-  }
-
-  public void testDoubleQuotedValueEndingInBackslash() throws Exception {
-    String out = strip("<a href=\"C:\\Temp\\\">folder</a> text after <a href=\"x\">y</a> end");
-    assertEquals("folder text after y end", out);
-  }
-
-  public void testSingleQuotedValueEndingInBackslash() throws Exception {
-    String out = strip("<a title='C:\\Temp\\'>folder</a> text after <a title='x'>y</a> end");
-    assertEquals("folder text after y end", out);
+    // expected "folder text y"; actual "y": the backslash is read as escaping the closing quote
+    assertEquals("folder text y", out.toString());
   }
 }

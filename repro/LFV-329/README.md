@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You search an index that has no segments yet (for example a freshly created or emptied index, or an empty shard), get the expected 0 hits, and pass them to a DoubleValuesSourceRescorer or LateInteractionRescorer. You expect 0 rescored hits, which is what QueryRescorer and SortRescorer return for the same input. Instead rescore throws java.util.NoSuchElementException, because it takes the reader's first segment with leaves.getFirst before it looks at the hits, and there is no first segment.
 
+The test shows that `DoubleValuesSourceRescorer.rescore` on a searcher whose reader has no segments (here an empty `MultiReader`, same as a fresh empty index) throws instead of returning the 0 first-pass hits.
+
 ## Expected vs actual
 
-- Expected: You expect 0 rescored hits, which is what QueryRescorer and SortRescorer return for the same input.
-- Actual: rescore throws java.util.NoSuchElementException, because it takes the reader's first segment with leaves.getFirst before it looks at the hits, and there is no first segment.
+Expected: 0 rescored hits, as QueryRescorer returns; actual (-ea and -da): `java.util.NoSuchElementException` from `leaves().getFirst()` at DoubleValuesSourceRescorer.java:53 (reported as an AssertionError with that cause).
 
 ## Files
 
-- [src/org/apache/lucene/search/TestDoubleValuesSourceRescorerEmptyIndex.java](src/org/apache/lucene/search/TestDoubleValuesSourceRescorerEmptyIndex.java) (JUnit test)
+- [src/org/apache/lucene/search/TestDoubleValuesSourceRescorerNoSegments.java](src/org/apache/lucene/search/TestDoubleValuesSourceRescorerNoSegments.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -35,10 +36,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestDoubleValuesSourceRescorerEmptyIndex
+     execute --select-class org.apache.lucene.search.TestDoubleValuesSourceRescorerNoSegments
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

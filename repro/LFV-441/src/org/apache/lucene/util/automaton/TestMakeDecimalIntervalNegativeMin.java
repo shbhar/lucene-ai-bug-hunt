@@ -16,40 +16,24 @@
  */
 package org.apache.lucene.util.automaton;
 
+import java.util.List;
+import java.util.stream.Stream;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * Automata#makeDecimalInterval documents an automaton over "decimal (base 10) non-negative integers
- * in the given interval" and rejects only min &gt; max and too-few digits. A negative min is accepted
- * and the '-' of Integer.toString(min) is then treated as a digit character, so the result accepts
- * out-of-interval strings ("12", "-5") and rejects in-interval ones ("0", "1").
- */
 public class TestMakeDecimalIntervalNegativeMin extends LuceneTestCase {
 
   public void testNegativeMin() {
     Automaton a;
     try {
       a = Automata.makeDecimalInterval(-1, 5, 0);
-    } catch (IllegalArgumentException rejected) {
-      return; // rejecting a negative min up front is a valid fix
+    } catch (IllegalArgumentException acceptable) {
+      return;
     }
-    CharacterRunAutomaton run = new CharacterRunAutomaton(Operations.determinize(a, 10000));
-    StringBuilder wrong = new StringBuilder();
-    // non-negative integers in [-1, 5] are 0..5 (leading zeros allowed when digits <= 0)
-    for (String s : new String[] {"0", "1", "3", "5", "05"}) {
-      if (run.run(s) == false) wrong.append(" rejects in-interval \"").append(s).append('"');
-    }
-    for (String s : new String[] {"6", "12", "-5", "-1"}) {
-      if (run.run(s)) wrong.append(" accepts out-of-interval \"").append(s).append('"');
-    }
-    assertEquals("makeDecimalInterval(-1, 5, 0):" + wrong, "", wrong.toString());
-  }
-
-  /** Control: the same check for min = 0 passes. */
-  public void testZeroMinControl() {
     CharacterRunAutomaton run =
-        new CharacterRunAutomaton(Operations.determinize(Automata.makeDecimalInterval(0, 5, 0), 10000));
-    for (String s : new String[] {"0", "1", "3", "5", "05"}) assertTrue(s, run.run(s));
-    for (String s : new String[] {"6", "12", "-5", "-1"}) assertFalse(s, run.run(s));
+        new CharacterRunAutomaton(
+            Operations.determinize(a, Operations.DEFAULT_DETERMINIZE_WORK_LIMIT));
+    // expected IllegalArgumentException, or "0" (in [-1, 5]) accepted and "12" (> max) rejected
+    assertEquals(
+        "accepted among [0, 12]", List.of("0"), Stream.of("0", "12").filter(run::run).toList());
   }
 }

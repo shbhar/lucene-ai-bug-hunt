@@ -22,12 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You load a Hunspell dictionary whose affix file says SET ISO8859-10 (Latin-6, Nordic), a value the hunspell(5) man page lists among the possible SET values, or says ISO8859-14 (Latin-8, Celtic) spelled ISO-8859-14 or iso8859-14, and expect it to load: C Hunspell lower-cases the SET value and drops non-alphanumerics before its table lookup, and in Lucene every other listed ISO-8859 part loads in its hyphenated and lower-case spellings (ISO-8859-2, iso8859-2,...). Instead the Dictionary constructor throws java.nio.charset.UnsupportedCharsetException, because Dictionary.getDecoder uses Lucene&#x27;s own ISO8859_14Decoder only for the exact string &quot;ISO8859-14&quot; and otherwise calls Charset.forName, and the JDK has no ISO-8859-10 or ISO-8859-14 charset under any name. Spellings that do load decode every letter byte correctly, so nothing is silently wrong; the dictionary is refused.</p>
+<p>The test shows that a Hunspell <code>Dictionary</code> whose affix file says <code>SET ISO8859-10</code> (a value hunspell(5) lists) cannot be loaded.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> The Dictionary constructor throws java.nio.charset.UnsupportedCharsetException, because Dictionary.getDecoder uses Lucene&#x27;s own ISO8859_14Decoder only for the exact string &quot;ISO8859-14&quot; and otherwise calls Charset.forName, and the JDK has no ISO-8859-10 or ISO-8859-14 charset under any name.</li></ul>
+<p>Expected the dictionary to load (byte 0xBF read as U+014B); actual: the constructor throws <code>UnsupportedCharsetException: ISO8859-10</code> from <code>Charset.forName</code> in <code>Dictionary.getDecoder</code> (<code>expected SET ISO8859-10 to load, got java.nio.charset.UnsupportedCharsetException: ISO8859-10</code>), with -ea and -da.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/analysis/hunspell/TestSetEncodingNames.java"><code>src/org/apache/lucene/analysis/hunspell/TestSetEncodingNames.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/analysis/hunspell/TestSetEncodingIso8859_10.java"><code>src/org/apache/lucene/analysis/hunspell/TestSetEncodingIso8859_10.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -41,10 +43,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.hunspell.TestSetEncodingNames</code></pre>
+     execute --select-class org.apache.lucene.analysis.hunspell.TestSetEncodingIso8859_10</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/hunspell-set-encoding-names-vs-c-hunspell-reference/index.html">hunspell-set-encoding-names-vs-c-hunspell-reference</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

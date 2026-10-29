@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You parse a date such as 2014-11-31, or a range such as [2014-11-01 TO 2014-11-31], with DateRangePrefixTree.parseCalendar or parseShape and expect a ParseException, which the parser has given since LUCENE-8640 for day 32, month 13, hour 25 and minute 60. Instead the day is checked only against 1..31 and set on a lenient java.util.Calendar, which moves it into the next month when the fields are read: 2014-11-31 becomes 2014-12-01, 2014-02-30 becomes 2014-03-02, and the range parses to [2014-11 TO 2014-12-01], so an Intersects query on a NumberRangePrefixTreeStrategy index also returns a document dated 2014-12-01.
 
+The test shows that `DateRangePrefixTree.parseCalendar` accepts a day its month does not have (`2014-11-31`) and rolls it into the next month, while it rejects day 32 with a ParseException.
+
 ## Expected vs actual
 
-- Expected: `2014-11-31`, `2014-02-30`, `2013-02-29` and `2014-04-31T10` throw `ParseException` like `2014-11-32`, and so does the range `[2014-11-01 TO 2014-11-31]`.
-- Actual: They parse as 2014-12-01, 2014-03-02, 2013-03-01 and 2014-05-01T10; the range becomes `[2014-11 TO 2014-12-01]` and matches 2014-11-15 and 2014-12-01.
+Expected: `ParseException` for `2014-11-31` (as for `2014-11-32`); actual: parses to `2014-12-01`, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/spatial/prefix/tree/TestDateRangeParseNonexistentDay.java](src/org/apache/lucene/spatial/prefix/tree/TestDateRangeParseNonexistentDay.java) (JUnit test)
+- [src/org/apache/lucene/spatial/prefix/tree/TestDateRangeNonexistentDay.java](src/org/apache/lucene/spatial/prefix/tree/TestDateRangeNonexistentDay.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,18 +43,12 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.spatial.prefix.tree.TestDateRangeParseNonexistentDay
+     execute --select-class org.apache.lucene.spatial.prefix.tree.TestDateRangeNonexistentDay
 ```
 
 The module(s) spatial-extras also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestDateRangeNonexistentDay.java](TestDateRangeNonexistentDay.java)
-- [DateRangeDaySweep.java](DateRangeDaySweep.java)
-- [TestDateRangeParseNonexistentDay.java](TestDateRangeParseNonexistentDay.java)
 
 ## Feedback
 

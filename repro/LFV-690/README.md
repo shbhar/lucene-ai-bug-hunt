@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You subclass DiversifiedTopDocsCollector to get the top hits with at most maxHitsPerKey hits per source, and some matching documents have no value in the key field; you expect such a document not to use up the quota of any real source. Instead insert gives it key 0 whenever getKeys.advanceExact returns false (DiversifiedTopDocsCollector.java:146-151), and the manager's reduce counts by that same key (DiversifiedTopDocsCollectorManager.java:77-89), so with one keyless and one key-0 document, numHits 2 and maxHitsPerKey 1, only one hit comes back. With ordinal keys, the pattern of upstream's own test, key 0 is the first value in sort order, so a song without an artist takes the slot of the alphabetically first artist.
 
+The test shows that DiversifiedTopDocsCollector (through DiversifiedTopDocsCollectorManager) puts a document whose key field has no value into key 0's group, so it uses up key 0's maxHitsPerKey quota.
+
 ## Expected vs actual
 
-- Expected: `[no-artist, abba, zappa]` and `[no-seller, seller-0]`: every document comes back, as it does with seller 1 instead of seller 0.
-- Actual: `[no-artist, zappa]` and `[no-seller]`: ABBA's song and seller 0's product are dropped, `totalHits` is still 3 and 2, and 2 of 4 tests fail.
+Expected 2 hits for one keyless document and one seller-0 document with numHits 2 and maxHitsPerKey 1; actual 1 (`hits expected:<2> but was:<1>`), with `-ea` and `-da`.
 
 ## Files
 
@@ -21,7 +22,8 @@ You subclass DiversifiedTopDocsCollector to get the top hits with at most maxHit
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -44,16 +46,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestDiversifiedTopDocsCollectorMissingKey.java](TestDiversifiedTopDocsCollectorMissingKey.java)
-- [TestDiversifiedMissingKey.java](TestDiversifiedMissingKey.java)
-- [TestDiversifiedNoKeyCollector.java](TestDiversifiedNoKeyCollector.java)
-- [TestDiversifiedNoKeyManager.java](TestDiversifiedNoKeyManager.java)
-- [TestDiversifiedMissingKeyIntent.java](TestDiversifiedMissingKeyIntent.java)
-- [TestDiversifiedMissingKeyManager.java](TestDiversifiedMissingKeyManager.java)
-- [HistMissingKeyIterator.java](HistMissingKeyIterator.java)
 
 ## Feedback
 

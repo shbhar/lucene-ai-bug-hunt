@@ -10,20 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index one value in an untokenized field whose FieldType has DOCS_AND_FREQS and norms enabled, once through a plain Field (TokenStream inversion) and once through the single-term path (a Field subclass whose invertableType returns BINARY, or an IndexWriter#addBatch BinaryColumn or DictionaryColumn). You expect the same field length and norm, 1 per value, because FieldInvertState#getLength is the 'total number of terms in this field' and a BINARY value is documented as a single value with term frequency one. Instead IndexingChain.invertTerm adds 2 to the length for every value, so the norm is 2 (2k for k values) and the BM25 score of the identical document drops (0.082873434 to 0.058813408 in the repro), while the postings still record freq 1 per value.
 
+The test shows that one value of an untokenized `DOCS_AND_FREQS` field with norms, indexed through a `Field` whose `invertableType()` is `BINARY`, gets field length 2 in `IndexingChain.invertTerm`, so its BM25 norm is 2.
+
 ## Expected vs actual
 
-- Expected: Both documents get the same norm (1 for one value, 2 for two) and the same BM25 score for the term query.
-- Actual: Norms [1, 2] and [2, 4]; BM25 0.082873434 vs 0.058813408 for the identical document.
+Expected norm 1 (one term, as `FieldInvertState#getLength` and the `InvertableType.BINARY` javadoc say); actual 2 (`expected:<1> but was:<2>`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/index/TestBinaryInvertableTypeFieldLength.java](src/org/apache/lucene/index/TestBinaryInvertableTypeFieldLength.java) (JUnit test)
-- [src/org/apache/lucene/index/TestColumnBatchUntokenizedFieldLength.java](src/org/apache/lucene/index/TestColumnBatchUntokenizedFieldLength.java) (JUnit test)
+- [src/org/apache/lucene/index/TestBinaryInvertableTypeNorm.java](src/org/apache/lucene/index/TestBinaryInvertableTypeNorm.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,23 +41,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestColumnBatchUntokenizedFieldLength
-
-# run 2: assertions on, seed DEADBEEF
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestBinaryInvertableTypeFieldLength
+     execute --select-class org.apache.lucene.index.TestBinaryInvertableTypeNorm
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestBinaryInvertedFieldNorms.java](TestBinaryInvertedFieldNorms.java)
-- [TestColumnBatchUntokenizedNorms.java](TestColumnBatchUntokenizedNorms.java)
-- [TestBinaryInvertableTypeFieldLength.java](TestBinaryInvertableTypeFieldLength.java)
-- [TestBinaryInvertLengthV1.java](TestBinaryInvertLengthV1.java)
-- [TestBinaryInvertLengthConsistency.java](TestBinaryInvertLengthConsistency.java)
 
 ## Feedback
 

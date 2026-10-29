@@ -20,31 +20,26 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.geo.Polygon;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.spatial3d.geom.PlanetModel;
-import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * Geo3DPoint.newPolygonQuery accepts a degenerate polygon (all vertices on one great circle) and
- * turns it into an empty GeoCompositePolygon, which is meant to match nothing. Searching with that
- * query throws NullPointerException instead.
- */
 public class TestGeo3DDegeneratePolygonQuery extends LuceneTestCase {
 
   public void testDegeneratePolygonMatchesNothing() throws Exception {
-    try (Directory dir = newDirectory();
-        IndexWriter w = new IndexWriter(dir, newIndexWriterConfig())) {
+    try (ByteBuffersDirectory dir = new ByteBuffersDirectory();
+        IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
       Document doc = new Document();
       doc.add(new Geo3DPoint("point", PlanetModel.WGS84, 0.5, 0.5));
       w.addDocument(doc);
       try (DirectoryReader reader = DirectoryReader.open(w)) {
-        IndexSearcher searcher = newSearcher(reader);
-        // A legal org.apache.lucene.geo.Polygon whose three distinct vertices lie on the equator.
+        // vertices on the equator, built as an empty GeoCompositePolygon: expected 0 hits, actual NPE
         Polygon degenerate = new Polygon(new double[] {0, 0, 0, 0}, new double[] {0, 1, 2, 0});
         Query q = Geo3DPoint.newPolygonQuery("point", PlanetModel.WGS84, degenerate);
-        assertEquals(0, searcher.count(q));
+        assertEquals(0, new IndexSearcher(reader).count(q));
       }
     }
   }

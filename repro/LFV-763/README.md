@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index training documents where some carry an empty class value (for example StringField("cat", "") for unlabelled rows) and build SimpleNaiveBayesClassifier, CachingNaiveBayesClassifier and SimpleNaiveBayesDocumentClassifier on the same reader, expecting the two subclasses to offer the same classes as their parent, which (like BM25NBClassifier) skips the empty class term with 'if (next.length &gt; 0)'. Instead the caching and document classifiers list '' as a class: getClasses('car') gives ['', 'fruit', 'vehicle'] against the parent's ['fruit', 'vehicle'], and with two empty-class 'car bus' documents both assign '' to 'car bus' where the parent assigns 'vehicle'. Their class loops (CachingNaiveBayesClassifier.reInitCache and SimpleNaiveBayesDocumentClassifier.assignNormClasses) lack the parent's length check; whether the fix adds it there or removes it from the parent and BM25NBClassifier is open.
 
+The test shows that on an index where one training document has an empty class value (`StringField("cat", "")`), `CachingNaiveBayesClassifier.getClasses` offers the empty class `''`, which its parent `SimpleNaiveBayesClassifier` skips.
+
 ## Expected vs actual
 
-- Expected: The caching and document classifiers offer the parent's classes ['fruit', 'vehicle'] and, with two blank-labelled documents, assign 'car bus' to vehicle, as the parent does.
-- Actual: Both offer ['', 'fruit', 'vehicle'] ('' 0.40, vehicle 0.40, fruit 0.20) and assign 'car bus' to ''; the control passes.
+Expected: the parent's classes `['fruit', 'vehicle']`. Actual: `['', 'fruit', 'vehicle']`.
 
 ## Files
 
-- [src/org/apache/lucene/classification/TestNaiveBayesEmptyClassTerm.java](src/org/apache/lucene/classification/TestNaiveBayesEmptyClassTerm.java) (JUnit test)
+- [src/org/apache/lucene/classification/TestCachingNaiveBayesEmptyClassValue.java](src/org/apache/lucene/classification/TestCachingNaiveBayesEmptyClassValue.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -43,16 +45,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.classification.TestNaiveBayesEmptyClassTerm
+     execute --select-class org.apache.lucene.classification.TestCachingNaiveBayesEmptyClassValue
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestNaiveBayesEmptyClassValue.java](TestNaiveBayesEmptyClassValue.java)
-- [TestNaiveBayesEmptyClassTerm.java](TestNaiveBayesEmptyClassTerm.java)
-- [TestEmptyClassValue.java](TestEmptyClassValue.java)
 
 ## Feedback
 

@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You sort a legal slice with IntroSorter, for example ArrayUtil.introSort on the last 1,000 elements of an array of length ArrayUtil.MAX_ARRAY_LENGTH (or a slice of more than 2^30 elements starting at 0), and the element order makes IntroSorter give up on quicksort and fall back to heap sort. You expect the slice [from, to) to be sorted using only slots inside it. Instead Sorter.heapChild computes 2*(i - from) + 1 + from in int, which wraps to a negative number for a node that has no child, siftDown&#x27;s &#x27;leftChild &lt; to&#x27; check lets it through, and compare is called with a negative slot, so the array-backed sort throws ArrayIndexOutOfBoundsException (&#x27;Index -2147482757 out of bounds for length 2147483631&#x27;).</p>
+<p>The test shows that IntroSorter.sort on the last 60 slots of an ArrayUtil.MAX_ARRAY_LENGTH-long range, in an order that uses up its quicksort depth budget, falls back to heapSort, whose int heapChild wraps and asks the sorter for a negative slot.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect the slice [from, to) to be sorted using only slots inside it.</li><li><b>Actual:</b> Sorter.heapChild computes 2*(i - from) + 1 + from in int, which wraps to a negative number for a node that has no child, siftDown&#x27;s &#x27;leftChild &lt; to&#x27; check lets it through, and compare is called with a negative slot, so the array-backed sort throws ArrayIndexOutOfBoundsException (&#x27;Index -2147482757 out of bounds for length 2147483631&#x27;).</li></ul>
+<p>Expected: only slots in [2147483571, 2147483631) are compared or swapped. Actual (-ea and -da): AssertionError: slot -2147483639 is outside [2147483571, 2147483631), from Sorter.siftDown(Sorter.java:279) &lt;- heapSort &lt;- IntroSorter.sort(IntroSorter.java:61).</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/util/TestSorterHeapChildOverflow.java"><code>src/org/apache/lucene/util/TestSorterHeapChildOverflow.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/util/TestIntroSorterHeapSortAtArrayEnd.java"><code>src/org/apache/lucene/util/TestIntroSorterHeapSortAtArrayEnd.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -44,7 +45,7 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.util.TestSorterHeapChildOverflow</code></pre>
+     execute --select-class org.apache.lucene.util.TestIntroSorterHeapSortAtArrayEnd</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/sorters-selectors/index.html">sorters-selectors</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

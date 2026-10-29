@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You strip &#x27;&lt;scripts&gt;hello&lt;/scripts&gt; world&#x27; (or &#x27;&lt;style-guide&gt;hello&lt;/style-guide&gt; world&#x27;) with HTMLStripCharFilter and expect &#x27;\nhello\n world&#x27;, which is what Lucene 10.4.0 gives and what main gives for the same shape with any other name, such as &#x27;&lt;scrapes&gt;&#x27;. Since 10.5.0 the output is empty: the start-tag rules for script and style no longer require a delimiter after the name, so the longer name is taken for a &lt;script&gt; or &lt;style&gt; tag and everything up to the next literal &lt;/script&gt; or &lt;/style&gt;, here the end of the input, is dropped (for &#x27;&lt;stylesheet&gt;hello&lt;/stylesheet&gt; world&#x27; a StandardTokenizer after the filter emits no token at all). With escapedTags={brand}, &#x27;&lt;brand&gt;Acme&lt;/brand&gt;&#x27; likewise comes out as &#x27;\nAcme&lt;/brand&gt;&#x27; instead of unchanged.</p>
+<p>The test shows that <code>HTMLStripCharFilter</code> (since 10.5.0, #15756) takes a start tag whose name only begins with <code>script</code> (<code>&lt;scripts&gt;</code>) for a <code>&lt;script&gt;</code> tag and drops everything after it up to a <code>&lt;/script&gt;</code> that never comes.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>&lt;scripts&gt;hello&lt;/scripts&gt; world</code> strips to <code>\nhello\n world</code>, as the <code>&lt;scrapes&gt;</code> control does, and <code>&lt;brand&gt;Acme&lt;/brand&gt;</code> with <code>escapedTags={brand}</code> stays unchanged.</li><li><b>Actual:</b> It strips to an empty string, the tokenizer test gets no token, and <code>&lt;brand&gt;Acme&lt;/brand&gt;</code> becomes <code>\nAcme&lt;/brand&gt;</code>: 4 of the 5 new tests fail.</li></ul>
+<p>Expected <code>&quot;&lt;scripts&gt;hello&lt;/scripts&gt; world&quot;</code> to strip to <code>&quot;\nhello\n world&quot;</code> (what 10.4.0 gives, and what main gives for any other name); actual <code>&quot;&quot;</code> (<code>expected:&lt;[\nhello\n world]&gt; but was:&lt;[]&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/analysis/charfilter/TestHTMLStripTagNamePrefix.java"><code>src/org/apache/lucene/analysis/charfilter/TestHTMLStripTagNamePrefix.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/analysis/charfilter/TestHTMLStripScriptPrefixName.java"><code>src/org/apache/lucene/analysis/charfilter/TestHTMLStripScriptPrefixName.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -45,7 +47,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.charfilter.TestHTMLStripTagNamePrefix</code></pre>
+     execute --select-class org.apache.lucene.analysis.charfilter.TestHTMLStripScriptPrefixName</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestHTMLStripCharFilter-prefix-methods.java"><code>TestHTMLStripCharFilter-prefix-methods.java</code></a></li><li><a href="test-main.diff"><code>test-main.diff</code></a></li><li><a href="TestHTMLStripTagNamePrefix.java"><code>TestHTMLStripTagNamePrefix.java</code></a></li><li><a href="PrefixProbe.java"><code>PrefixProbe.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

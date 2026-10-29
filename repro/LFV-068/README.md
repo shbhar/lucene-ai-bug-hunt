@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 During merge-time HNSW graph repair and rebalancing, addConnections descends through the upper levels to find entry points. You expect it to descend from the best candidate, as its javadoc says. Instead it pops from a min-heap and descends from the worst; the naive fixes cut distance computations by 10-30% but lowered recall in 8 of 8 region-delete configurations.
 
+The test shows that when merge-time repair (`InitializedHnswGraphBuilder.initGraph`) re-links a node from scratch, `addConnections` descends from the worst upper-level candidate (the min-heap `popNode()`), not the best.
+
 ## Expected vs actual
 
-- Expected: You expect it to descend from the best candidate, as its javadoc says.
-- Actual: It pops from a min-heap and descends from the worst; the naive fixes cut distance computations by 10-30% but lowered recall in 8 of 8 region-delete configurations.
+Expected: X (at 1), whose only neighbor was deleted, is linked through the level-1 node E (at 0), the one closest to X. Actual (-ea and -da): it is linked through P (at 100) (`expected:<0> but was:<1>`).
 
 ## Files
 
-- [src/org/apache/lucene/util/hnsw/TestAddConnectionsEntryChoice.java](src/org/apache/lucene/util/hnsw/TestAddConnectionsEntryChoice.java) (JUnit test)
+- [src/org/apache/lucene/util/hnsw/TestAddConnectionsRepairDescent.java](src/org/apache/lucene/util/hnsw/TestAddConnectionsRepairDescent.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -36,9 +37,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.util.hnsw.TestAddConnectionsEntryChoice
+     execute --select-class org.apache.lucene.util.hnsw.TestAddConnectionsRepairDescent
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

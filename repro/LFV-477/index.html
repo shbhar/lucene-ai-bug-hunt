@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You run text through DoubleMetaphoneFilter, documented as &#x27;supporting secondary codes&#x27;, and expect the token &#x27;JR&#x27; to get the same codes as &#x27;jr&#x27;, because the encoder is case-insensitive and gives both the primary code JR and the alternate code AR. Instead, when a token&#x27;s text already equals its own primary code, the filter keeps the token as the primary but never emits the alternate: &#x27;jr&#x27; gives JR and AR, &#x27;JR&#x27; gives only JR, in both inject modes and at every maxCodeLength where the token equals its code. A document containing &#x27;JR&#x27; is then missed by a query that matches only through AR (executed: TermQuery AR matches the document &#x27;jr&#x27; but not the document &#x27;JR&#x27;), while matches through the primary code still work.</p>
+<p>The test shows that <code>DoubleMetaphoneFilter</code> drops the alternate code of a token whose text already equals its primary code.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> &quot;JR&quot; gives JR/1 AR/0 in both inject modes, like &quot;jr&quot; (likewise JFK/AFK, SMS/XMS, J/A), and <code>TermQuery</code> AR finds 2 documents.</li><li><b>Actual:</b> 2 of 3 tests fail: each upper-case word gets only its primary code (&quot;JR&quot; -&gt; [JR/1]), and <code>TermQuery</code> AR finds 1 document; JR finds 2.</li></ul>
+<p>Expected <code>new DoubleMetaphoneFilter(whitespaceMockTokenizer(&quot;JR&quot;), 4, true)</code> to emit <code>[JR, AR]</code> (the codes the encoder gives for both &quot;JR&quot; and &quot;jr&quot;); actual <code>[JR]</code>, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/analysis/phonetic/TestDoubleMetaphoneAlternateDropped.java"><code>src/org/apache/lucene/analysis/phonetic/TestDoubleMetaphoneAlternateDropped.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/analysis/phonetic/TestDoubleMetaphoneFilterTokenEqualsCode.java"><code>src/org/apache/lucene/analysis/phonetic/TestDoubleMetaphoneFilterTokenEqualsCode.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -36,7 +38,6 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
-CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
 CP=$CP:$LUCENE/lucene/analysis/phonetic/build/libs/lucene-analysis-phonetic-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
@@ -46,8 +47,7 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.phonetic.TestDoubleMetaphoneAlternateDropped</code></pre>
+     execute --select-class org.apache.lucene.analysis.phonetic.TestDoubleMetaphoneFilterTokenEqualsCode</code></pre>
 <p class="small">The module(s) analysis-phonetic also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestDoubleMetaphoneFilterTokenEqualsCode.java"><code>TestDoubleMetaphoneFilterTokenEqualsCode.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

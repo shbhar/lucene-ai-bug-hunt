@@ -10,20 +10,21 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You add CapitalizationFilter, documented to 'make the first letter capital and the rest lower case', and give it a word in a cased script outside the BMP, for example the Adlam word U+1E922 U+1E923 (two small letters), and expect U+1E900 U+1E923 (capital first letter). Instead every supplementary letter keeps its case: U+1E922 U+1E923 comes out unchanged, U+1E900 U+1E901 is not lower-cased to U+1E900 U+1E923, and 'aB' followed by the Osage capital U+104B0 gives 'Ab' + U+104B0, because processWord applies Character.toUpperCase(char) and toLowerCase(char) to single UTF-16 units and a surrogate unit maps to itself. BMP letters in the same token are mapped, nothing is thrown, and the onlyFirstWord and keep-word forceFirstLetter paths behave the same way.
 
+The test shows that CapitalizationFilter does not capitalize a first letter outside the BMP: the Adlam word U+1E922 U+1E923 goes through KeywordTokenizer + CapitalizationFilter unchanged.
+
 ## Expected vs actual
 
-- Expected: `PARIS`/`paris` and the two Adlam spellings give 2 terms, `Paris` and U+1E900 U+1E923, and the query U+1E922 U+1E923 finds 2 documents; every token gets a capital first letter and a lower-case rest.
-- Actual: 3 of 4 tests fail: 3 terms (both Adlam spellings kept, neither capitalized), the Adlam query finds 1 document, and every supplementary letter in the token cases keeps its case.
+Expected U+1E900 U+1E923 (capital first letter); actual U+1E922 U+1E923 (`expected:<[1e900, 1e923]> but was:<[1e922, 1e923]>`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/miscellaneous/TestCapitalizationFilterSupplementaryLetters.java](src/org/apache/lucene/analysis/miscellaneous/TestCapitalizationFilterSupplementaryLetters.java) (JUnit test)
-- [src/repro/CapitalizationSupplementaryMain.java](src/repro/CapitalizationSupplementaryMain.java) (main() class)
+- [src/org/apache/lucene/analysis/miscellaneous/TestCapitalizationFilterSupplementary.java](src/org/apache/lucene/analysis/miscellaneous/TestCapitalizationFilterSupplementary.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -41,18 +42,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.miscellaneous.TestCapitalizationFilterSupplementaryLetters
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" repro.CapitalizationSupplementaryMain
+     execute --select-class org.apache.lucene.analysis.miscellaneous.TestCapitalizationFilterSupplementary
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestCapitalizationFilterSupplementary.java](TestCapitalizationFilterSupplementary.java)
 
 ## Feedback
 

@@ -1,6 +1,6 @@
 # BengaliNormalizer's medial-visarga rule copies the next character before that character is folded, so SHA, SSA, NNA (and the other one-to-one folded letters) survive after a visarga and those spellings stop matching the SA/NA spelling the same normalizer conflates everywhere else
 
-Bug LFV-676 · Area: analysis-common / Bengali normalizer (BengaliNormalizer.normalize; BengaliNormalizationFilter, BengaliAnalyzer and the 'bengaliNormalization' factory) · Priority: medium · Impact: silent wrong results · Novelty: new
+Bug LFV-676 · Area: analysis-common / Bengali normalizer (BengaliNormalizer.normalize; BengaliNormalizationFilter, BengaliAnalyzer and the 'bengaliNormalization' factory) · Priority: low · Impact: silent wrong results · Novelty: new
 
 Bug page: [../../bugs/LFV-676.html](../../bugs/LFV-676.html)
 
@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index or query Bengali text with the stock BengaliAnalyzer or BengaliNormalizationFilter. Its normalizer folds SHA (শ) and SSA (ষ) to SA (স) everywhere and turns a medial visarga (ঃ) into a copy of the next letter (gemination), so নিঃশব্দ ('silent'), নিঃষব্দ and নিঃসব্দ should all become নিসসব্দ (SA SA), just as the class's other gemination rule turns বিশ্ব into বিসস in an upstream test. Instead the visarga branch copies the next character before the loop has folded it and never revisits the copy, so নিঃশব্দ becomes নিশসব্দ (SHA SA) and নিঃষব্দ becomes নিষসব্দ (SSA SA): the three spellings give three different terms, and a document written with one of them is not found by a query written with another, with no error.
 
+The test shows that BengaliNormalizationFilter's medial-visarga rule copies the next letter before it is folded, so a SHA (শ) survives after a visarga.
+
 ## Expected vs actual
 
-- Expected: `নিঃশব্দ`, `নিঃষব্দ` and `নিঃসব্দ` all → `নিসসব্দ`, `নিঃশেষ` → `নিসসেস`, and `BengaliAnalyzer` gives the শ spelling the term `নিসসব্দ`, like the স spelling.
-- Actual: `নিঃশব্দ` → `নিশসব্দ`, `নিঃষব্দ` → `নিষসব্দ`, and the analyzer term is `নিশসব্দ`: 3 of 3 tests fail, with assertions on and off.
+Expected `নিঃশব্দ` to normalize to `নিসসব্দ` (SA SA), as the SA spelling `নিঃসব্দ` does; actual: `নিশসব্দ` (SHA SA): `term 0 expected:<নি[স]সব্দ> but was:<নি[শ]সব্দ>`, with `-ea` and `-da`.
 
 ## Files
 
@@ -21,7 +22,8 @@ You index or query Bengali text with the stock BengaliAnalyzer or BengaliNormali
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,20 +39,13 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.analysis.bn.TestBengaliVisargaRule
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestBengaliVisarga.java](TestBengaliVisarga.java)
-- [TestBengaliVisargaRule.java](TestBengaliVisargaRule.java)
-- [TestVisargaCopyIsFolded.java](TestVisargaCopyIsFolded.java)
-- [VisargaOptionsProbe.java](VisargaOptionsProbe.java)
 
 ## Feedback
 

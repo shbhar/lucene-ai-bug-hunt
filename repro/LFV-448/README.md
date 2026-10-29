@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build two analyzers with CustomAnalyzer.builder(configDir) from two configuration directories, each with its own OpenNLP model under the same file name (for example sent.bin and tok.bin, or a lemma dictionary), and expect each analyzer to use its own directory's files, as builder(Path) says it 'loads all resources from the given file system base directory'. Instead the OpenNLP factories keep one static, JVM-wide cache per model type keyed only by the file name, so the second analyzer silently gets the model the first directory loaded: with two valid, different tokenizer models, configB's analyzer produces configA's tokens [Hello, world,., This, is, a, test,.] instead of its own [Hello, world., This, is, a, test.], and a directory with no such file at all still builds. The name-keyed cache is intended (LUCENE-2899), but nothing documents that file names are shared by every configuration in the JVM.
 
+The test shows that two CustomAnalyzers, each built from its own ResourceLoader with a different `lemmas.txt` (dogs -&gt; dogA, dogs -&gt; dogB) for openNlpLemmatizer; the second one uses the first one's dictionary, because OpenNLPOpsFactory caches it JVM-wide by file name (undocumented; category doc).
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The OpenNLP factories keep one static, JVM-wide cache per model type keyed only by the file name, so the second analyzer silently gets the model the first directory loaded: with two valid, different tokenizer models, configB's analyzer produces configA's tokens [Hello, world,., This, is, a, test,.] instead of its own [Hello, world., This, is, a, test.], and a directory with no such file at all still builds.
+Expected: the second analyzer lemmatizes "dogs" to dogB (its own file); actual (-ea and -da): dogA ("term 0 expected:&lt;dog[B]&gt; but was:&lt;dog[A]&gt;").
 
 ## Files
 
-- [src/org/apache/lucene/analysis/opennlp/TestOpenNLPModelCacheIgnoresResourceLoader.java](src/org/apache/lucene/analysis/opennlp/TestOpenNLPModelCacheIgnoresResourceLoader.java) (JUnit test)
+- [src/org/apache/lucene/analysis/opennlp/TestOpenNLPLemmaDictionarySecondLoader.java](src/org/apache/lucene/analysis/opennlp/TestOpenNLPLemmaDictionarySecondLoader.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,7 +41,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.opennlp.TestOpenNLPModelCacheIgnoresResourceLoader
+     execute --select-class org.apache.lucene.analysis.opennlp.TestOpenNLPLemmaDictionarySecondLoader
 ```
 
 The module(s) analysis-opennlp also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.

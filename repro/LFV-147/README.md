@@ -8,21 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index IndexWriter.MAX_DOCS (2,147,483,519) documents into one segment with the default IndexWriterConfig and codec, delete one of them by term and call commit; you expect the deletion to be saved. Instead commit throws 'ArrayIndexOutOfBoundsException: Index -3 out of bounds for length 16' ('AssertionError: startIndex=-129, numBits=1024' with -ea) and close throws it again, because Lucene90LiveDocsFormat.writeBits copies the live docs in 1024-bit batches with 'for (int offset = 0; offset &lt; bits.length; offset += copy.length)': after the batch at 2^31-1024 the offset wraps to Integer.MIN_VALUE, which is still below the length, so the next batch clears a negative range. CheckIndex.bitsCardinality has the same loop, so on 10.3.0 and later CheckIndex (level 2 or higher) also reports the valid live docs of such a segment as an error; only segments with more than 2,147,482,624 documents are affected.
 
+The test shows that `Lucene90LiveDocsFormat.writeLiveDocs` cannot write the live docs of a legal segment with `maxDoc = IndexWriter.MAX_DOCS`: its `int offset += 1024` batch loop wraps to `Integer.MIN_VALUE` after the batch at 2^31-1024, so a deletion in such a segment can never be committed.
+
 ## Expected vs actual
 
-- Expected: You expect the deletion to be saved.
-- Actual: commit throws 'ArrayIndexOutOfBoundsException: Index -3 out of bounds for length 16' ('AssertionError: startIndex=-129, numBits=1024' with -ea) and close throws it again, because Lucene90LiveDocsFormat.writeBits copies the live docs in 1024-bit batches with 'for (int offset = 0; offset &lt; bits.length; offset += copy.length)': after the batch at 2^31-1024 the offset wraps to Integer.MIN_VALUE, which is still below the length, so the next batch clears a negative range.
+Expected: the `.liv` file is written. Actual: `AssertionError: startIndex=-129, numBits=1024` (-ea) or `ArrayIndexOutOfBoundsException: Index -3 out of bounds for length 16` (-da) from `FixedBitSet.clear` in `writeBits`.
 
 ## Files
 
-- [src/org/apache/lucene/codecs/lucene90/TestLiveDocsWriteNearMaxDocs.java](src/org/apache/lucene/codecs/lucene90/TestLiveDocsWriteNearMaxDocs.java) (JUnit test)
-- [src/org/apache/lucene/index/TestCheckIndexLiveDocsNearMaxDocs.java](src/org/apache/lucene/index/TestCheckIndexLiveDocsNearMaxDocs.java) (JUnit test)
-- [src/org/apache/lucene/index/TestDeleteInMaxDocsSegment.java](src/org/apache/lucene/index/TestDeleteInMaxDocsSegment.java) (JUnit test)
+- [src/org/apache/lucene/codecs/lucene90/TestLiveDocsWriteMaxDocs.java](src/org/apache/lucene/codecs/lucene90/TestLiveDocsWriteMaxDocs.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,15 +37,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx6g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa -Xmx512m --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.codecs.lucene90.TestLiveDocsWriteNearMaxDocs \
-       --select-class org.apache.lucene.index.TestCheckIndexLiveDocsNearMaxDocs
-
-# run 2: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false -Xmx3g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestDeleteInMaxDocsSegment
+     execute --select-class org.apache.lucene.codecs.lucene90.TestLiveDocsWriteMaxDocs
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

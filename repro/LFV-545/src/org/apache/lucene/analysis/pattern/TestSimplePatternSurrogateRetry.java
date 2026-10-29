@@ -23,37 +23,26 @@ import org.apache.lucene.util.automaton.Automaton;
 import org.apache.lucene.util.automaton.Operations;
 import org.apache.lucene.util.automaton.RegExp;
 
-/**
- * SimplePatternTokenizer / SimplePatternSplitTokenizer run the automaton over code points, but
- * when a candidate match that started at a supplementary character fails, they push back all but
- * the first UTF-16 code unit, so the next attempt starts at the low surrogate: tokens (or token
- * boundaries) can then split a surrogate pair.
- */
 public class TestSimplePatternSurrogateRetry extends BaseTokenStreamTestCase {
 
-  private static final String FIRE = new String(Character.toChars(0x1F525)); // a supplementary char
+  private static final String E = new String(Character.toChars(0x1F525));
 
   private static Automaton dfa(String regexp) {
-    return Operations.determinize(new RegExp(regexp).toAutomaton(), 10000);
+    return Operations.determinize(
+        new RegExp(regexp).toAutomaton(), Operations.DEFAULT_DETERMINIZE_WORK_LIMIT);
   }
 
-  /** Tokens: FIRE followed by letters, or runs of characters other than FIRE and space. */
-  public void testTokenizerNoLoneSurrogateToken() throws Exception {
-    Tokenizer t = new SimplePatternTokenizer(dfa(FIRE + "[a-z]+|[^" + FIRE + " ]+"));
-    // control: FIRE followed by letters is one token
-    t.setReader(new StringReader(FIRE + "hot x"));
-    assertTokenStreamContents(
-        t, new String[] {FIRE + "hot", "x"}, new int[] {0, 6}, new int[] {5, 7}, 7);
-    // no token starts at FIRE (a space follows); the next token is "x" at offset 3
-    t.setReader(new StringReader(FIRE + " x"));
+  public void testTokenizer() throws Exception {
+    Tokenizer t = new SimplePatternTokenizer(dfa(E + "[0-9]+|[^" + E + " ]+"));
+    t.setReader(new StringReader(E + " x"));
+    // expected [x] [3,4); actual [U+DD25 [1,2), x]: the retry after E starts at its low surrogate
     assertTokenStreamContents(t, new String[] {"x"}, new int[] {3}, new int[] {4}, 4);
   }
 
-  /** Separators: FIRE followed by 'a', or runs of characters other than FIRE, 'a' and space. */
-  public void testSplitTokenizerKeepsSurrogatePair() throws Exception {
-    Tokenizer t = new SimplePatternSplitTokenizer(dfa(FIRE + "a|[^" + FIRE + "a ]+"));
-    // no separator starts at FIRE ('b' follows), so FIRE is the token and 'b' the separator
-    t.setReader(new StringReader(FIRE + "b"));
-    assertTokenStreamContents(t, new String[] {FIRE}, new int[] {0}, new int[] {2}, 3);
+  public void testSplitTokenizer() throws Exception {
+    Tokenizer t = new SimplePatternSplitTokenizer(dfa(E + "[0-9]+|[^" + E + "a-z]+"));
+    t.setReader(new StringReader(E + "b"));
+    // expected [Eb] [0,3); actual [U+D83D [0,1), b]: the retry after E starts at its low surrogate
+    assertTokenStreamContents(t, new String[] {E + "b"}, new int[] {0}, new int[] {3}, 3);
   }
 }

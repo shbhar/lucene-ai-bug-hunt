@@ -10,19 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index a dense LongColumn as NUMERIC or SORTED_NUMERIC doc values with IndexWriter#addBatch, its values cursor throws part-way (for example after 255 earlier documents, a 2-document batch whose cursor fails on its 2nd value), and you keep adding documents to the same writer. You expect what Lucene's own recovery test asserts: the exception propagates, the batch's documents are deleted, and a document added afterwards with value 42 reads back 42. Instead the values the cursor delivered before the throw stay in the doc-values buffer with no document attached, so the good document reads back -1 (a value of the rejected batch) and every later document of that field in the segment is shifted by the same number of values, which survives commit, reopen and forceMerge(1) while CheckIndex finds nothing wrong.
 
+The test shows that when a dense NUMERIC `LongColumn`'s values cursor throws during `addBatch` after 255 earlier documents of the field, the value it already delivered stays buffered with no document, so the next document of the field is stored with that value.
+
 ## Expected vs actual
 
-- Expected: The batch throws and its documents are deleted; the next document reads back 42 (42, 43, 44 after `forceMerge(1)`).
-- Actual: It reads back -1, the rejected batch's value (-1, 42, 43 after `forceMerge(1)`), and `CheckIndex` reports no problems.
+Expected the document added after the failed batch to read back its own value 42; actual: `expected:<42> but was:<-1>` (-1 is the failed batch's value), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/index/TestColumnBatchDenseDocValuesFailure.java](src/org/apache/lucene/index/TestColumnBatchDenseDocValuesFailure.java) (JUnit test)
+- [src/org/apache/lucene/index/TestDenseLongColumnFailure.java](src/org/apache/lucene/index/TestDenseLongColumnFailure.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,14 +41,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestColumnBatchDenseDocValuesFailure
+     execute --select-class org.apache.lucene.index.TestDenseLongColumnFailure
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestColumnBatchDenseDocValuesFailure.java](TestColumnBatchDenseDocValuesFailure.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/columnar-addbatch/](../../models/columnar-addbatch/)
 

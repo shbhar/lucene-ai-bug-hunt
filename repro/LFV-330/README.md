@@ -10,20 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build a MemoryIndex from a document with StringField("id", "doc-1", Store.YES), a KeywordField(String, Store.YES) or an IntField("count", 5, Store.YES) and read it back through storedFields.document(0), expecting the same stored values IndexWriter returns, since MemoryIndex has supported stored fields since 9.5.0 (#11999). Instead MemoryIndex stores the field's binaryValue rather than its storedValue: the String comes back as its UTF-8 bytes, so Document.get("id") returns null, and the numbers come back as their sortable point bytes (IntField 5 as [80 00 00 05]), so numericValue returns null. A StoredField built from a StoredFieldDataInput is not stored at all; the BytesRef constructors and plain StoredField values are unaffected.
 
+The test shows that `MemoryIndex` stores a `StringField(String, Store.YES)` as its term bytes (`binaryValue()`) instead of its `storedValue()`, so the stored String is lost.
+
 ## Expected vs actual
 
-- Expected: `get("id")` = "doc-1" and `get("tag")` = "red", and the numbers and bytes as IndexWriter returns them: `Integer(5)`, `Long(7)`, `Float(1.5)`, `Double(2.5)`, `binary[9, 8, 7]`.
-- Actual: `get` returns null for both; the numbers come back as point bytes (`binary[-128, 0, 0, 5]` for 5) and the DataInput value is `<absent>`: 7 of 8 tests fail, the control passes.
+Expected: `storedFields().document(0).get("id")` is `"doc-1"`, as with IndexWriter. Actual: `null`.
 
 ## Files
 
-- [src/org/apache/lucene/index/memory/TestMemoryIndexStoredValues.java](src/org/apache/lucene/index/memory/TestMemoryIndexStoredValues.java) (JUnit test)
-- [src/org/apache/lucene/index/memory/TestMemoryIndexStoredDataInput.java](src/org/apache/lucene/index/memory/TestMemoryIndexStoredDataInput.java) (JUnit test)
+- [src/org/apache/lucene/index/memory/TestMemoryIndexStoredStringField.java](src/org/apache/lucene/index/memory/TestMemoryIndexStoredStringField.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -42,18 +42,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.memory.TestMemoryIndexStoredValues \
-       --select-class org.apache.lucene.index.memory.TestMemoryIndexStoredDataInput
+     execute --select-class org.apache.lucene.index.memory.TestMemoryIndexStoredStringField
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestMemoryIndexStoredValueParity.java](TestMemoryIndexStoredValueParity.java)
-- [TestMemoryIndexStoredValues.java](TestMemoryIndexStoredValues.java)
-- [TestMemoryIndexStoredDataInput.java](TestMemoryIndexStoredDataInput.java)
-- [TestMemoryIndexStoredWorkaroundProbe.java](TestMemoryIndexStoredWorkaroundProbe.java)
 
 ## Feedback
 

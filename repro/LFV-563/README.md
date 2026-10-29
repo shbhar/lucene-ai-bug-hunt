@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You set IndexWriterConfig#setParentField (no index sort) and a merge policy that keeps fully deleted segments, such as SoftDeletesRetentionMergePolicy, and IndexWriter rejects a document block at a child with a documented non-aborting exception (for example a term longer than MAX_TERM_LENGTH) while that block is the only content of its in-memory segment, for example the first thing indexed after a commit. You expect the rejection to leave a consistent index that keeps merging, as the addDocument javadoc promises ('if an Exception is hit... the index will be consistent'). Instead the block is flushed as a fully deleted segment whose FieldInfos have no parent field (IndexWriter registers the parent field only when it reaches a block's last document), the merge policy keeps it, and every merge that combines it only with segments holding no multi-document block throws IllegalStateException 'expected parent doc field to be "_parent " across all segments but found a segment with different field "null"' and closes IndexWriter, also after the index is reopened, until forceMergeDeletes removes the segment.
 
+The test shows that with setParentField and SoftDeletesRetentionMergePolicy, a block rejected at its child (term &gt; MAX_TERM_LENGTH) right after a commit leaves a fully deleted segment without the parent field that breaks forceMerge (`TestRejectedBlockSegmentWithoutParentField#testForceMergeAfterBlockRejectedAtChild`).
+
 ## Expected vs actual
 
-- Expected: `forceMerge(1)` merges the 3 segments into 1 with the 2 accepted documents, and `getMergedFieldInfos` names the parent field `_parent`.
-- Actual: `IllegalStateException: expected parent doc field to be "_parent " across all segments but found a segment with different field "null"`; IndexWriter closes itself (tragic exception set), also for a new writer and on a plain reader.
+Expected: forceMerge(1) succeeds. Actual: IllegalStateException "expected parent doc field to be "_parent " across all segments but found a segment with different field "null""; fails with -ea and -da.
 
 ## Files
 
@@ -21,7 +22,8 @@ You set IndexWriterConfig#setParentField (no index sort) and a merge policy that
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -36,21 +38,13 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.index.TestRejectedBlockSegmentWithoutParentField
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestRejectedBlockParentFieldMerges.java](TestRejectedBlockParentFieldMerges.java)
-- [TestRejectedBlockMergeFailure.java](TestRejectedBlockMergeFailure.java)
-- [TestRejectedBlockMergeControls.java](TestRejectedBlockMergeControls.java)
-- [RejectedBlockSupport.java](RejectedBlockSupport.java)
-- [TestSingleRejectedDocProbe.java](TestSingleRejectedDocProbe.java)
 
 ## Feedback
 

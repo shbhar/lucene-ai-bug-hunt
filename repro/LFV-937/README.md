@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You evaluate search quality with lucene/benchmark's SubmissionReport, for example through QueryDriver, whose usage text calls the output the 'submission file for trec_eval', and expect the score column of each TREC run line (qid Q0 docno rank score tag) to be a plain number. SubmissionReport formats scores with NumberFormat.getInstance(Locale.ROOT) and never turns grouping off, so a hit scoring 1200.5 is written as '1,200.5000'. trec_eval reads that column with C atof, which stops at the comma and returns 1.0, and then re-sorts the run by the parsed score, so a run [1200.5, 900.25] is evaluated as [900.25, 1.0], with the top hit moved down, and the reported metrics are silently wrong.
 
+The test shows that `SubmissionReport.report` writes a hit with score 1200.5 into the TREC run line (`qid Q0 docno rank score tag`, the file `QueryDriver` calls the submission file for trec_eval) with a grouping comma.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+Expected the score column `1200.5000`; actual `1,200.5000` (trec_eval reads it with C `atof()` as 1.0), with `-ea` and `-da`.
 
 ## Files
 
@@ -19,7 +20,8 @@ You evaluate search quality with lucene/benchmark's SubmissionReport, for exampl
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build a UnifiedHighlighter with Builder#withFlags(EnumSet.of(MULTI_TERM_QUERY)), whose javadoc says the set 'will override' the four boolean builder options, and expect it to behave like the same flags chosen through those options: for a PhraseQuery 'alpha beta' on 'alpha beta. alpha gamma.' that gives '&lt;b&gt;alpha&lt;/b&gt; &lt;b&gt;beta&lt;/b&gt;. &lt;b&gt;alpha&lt;/b&gt; gamma.'. Instead the constructor's evaluateFlags(Builder) tests the highlighter's own flags field, which is still null at that point, rather than the builder's, so the set passed to withFlags is never read: getFlags returns the defaults [PHRASES, MULTI_TERM_QUERY, PASSAGE_RELEVANCY_OVER_SPEED, WEIGHT_MATCHES] and the phrase is highlighted strictly as '&lt;b&gt;alpha beta&lt;/b&gt;. alpha gamma.'. Every set is ignored the same way, including the empty set (a PrefixQuery is still highlighted), with or without assertions.
 
+The test shows that `UnifiedHighlighter.Builder#withFlags` is ignored: with `withFlags(EnumSet.of(MULTI_TERM_QUERY))` the highlighter still uses the default flags (strict phrase highlighting).
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The constructor's evaluateFlags(Builder) tests the highlighter's own flags field, which is still null at that point, rather than the builder's, so the set passed to withFlags is never read: getFlags returns the defaults [PHRASES, MULTI_TERM_QUERY, PASSAGE_RELEVANCY_OVER_SPEED, WEIGHT_MATCHES] and the phrase is highlighted strictly as '&lt;b&gt;alpha beta&lt;/b&gt;. alpha gamma.'.
+Expected `<b>alpha</b> <b>beta</b> <b>alpha</b> gamma` for PhraseQuery `"alpha beta"` on `alpha beta alpha gamma`; actual: `<b>alpha beta</b> alpha gamma`, with `-ea` and `-da`.
 
 ## Files
 
@@ -19,8 +20,8 @@ You build a UnifiedHighlighter with Builder#withFlags(EnumSet.of(MULTI_TERM_QUER
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

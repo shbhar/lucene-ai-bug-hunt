@@ -22,12 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You use soft deletes with SoftDeletesRetentionMergePolicy, open a new IndexWriter on an index whose last commit holds a fully soft-deleted segment that the retention query keeps, and call DirectoryReader.open(writer); the merge policy&#x27;s keep check for that segment fails (one read error while the retention query reads the segment, or your retention-query supplier throws), so the open fails with that exception. You expect the failed open to release what it acquired, as StandardDirectoryReader.open&#x27;s own catch block does for every reader already in its list (LUCENE-5262), so that closing the writer leaves no file open. Instead the SegmentReader obtained just before the keep check is neither in that list nor released, so after IndexWriter.close the segment stays open (MockDirectoryWrapper: &#x27;there are still 4 open files: {_0.cfs=1, _0_1_Lucene90_0.dvp=1, _0_1_Lucene90_0.dvs=1, _0_1_Lucene90_0.dvd=1}&#x27;), while the writer itself stays open and a later NRT open works.</p>
+<p>The test shows that when SoftDeletesRetentionMergePolicy&#x27;s keep check throws during the first NRT open of a new IndexWriter over a commit with a kept, fully soft-deleted segment, StandardDirectoryReader.open never releases that segment&#x27;s SegmentReader.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect the failed open to release what it acquired, as StandardDirectoryReader.open&#x27;s own catch block does for every reader already in its list (LUCENE-5262), so that closing the writer leaves no file open.</li><li><b>Actual:</b> The SegmentReader obtained just before the keep check is neither in that list nor released, so after IndexWriter.close the segment stays open (MockDirectoryWrapper: &#x27;there are still 4 open files: {_0.cfs=1, _0_1_Lucene90_0.dvp=1, _0_1_Lucene90_0.dvs=1, _0_1_Lucene90_0.dvd=1}&#x27;), while the writer itself stays open and a later NRT open works.</li></ul>
+<p>Expected no open files after the failed <code>DirectoryReader.open(writer)</code> and <code>IndexWriter.close()</code>; actual: <code>MockDirectoryWrapper: cannot close: there are still 4 open files: {_0.cfs=1,...}</code>, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/index/TestNrtOpenKeepFullyDeletedFailureLeaksReader.java"><code>src/org/apache/lucene/index/TestNrtOpenKeepFullyDeletedFailureLeaksReader.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/index/TestNrtOpenKeepCheckFailureLeaksReader.java"><code>src/org/apache/lucene/index/TestNrtOpenKeepCheckFailureLeaksReader.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -43,6 +45,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestNrtOpenKeepFullyDeletedFailureLeaksReader</code></pre>
+     execute --select-class org.apache.lucene.index.TestNrtOpenKeepCheckFailureLeaksReader</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

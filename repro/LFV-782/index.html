@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You sort documents by their outside distance from a lat/lon box that reaches the North Pole, for example latitude 60..90 x longitude -10..10, with Geo3DDocValuesField.newOutsideBoxSort. A document at (80, 180) is only 10 degrees (about 1,112 km) from that box, because the box contains the pole, so it should sort before a document at (35, 0), which is 25 degrees south of the box. Instead GeoNorthRectangle.outsideDistance never considers the pole, where both side edges of the box end, and returns the distance to a far corner (39.88 degrees on the sphere; 4,434,716 m against 2,779,879 m in the WGS84 sort), so the nearer document sorts last; GeoSouthRectangle has the mirror bug at the South Pole.</p>
+<p>The test shows that the Geo3D outside distance from the point (80, 180) to the box lat 60..90 x lon -10..10 (a <code>GeoNorthRectangle</code>, which contains the north pole) ignores the pole.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> (80, 180) sorts right after the pole document, with at most about 1,112 km (10 degrees); on the unit sphere its outside distance is 10 degrees.</li><li><b>Actual:</b> (80, 180) sorts last with 4,434,715.59 m against 2,779,878.83 m for (35, 0); on the unit sphere its outside distance is 39.882280145867114 degrees; the 89.9999 control passes.</li></ul>
+<p>Expected: 10 degrees (the distance to the pole, which is in the box); actual (-ea and -da): 39.882280145867114 degrees (a far corner), which is the value <code>Geo3DDocValuesField.newOutsideBoxSort</code> sorts by.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/spatial3d/TestGeo3DOutsideBoxSortPolarRectangle.java"><code>src/org/apache/lucene/spatial3d/TestGeo3DOutsideBoxSortPolarRectangle.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/spatial3d/geom/TestPolarRectangleOutsideDistance.java"><code>src/org/apache/lucene/spatial3d/geom/TestPolarRectangleOutsideDistance.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -45,7 +47,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.spatial3d.TestGeo3DOutsideBoxSortPolarRectangle</code></pre>
+     execute --select-class org.apache.lucene.spatial3d.geom.TestPolarRectangleOutsideDistance</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestGeo3DPolarRectangleOutsideDistance.java"><code>TestGeo3DPolarRectangleOutsideDistance.java</code></a></li><li><a href="TestPolarBoxOutsideDistanceV1.java"><code>TestPolarBoxOutsideDistanceV1.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

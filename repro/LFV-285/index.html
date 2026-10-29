@@ -22,15 +22,15 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You call IndexWriter.addIndexes(CodecReader...) with readers that have many deleted or filtered-out documents, so their live documents fit under IndexWriter.MAX_DOCS but their maxDoc values (deleted documents included) add up to more. You expect the call to succeed, since addIndexes counts and reserves only live documents, its javadoc throws IllegalArgumentException only if the index would exceed MAX_DOCS, and 9.8.0 accepted the same call. Instead, with the default configuration it throws IllegalArgumentException &#x27;Too many documents: composite IndexReaders cannot exceed...&#x27; and adds nothing, because since 9.9.0 addIndexesReaderMerge always wraps the inputs in a SlowCompositeCodecReaderWrapper (a MultiReader over the uncompacted inputs) for OneMerge#reorder, whose default returns null and discards the view.</p>
+<p>The test shows that <code>IndexWriter.addIndexes(CodecReader...)</code> without an index sort rejects inputs whose live docs fit the doc limit when their maxDoc sum (deleted docs included) does not, because it always builds a merged view for <code>OneMerge#reorder</code> (limit lowered to 2 with <code>setIndexWriterMaxDocs</code>).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect the call to succeed, since addIndexes counts and reserves only live documents, its javadoc throws IllegalArgumentException only if the index would exceed MAX_DOCS, and 9.8.0 accepted the same call.</li><li><b>Actual:</b> With the default configuration it throws IllegalArgumentException &#x27;Too many documents: composite IndexReaders cannot exceed...&#x27; and adds nothing, because since 9.9.0 addIndexesReaderMerge always wraps the inputs in a SlowCompositeCodecReaderWrapper (a MultiReader over the uncompacted inputs) for OneMerge#reorder, whose default returns null and discards the view.</li></ul>
+<p>Expected the 2 live docs (inputs with maxDoc 2 and 1) to be added; actual <code>IllegalArgumentException: Too many documents: composite IndexReaders cannot exceed 2 but readers have total maxDoc=3</code>, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/index/TestAddIndexesReadersWithManyDeletions.java"><code>src/org/apache/lucene/index/TestAddIndexesReadersWithManyDeletions.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/FullScaleAddIndexes.java"><code>src/FullScaleAddIndexes.java</code></a> <span class="dim">(main() class)</span></li>
+<li><a href="src/org/apache/lucene/index/TestAddIndexesDeletedDocsLimit.java"><code>src/org/apache/lucene/index/TestAddIndexesDeletedDocsLimit.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
+<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
@@ -45,11 +45,7 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestAddIndexesReadersWithManyDeletions
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; FullScaleAddIndexes</code></pre>
+     execute --select-class org.apache.lucene.index.TestAddIndexesDeletedDocsLimit</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/codecreader-wrappers/index.html">codecreader-wrappers</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

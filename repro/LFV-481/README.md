@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index a document with the category Author/Bob through a ReindexingEnrichedDirectoryTaxonomyWriter after its last commit, then call reindexWithNewOrdinalData to refresh the per-category data, whose javadoc promises 'The ordinals themselves will be preserved, so the caller does not need to update references to them in the main index'. Instead the method rebuilds the taxonomy from a reader of the last commit, so Author/Bob disappears (the writer's getSize drops from 4 to 3) and its ordinal 3 goes to the next new category, Author/Carol. After both indexes are committed, the main index's Bob document is counted as Carol (Alice=1 Carol=1 instead of Alice=1 Bob=1) with no error; on a taxonomy that was never committed the call throws IndexNotFoundException.
 
+ReindexingEnrichedDirectoryTaxonomyWriter.reindexWithNewOrdinalData drops a category added after the last taxonomy commit, although its javadoc promises 'The ordinals themselves will be preserved'.
+
 ## Expected vs actual
 
-- Expected: `getSize` stays 4, `Author/Bob` keeps ordinal 3, and the counts are `Alice=1 Bob=1 Carol=1`.
-- Actual: `getSize` is 3, `Author/Carol` takes ordinal 3, the counts are `Alice=1 Bob=-1 Carol=2`, and a never-committed taxonomy throws `IndexNotFoundException`.
+Expected Author/Bob to keep ordinal 2 in the taxonomy the call commits; main gives getOrdinal(Author/Bob) = -1.
 
 ## Files
 
@@ -21,7 +22,8 @@ You index a document with the category Author/Bob through a ReindexingEnrichedDi
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -46,13 +48,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestReindexWithUncommittedCategories.java](TestReindexWithUncommittedCategories.java)
-- [TestReindexDropsUncommittedCategories.java](TestReindexDropsUncommittedCategories.java)
-- [TestReindexKeepsWriterCategories.java](TestReindexKeepsWriterCategories.java)
-- [TestReindexProbeV3.java](TestReindexProbeV3.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/taxonomy-index-pair-tla/](../../models/taxonomy-index-pair-tla/)
 

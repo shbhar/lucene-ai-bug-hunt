@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You call IndexWriter#addIndexes(Directory...) with an index whose first field a_new is new to the destination and whose field z_conflict clashes with the destination's schema; the call correctly throws IllegalArgumentException and adds no segment, as its javadoc promises ('either no indexes will have been added or they all will have been'). You expect the writer to be as it was before the call, so that a later document can use a_new with any schema, as it can after the writer is reopened and after the same failure in addIndexes(CodecReader...). Instead the writer keeps a_new registered with the incoming schema, because addIndexes(Directory...) registers each incoming FieldInfo in the writer-wide FieldNumbers map while it iterates and its failure path only deletes the copied files: getFieldNames lists a_new although no segment has it, and a document with NumericDocValuesField('a_new') is rejected ('cannot change field "a_new" from index options=DOCS to inconsistent index options=NONE') until the writer is reopened.
 
+The test shows that a failed `IndexWriter#addIndexes(Directory...)` (schema conflict on "z_conflict", nothing added) leaves the incoming field "a_new", checked before the conflict, registered in the writer's schema (default config).
+
 ## Expected vs actual
 
-- Expected: You expect the writer to be as it was before the call, so that a later document can use a_new with any schema, as it can after the writer is reopened and after the same failure in addIndexes(CodecReader...).
-- Actual: The writer keeps a_new registered with the incoming schema, because addIndexes(Directory...) registers each incoming FieldInfo in the writer-wide FieldNumbers map while it iterates and its failure path only deletes the copied files: getFieldNames lists a_new although no segment has it, and a document with NumericDocValuesField('a_new') is rejected ('cannot change field "a_new" from index options=DOCS to inconsistent index options=NONE') until the writer is reopened.
+Expected the first document of the destination that uses "a_new" (`NumericDocValuesField`) to be accepted, as after a reopen; actual: `IllegalArgumentException: cannot change field "a_new" from index options=DOCS to inconsistent index options=NONE`, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/index/TestFailedAddIndexesLeavesSchema.java](src/org/apache/lucene/index/TestFailedAddIndexesLeavesSchema.java) (JUnit test)
+- [src/org/apache/lucene/index/TestFailedAddIndexesRegistersField.java](src/org/apache/lucene/index/TestFailedAddIndexesRegistersField.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,7 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestFailedAddIndexesLeavesSchema
+     execute --select-class org.apache.lucene.index.TestFailedAddIndexesRegistersField
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

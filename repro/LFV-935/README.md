@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You evaluate search quality with QualityBenchmark, average the per-query results with QualityStats.average(stats) and ask the average for its precision at 10, expecting the mean of the per-query P@10 values (which, like trec_eval's P_10, already count missing ranks as non-relevant). If the queries returned different numbers of results and their mean is below 10, getPrecisionAt(10) ignores the correct mean that average stored and extrapolates again from the precision at the mean result count: with setMaxResults(10), a query whose 10 hits are all relevant (P@10 = 1.0) and a query whose only 2 hits are relevant (P@10 = 0.2) give 0.4 instead of 0.6. There is no error, and the printed SUMMARY never shows the affected cutoffs.
 
+The test shows that `QualityStats.average(stats).getPrecisionAt(10)` for a query with 10 relevant hits (P@10 1.0) and a query with 2 relevant hits (P@10 0.2) is not the mean of the per-query P@10 values.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+Expected 0.6 (the mean that `average()` stores); actual 0.4, because the averaged object's `numPoints` is the mean result count 6 and `getPrecisionAt(10)` extrapolates again from P@6, with `-ea` and `-da`.
 
 ## Files
 
@@ -19,7 +20,8 @@ You evaluate search quality with QualityBenchmark, average the per-query results
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

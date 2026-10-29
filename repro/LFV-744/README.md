@@ -1,6 +1,6 @@
 # IndriDirichletSimilarity(float mu) uses LMSimilarity's default (cf+1)/(|C|+1) collection model instead of IndriCollectionModel (cf/|C|), so new IndriDirichletSimilarity(2000f) scores differently from new IndriDirichletSimilarity although both print the same name
 
-Bug LFV-744 · Area: search / similarities (IndriDirichletSimilarity constructors and the LMSimilarity collection model) · Priority: medium · Impact: silent wrong results · Novelty: new
+Bug LFV-744 · Area: search / similarities (IndriDirichletSimilarity constructors and the LMSimilarity collection model) · Priority: low · Impact: silent wrong results · Novelty: new
 
 Bug page: [../../bugs/LFV-744.html](../../bugs/LFV-744.html)
 
@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You install new IndriDirichletSimilarity(2000f) and expect the same similarity as new IndriDirichletSimilarity, which is documented as using 'the default mu value of 2000', and Indri's Dirichlet smoothing log((tf + mu*cf/|C|)/(|D| + mu)) for any mu. Instead the mu-only constructor passes no collection model, so its implicit super installs LMSimilarity's DefaultCollectionModel, (cf+1)/(|C|+1), while only the no-argument constructor installs the class's own IndriCollectionModel, cf/|C|. On a 25-token index the term 'president' (cf 3) scores -1.871553 instead of -2.119101 in the same document, although both instances print 'LM IndriDirichlet(2000.000000)'.
 
+The test shows that `new IndriDirichletSimilarity(2000f)` scores differently from `new IndriDirichletSimilarity()` (documented as mu = 2000), because the mu-only constructor falls back to LMSimilarity's (cf+1)/(|C|+1) collection model instead of IndriCollectionModel's cf/|C|.
+
 ## Expected vs actual
 
-- Expected: `IndriDirichletSimilarity(2000f)` scores doc 0 for "president" -2.119101, like `IndriDirichletSimilarity`; `IndriDirichletSimilarity(3f)` scores the "george" document -1.9661129, as Indri's formula says.
-- Actual: -1.871553 and -1.8718022: the mu constructor uses (cf + 1) / (|C| + 1) as the collection probability (`explain`: 0.15384616 instead of 0.12).
+Expected equal explain() scores for term `a` in the one-document index `a b`; actual `expected:<-0.6931472> but was:<-0.4057149>` (-ea and -da).
 
 ## Files
 
@@ -21,7 +22,8 @@ You install new IndriDirichletSimilarity(2000f) and expect the same similarity a
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -43,13 +45,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestIndriDirichletMuConstructor.java](TestIndriDirichletMuConstructor.java)
-- [IndriCtorExplainProbe.java](IndriCtorExplainProbe.java)
-- [3-TestIndriDirichletMuConstructor.java](3-TestIndriDirichletMuConstructor.java)
-- [TestIndriMuCtorRankingV3.java](TestIndriMuCtorRankingV3.java)
 
 ## Feedback
 

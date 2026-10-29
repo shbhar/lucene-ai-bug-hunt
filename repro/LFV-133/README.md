@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You create a FixedBitSet of 2^31-63 to 2^31-1 bits (for example new FixedBitSet(Integer.MAX_VALUE), a legal length: the class javadoc points to LongBitSet only for more than 2.1B bits), set some bits and call approximateCardinality; you expect a non-negative estimate of the number of set bits, as BitSet documents ('an approximation of the cardinality of this set'). Instead it returns a negative number (-2147418112 with all 2^31-1 bits set, -64 with a single set bit), because the scale factor (interval / rangeLength) * numWords / maxWord is computed in int and its product 64 * numWords wraps to Integer.MIN_VALUE once the set has 2^25 words; new BitDocIdSet(bits) then throws IllegalArgumentException 'cost must be &gt;= 0'. No Lucene code path builds a bit set that long (doc-ID sets stop at IndexWriter.MAX_DOCS = 2^31-129 bits), so only external code that uses FixedBitSet directly over another int domain is affected.
 
+The test shows that `FixedBitSet.approximateCardinality()` returns a negative number for a set of Integer.MAX_VALUE bits, because its scale factor `64 * numWords` is computed in int and wraps at 2^25 words.
+
 ## Expected vs actual
 
-- Expected: You expect a non-negative estimate of the number of set bits, as BitSet documents ('an approximation of the cardinality of this set').
-- Actual: It returns a negative number (-2147418112 with all 2^31-1 bits set, -64 with a single set bit), because the scale factor (interval / rangeLength) * numWords / maxWord is computed in int and its product 64 * numWords wraps to Integer.MIN_VALUE once the set has 2^25 words; new BitDocIdSet(bits) then throws IllegalArgumentException 'cost must be &gt;= 0'.
+Expected: a non-negative estimate (one bit is set). Actual: `-64`, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/util/TestFixedBitSetApproximateCardinalityLarge.java](src/org/apache/lucene/util/TestFixedBitSetApproximateCardinalityLarge.java) (JUnit test)
+- [src/org/apache/lucene/util/TestFixedBitSetApproximateCardinalityOverflow.java](src/org/apache/lucene/util/TestFixedBitSetApproximateCardinalityOverflow.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -36,9 +37,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx3g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.util.TestFixedBitSetApproximateCardinalityLarge
+     execute --select-class org.apache.lucene.util.TestFixedBitSetApproximateCardinalityOverflow
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

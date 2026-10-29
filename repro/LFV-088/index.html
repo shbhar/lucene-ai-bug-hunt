@@ -18,18 +18,19 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>LatLonPoint#nearest reports an EQUAL_TO TotalHits that counts deleted documents</h1>
-<p class="facts small"><span>Bug LFV-088</span><span>Area: document / LatLonPoint#nearest</span><span>Priority: medium</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
+<p class="facts small"><span>Bug LFV-088</span><span>Area: document / LatLonPoint#nearest</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
 <p><a href="../../bugs/LFV-088.html">Bug page for LFV-088</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index documents with a LatLonPoint field, delete or update some of them, and call LatLonPoint.nearest(searcher, field, lat, lon, n) with n larger than the index. You expect TopFieldDocs.totalHits, which is labelled TotalHits.Relation.EQUAL_TO (exact), to count only documents that can be hits, here the hits returned. Instead the total is the per-segment sum of PointValues#getDocCount, an index statistic that still counts deleted documents, so 3 documents with one deleted return 2 hits but report exactly &#x27;3 hits&#x27;, more than reader.numDocs.</p>
+<p>The test shows that <code>LatLonPoint.nearest</code> returns an EQUAL_TO <code>TotalHits</code> that counts a deleted (unmerged) document.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> 2 hits and <code>totalHits</code> = 2 (<code>EQUAL_TO</code>) after the delete; 10 hits and 10 after the update, or a lower bound marked <code>GREATER_THAN_OR_EQUAL_TO</code>.</li><li><b>Actual:</b> The right hits, but &quot;3 hits&quot; and &quot;11 hits&quot;, both <code>EQUAL_TO</code>, while <code>reader.numDocs</code> is 2 and 10.</li></ul>
+<p>Expected, with 3 documents and 1 deleted: exactly 2 hits (or a lower bound &lt;= 2). Actual (-ea and -da): EQUAL_TO 3 (<code>got 3 hits</code>).</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/search/TestNearestTotalHitsDeletedDocs.java"><code>src/org/apache/lucene/search/TestNearestTotalHitsDeletedDocs.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/search/TestNearestTotalHitsDeletedDoc.java"><code>src/org/apache/lucene/search/TestNearestTotalHitsDeletedDoc.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -45,7 +46,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestNearestTotalHitsDeletedDocs</code></pre>
+     execute --select-class org.apache.lucene.search.TestNearestTotalHitsDeletedDoc</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestNearestTotalHits.java"><code>TestNearestTotalHits.java</code></a></li><li><a href="TestNearestTotalHitsEdges.java"><code>TestNearestTotalHitsEdges.java</code></a></li><li><a href="fix-dense-exact.diff"><code>fix-dense-exact.diff</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

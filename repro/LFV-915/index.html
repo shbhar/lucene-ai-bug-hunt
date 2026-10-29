@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You register a query such as wi OR &quot;wi fi&quot; (or the prefix query wi*, or guinea OR cavy with a &#x27;guinea pig =&gt; cavy&#x27; synonym rule) in a Monitor whose analyzer stacks tokens at one position, match a document with HighlightsMatch.MATCHER, and expect both hits that Weight#matches reports: for &#x27;wi fi&#x27; with ShingleFilter(2,2) and unigrams these are 0(0)-&gt;0(2) for &#x27;wi&#x27; and 0(0)-&gt;0(5) for &#x27;wi fi&#x27;. Instead HighlightsMatch keeps only one of them and getHitCount is 1, because Hit.compareTo compares start and end positions only and the hits are kept in TreeSets, which treat compareTo == 0 as a duplicate, although Hit&#x27;s own equals (a record over all four fields) says the two hits differ. Which hit survives depends on clause order, and the same root cause makes getHits(field).contains(...) ignore offsets and lets HighlightsMatch.equals return true for two objects whose hashCodes differ.</p>
+<p>The test shows that Monitor&#x27;s <code>HighlightsMatch</code> drops one of two hits at the same positions with different offsets, because <code>HighlightsMatch.Hit.compareTo</code> ignores offsets and the hits are kept in a <code>TreeSet</code>.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> Both hits at the stacked position: <code>[0(0)-&gt;0(2), 0(0)-&gt;0(5)]</code> for <code>wi fi</code> and <code>[0(0)-&gt;0(6), 0(0)-&gt;0(10)]</code> for <code>guinea pig</code>, <code>getHitCount</code> 2; <code>contains</code> and <code>equals</code> respect offsets.</li><li><b>Actual:</b> One hit each, <code>[0(0)-&gt;0(2)]</code> and <code>[0(0)-&gt;0(10)]</code>, <code>getHitCount</code> 1; <code>contains</code> ignores offsets, and two different matches are equal with hash codes 4564 and 6480.</li></ul>
+<p>Expected 2 hits for <code>f:wi OR f:&quot;wi fi&quot;</code> (two TermQuery clauses, the second on the shingle term) on &quot;wi fi&quot; with <code>ShingleFilter(2,2)</code> (unigram 0(0)-&gt;0(2) and shingle 0(0)-&gt;0(5)); actual: <code>getHitCount()</code> is 1 (<code>expected:&lt;2&gt; but was:&lt;1&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/monitor/TestHighlightsMatchHitOrdering.java"><code>src/org/apache/lucene/monitor/TestHighlightsMatchHitOrdering.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/monitor/TestHighlightsMatchStackedHits.java"><code>src/org/apache/lucene/monitor/TestHighlightsMatchStackedHits.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -47,7 +49,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.monitor.TestHighlightsMatchHitOrdering</code></pre>
+     execute --select-class org.apache.lucene.monitor.TestHighlightsMatchStackedHits</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestHighlightsMatchStackedTokens.java"><code>TestHighlightsMatchStackedTokens.java</code></a></li><li><a href="TestHighlightsMatchHitOrdering.java"><code>TestHighlightsMatchHitOrdering.java</code></a></li><li><a href="TestHitOffsetsV1.java"><code>TestHitOffsetsV1.java</code></a></li><li><a href="TestHitIdentity.java"><code>TestHitIdentity.java</code></a></li><li><a href="TestHitCompareToHistory.java"><code>TestHitCompareToHistory.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

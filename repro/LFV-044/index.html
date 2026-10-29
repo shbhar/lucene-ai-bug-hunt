@@ -19,11 +19,12 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>Doc-values range queries with a skip index return wrong hits when a segment&#x27;s values span more than Long.MAX_VALUE</h1>
 <p class="facts small"><span>Bug LFV-044</span><span>Area: codecs / doc values</span><span>Priority: high</span><span>Impact: silent wrong results</span><span>Novelty: known upstream</span></p>
+<p><a href="../../bugs/LFV-044.html">Bug page for LFV-044</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index numeric doc values with a skip index (NumericDocValuesField.indexedField) where one segment&#x27;s values span more than Long.MAX_VALUE, and run a doc-values range query. You expect the same hits as 10.5.2. Instead the encoded-domain bound transform wraps: 100k random latitudes queried for [45, 90] gave 0 hits instead of 25,157, 64-bit hashes gave 2 instead of 49,931, and some cases add wrong hits.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect the same hits as 10.5.2.</li><li><b>Actual:</b> The encoded-domain bound transform wraps: 100k random latitudes queried for [45, 90] gave 0 hits instead of 25,157, 64-bit hashes gave 2 instead of 49,931, and some cases add wrong hits.</li></ul>
+<ul><li><b>Expected:</b> <code>count(q)</code> = 512 and <code>search(q, 10)</code> returns 10 hits, as on 10.5.2 and on the same data without a skip index.</li><li><b>Actual:</b> <code>count(q)</code> = 0 and <code>search(q, 10)</code> returns 0 hits: <code>AssertionError: count(q); search(q, 10) returned 0 hits expected:&lt;512&gt; but was:&lt;0&gt;</code>.</li></ul>
 <h2>Files</h2><ul>
 <li><a href="src/TestVerifyEncodedRange.java"><code>src/TestVerifyEncodedRange.java</code></a> <span class="dim">(JUnit test)</span></li>
 <li><a href="src/TestVerifyDefaultSearch.java"><code>src/TestVerifyDefaultSearch.java</code></a> <span class="dim">(JUnit test)</span></li>
@@ -48,5 +49,6 @@ java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=A
      execute --select-class TestVerifyEncodedRange \
        --select-class TestVerifyDefaultSearch</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
+<h2>Files shown on the bug page</h2><ul><li><a href="TestSkipIndexedDocValuesRangeWideSpan.java"><code>TestSkipIndexedDocValuesRangeWideSpan.java</code></a></li></ul>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/study-simd-equivalence/index.html">study-simd-equivalence</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

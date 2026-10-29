@@ -23,13 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You parse a CSV line whose last field is quoted, for example CSVUtil.parse(&quot;x,&quot; + CSVUtil.quoteEscape(&quot;To be, or not to be&quot;)), or load a kuromoji user dictionary written with every field quoted, and expect the quoted value to be decoded the same way as in any other position, as parse does for every field followed by a comma. Instead the last field comes back raw, enclosing quotes and doubled inner quotes included: parse(&quot;\&quot;a,b\&quot;,\&quot;c,d\&quot;&quot;) returns [a,b, &quot;c,d&quot;], and the dictionary line &quot;abcd&quot;,&quot;a b cd&quot;,&quot;foo1 foo2 foo3&quot;,&quot;bar&quot; yields tokens whose part-of-speech is &quot;bar&quot; with the quotes. The cause is one line: parse passes each comma-terminated field through unQuoteUnEscape (CSVUtil.java:56) but adds the final field as sb.toString (:65).</p>
+<p>The test shows that <code>CSVUtil.parse</code> unquotes every quoted field except the last one of the line: <code>parse(&quot;\&quot;x\&quot;,\&quot;bar\&quot;&quot;)</code> decodes the first field but returns the last one raw.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>parse(&quot;\&quot;p,q\&quot;,\&quot;p,q\&quot;,\&quot;p,q\&quot;&quot;)</code> gives <code>[p,q, p,q, p,q]</code>, and the fully quoted dictionary entry gives part-of-speech <code>bar</code>.</li><li><b>Actual:</b> <code>[p,q, p,q, &quot;p,q&quot;]</code> and part-of-speech <code>&quot;bar&quot;</code>: 3 of 3 and 2 of 3 tests fail, with assertions on and off.</li></ul>
+<p>Expected <code>[x, bar]</code>; actual <code>[x, &quot;bar&quot;]</code> (the last field keeps its quotes), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/analysis/util/TestCSVUtilLastField.java"><code>src/org/apache/lucene/analysis/util/TestCSVUtilLastField.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/org/apache/lucene/analysis/ja/TestUserDictionaryQuotedFields.java"><code>src/org/apache/lucene/analysis/ja/TestUserDictionaryQuotedFields.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/analysis/util/TestCSVUtilQuotedLastField.java"><code>src/org/apache/lucene/analysis/util/TestCSVUtilQuotedLastField.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -38,7 +39,6 @@ CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
 CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
-CP=$CP:$LUCENE/lucene/analysis/kuromoji/build/libs/lucene-analysis-kuromoji-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
@@ -47,13 +47,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.util.TestCSVUtilLastField
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.ja.TestUserDictionaryQuotedFields</code></pre>
-<p class="small">The module(s) analysis-kuromoji also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
+     execute --select-class org.apache.lucene.analysis.util.TestCSVUtilQuotedLastField</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestCSVUtilQuotedLastField.java"><code>TestCSVUtilQuotedLastField.java</code></a></li><li><a href="TestUserDictionaryQuotedPartOfSpeech.java"><code>TestUserDictionaryQuotedPartOfSpeech.java</code></a></li><li><a href="TestCSVUtilLastField.java"><code>TestCSVUtilLastField.java</code></a></li><li><a href="TestQuotedLastField.java"><code>TestQuotedLastField.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

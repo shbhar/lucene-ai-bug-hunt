@@ -10,16 +10,16 @@ You evaluate search quality with QueryDriver or QualityBenchmark and a TREC qrel
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+Expected `isRelevant("d", q) == false` (trec_eval counts a document relevant only when its grade is &gt;= 1); actual `true`, because every grade other than the literal string `0` counts as relevant, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/benchmark/quality/trec/TestTrecJudgeGrades.java](src/org/apache/lucene/benchmark/quality/trec/TestTrecJudgeGrades.java) (JUnit test)
+- [src/org/apache/lucene/benchmark/quality/trec/TestTrecJudgeNegativeGrade.java](src/org/apache/lucene/benchmark/quality/trec/TestTrecJudgeNegativeGrade.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,7 +38,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.benchmark.quality.trec.TestTrecJudgeGrades
+     execute --select-class org.apache.lucene.benchmark.quality.trec.TestTrecJudgeNegativeGrade
 ```
 
 The module(s) benchmark also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.

@@ -22,16 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You group documents by a double field with new DoubleRangeFactory(0, 0.1, 10), buckets 0.1 wide, and expect each group&#x27;s DoubleRange label to contain the values grouped under it, because DoubleRange is documented as [min, max). Instead the value 0.6 is grouped under DoubleRange(0.5, 0.6), which excludes 0.6, and 1.7 under DoubleRange(1.7000000000000002, 1.8000000000000003); 27 of the 100 values 0.0, 0.1,..., 9.9 lie outside their own label, adjacent labels leave gaps (no label contains 0.6) or overlap, and a range query built from a label misses or picks up documents (values 0.55, 0.6, 0.65 form a group DoubleRange(0.5, 0.6) of 2 documents whose label matches 1). The cause is that getRange picks the bucket with Math.floor((value - min) / width) but computes its bounds separately as min + bucket * width and then that + width, and the three roundings disagree near boundaries; group membership itself stays consistent.</p>
+<p><code>new DoubleRangeFactory(0, 0.1, 10).getRange(0.6, null)</code> returns a range that does not contain 0.6.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> The value 0.6 is grouped under DoubleRange(0.5, 0.6), which excludes 0.6, and 1.7 under DoubleRange(1.7000000000000002, 1.8000000000000003); 27 of the 100 values 0.0, 0.1,..., 9.9 lie outside their own label, adjacent labels leave gaps (no label contains 0.6) or overlap, and a range query built from a label misses or picks up documents (values 0.55, 0.6, 0.65 form a group DoubleRange(0.5, 0.6) of 2 documents whose label matches 1).</li></ul>
+<p>Expected: a range [min, max) that contains 0.6 (DoubleRange is documented as inclusive min, exclusive max). Actual: <code>DoubleRange(0.5, 0.6)</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/search/grouping/TestDoubleRangeFactoryRounding.java"><code>src/org/apache/lucene/search/grouping/TestDoubleRangeFactoryRounding.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/org/apache/lucene/search/grouping/TestDoubleRangeFactoryRoundingReleases.java"><code>src/org/apache/lucene/search/grouping/TestDoubleRangeFactoryRoundingReleases.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/org/apache/lucene/search/grouping/TestDoubleRangeFactoryRounding9x.java"><code>src/org/apache/lucene/search/grouping/TestDoubleRangeFactoryRounding9x.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/org/apache/lucene/search/grouping/TestDoubleRangeFactoryRounding8x.java"><code>src/org/apache/lucene/search/grouping/TestDoubleRangeFactoryRounding8x.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/search/grouping/TestDoubleRangeFactoryContainsValue.java"><code>src/org/apache/lucene/search/grouping/TestDoubleRangeFactoryContainsValue.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -49,13 +47,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.grouping.TestDoubleRangeFactoryRounding
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.grouping.TestDoubleRangeFactoryRoundingReleases \
-       --select-class org.apache.lucene.search.grouping.TestDoubleRangeFactoryRounding9x \
-       --select-class org.apache.lucene.search.grouping.TestDoubleRangeFactoryRounding8x</code></pre>
+     execute --select-class org.apache.lucene.search.grouping.TestDoubleRangeFactoryContainsValue</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

@@ -23,18 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You open an NRT reader, update a doc-values field (or soft-delete through updateDocValues), and then call flush, a no-op forceMerge(1), or open readers with writeAllDeletes=true. You expect DirectoryReader.openIfChanged(reader, writer) to return a reader that sees the change. Instead it returns null and reader.isCurrent is true, so SearcherManager keeps the stale searcher, and hasUncommittedChanges can also return false while updates are uncommitted.</p>
+<p>The test shows that after an NRT reader is opened, <code>IndexWriter#updateNumericDocValue</code> followed by <code>flush()</code> leaves <code>DirectoryReader.openIfChanged(reader, writer)</code> returning null, so the reader never sees the update.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>openIfChanged</code> returns a reader that sees the change, as in the control, and <code>hasUncommittedChanges</code> is true until the commit.</li><li><b>Actual:</b> 5 of 6 tests fail on main, 10.5.2 and 9.12.3: <code>openIfChanged</code> returns null while a fresh reader sees the change, and <code>hasUncommittedChanges</code> returns false; the control passes.</li></ul>
+<p>Expected a new reader (the writer has an update the reader does not see); actual: <code>null</code>, with <code>-ea</code> and <code>-da</code> (<code>AssertionError: expected a new reader after a doc-values update, but got null</code>).</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/index/TestFlushHidesDocValuesUpdatesFromNRT.java"><code>src/org/apache/lucene/index/TestFlushHidesDocValuesUpdatesFromNRT.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/org/apache/lucene/index/TestGivenBugHasUncommittedChanges.java"><code>src/org/apache/lucene/index/TestGivenBugHasUncommittedChanges.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/org/apache/lucene/index/TestGivenBugPrimaryNode.java"><code>src/org/apache/lucene/index/TestGivenBugPrimaryNode.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/org/apache/lucene/index/TestGivenBugProbes.java"><code>src/org/apache/lucene/index/TestGivenBugProbes.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/org/apache/lucene/index/TestGivenBugRamPressure.java"><code>src/org/apache/lucene/index/TestGivenBugRamPressure.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/index/TestOpenIfChangedAfterDocValuesUpdateAndFlush.java"><code>src/org/apache/lucene/index/TestOpenIfChangedAfterDocValuesUpdateAndFlush.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.</li>
-<li>Recorded outcome of run 1 on main a9779ef3c193: 32 test(s) run, 19 failed (testNumericUpdateThenFlush, testSoftDeleteThenFlush, testHasUncommittedChangesAfterAutoAppliedDocValuesUpdates, testPrimaryNodeFlushAndRefreshPublishesDocValuesUpdate, testApplyAllDeletesFalseReader, testBinaryUpdateThenFlush).</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -42,22 +38,14 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
-CP=$CP:$LUCENE/lucene/facet/build/libs/lucene-facet-$V.jar
-CP=$CP:$LUCENE/lucene/replicator/build/libs/lucene-replicator-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx4g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestFlushHidesDocValuesUpdatesFromNRT \
-       --select-class org.apache.lucene.index.TestGivenBugProbes \
-       --select-class org.apache.lucene.index.TestGivenBugRamPressure \
-       --select-class org.apache.lucene.index.TestGivenBugHasUncommittedChanges \
-       --select-class org.apache.lucene.index.TestGivenBugPrimaryNode</code></pre>
-<p class="small">The module(s) facet, replicator also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
+     execute --select-class org.apache.lucene.index.TestOpenIfChangedAfterDocValuesUpdateAndFlush</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestOpenIfChangedAfterDocValuesOnlyFlush.java"><code>TestOpenIfChangedAfterDocValuesOnlyFlush.java</code></a></li><li><a href="fixB-applied-ea57360912ed.diff"><code>fixB-applied-ea57360912ed.diff</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

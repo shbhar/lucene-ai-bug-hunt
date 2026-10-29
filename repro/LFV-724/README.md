@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You load a Hunspell dictionary with 'COMPOUNDFLAG C', 'COMPOUNDMIN 1', 'COMPOUNDWORDMAX 1' and the words foo/C and bar/C, call Hunspell.spell("foobar"), and expect false: hunspell(5) defines COMPOUNDWORDMAX as the maximum word count in a compound, and C Hunspell 1.3.2 and 1.7.2 reject foobar. Instead Lucene returns true, with and without -ea; COMPOUNDWORDMAX 0, which the parser clamps to 1, behaves the same, while with COMPOUNDWORDMAX 2 Lucene correctly accepts foobar and rejects foobarfoo. The cause: checkCompounds counts parts only when a previous part exists ('prev != null &amp;&amp; prev.index &gt; compoundMax - 2'), so the first part is never counted and checkCompoundsAfter accepts first part + last part at any limit; the original LUCENE-9699 check, which did enforce a limit of 1, was lost in a 2021 refactoring (LUCENE-9729).
 
+The test shows that with `COMPOUNDFLAG C`, `COMPOUNDMIN 1`, `COMPOUNDWORDMAX 1` and the words foo/C, bar/C, `Hunspell.spell("foobar")` accepts the 2-word compound.
+
 ## Expected vs actual
 
-- Expected: At `COMPOUNDWORDMAX 1` and `0`, `spell("foobar")` is `false` in both flag styles, as in C Hunspell; the limit-2 control passes.
-- Actual: 3 of 4 tests fail: `spell("foobar")` is `true` at 1, at 0 and with COMPOUNDBEGIN/END; only the control passes.
+Expected: false (hunspell(5): COMPOUNDWORDMAX is the maximum word count in a compound; C Hunspell rejects it); actual (-ea and -da): true, because checkCompounds never counts the first part.
 
 ## Files
 
@@ -21,7 +22,8 @@ You load a Hunspell dictionary with 'COMPOUNDFLAG C', 'COMPOUNDMIN 1', 'COMPOUND
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -44,12 +46,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestCompoundWordMax.java](TestCompoundWordMax.java)
-- [TestCompoundWordMaxOne.java](TestCompoundWordMaxOne.java)
-- [TestCompoundWordMaxLimit.java](TestCompoundWordMaxLimit.java)
 
 ## Feedback
 

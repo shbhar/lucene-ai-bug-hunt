@@ -177,510 +177,179 @@ p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
 code.nw{white-space:nowrap}
 .sitefiles{font-size:var(--step--1);color:var(--mute)}
 h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
-</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-002 &middot; 16570-merge-race</p><h1 id='top'>A doc-values update can be lost during a merge</h1><p class='tldr'>During a merge, a newer doc-values update still being applied can lose to an older value carried over from disk: doc 0 silently keeps 100 instead of 200, through <code class='nw'>commit()</code> and a reopen. Unreleased: Lucene main with any overlays setting, and <code class='nw'>branch_10_6</code> only with the experimental overlays on.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 20</span><span class='sub'>An acknowledged doc-values update can be silently lost in main&#x27;s default merge path (10.6 only with opt-in overlays), serious data loss but a tight race that CI never hits in unreleased code.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>data corruption</span></dd></div><div><dt>Since</dt><dd>#16570 (unreleased)<span class='sub'>introduced 2026-09-01</span></dd></div><div class='wide'><dt>Affected</dt><dd>main with any overlays setting; <code class='nw'>branch_10_6</code> only with overlays on; not 10.5.2</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>model checking by AI tools (Alloy 6, TLA+, P), from a code-reading hypothesis</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-29.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><figure class='visual' id='16570-merge-race-short-visual'><div class='frame'><a class='still' href='../assets/LFV-002/bug-sequence.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-002/bug-sequence.png' alt='Sequence diagram of the race: three lifelines (indexing thread, thread A, merge thread) and a column of stored values. The merge carries doc 0&#x27;s on-disk value 100 into the merged segment at delGen 5 while packet P (doc 0 = 200, delGen 4) is still running; P&#x27;s update arrives later with the lower delGen, so 100 wins and 200 is lost.' width='1920' height='1080'></a></div><figcaption>The race over time: the indexing thread, thread A (which runs <code class='nw'>flush()</code>) and the merge thread, steps t1 to t7, and the stored values on the right (solid = on disk, dashed = in memory). Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Start <code class='nw'>forceMerge(1)</code> of segments <code class='nw'>_0</code> = {doc 0, doc 1} and <code class='nw'>_1</code> = {doc 2}. While it runs, set doc 0's <code class='nw'>ndv</code> to 100 and open an NRT reader: the 100 is written to <code class='nw'>_0</code> on disk at delGen 3.</span></li><li><span>Set doc 0 to 200 and add a delete-by-query; a <code class='nw'>flush()</code> on another thread freezes both into packet P (delGen 4), which the test holds inside that query. Meanwhile <code>tryUpdateDocValue</code> sets doc 2 = 302 (delGen 5) and doc 1 = 301 (delGen 6); both finish first.</span></li><li><span>You expect the newest update to win: doc 0 = 200 on the merged segment.</span></li><li><span>Instead the merge commit gives doc 0's on-disk 100 the delGen 6 - 1 = 5. P then re-applies 200 at delGen 4, below 5, so 100 wins, with no error under <code class='nw'>-ea</code> or <code class='nw'>-da</code>, and the loss survives <code class='nw'>commit()</code> and a reopen.</span></li><li><span>Without the doc-2 update the 100 gets delGen 4, a tie with P: under <code class='nw'>-ea</code> a <code>duplicate delGen=4</code> assertion closes the writer and every uncommitted change is lost; under <code class='nw'>-da</code> the 100 won in every run observed.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Lucene main, whatever <code>maxDocValuesOverlays</code> is set to (0 included); <code class='nw'>branch_10_6</code> only with the experimental <code>setMaxDocValuesOverlays(n&gt;0)</code>, new in 10.6.0; not 10.5.2. It needs a concurrent merge, an older update to the document written during it, a still-running packet for that document, and a newer update on the same segment and field that finished first. No production rate was measured.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>594 words</span></summary><div class='body'><p>While a background merge runs, a newer doc-values update that is still being applied can lose to an older value carried over from disk. The merged segment keeps the old value, with no error, and the loss survives <code class='nw'>commit()</code> and a reopen. It is unreleased code: Lucene main whatever <code>maxDocValuesOverlays</code> is set to, and on <code class='nw'>branch_10_6</code> only with the experimental doc-values overlays turned on.</p><p>Lucene applies doc-values updates in <strong>packets</strong>. Each packet gets a number, its <strong>delGen</strong>; a higher delGen means a newer update. When two updates hit the same document and field, the one with the higher delGen wins.</p><p>When a merge finishes, <code class='nw'>IndexWriter</code> has to carry over the updates that landed on the source segments while the merge was running. Since #16570 it reads back what was already written to disk and collapses it into <strong>one packet per source segment and field</strong>. A value on disk no longer carries the number of the packet that wrote it, so the merge has to choose one:</p><ul><li><code>diskDelGen = minResidual - 1</code>, where <code class='nw'>minResidual</code> is the smallest delGen among that segment's and field's updates that are <strong>finished but not yet written</strong>;</li><li><code class='nw'>completedDelGen</code> if there are none. The finished-but-unwritten updates keep their own delGens.</li></ul><p>Main's javadoc says this number is "below all residual and still-running ones". That holds only if packets finish in number order, and they do not have to. <code>tryUpdateDocValue</code>, or an ordinary update packet on another indexing thread, can finish while an older packet P is still being applied. So P can end up with <code>delGen(P) &lt;= diskDelGen</code>. When P re-applies on the merged segment:</p><ul><li><code>delGen(P) &lt; diskDelGen</code>: the <strong>older</strong> carried-over value has the higher number and wins. The newer update is silently lost, with assertions on (<code class='nw'>-ea</code>) and off (<code class='nw'>-da</code>).</li><li><code>delGen(P) == diskDelGen</code> (a tie): with <code class='nw'>-ea</code>, <code>ReadersAndUpdates.assertNoDupGen</code> throws <code>duplicate delGen</code>, a tragic exception closes the writer, and <strong>all</strong> uncommitted changes are lost. With <code class='nw'>-da</code> the old value won in every run observed; the order is unspecified, because <code>DocValuesFieldUpdates.mergedIterator</code> orders updates to one document only by delGen, so two equal delGens have no defined winner.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-example-step-by-step'>The example, step by step</h3><a class="hlink" href="#what-the-bug-is-the-example-step-by-step" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-example-step-by-step"><span aria-hidden="true">#</span></a></div><p>Segments <code>_0 = {doc 0, doc 1}</code> and <code>_1 = {doc 2}</code>, numeric field <code class='nw'>ndv</code>:</p><ol><li><code class='nw'>forceMerge(1)</code> starts on a helper thread; the test pauses the merge at its first output file.</li><li><code>updateNumericDocValue(id:0, 100)</code>, then <code>DirectoryReader.open(writer)</code>. Opening the reader writes the update (delGen 3) to <code class='nw'>_0</code> on disk while <code class='nw'>_0</code> is being merged.</li><li><code>updateNumericDocValue(id:0, 200)</code> plus a delete-by-query. Another thread calls <code class='nw'>flush()</code>, which freezes both into one packet P (delGen 4); P blocks inside its delete-by-query.</li><li><code>tryUpdateDocValue(reader, doc 2, 302)</code> (delGen 5, on <code class='nw'>_1</code>) and <code>tryUpdateDocValue(reader, doc 1, 301)</code> (delGen 6, on <code class='nw'>_0</code>). Both finish at once, out of order, and stay pending on the merging segments.</li><li>The merge commits. On <code class='nw'>_0</code> the only finished-but-unwritten update is doc 1's (delGen 6), so doc 0's on-disk 100 is collapsed at delGen <strong>5</strong>. P is released and re-applies doc 0 = 200 at delGen 4 on the merged segment. 4 is below 5, so 100 wins.</li><li>Expected doc 0 = <strong>200</strong>; actual <strong>100</strong>, with <code class='nw'>-ea</code> and with <code class='nw'>-da</code>. Without the doc-2 update, doc 1 gets delGen 5, the 100 is collapsed at delGen 4, the same number as P, and <code class='nw'>-ea</code> closes the writer on <code>duplicate delGen=4</code>.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-line'>The line</h3><a class="hlink" href="#what-the-bug-is-the-line" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-line"><span aria-hidden="true">#</span></a></div><p><code>IndexWriter.buildMappedDVUpdatesFromDisk</code> (main <code>IndexWriter.java:4620-4623</code>, branch_10_6 <code class='nw'>:4734-4737</code>):</p><pre><code>final long diskDelGen =
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-002 &middot; 16570-merge-race</p><h1 id='top'>A doc-values update can be lost during a merge</h1><p class='tldr'>During a merge, a newer doc-values update still being applied can lose to an older value carried over from disk: doc 0 silently keeps 100 instead of 200, through <code class='nw'>commit()</code> and a reopen. Unreleased: Lucene main with any overlays setting, and <code class='nw'>branch_10_6</code> only with the experimental overlays on.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 19</span><span class='sub'>An acknowledged doc-values update can be silently lost in main&#x27;s default merge path (10.6 only with opt-in overlays), serious data loss but a tight race that CI never hits in unreleased code.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>data corruption</span></dd></div><div><dt>Since</dt><dd>#16570 (unreleased)<span class='sub'>introduced 2026-09-01</span></dd></div><div class='wide'><dt>Affected</dt><dd>main with any overlays setting; <code class='nw'>branch_10_6</code> only with overlays on; not 10.5.2</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>model checking by AI tools (Alloy 6, TLA+, P), from a code-reading hypothesis</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-29.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><figure class='visual' id='16570-merge-race-short-visual'><div class='frame'><a class='still' href='../assets/LFV-002/bug-sequence.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-002/bug-sequence.png' alt='Sequence diagram of the race: three lifelines (indexing thread, thread A, merge thread) and a column of stored values. The merge carries doc 0&#x27;s on-disk value 100 into the merged segment at delGen 5 while packet P (doc 0 = 200, delGen 4) is still running; P&#x27;s update arrives later with the lower delGen, so 100 wins and 200 is lost.' width='1920' height='1080'></a></div><figcaption>The race over time: the indexing thread, thread A (which runs <code class='nw'>flush()</code>) and the merge thread, steps t1 to t7, and the stored values on the right (solid = on disk, dashed = in memory). Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Start <code class='nw'>forceMerge(1)</code> of segments <code class='nw'>_0</code> = {doc 0, doc 1} and <code class='nw'>_1</code> = {doc 2}. While it runs, set doc 0's <code class='nw'>ndv</code> to 100 and open an NRT reader: the 100 is written to <code class='nw'>_0</code> on disk at delGen 3.</span></li><li><span>Set doc 0 to 200 and add a delete-by-query; a <code class='nw'>flush()</code> on another thread freezes both into packet P (delGen 4), which the test holds inside that query. Meanwhile <code>tryUpdateDocValue</code> sets doc 2 = 302 (delGen 5) and doc 1 = 301 (delGen 6); both finish first.</span></li><li><span>You expect the newest update to win: doc 0 = 200 on the merged segment.</span></li><li><span>Instead the merge commit gives doc 0's on-disk 100 the delGen 6 - 1 = 5. P then re-applies 200 at delGen 4, below 5, so 100 wins, with no error under <code class='nw'>-ea</code> or <code class='nw'>-da</code>, and the loss survives <code class='nw'>commit()</code> and a reopen.</span></li><li><span>Without the doc-2 update the 100 gets delGen 4, a tie with P: under <code class='nw'>-ea</code> a <code>duplicate delGen=4</code> assertion closes the writer and every uncommitted change is lost; under <code class='nw'>-da</code> the 100 won in every run observed.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Lucene main, whatever <code>maxDocValuesOverlays</code> is set to (0 included); <code class='nw'>branch_10_6</code> only with the experimental <code>setMaxDocValuesOverlays(n&gt;0)</code>, new in 10.6.0; not 10.5.2. It needs a concurrent merge, an older update to the document written during it, a still-running packet for that document, and a newer update on the same segment and field that finished first. No production rate was measured.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>594 words</span></summary><div class='body'><p>While a background merge runs, a newer doc-values update that is still being applied can lose to an older value carried over from disk. The merged segment keeps the old value, with no error, and the loss survives <code class='nw'>commit()</code> and a reopen. It is unreleased code: Lucene main whatever <code>maxDocValuesOverlays</code> is set to, and on <code class='nw'>branch_10_6</code> only with the experimental doc-values overlays turned on.</p><p>Lucene applies doc-values updates in <strong>packets</strong>. Each packet gets a number, its <strong>delGen</strong>; a higher delGen means a newer update. When two updates hit the same document and field, the one with the higher delGen wins.</p><p>When a merge finishes, <code class='nw'>IndexWriter</code> has to carry over the updates that landed on the source segments while the merge was running. Since #16570 it reads back what was already written to disk and collapses it into <strong>one packet per source segment and field</strong>. A value on disk no longer carries the number of the packet that wrote it, so the merge has to choose one:</p><ul><li><code>diskDelGen = minResidual - 1</code>, where <code class='nw'>minResidual</code> is the smallest delGen among that segment's and field's updates that are <strong>finished but not yet written</strong>;</li><li><code class='nw'>completedDelGen</code> if there are none. The finished-but-unwritten updates keep their own delGens.</li></ul><p>Main's javadoc says this number is "below all residual and still-running ones". That holds only if packets finish in number order, and they do not have to. <code>tryUpdateDocValue</code>, or an ordinary update packet on another indexing thread, can finish while an older packet P is still being applied. So P can end up with <code>delGen(P) &lt;= diskDelGen</code>. When P re-applies on the merged segment:</p><ul><li><code>delGen(P) &lt; diskDelGen</code>: the <strong>older</strong> carried-over value has the higher number and wins. The newer update is silently lost, with assertions on (<code class='nw'>-ea</code>) and off (<code class='nw'>-da</code>).</li><li><code>delGen(P) == diskDelGen</code> (a tie): with <code class='nw'>-ea</code>, <code>ReadersAndUpdates.assertNoDupGen</code> throws <code>duplicate delGen</code>, a tragic exception closes the writer, and <strong>all</strong> uncommitted changes are lost. With <code class='nw'>-da</code> the old value won in every run observed; the order is unspecified, because <code>DocValuesFieldUpdates.mergedIterator</code> orders updates to one document only by delGen, so two equal delGens have no defined winner.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-example-step-by-step'>The example, step by step</h3><a class="hlink" href="#what-the-bug-is-the-example-step-by-step" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-example-step-by-step"><span aria-hidden="true">#</span></a></div><p>Segments <code>_0 = {doc 0, doc 1}</code> and <code>_1 = {doc 2}</code>, numeric field <code class='nw'>ndv</code>:</p><ol><li><code class='nw'>forceMerge(1)</code> starts on a helper thread; the test pauses the merge at its first output file.</li><li><code>updateNumericDocValue(id:0, 100)</code>, then <code>DirectoryReader.open(writer)</code>. Opening the reader writes the update (delGen 3) to <code class='nw'>_0</code> on disk while <code class='nw'>_0</code> is being merged.</li><li><code>updateNumericDocValue(id:0, 200)</code> plus a delete-by-query. Another thread calls <code class='nw'>flush()</code>, which freezes both into one packet P (delGen 4); P blocks inside its delete-by-query.</li><li><code>tryUpdateDocValue(reader, doc 2, 302)</code> (delGen 5, on <code class='nw'>_1</code>) and <code>tryUpdateDocValue(reader, doc 1, 301)</code> (delGen 6, on <code class='nw'>_0</code>). Both finish at once, out of order, and stay pending on the merging segments.</li><li>The merge commits. On <code class='nw'>_0</code> the only finished-but-unwritten update is doc 1's (delGen 6), so doc 0's on-disk 100 is collapsed at delGen <strong>5</strong>. P is released and re-applies doc 0 = 200 at delGen 4 on the merged segment. 4 is below 5, so 100 wins.</li><li>Expected doc 0 = <strong>200</strong>; actual <strong>100</strong>, with <code class='nw'>-ea</code> and with <code class='nw'>-da</code>. Without the doc-2 update, doc 1 gets delGen 5, the 100 is collapsed at delGen 4, the same number as P, and <code class='nw'>-ea</code> closes the writer on <code>duplicate delGen=4</code>.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-line'>The line</h3><a class="hlink" href="#what-the-bug-is-the-line" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-line"><span aria-hidden="true">#</span></a></div><p><code>IndexWriter.buildMappedDVUpdatesFromDisk</code> (main <code>IndexWriter.java:4620-4623</code>, branch_10_6 <code class='nw'>:4734-4737</code>):</p><pre><code>final long diskDelGen =
     minResidual != Long.MAX_VALUE
         ? minResidual - 1
-        : bufferedUpdatesStream.getCompletedDelGen();</code></pre></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>396 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Lucene main (the next major version, unreleased) runs the disk carry-over on every merge, whatever <code>maxDocValuesOverlays</code> is set to, 0 included (<code>IndexWriter.java:4531</code> calls it unconditionally). On <code class='nw'>branch_10_6</code> it runs only with the opt-in, experimental <code>IndexWriterConfig#setMaxDocValuesOverlays(n &gt; 0)</code>, which is new in 10.6.0; with the default 0 the old buffered path runs, and this bug does not affect it. 10.5.2 is not affected: the code does not exist there.</li><li><strong>Symptom.</strong> An update the application was told succeeded is replaced by an older value. There is no exception, the loss survives <code class='nw'>commit()</code> and a reopen from disk, also in a separate JVM. In the tie case with <code class='nw'>-ea</code> the writer closes instead, and every uncommitted change is lost with it.</li><li><strong>What it takes.</strong> All four together: a concurrent merge; an older update to the document written to the merging segment during the merge (for example by an NRT reopen or a commit); a packet that updates the same document and is still being applied when the merge commits; and, on the same merging segment and field, a newer update that finished before that packet. Without the last condition the same schedule is correct.</li><li><strong>Ordinary scale.</strong> Three or four documents are enough. An independent program reproduces it with nothing but <code>updateNumericDocValue</code> on two indexing threads, the default merge policy and scheduler, and <code class='nw'>FSDirectory</code>; a pause is still needed to pin the interleaving. Without any pause, a study verifier's stress run on main (three updater threads, a slow no-match delete-by-query, a policy that merges whenever two segments exist, a 0.001 MB RAM buffer, an NRT reader opened every 2 ms) hit it in 3 of 3 30-second runs: a tragic <code>duplicate delGen</code> close with <code class='nw'>-ea</code>, and 54 to 89 already-returned updates missing from NRT readers per run with <code class='nw'>-da</code>. Pre-#16570 code and the clamp gave none; a milder configuration found nothing in 60-second runs, and no production rate was measured.</li><li><strong>Tests do not catch it today.</strong> On <code class='nw'>branch_10_6</code>, <code>LuceneTestCase.newIndexWriterConfig</code> turns overlays on in about 4 of 5 random configs, but no CI failure report was found on GitHub or builds@.</li><li><strong>Release timing.</strong> 10.6.0 is not released. On dev@ the release manager wrote that only issues with milestone 10.6 delay a release candidate and planned a 10.6.1 milestone for bug fixes; another participant wrote that 10.6 will be the final 10.x release.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>Three JUnit tests added to the existing <code>TestMergeCarryOverFromDisk</code> on main: they pause the merge at its first output file, hold packet P in a blocking delete-by-query and run the schedule above. Not a test artifact: an independent plain-Java program on the public API reproduces it with only <code>updateNumericDocValue</code> on two indexing threads; InfoStream hooks pin the interleaving (collapsed below).</p><figure class='code'><figcaption><span class='fname'>JUnit tests: TestMergeCarryOverFromDisk on main, +163 lines</span><span class='meta'>186 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>diff --git a/lucene/core/src/test/org/apache/lucene/index/TestMergeCarryOverFromDisk.java b/lucene/core/src/test/org/apache/lucene/index/TestMergeCarryOverFromDisk.java
-index 46993a71891..2ed1a2df324 100644
---- a/lucene/core/src/test/org/apache/lucene/index/TestMergeCarryOverFromDisk.java
-+++ b/lucene/core/src/test/org/apache/lucene/index/TestMergeCarryOverFromDisk.java
-@@ -30,6 +30,10 @@ import org.apache.lucene.document.NumericDocValuesField;
- import org.apache.lucene.document.SortedNumericDocValuesField;
- import org.apache.lucene.document.StringField;
- import org.apache.lucene.search.DocIdSetIterator;
-+import org.apache.lucene.search.IndexSearcher;
-+import org.apache.lucene.search.MatchNoDocsQuery;
-+import org.apache.lucene.search.Query;
-+import org.apache.lucene.search.QueryVisitor;
- import org.apache.lucene.store.Directory;
- import org.apache.lucene.store.FilterDirectory;
- import org.apache.lucene.store.IOContext;
-@@ -38,6 +42,7 @@ import org.apache.lucene.tests.analysis.MockAnalyzer;
- import org.apache.lucene.tests.util.LuceneTestCase;
- import org.apache.lucene.util.Bits;
- import org.apache.lucene.util.BytesRef;
-+import org.apache.lucene.util.ThreadInterruptedException;
- 
- /**
-  * Deterministically exercises the doc-values-update merge carry-over path: an update that resolves
-@@ -398,4 +403,162 @@ public class TestMergeCarryOverFromDisk extends LuceneTestCase {
-     writer.close();
-     dir.close();
-   }
-+
-+  /** A delete-by-query matching nothing, whose first rewrite blocks until the test releases it. */
-+  private static class BlockingQuery extends Query {
-+    final CountDownLatch blocked = new CountDownLatch(1);
-+    final CountDownLatch release = new CountDownLatch(1);
-+
-+    @Override
-+    public Query rewrite(IndexSearcher searcher) {
-+      if (blocked.getCount() &gt; 0) {
-+        blocked.countDown();
-+        try {
-+          release.await();
-+        } catch (InterruptedException e) {
-+          throw new ThreadInterruptedException(e);
-+        }
-+      }
-+      return new MatchNoDocsQuery();
-+    }
-+
-+    @Override
-+    public void visit(QueryVisitor visitor) {
-+      visitor.visitLeaf(this);
-+    }
-+
-+    @Override
-+    public String toString(String field) {
-+      return &quot;BlockingQuery&quot;;
-+    }
-+
-+    @Override
-+    public boolean equals(Object other) {
-+      return this == other;
-+    }
-+
-+    @Override
-+    public int hashCode() {
-+      return System.identityHashCode(this);
-+    }
-+  }
-+
-+  public void testInFlightUpdateWinsOverCarriedOverValue() throws Exception {
-+    doInFlightUpdateDuringMergeCommit(0, false);
-+  }
-+
-+  public void testInFlightUpdateWinsOverCarriedOverValueWithOverlays() throws Exception {
-+    doInFlightUpdateDuringMergeCommit(4, false);
-+  }
-+
-+  public void testInFlightUpdateDelGenNotReusedByCarryOverWithOverlays() throws Exception {
-+    doInFlightUpdateDuringMergeCommit(4, true);
-+  }
-+
-+  /**
-+   * A packet that is still resolving when the merge commits re-resolves on the merged segment at
-+   * its own delGen, so its update must win over the carried-over value of an older update that was
-+   * written to a merging segment during the merge. Updates that finish out of order ({@link
-+   * IndexWriter#tryUpdateDocValue}) leave residual updates with higher delGens on the merging
-+   * segments; with {@code adjacentGens} the residual on segment 1 directly follows the in-flight
-+   * packet&#x27;s delGen.
-+   */
-+  private void doInFlightUpdateDuringMergeCommit(int maxOverlays, boolean adjacentGens)
-+      throws Exception {
-+    MergePausingDirectory dir = new MergePausingDirectory(newDirectory());
-+    IndexWriterConfig conf =
-+        newIndexWriterConfig(new MockAnalyzer(random()))
-+            .setMergeScheduler(new ConcurrentMergeScheduler())
-+            .setMergePolicy(new LogDocMergePolicy())
-+            // buffer updates until an explicit flush or reopen freezes them into a packet
-+            .setRAMBufferSizeMB(IndexWriterConfig.DEFAULT_RAM_BUFFER_SIZE_MB)
-+            .setMaxBufferedDocs(IndexWriterConfig.DISABLE_AUTO_FLUSH)
-+            .setMaxDocValuesOverlays(maxOverlays);
-+    IndexWriter writer = new IndexWriter(dir, conf);
-+    // segment 1 = {0, 1}, segment 2 = {2}; ndv = id
-+    for (int i = 0; i &lt; 3; i++) {
-+      if (i == 2) {
-+        writer.commit();
-+      }
-+      Document d = new Document();
-+      d.add(new StringField(&quot;id&quot;, Integer.toString(i), StringField.Store.NO));
-+      d.add(new NumericDocValuesField(&quot;ndv&quot;, i));
-+      writer.addDocument(d);
-+    }
-+    writer.commit();
-+
-+    Thread merger =
-+        new Thread(
-+            () -&gt; {
-+              try {
-+                writer.forceMerge(1);
-+              } catch (Throwable t) {
-+                dir.failure.compareAndSet(null, t);
-+              }
-+            },
-+            &quot;forceMerge&quot;);
-+    merger.start();
-+    dir.mergeStarted.await();
-+
-+    // doc 0 := 100, resolved and written to segment 1 on disk while it merges
-+    writer.updateNumericDocValue(new Term(&quot;id&quot;, &quot;0&quot;), &quot;ndv&quot;, 100L);
-+    DirectoryReader reader = DirectoryReader.open(writer);
-+
-+    // doc 0 := 200, frozen together with a blocking delete-by-query into one packet that another
-+    // thread starts to resolve and that is still running when the merge commits
-+    BlockingQuery blockingQuery = new BlockingQuery();
-+    writer.updateNumericDocValue(new Term(&quot;id&quot;, &quot;0&quot;), &quot;ndv&quot;, 200L);
-+    writer.deleteDocuments(blockingQuery);
-+    AtomicReference&lt;Throwable&gt; applyFailure = new AtomicReference&lt;&gt;();
-+    Thread applier =
-+        new Thread(
-+            () -&gt; {
-+              try {
-+                writer.flush();
-+              } catch (Throwable t) {
-+                applyFailure.set(t);
-+              }
-+            },
-+            &quot;applyPacket&quot;);
-+    applier.start();
-+    blockingQuery.blocked.await();
-+
-+    // updates that finish before the blocked packet and stay pending on the merging segments
-+    if (adjacentGens == false) {
-+      assertTrue(writer.tryUpdateDocValue(reader, 2, new NumericDocValuesField(&quot;ndv&quot;, 302L)) &gt; 0);
-+    }
-+    assertTrue(writer.tryUpdateDocValue(reader, 1, new NumericDocValuesField(&quot;ndv&quot;, 301L)) &gt; 0);
-+    reader.close();
-+
-+    // commit the merge (and its carry-over), then let the blocked packet re-resolve on the result
-+    dir.resumeMerge.countDown();
-+    merger.join();
-+    blockingQuery.release.countDown();
-+    applier.join();
-+    assertNull(&quot;forceMerge failed: &quot; + dir.failure.get(), dir.failure.get());
-+    assertNull(&quot;applying the packet failed: &quot; + applyFailure.get(), applyFailure.get());
-+
-+    Map&lt;String, Long&gt; expected = Map.of(&quot;0&quot;, 200L, &quot;1&quot;, 301L, &quot;2&quot;, adjacentGens ? 2L : 302L);
-+    try (DirectoryReader r = DirectoryReader.open(writer)) {
-+      assertEquals(1, r.leaves().size());
-+      assertEquals(expected, ndvById(r.leaves().get(0).reader()));
-+    }
-+    writer.close();
-+    try (DirectoryReader r = DirectoryReader.open(dir)) {
-+      assertEquals(expected, ndvById(r.leaves().get(0).reader()));
-+    }
-+    dir.close();
-+  }
-+
-+  private static Map&lt;String, Long&gt; ndvById(LeafReader leaf) throws IOException {
-+    Map&lt;String, Long&gt; ndvById = new HashMap&lt;&gt;();
-+    TermsEnum te = leaf.terms(&quot;id&quot;).iterator();
-+    for (BytesRef t = te.next(); t != null; t = te.next()) {
-+      int doc = te.postings(null, PostingsEnum.NONE).nextDoc();
-+      NumericDocValues ndv = leaf.getNumericDocValues(&quot;ndv&quot;);
-+      assertTrue(ndv.advanceExact(doc));
-+      ndvById.put(t.utf8ToString(), ndv.longValue());
-+    }
-+    return ndvById;
-+  }
- }
-</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code># in a Lucene main checkout, with the diff above saved as test.diff
-git apply test.diff
-./gradlew --no-daemon :lucene:core:test --tests TestMergeCarryOverFromDisk -Ptests.seed=DEADBEEF -Ptests.asserts=true
-# repeat with -Ptests.asserts=false
-</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>doc 0 = 200 on the merged segment (<code>{0=200, 1=301, 2=302}</code>), under <code class='nw'>-ea</code> and <code class='nw'>-da</code>, and the writer stays open.</dd></div><div class='got'><dt>Observed</dt><dd>3 of 6 tests fail on main: doc 0 = 100 under <code class='nw'>-ea</code> and <code class='nw'>-da</code>, except that with <code class='nw'>-ea</code> the tie test fails on <code>duplicate delGen=4</code>, which closes the writer.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-002/'>repro/LFV-002/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>1 more file (287 lines) · 1,557 words</span></summary><div class='body'><p>The main repro is a plain Java program written by an independent checker: public lucene-core API only, <code class='nw'>FSDirectory</code>, the default <code>IndexWriterConfig</code> apart from the overlays setting (set by reflection, so the same program also runs on 10.5.2) and an InfoStream. It holds the merge and the in-flight packet with InfoStream hooks, with no Directory wrapper and no blocking query. Variant <code class='nw'>v2</code> uses nothing but <code>updateNumericDocValue</code> on two indexing threads: a tiny live RAM buffer makes each update freeze and resolve its own packet on its calling thread.</p><p>Arguments: <code>run &lt;overlays|-1&gt; &lt;tie|lt&gt; &lt;v1|v2&gt; &lt;indexPath&gt;</code>, then <code>read &lt;indexPath&gt;</code>. <code class='nw'>-1</code> leaves <code>maxDocValuesOverlays</code> at its default; <code class='nw'>tie</code> gives the adjacent-delGen variant; <code class='nw'>lt</code> the lower-delGen one. The JUnit tests that the brief links (three tests added to <code>TestMergeCarryOverFromDisk</code>) are below it. Every class and method both programs call exists on the hunt's main <code class='nw'>ea57360912ed</code> (checked with grep), and the test diff applies there cleanly (<code>git apply --check</code>); that commit changes nothing under <code>org/apache/lucene/index</code>.</p><p class='k'>About JUnit tests: TestMergeCarryOverFromDisk on main, +163 lines</p><p>The diff of the local test branch <code>r106-merge-dv-carryover-race-main-test</code> (<code class='nw'>cad6f4fad6</code>), exported with <code>git diff</code>. It adds three tests and a <code class='nw'>BlockingQuery</code> to the existing test class, which already has the <code>MergePausingDirectory</code> helper. The same tests are on <code class='nw'>branch_10_6</code> as <code class='nw'>7b19f3ace4</code>.</p><div class="hd hd-3"><h3 id='code-1-h'>CarryOverRace.java (plain main, public API)</h3><a class="hlink" href="#code-1-h" target="_self" aria-label="Link to this section" aria-describedby="code-1-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>CarryOverRace.java (plain main, public API)</span><span class='meta'>287 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>import java.lang.reflect.Method;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.concurrent.CompletableFuture;
+        : bufferedUpdatesStream.getCompletedDelGen();</code></pre></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>396 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Lucene main (the next major version, unreleased) runs the disk carry-over on every merge, whatever <code>maxDocValuesOverlays</code> is set to, 0 included (<code>IndexWriter.java:4531</code> calls it unconditionally). On <code class='nw'>branch_10_6</code> it runs only with the opt-in, experimental <code>IndexWriterConfig#setMaxDocValuesOverlays(n &gt; 0)</code>, which is new in 10.6.0; with the default 0 the old buffered path runs, and this bug does not affect it. 10.5.2 is not affected: the code does not exist there.</li><li><strong>Symptom.</strong> An update the application was told succeeded is replaced by an older value. There is no exception, the loss survives <code class='nw'>commit()</code> and a reopen from disk, also in a separate JVM. In the tie case with <code class='nw'>-ea</code> the writer closes instead, and every uncommitted change is lost with it.</li><li><strong>What it takes.</strong> All four together: a concurrent merge; an older update to the document written to the merging segment during the merge (for example by an NRT reopen or a commit); a packet that updates the same document and is still being applied when the merge commits; and, on the same merging segment and field, a newer update that finished before that packet. Without the last condition the same schedule is correct.</li><li><strong>Ordinary scale.</strong> Three or four documents are enough. An independent program reproduces it with nothing but <code>updateNumericDocValue</code> on two indexing threads, the default merge policy and scheduler, and <code class='nw'>FSDirectory</code>; a pause is still needed to pin the interleaving. Without any pause, a study verifier's stress run on main (three updater threads, a slow no-match delete-by-query, a policy that merges whenever two segments exist, a 0.001 MB RAM buffer, an NRT reader opened every 2 ms) hit it in 3 of 3 30-second runs: a tragic <code>duplicate delGen</code> close with <code class='nw'>-ea</code>, and 54 to 89 already-returned updates missing from NRT readers per run with <code class='nw'>-da</code>. Pre-#16570 code and the clamp gave none; a milder configuration found nothing in 60-second runs, and no production rate was measured.</li><li><strong>Tests do not catch it today.</strong> On <code class='nw'>branch_10_6</code>, <code>LuceneTestCase.newIndexWriterConfig</code> turns overlays on in about 4 of 5 random configs, but no CI failure report was found on GitHub or builds@.</li><li><strong>Release timing.</strong> 10.6.0 is not released. On dev@ the release manager wrote that only issues with milestone 10.6 delay a release candidate and planned a 10.6.1 milestone for bug fixes; another participant wrote that 10.6 will be the final 10.x release.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>The test shows that during a merge, a doc-values update whose packet is still being applied loses to an older value carried over from disk, when a newer packet on the same segment and field finishes first (#16570 carry-over path, default config).</p><figure class='code'><figcaption><span class='fname'>TestMergeDocValuesCarryOverRace.java (JUnit test)</span><span class='meta'>148 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.index;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StringField;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NumericDocValues;
-import org.apache.lucene.index.Term;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.util.Bits;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
 import org.apache.lucene.util.InfoStream;
-import org.apache.lucene.util.Version;
 
-/**
- * Independent, framework-free repro (public API only, default IndexWriterConfig apart from the
- * overlays knob). Holds the merge and the in-flight packet with InfoStream hooks (no Directory
- * wrapper, no blocking Query).
- *
- * &lt;p&gt;args: run &lt;overlays|-1&gt; &lt;tie|lt&gt; &lt;v1|v2&gt; &lt;indexPath&gt; | read &lt;indexPath&gt;
- *
- * &lt;p&gt;v1: packet P = DV update + delete-by-TERM, resolved by an NRT reopen on thread &quot;refresher&quot;,
- * parked BEFORE its DV updates resolve; newer updates finish via tryUpdateDocValue.
- *
- * &lt;p&gt;v2: no flush/reopen/tryUpdate/query at all: a tiny live RAM buffer makes each
- * updateNumericDocValue freeze+resolve its own packet on the calling indexing thread; P runs on
- * thread &quot;indexer-A&quot; and is parked AFTER its DV updates resolved on the old segments; the newer
- * update(s) are resolved by the main indexing thread.
- */
-public class CarryOverRace {
+public class TestMergeDocValuesCarryOverRace extends LuceneTestCase {
 
-  /** One-shot park point. */
-  static final class Gate {
-    private final AtomicBoolean armed = new AtomicBoolean();
-    private final CompletableFuture&lt;String&gt; reached = new CompletableFuture&lt;&gt;();
-    private final CompletableFuture&lt;Void&gt; opened = new CompletableFuture&lt;&gt;();
+  public void testLostUpdate() throws Exception {
+    CountDownLatch mergeWarming = new CountDownLatch(1);
+    CountDownLatch releaseMerge = new CountDownLatch(1);
+    CountDownLatch packetApplied = new CountDownLatch(1);
+    CountDownLatch releasePacket = new CountDownLatch(1);
+    AtomicReference&lt;Thread&gt; pauseThread = new AtomicReference&lt;&gt;();
+    AtomicReference&lt;MergeScheduler.MergeSource&gt; source = new AtomicReference&lt;&gt;();
+    IndexWriterConfig iwc =
+        new IndexWriterConfig()
+            .setCodec(TestUtil.getDefaultCodec())
+            .setMergeScheduler(
+                new MergeScheduler() {
+                  @Override
+                  public void merge(MergeSource mergeSource, MergeTrigger trigger) {
+                    source.set(mergeSource);
+                  }
 
-    void arm() {
-      armed.set(true);
-    }
+                  @Override
+                  public void close() {}
+                })
+            .setMergedSegmentWarmer(
+                reader -&gt; {
+                  mergeWarming.countDown();
+                  await(releaseMerge);
+                })
+            .setInfoStream(
+                new InfoStream() {
+                  @Override
+                  public void message(String component, String message) {
+                    if (message.startsWith(&quot;applyDocValuesUpdates&quot;)
+                        &amp;&amp; pauseThread.compareAndSet(Thread.currentThread(), null)) {
+                      packetApplied.countDown();
+                      await(releasePacket);
+                    }
+                  }
 
-    void maybePark(String where) {
-      if (armed.compareAndSet(true, false)) {
-        reached.complete(Thread.currentThread().getName() + &quot;: &quot; + where);
-        opened.join();
+                  @Override
+                  public boolean isEnabled(String component) {
+                    return &quot;BD&quot;.equals(component);
+                  }
+
+                  @Override
+                  public void close() {}
+                });
+    try (Directory dir = new ByteBuffersDirectory();
+        IndexWriter w = new IndexWriter(dir, iwc)) {
+      w.addDocument(doc(&quot;k0&quot;));
+      w.addDocument(doc(&quot;k1&quot;));
+      w.flush();
+      w.addDocument(doc(&quot;k1&quot;));
+      w.flush();
+      w.forceMerge(1, false);
+      MergePolicy.OneMerge merge = source.get().getNextMerge();
+      Thread merger = new Thread(() -&gt; run(() -&gt; source.get().merge(merge)));
+      merger.start();
+      await(mergeWarming);
+
+      w.getConfig().setRAMBufferSizeMB(0.00001);
+      w.updateNumericDocValue(new Term(&quot;key&quot;, &quot;k0&quot;), &quot;n&quot;, 1);
+      DirectoryReader.open(w).close();
+      Thread updater =
+          new Thread(() -&gt; run(() -&gt; w.updateNumericDocValue(new Term(&quot;key&quot;, &quot;k0&quot;), &quot;n&quot;, 2)));
+      pauseThread.set(updater);
+      updater.start();
+      await(packetApplied);
+      w.updateNumericDocValue(new Term(&quot;key&quot;, &quot;none&quot;), &quot;n&quot;, 7);
+      w.updateNumericDocValue(new Term(&quot;key&quot;, &quot;k1&quot;), &quot;n&quot;, 9);
+      releaseMerge.countDown();
+      merger.join();
+      releasePacket.countDown();
+      updater.join();
+      w.commit();
+
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        int doc =
+            new IndexSearcher(r).search(new TermQuery(new Term(&quot;key&quot;, &quot;k0&quot;)), 1).scoreDocs[0].doc;
+        NumericDocValues n = MultiDocValues.getNumericValues(r, &quot;n&quot;);
+        assertTrue(n.advanceExact(doc));
+        // expected: the last update of the k0 doc (n=2) survives the merge; actual: the older n=1
+        assertEquals(2, n.longValue());
       }
     }
-
-    String awaitReached() throws Exception {
-      return reached.get(60, TimeUnit.SECONDS);
-    }
-
-    void open() {
-      opened.complete(null);
-    }
   }
 
-  static final class Hooks extends InfoStream {
-    final Gate merge = new Gate();
-    final Gate packet = new Gate();
-    volatile String packetThread = null;
-    volatile String packetMessagePrefix = null;
-    final List&lt;String&gt; trace = Collections.synchronizedList(new ArrayList&lt;&gt;());
-
-    @Override
-    public void message(String component, String message) {
-      if (component.equals(&quot;BD&quot;)
-          &amp;&amp; (message.startsWith(&quot;push new packet&quot;) || message.startsWith(&quot;finished packet&quot;))) {
-        trace.add(&quot;[&quot; + Thread.currentThread().getName() + &quot;] &quot; + message);
-      }
-      if (component.equals(&quot;SM&quot;) &amp;&amp; message.contains(&quot; ms to merge &quot;)) {
-        merge.maybePark(message);
-      }
-      if (component.equals(&quot;BD&quot;)
-          &amp;&amp; packetMessagePrefix != null
-          &amp;&amp; message.startsWith(packetMessagePrefix)
-          &amp;&amp; Thread.currentThread().getName().equals(packetThread)) {
-        packet.maybePark(message);
-      }
-    }
-
-    @Override
-    public boolean isEnabled(String component) {
-      return component.equals(&quot;SM&quot;) || component.equals(&quot;BD&quot;);
-    }
-
-    @Override
-    public void close() {}
+  private static Document doc(String key) {
+    Document doc = new Document();
+    doc.add(new StringField(&quot;key&quot;, key, Field.Store.NO));
+    doc.add(new NumericDocValuesField(&quot;n&quot;, 0));
+    return doc;
   }
 
-  static Document doc(int id) {
-    Document d = new Document();
-    d.add(new StringField(&quot;id&quot;, Integer.toString(id), Field.Store.YES));
-    d.add(new NumericDocValuesField(&quot;v&quot;, 1000 + id));
-    return d;
+  private interface IOAction {
+    void run() throws IOException;
   }
 
-  static Map&lt;String, Long&gt; values(DirectoryReader r) throws Exception {
-    Map&lt;String, Long&gt; out = new TreeMap&lt;&gt;();
-    for (LeafReaderContext ctx : r.leaves()) {
-      LeafReader leaf = ctx.reader();
-      NumericDocValues v = leaf.getNumericDocValues(&quot;v&quot;);
-      Bits live = leaf.getLiveDocs();
-      for (int d = 0; d &lt; leaf.maxDoc(); d++) {
-        if (live != null &amp;&amp; live.get(d) == false) continue;
-        String id = leaf.storedFields().document(d).get(&quot;id&quot;);
-        out.put(id, v != null &amp;&amp; v.advanceExact(d) ? v.longValue() : null);
-      }
-    }
-    return out;
-  }
-
-  static int globalDocOf(DirectoryReader r, String id) throws Exception {
-    for (LeafReaderContext ctx : r.leaves()) {
-      LeafReader leaf = ctx.reader();
-      for (int d = 0; d &lt; leaf.maxDoc(); d++) {
-        if (id.equals(leaf.storedFields().document(d).get(&quot;id&quot;))) return ctx.docBase + d;
-      }
-    }
-    throw new IllegalStateException(&quot;no doc &quot; + id);
-  }
-
-  static Thread start(String name, AtomicReference&lt;Throwable&gt; failure, ThrowingRunnable body) {
-    Thread t =
-        new Thread(
-            () -&gt; {
-              try {
-                body.run();
-              } catch (Throwable e) {
-                failure.compareAndSet(null, e);
-              }
-            },
-            name);
-    t.start();
-    return t;
-  }
-
-  interface ThrowingRunnable {
-    void run() throws Exception;
-  }
-
-  static String overlays(IndexWriterConfig iwc, int n) {
+  private static void run(IOAction action) {
     try {
-      Method m = IndexWriterConfig.class.getMethod(&quot;setMaxDocValuesOverlays&quot;, int.class);
-      Method g = IndexWriterConfig.class.getMethod(&quot;getMaxDocValuesOverlays&quot;);
-      if (n &gt;= 0) m.invoke(iwc, n);
-      return &quot;maxDocValuesOverlays=&quot; + g.invoke(iwc) + (n &lt; 0 ? &quot; (default)&quot; : &quot;&quot;);
-    } catch (NoSuchMethodException e) {
-      return &quot;maxDocValuesOverlays: API not present in this Lucene&quot;;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+      action.run();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
     }
   }
 
-  static String fmt(Throwable t) {
-    return t == null ? &quot;none&quot; : t.getClass().getName() + &quot;: &quot; + t.getMessage();
-  }
-
-  public static void main(String[] args) throws Exception {
-    System.out.println(&quot;Lucene &quot; + Version.LATEST + &quot;, java &quot; + System.getProperty(&quot;java.version&quot;)
-        + &quot;, assertions &quot; + (CarryOverRace.class.desiredAssertionStatus() ? &quot;ON (-ea)&quot; : &quot;OFF (-da)&quot;));
-    if (args[0].equals(&quot;read&quot;)) {
-      try (Directory dir = FSDirectory.open(Paths.get(args[1]));
-          DirectoryReader r = DirectoryReader.open(dir)) {
-        System.out.println(&quot;fresh-JVM DirectoryReader.open(dir): segments=&quot; + r.leaves().size()
-            + &quot; values=&quot; + values(r));
-      }
-      return;
+  private static void await(CountDownLatch latch) {
+    try {
+      assertTrue(&quot;timed out&quot;, latch.await(30, TimeUnit.SECONDS));
+    } catch (InterruptedException e) {
+      throw new AssertionError(e);
     }
-    int ov = Integer.parseInt(args[1]);
-    boolean lt = args[2].equals(&quot;lt&quot;);
-    boolean v2 = args[3].equals(&quot;v2&quot;);
-    Path path = Paths.get(args[4]);
-
-    Hooks hooks = new Hooks();
-    IndexWriterConfig iwc = new IndexWriterConfig().setInfoStream(hooks);
-    System.out.println(overlays(iwc, ov) + &quot;, scenario=&quot; + args[2] + &quot;, variant=&quot; + args[3]
-        + &quot;, mergePolicy=&quot; + iwc.getMergePolicy().getClass().getSimpleName()
-        + &quot;, scheduler=&quot; + iwc.getMergeScheduler().getClass().getSimpleName());
-
-    Directory dir = FSDirectory.open(path);
-    IndexWriter w = new IndexWriter(dir, iwc);
-    // _0 = {0, 1}, _1 = {2, 3}; v = 1000 + id
-    w.addDocument(doc(0));
-    w.addDocument(doc(1));
-    w.commit();
-    w.addDocument(doc(2));
-    w.addDocument(doc(3));
-    w.commit();
-
-    AtomicReference&lt;Throwable&gt; mergeFailure = new AtomicReference&lt;&gt;();
-    hooks.merge.arm();
-    Thread merger = start(&quot;merger&quot;, mergeFailure, () -&gt; w.forceMerge(1));
-    System.out.println(&quot;merge parked at: &quot; + hooks.merge.awaitReached());
-
-    // OLD update: doc 0 := 111, committed (so written to _0&#x27;s files) while _0 is merging
-    w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;0&quot;), &quot;v&quot;, 111L);
-    w.commit();
-    DirectoryReader nrt = DirectoryReader.open(w); // only used by v1&#x27;s tryUpdateDocValue
-
-    AtomicReference&lt;Throwable&gt; packetFailure = new AtomicReference&lt;&gt;();
-    Thread holder;
-    Map&lt;String, Long&gt; expected = new TreeMap&lt;&gt;(Map.of(&quot;0&quot;, 222L, &quot;1&quot;, 333L, &quot;2&quot;, 1002L, &quot;3&quot;, 1003L));
-    if (v2 == false) {
-      // NEW update: doc 0 := 222, frozen with a delete-by-term into one packet P that the
-      // refresher thread resolves and that parks before its DV updates are applied
-      w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;0&quot;), &quot;v&quot;, 222L);
-      w.deleteDocuments(new Term(&quot;id&quot;, &quot;no-such-id&quot;));
-      hooks.packetThread = &quot;refresher&quot;;
-      hooks.packetMessagePrefix = &quot;applyTermDeletes took&quot;;
-      hooks.packet.arm();
-      holder = start(&quot;refresher&quot;, packetFailure, () -&gt; DirectoryReader.open(w).close());
-      System.out.println(&quot;packet parked at: &quot; + hooks.packet.awaitReached());
-      if (lt) {
-        w.tryUpdateDocValue(nrt, globalDocOf(nrt, &quot;2&quot;), new NumericDocValuesField(&quot;v&quot;, 444L));
-        expected.put(&quot;2&quot;, 444L);
-      }
-      w.tryUpdateDocValue(nrt, globalDocOf(nrt, &quot;1&quot;), new NumericDocValuesField(&quot;v&quot;, 333L));
-    } else {
-      double defaultRam = w.getConfig().getRAMBufferSizeMB();
-      w.getConfig().setRAMBufferSizeMB(1e-6); // every buffered update now exceeds the budget
-      hooks.packetThread = &quot;indexer-A&quot;;
-      hooks.packetMessagePrefix = &quot;applyDocValuesUpdates&quot;;
-      hooks.packet.arm();
-      holder =
-          start(
-              &quot;indexer-A&quot;,
-              packetFailure,
-              () -&gt; w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;0&quot;), &quot;v&quot;, 222L));
-      System.out.println(&quot;packet parked at: &quot; + hooks.packet.awaitReached());
-      if (lt) {
-        w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;2&quot;), &quot;v&quot;, 444L);
-        expected.put(&quot;2&quot;, 444L);
-      }
-      w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;1&quot;), &quot;v&quot;, 333L);
-      w.getConfig().setRAMBufferSizeMB(defaultRam);
-    }
-    nrt.close();
-
-    // let the merge commit (carry-over runs now), then let P finish (it re-resolves on the merged
-    // segment)
-    hooks.merge.open();
-    merger.join();
-    hooks.packet.open();
-    holder.join();
-
-    System.out.println(&quot;packet trace:&quot;);
-    synchronized (hooks.trace) {
-      for (String s : hooks.trace) System.out.println(&quot;   &quot; + s);
-    }
-    System.out.println(&quot;merge thread failure : &quot; + fmt(mergeFailure.get()));
-    System.out.println(&quot;packet thread failure: &quot; + fmt(packetFailure.get()));
-    System.out.println(&quot;writer tragic exc    : &quot; + fmt(w.getTragicException()) + &quot;, isOpen=&quot; + w.isOpen());
-    System.out.println(&quot;expected             : &quot; + expected);
-    if (w.isOpen()) {
-      try (DirectoryReader r = DirectoryReader.open(w)) {
-        System.out.println(&quot;NRT reader           : segments=&quot; + r.leaves().size() + &quot; values=&quot; + values(r));
-      }
-      long seq = w.commit();
-      System.out.println(&quot;commit() ok, seqNo=&quot; + seq);
-      w.close();
-    } else {
-      System.out.println(&quot;writer is closed; on-disk state = last successful commit&quot;);
-    }
-    try (DirectoryReader r = DirectoryReader.open(dir)) {
-      Map&lt;String, Long&gt; got = values(r);
-      System.out.println(&quot;DirectoryReader.open(dir): segments=&quot; + r.leaves().size() + &quot; values=&quot; + got);
-      System.out.println(&quot;RESULT: &quot; + (got.equals(expected) ? &quot;OK (newest update kept)&quot; : &quot;MISMATCH doc0=&quot; + got.get(&quot;0&quot;) + &quot; (expected &quot; + expected.get(&quot;0&quot;) + &quot;)&quot;));
-    }
-    dir.close();
   }
 }
-</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main b83101cdd2 (any maxDocValuesOverlays); branch_10_6 d04ee73177 with setMaxDocValuesOverlays(n &gt; 0); 10.5.2 not affected</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux 5.10, aarch64</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>javac -d classes -cp lucene-core.jar CarryOverRace.java
-java -da --enable-native-access=ALL-UNNAMED -cp lucene-core.jar:classes CarryOverRace run -1 lt v2 ./carryover-idx
-java -da --enable-native-access=ALL-UNNAMED -cp lucene-core.jar:classes CarryOverRace read ./carryover-idx
-# the index path must not exist yet; use -ea and &#x27;tie&#x27; for the duplicate-delGen variant;
-# on branch_10_6 pass an overlays value of 1, 4 or 8 instead of -1
-</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># JUnit tests, branch_10_6 d04ee73177, -ea, seed DEADBEEF (excerpt)
-testInFlightUpdateWinsOverCarriedOverValueWithOverlays FAILED
-    java.lang.AssertionError: expected:&lt;{2=302, 1=301, 0=200}&gt; but was:&lt;{0=100, 1=301, 2=302}&gt;
-testInFlightUpdateDelGenNotReusedByCarryOverWithOverlays FAILED
-    java.lang.AssertionError: applying the packet failed: java.lang.AssertionError: duplicate delGen=4 for seg=_2(10.6.0):C3 ...
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code># in a copy of this bug&#x27;s repro folder (repro/LFV-002/, which holds src/)
+# Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
+LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
+CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
+CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
+CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
+CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
+CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
-# CarryOverRace run 4 lt v2, branch_10_6 d04ee73177 jar, -da (excerpt of the run log)
-   [indexer-A] push new packet (delGen=4 fieldUpdates=1 bytesUsed=33000), packetCount=1, bytesUsed=0.031 MB
-   [main] push new packet (delGen=5 fieldUpdates=1 bytesUsed=33000), packetCount=2, bytesUsed=0.063 MB
-   [main] finished packet delGen=5 now completedDelGen=3
-   [main] push new packet (delGen=6 fieldUpdates=1 bytesUsed=33000), packetCount=2, bytesUsed=0.063 MB
-   [main] finished packet delGen=6 now completedDelGen=3
-   [indexer-A] finished packet delGen=4 now completedDelGen=6
-expected             : {0=222, 1=333, 2=444, 3=1003}
-NRT reader           : segments=1 values={0=111, 1=333, 2=444, 3=1003}
-commit() ok, seqNo=17
-DirectoryReader.open(dir): segments=1 values={0=111, 1=333, 2=444, 3=1003}
-RESULT: MISMATCH doc0=111 (expected 222)
-fresh-JVM DirectoryReader.open(dir): segments=1 values={0=111, 1=333, 2=444, 3=1003}</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>Main's javadoc names the rule it breaks: the number is "a gen below all residual and still-running ones so newest-wins ordering holds on the merged segment".</li><li>With <code class='nw'>-ea</code>, the code's own <code>ReadersAndUpdates.assertNoDupGen</code> fires in the tie case.</li><li>Without the disk carry-over (<code class='nw'>branch_10_6</code> with overlays at 0, or 10.5.2 with an adapted copy) the schedule ends with the newer 200.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>216 words</span></summary><div class='body'><ul><li><strong>The code states the rule it breaks.</strong> Main's javadoc of the carry-over (<code>IndexWriter.java:4564-4569</code>): "the collapsed packet therefore uses <code>minResidualDelGen - 1</code> (or <code class='nw'>completedDelGen</code> when there is no residual), a gen below all residual and still-running ones so newest-wins ordering holds on the merged segment." The bug is a still-running packet that is not below that gen.</li><li><strong>The code's own assertion trips.</strong> With <code class='nw'>-ea</code>, <code>ReadersAndUpdates.assertNoDupGen</code> fires in the tie case, on main and on <code class='nw'>branch_10_6</code>. On <code class='nw'>branch_10_6</code>, <code>DocValuesFieldUpdates.mergedIterator</code> also asserts that delGens are unique (<code>assert cmp != 0</code>, under the comment "delGens are unique across our subs"); main's version (<code>DocValuesFieldUpdates.java:163-168</code>) has neither that assertion nor a tie-break.</li><li><strong>The older path gets it right.</strong> On <code class='nw'>branch_10_6</code> with overlays at 0, the buffered path keeps the old 100 at its real delGen 3, below P's 4, so the newer 200 wins and the control test passes. The released 10.5.2 jars give doc 0 = 200 for the same schedule (adapted, because 10.5.2 has no overlays setting).</li><li><strong>Newest wins is the rule the code itself names.</strong> The same javadoc chooses the number "so newest-wins ordering holds on the merged segment", and without the disk carry-over (overlays at 0 on <code class='nw'>branch_10_6</code>, or 10.5.2) the same schedule ends with the newer value.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>102 words</span></summary><div class='body'><p>No separate intended-behaviour check was run for this bug; its lenses were code-history-fix, exec-branch106, exec-main-1052 and provenance-dups-policy, plus a claim re-check. The strongest case for "intended" in those reports: on <code class='nw'>branch_10_6</code> the overlays feature is experimental and off by default. It does not cover main, where the path is unconditional, and it does not touch the javadoc rule above.</p><p>The claim re-check's adjudications: the buffered path is "not affected by this bug" rather than "correct" in general, and a possible separate race that the code-history checker described in the <code>finished == false</code> path was not reproduced and stays out of the issue.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Clamp the invented delGen to completedDelGen</strong></p><p class='short'>A candidate fix on a local branch: one expression in <code>IndexWriter.buildMappedDVUpdatesFromDisk</code> caps the invented delGen at <code class='nw'>completedDelGen</code>, so it stays below every residual and every still-running packet, and at or above every number already written. Passes on <code class='nw'>branch_10_6</code> (1,398 index tests, 0 failures) and main (<code>TestMergeCarryOverFromDisk</code> 6/6); the independent program is correct in all 32 runs.</p><pre class='snippet' tabindex='0'><code>final long completedDelGen = bufferedUpdatesStream.getCompletedDelGen();
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
+
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.index.TestMergeDocValuesCarryOverRace
+</code></pre></figure><dl class='outcome'><div><dt>Expected vs actual</dt><dd>Expected the k0 document's last update <code class='nw'>n=2</code> after the merge, commit and reopen; actual: the older <code class='nw'>n=1</code> (<code>expected:&lt;2&gt; but was:&lt;1&gt;</code>), with <code class='nw'>-ea</code> and <code class='nw'>-da</code>.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-002/'>repro/LFV-002/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>34 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>Lucene main 645d4fe14a20 (2026-10-28)</code></td></tr><tr><th scope='row'>jdk</th><td><code class='nw'>25.0.3+9-LTS</code></td></tr></tbody></table></div><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># Lucene main 645d4fe14a20, assertions on (-ea), seed DEADBEEF: 1 test(s) run, 1 failed
+    =&gt; java.lang.AssertionError: expected:&lt;2&gt; but was:&lt;1&gt;
+       org.junit.Assert.fail(Assert.java:89)
+       org.junit.Assert.failNotEquals(Assert.java:835)
+       org.junit.Assert.assertEquals(Assert.java:647)
+       org.junit.Assert.assertEquals(Assert.java:633)
+       org.apache.lucene.index.TestMergeDocValuesCarryOverRace.testLostUpdate(TestMergeDocValuesCarryOverRace.java:117)</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>Main's javadoc names the rule it breaks: the number is "a gen below all residual and still-running ones so newest-wins ordering holds on the merged segment".</li><li>With <code class='nw'>-ea</code>, the code's own <code>ReadersAndUpdates.assertNoDupGen</code> fires in the tie case.</li><li>Without the disk carry-over (<code class='nw'>branch_10_6</code> with overlays at 0, or 10.5.2 with an adapted copy) the schedule ends with the newer 200.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>216 words</span></summary><div class='body'><ul><li><strong>The code states the rule it breaks.</strong> Main's javadoc of the carry-over (<code>IndexWriter.java:4564-4569</code>): "the collapsed packet therefore uses <code>minResidualDelGen - 1</code> (or <code class='nw'>completedDelGen</code> when there is no residual), a gen below all residual and still-running ones so newest-wins ordering holds on the merged segment." The bug is a still-running packet that is not below that gen.</li><li><strong>The code's own assertion trips.</strong> With <code class='nw'>-ea</code>, <code>ReadersAndUpdates.assertNoDupGen</code> fires in the tie case, on main and on <code class='nw'>branch_10_6</code>. On <code class='nw'>branch_10_6</code>, <code>DocValuesFieldUpdates.mergedIterator</code> also asserts that delGens are unique (<code>assert cmp != 0</code>, under the comment "delGens are unique across our subs"); main's version (<code>DocValuesFieldUpdates.java:163-168</code>) has neither that assertion nor a tie-break.</li><li><strong>The older path gets it right.</strong> On <code class='nw'>branch_10_6</code> with overlays at 0, the buffered path keeps the old 100 at its real delGen 3, below P's 4, so the newer 200 wins and the control test passes. The released 10.5.2 jars give doc 0 = 200 for the same schedule (adapted, because 10.5.2 has no overlays setting).</li><li><strong>Newest wins is the rule the code itself names.</strong> The same javadoc chooses the number "so newest-wins ordering holds on the merged segment", and without the disk carry-over (overlays at 0 on <code class='nw'>branch_10_6</code>, or 10.5.2) the same schedule ends with the newer value.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>102 words</span></summary><div class='body'><p>No separate intended-behaviour check was run for this bug; its lenses were code-history-fix, exec-branch106, exec-main-1052 and provenance-dups-policy, plus a claim re-check. The strongest case for "intended" in those reports: on <code class='nw'>branch_10_6</code> the overlays feature is experimental and off by default. It does not cover main, where the path is unconditional, and it does not touch the javadoc rule above.</p><p>The claim re-check's adjudications: the buffered path is "not affected by this bug" rather than "correct" in general, and a possible separate race that the code-history checker described in the <code>finished == false</code> path was not reproduced and stays out of the issue.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Clamp the invented delGen to completedDelGen</strong></p><p class='short'>A candidate fix on a local branch: one expression in <code>IndexWriter.buildMappedDVUpdatesFromDisk</code> caps the invented delGen at <code class='nw'>completedDelGen</code>, so it stays below every residual and every still-running packet, and at or above every number already written. Passes on <code class='nw'>branch_10_6</code> (1,398 index tests, 0 failures) and main (<code>TestMergeCarryOverFromDisk</code> 6/6); the independent program is correct in all 32 runs.</p><pre class='snippet' tabindex='0'><code>final long completedDelGen = bufferedUpdatesStream.getCompletedDelGen();
 final long diskDelGen =
     minResidual != Long.MAX_VALUE
         ? Math.min(minResidual - 1, completedDelGen)
@@ -688,7 +357,7 @@ final long diskDelGen =
 final long diskDelGen =
     minResidual != Long.MAX_VALUE
         ? Math.min(minResidual - 1, completedDelGen)
-        : completedDelGen;</code></pre><p class='k'>Trade-offs</p><ul><li>Why it is safe: the new number is below every residual, below every still-running packet (a still-running packet's delGen is above <code class='nw'>completedDelGen</code>), and still at or above every number already written, because writes use <code>maxDelGen = completedDelGen</code>. It changes behaviour only when <code>minResidual - 1 &gt; completedDelGen</code>, which is exactly the risky case.</li><li>A main PR must also fix main's javadoc at <code>IndexWriter.java:4564-4569</code>, which still describes <code>minResidualDelGen - 1</code>. The commit's CHANGES entry has <code class='nw'>GITHUB#TBD</code> placeholders and says "With doc-values overlays enabled", which is wrong for main.</li><li>The hunk applies to main only with <code>git apply -3</code> (a <code>_ -&gt;</code> versus <code>k -&gt;</code> lambda in the context).</li><li>Open PR #16571 (jimczi, "Let a merge write more than one segment") edits the same method, so expect a rebase or coordination.</li></ul><p class='k'>What the checks validated</p><ul><li>branch_10_6 fix: the test class with <code class='nw'>-Ptests.iters=25</code>, 200/200 pass; <code>org.apache.lucene.index.*</code>, 1,398 tests and 0 failures on two seeds; nine doc-values update classes, 128 tests on two more seeds; <code>:lucene:core:check -x test</code> passes.</li><li>main with the fix: <code>TestMergeCarryOverFromDisk</code> 6/6 with seeds DEADBEEF and 1, <code class='nw'>-ea</code> and <code class='nw'>-da</code>.</li><li>The independent program: all 32 runs correct on the fix jar (overlays default, 1, 4, 8 by v1/v2 by tie/lt by <code class='nw'>-ea</code>/<code class='nw'>-da</code>).</li></ul><div class="hd hd-3"><h3 id='fix-ship'>Ship 10.6 as is and fix main</h3><a class="hlink" href="#fix-ship" target="_self" aria-label="Link to this section" aria-describedby="fix-ship"><span aria-hidden="true">#</span></a></div><p>On <code class='nw'>branch_10_6</code> the feature is opt-in and experimental, so the release manager could ship 10.6.0 unchanged and take the fix in 10.6.1. Main needs the fix either way, because there the path runs by default.</p><p class='k'>Trade-offs</p><p>Anyone who turns overlays on in 10.6.0 is exposed to silent lost updates until the fix ships.</p><div class="hd hd-3"><h3 id='fix-revert'>Revert the backport #16591 on branch_10_6</h3><a class="hlink" href="#fix-revert" target="_self" aria-label="Link to this section" aria-describedby="fix-revert"><span aria-hidden="true">#</span></a></div><p>Not clean: <code>git revert --no-commit 4b1ed860c1</code> on <code class='nw'>d04ee73177</code> conflicts in <code class='nw'>IndexWriter.java</code> and gives a modify/delete conflict on <code>TestMergeCarryOverFromDisk.java</code>, because #16581 (<code class='nw'>eaa3a7a9ed</code>) builds on it.</p><p class='k'>Trade-offs</p><p>Larger and riskier than the clamp, and it does nothing for main.</p></div></details></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>AI tools model-checked the merge carry-over (Alloy 6, TLA+, P), starting from a suspicion formed while reading <code>buildMappedDVUpdatesFromDisk</code>: not a blind find. Alloy found it first; TLA+ and P confirmed it with directed runs; TLC later re-found it without scripted actions (14-state trace, 2-document bound chosen after the fact). Randomized single-threaded testing missed it.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>284 words</span></summary><div class='body'><p><strong>Method: model checking of the merge carry-over protocol, with the hypothesis formed while modelling</strong> (the study's "semi-formal" tier). On 2026-10-22, against Lucene main <code class='nw'>7cecf79523</code>, AI tools wrote three models of IndexWriter's NRT and merge carry-over logic from the code, one each in Alloy 6, TLA+ and P.</p><ul><li><strong>Alloy came first.</strong> While reading <code>buildMappedDVUpdatesFromDisk</code> and its comment, the AI tool suspected the <code class='nw'>diskDelGen</code> choice and built a merge sub-model to probe it. The solver found a counterexample to the no-duplicate-delGen property in 153 s (8 steps), and its trace was simpler than the AI tool's: a published, not yet applied packet is enough.</li><li><strong>TLA+.</strong> A blind breadth-first run produced a spurious counterexample (a modelling bug). Diagnosing it against the code led to the real hypothesis, confirmed in Java, then shown in the model with a directed witness. A later TLC run with no scripted actions, but with a 2-document bound chosen after the bug was known, found it again: a 14-state (13-step) trace after 21.1M distinct states and 33 minutes.</li><li><strong>P.</strong> Unguided hunt of about 40,000 schedules missed it. A directed scenario with long merges and a late second indexing thread, explored with PCT, reached the bad state in 5 to 33 schedules, and the model's copy of <code class='nw'>assertNoDupGen</code> fired ("duplicate delGen=4"). The same scenario with the clamp in the model found nothing.</li><li><strong>Testing missed it.</strong> The randomized model-based tester runs one thread with <code>SerialMergeScheduler</code>, so it cannot reach the race.</li></ul><p>Not a blind find: each model started from an AI tool's suspicion formed while reading the code. Independent AI verifiers then reproduced it (Alloy, TLA+ and P verifications), and AI tools wrote the Java tests, the standalone repro and the candidate fix.</p></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No earlier report found in GitHub issues and PRs (all 410 open PRs checked), review threads or the dev@, java-user@ and builds@ lists, searched 2026-10-23; no separate JIRA search is recorded. Open PR #16571 edits the same method for another purpose.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p>No earlier report of this race was found. The one open item that touches the same code is PR #16571, which edits the same method for another purpose.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues and PRs (apache/lucene)</th><td class='when'>2026-10-23</td><td><code>gh search issues --include-prs</code> (titles, bodies, comments) for <code>buildMappedDVUpdatesFromDisk</code>, <code class='nw'>diskDelGen</code>, <code>duplicate delGen</code>, <code class='nw'>assertNoDupGen</code>, <code>minResidualDelGen</code>, <code class='nw'>stillRunning</code>, <code>maxDocValuesOverlays</code>, <code>TestMergeCarryOverFromDisk</code> and more; all 95 items created since 2026-10-10 listed</td><td>no report; the method name appears only in #16570 itself, #16581 and an unrelated PR #16643; #16900 is the owner's own, different issue</td></tr><tr><th scope='row'>Review threads</th><td class='when'>2026-10-23</td><td>inline and review comments of #16570, #16591, #16581, #16418, #16645, #16648 scanned for still-running, out-of-order, delGen, race, tryUpdateDocValue, duplicate</td><td>one jimczi comment on #16581 about SORTED_NUMERIC in the carry-over window, a different issue</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-10-23</td><td>all 410 open PRs, file lists checked for IndexWriter, ReadersAndUpdates, BufferedUpdatesStream, FrozenBufferedUpdates, DocValuesFieldUpdates</td><td>none changes the computation; #16571 (jimczi) edits the same method</td></tr><tr><th scope='row'>Mailing lists (lists.apache.org)</th><td class='when'>2026-10-23</td><td>dev@ (120 days), java-user@, builds@ (90 days), issues@, commits@</td><td>0 hits; issues@ and commits@ show only the #16570, #16591, #16581 traffic</td></tr><tr><th scope='row'>JIRA archive</th><td class='when'>-</td><td>no separate search is recorded for this bug; the code dates from 2026-09-01</td><td>-</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced by #16570 (<code class='nw'>9092bda09d</code>, merged to main 2026-09-01); the backport #16591 (<code class='nw'>4b1ed860c1</code>, inherited by <code class='nw'>branch_10_6</code>) put it behind the overlays setting. Main fails with any overlays setting, <code class='nw'>branch_10_6</code> only with overlays on; 10.5.2 and the fix are correct in every run.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>5 rows</span></summary><div class='body'><p><strong>Introduced by</strong> #16570 "Stop buffering doc-values updates in heap during merges" (@jimczi), merged to main on 2026-09-01T08:22:50Z as <code class='nw'>9092bda09d</code>, milestone 10.6.0. The backport #16591 (@jimczi, base <code class='nw'>branch_10x</code>, merged 2026-09-07T05:52:49Z, commit <code class='nw'>4b1ed860c1</code>) put the same code behind the overlays setting; <code class='nw'>branch_10_6</code> inherits it. The overlays feature itself is #16418 (merged 2026-08-13), backported as #16554. <code>git blame</code> of the root-cause lines gives <code class='nw'>9092bda09d</code> on main and <code class='nw'>4b1ed860c1</code> on <code class='nw'>branch_10_6</code>.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>b83101cdd2</code>, any overlays setting (default 8, 4 and 0 run)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the test branch fails 3 of 6 tests on 5 seeds with <code class='nw'>-ea</code> and <code class='nw'>-da</code>, the overlays=0 control included; the standalone program fails all 16 runs</td></tr><tr><th scope='row'><code class='nw'>branch_10_6</code> <code class='nw'>d04ee73177</code>, overlays 1, 4 or 8</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>both overlay tests fail in every run (5 seeds by 10 iterations by <code class='nw'>-ea</code>/<code class='nw'>-da</code>); the standalone program gives 111 instead of 222 in all 24 runs: silent in 18, a tragic close in the 6 tie runs with <code class='nw'>-ea</code></td></tr><tr><th scope='row'><code class='nw'>branch_10_6</code> <code class='nw'>d04ee73177</code>, overlays 0 (default)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the control test passes; the standalone program gives 222</td></tr><tr><th scope='row'>10.5.2 (Maven Central jars, sha1 checked)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the code is absent (<code class='nw'>javap</code>, byte grep); an adapted copy of the schedule gives doc 0 = 200 in 4 of 4 runs, and the standalone program keeps the newer 222 in 8 of 8</td></tr><tr><th scope='row'>fix <code class='nw'>7f12368ee2</code> (branch_10_6) and main with the fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>all tests and all 32 standalone runs correct</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>Independent AI checkers, a lens each, and a claim re-check checked the brief: the bug reproduced on main and <code class='nw'>branch_10_6</code>, 10.5.2 and the fix were clean, 2 claims were refuted and 1 judged not supportable, all corrected in brief v2. Study verifiers (Alloy, TLA+, P) each reproduced it.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>378 words</span></summary><div class='body'><p>Independent AI checkers each took a lens on the brief, and a claim re-check re-ran every disputed claim. The brief shown in the appendix is v2, with every correction applied.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>code-history-fix</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> confirmed, with corrections</span></td><td>The step-5 arithmetic was wrong for the schedule as written (<code class='nw'>minResidual</code> is per source segment and field, so the collapse is at delGen 5, not 4), and the loss is silent with <code class='nw'>-ea</code> too. Fix audit: the clamp is correct. 200/200 iterations, 1,398 index-package tests.</td></tr><tr><th scope='row'>exec-branch106</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed</span></td><td>Deterministic on 5 seeds by 10 iterations by <code class='nw'>-ea</code>/<code class='nw'>-da</code>. Wrote <code>CarryOverRace.java</code>: the race reproduces with ordinary packets on two threads, survives commit and a fresh JVM; fix jar 32/32 correct; 10.5.2 8/8 correct; main 16/16 wrong.</td></tr><tr><th scope='row'>exec-main-1052</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed</span></td><td>Main fails with any overlays setting. An independent repro that dumps pending packets shows the 100 carried at delGen 5 (or 4 in the tie). 10.5.2: doc 0 = 200 in all runs. Main plus the fix: 6/6.</td></tr><tr><th scope='row'>provenance-dups-policy</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> no duplicates; provenance corrected</span></td><td>No earlier report anywhere searched. The how-it-was-found story needed fixes: Alloy was first, the Java confirmation came before the unscripted TLC run, the trace has 14 states, and "not hinted" cannot be supported.</td></tr><tr><th scope='row'>visual check v4</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> 2 wrong, 3 misleading</span></td><td>Every thread, delGen and segment in the diagram checked out against the code and logs except two solid cells and three labels; those were changed before the final render.</td></tr><tr><th scope='row'>Claim re-check</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> status ready</span></td><td>Re-ran the instrumented test, commit and reopen, the revert, and the logs. Two claims refuted (the step-5 numbers, the order of the Java confirmation) and one judged not supportable ("not hinted"); seven must-fix items, all applied in brief v2.</td></tr><tr><th scope='row'>release-10_6 fact sheet</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> main and opt-in overlays affected</span></td><td>A separate fact sheet for the 10.6 release question (2026-10-23). On <code class='nw'>branch_10_6</code> both overlay tests fail in 25 of 25 random iterations and the overlays=0 control passes 25 of 25; main fails 3 of 6 tests; an adapted copy of the test passes on the 10.5.2 jars (<code>OK (2 tests)</code>, five seeds).</td></tr><tr><th scope='row'>study verifiers</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> new bug</span></td><td>Alloy verifier, TLA+ verifier and P-model verifier each reproduced it with their own test.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-002/bug-sequence.png' download='16570-merge-race-bug-sequence.png' target='_self'>PNG</a> <span class='n'>344 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>671 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-002, snapshot of 2026-10-29</p><dl class='card'><div><dt>Registry title</dt><dd>Merge doc-values carry-over (#16570) can lose an acknowledged update or close the writer on a duplicate delGen</dd></div><div><dt>Area</dt><dd>index / IndexWriter merge</dd></div><div><dt>Priority</dt><dd>Medium, rank 20: An acknowledged doc-values update can be silently lost in main&#x27;s default merge path (10.6 only with opt-in overlays), serious data loss but a tight race that CI never hits in unreleased code.</dd></div><div><dt>Impact class</dt><dd>data corruption</dd></div><div><dt>Impact note</dt><dd>Main's default merge path whatever maxDocValuesOverlays is set to, and branch_10_6 only with the opt-in experimental setMaxDocValuesOverlays(n&gt;0); needs a concurrent merge plus out-of-order update packets; ordinary scale; unreleased.</dd></div><div><dt>Summary</dt><dd>While a merge runs, a document in a merging segment gets an older doc-values update that is still being applied and a newer update to the same segment and field that finishes first. You expect the newest value to win on the merged segment. Instead the merge gives the carried-over on-disk value a delGen at or above the in-flight packet's, so the older value silently wins and survives commit and reopen, or, with assertions on and equal gens, a duplicate-delGen assertion closes the writer and discards uncommitted changes.</dd></div><div><dt>Introduced</dt><dd>#16570 (9092bda09d on main); backport #16591 (4b1ed860c1, base branch_10x, inherited by branch_10_6) (2026-09-01 (#16570 merged); 2026-09-07 (#16591 merged))</dd></div><div><dt>First affected version</dt><dd>unreleased (main; branch_10_6 only with opt-in overlays)</dd></div><div><dt>Affected versions</dt><dd>main b83101cdd2: yes with any maxDocValuesOverlays, 0 included [exec]; branch_10_6 d04ee73177: only with setMaxDocValuesOverlays(n&gt;0), new and experimental in 10.6.0 [exec]; 10.5.2: no, the code is absent [exec]</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed in the earlier formal verification study by independent AI checks and a rerun on Lucene main; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: Alloy, code reading; also reached by TLA+/TLC, P</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-23: gh search of issues/PRs incl. all 95 created since 2026-10-10 and all 410 open PRs; dev@ 120 d, java-user@, builds@ 90 d); open PR #16571 (jimczi) edits the same method</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>b83101cdd2</code> and branch_10_6 <code class='nw'>d04ee73177</code> (independent checks, 2026-10-23), the released 10.5.2 jars (not affected), and fix branch <code class='nw'>7f12368ee2</code>. The public-list rerun reproduced the repro on main <code class='nw'>b83101cdd2</code>; the hunt's main <code class='nw'>ea57360912ed</code> adds only #16883, which narrows LFV-004 alone and changes nothing under <code>org/apache/lucene/index</code>. <code class='nw'>branch_10_6</code> has since moved to <code class='nw'>2763db11b0a</code>, the #16883 backport; the root-cause lines are unchanged there.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/DocValuesFieldUpdates.java:163-168 (main ea57360912ed, unchanged since b83101cdd2)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/ReadersAndUpdates.java:137-159 (main assertNoDupGen)</code></li><li><code>a Lucene main checkout: git show d04ee73177:lucene/core/src/java/org/apache/lucene/index/DocValuesFieldUpdates.java (lines 172-173); main DocValuesFieldUpdates.java:163-168</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>CarryOverRace.java (plain main, public API): <a href='../repro/LFV-002/CarryOverRace.java'><code>repro/LFV-002/CarryOverRace.java</code></a> (287 lines)</li><li>JUnit tests: TestMergeCarryOverFromDisk on main, +163 lines: <a href='../repro/LFV-002/test-main-cad6f4fad6.diff'><code>repro/LFV-002/test-main-cad6f4fad6.diff</code></a> (186 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>The v4 sequence diagram: the indexing thread, thread A and the merge thread as lifelines, steps t1 to t7, and a column of stored values (solid = on disk, dashed = in memory).</p><p>An independent, read-only visual check (2026-10-23) of the diagram's two source scripts and the sequence still compared every label with the code and the execution logs. In the sequence diagram it found two wrong cells (the two values at t6 and t7 drawn solid, though both are pending in memory) and one misleading label (<code class='nw'>forceMerge(1)</code> drawn on the merge thread's lifeline); its other two misleading labels were in the timeline script (<code class='nw'>forceMerge(1)</code> in the merge-thread row, and "one delGen for all of <code class='nw'>_0</code>'s changes", though only the on-disk changes are collapsed). The sequence script was then changed (both cells <code class='nw'>solid=False</code>, <code class='nw'>forceMerge(1)</code> marked as a helper-thread call, and the t6 caption reworded to end "one delGen for all <code class='nw'>ndv</code> changes written to <code class='nw'>_0</code> during the merge") and the files were rendered again, after the check. No later visual check is on file.</p><ul class='paths'><li><a href='../assets/LFV-002/bug-sequence.png'><code>assets/LFV-002/bug-sequence.png</code></a> (344 KB)</li></ul><p class='meta built'>Built 2026-10-29 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-29. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+        : completedDelGen;</code></pre><p class='k'>Trade-offs</p><ul><li>Why it is safe: the new number is below every residual, below every still-running packet (a still-running packet's delGen is above <code class='nw'>completedDelGen</code>), and still at or above every number already written, because writes use <code>maxDelGen = completedDelGen</code>. It changes behaviour only when <code>minResidual - 1 &gt; completedDelGen</code>, which is exactly the risky case.</li><li>A main PR must also fix main's javadoc at <code>IndexWriter.java:4564-4569</code>, which still describes <code>minResidualDelGen - 1</code>. The commit's CHANGES entry has <code class='nw'>GITHUB#TBD</code> placeholders and says "With doc-values overlays enabled", which is wrong for main.</li><li>The hunk applies to main only with <code>git apply -3</code> (a <code>_ -&gt;</code> versus <code>k -&gt;</code> lambda in the context).</li><li>Open PR #16571 (jimczi, "Let a merge write more than one segment") edits the same method, so expect a rebase or coordination.</li></ul><p class='k'>What the checks validated</p><ul><li>branch_10_6 fix: the test class with <code class='nw'>-Ptests.iters=25</code>, 200/200 pass; <code>org.apache.lucene.index.*</code>, 1,398 tests and 0 failures on two seeds; nine doc-values update classes, 128 tests on two more seeds; <code>:lucene:core:check -x test</code> passes.</li><li>main with the fix: <code>TestMergeCarryOverFromDisk</code> 6/6 with seeds DEADBEEF and 1, <code class='nw'>-ea</code> and <code class='nw'>-da</code>.</li><li>The independent program: all 32 runs correct on the fix jar (overlays default, 1, 4, 8 by v1/v2 by tie/lt by <code class='nw'>-ea</code>/<code class='nw'>-da</code>).</li></ul><div class="hd hd-3"><h3 id='fix-ship'>Ship 10.6 as is and fix main</h3><a class="hlink" href="#fix-ship" target="_self" aria-label="Link to this section" aria-describedby="fix-ship"><span aria-hidden="true">#</span></a></div><p>On <code class='nw'>branch_10_6</code> the feature is opt-in and experimental, so the release manager could ship 10.6.0 unchanged and take the fix in 10.6.1. Main needs the fix either way, because there the path runs by default.</p><p class='k'>Trade-offs</p><p>Anyone who turns overlays on in 10.6.0 is exposed to silent lost updates until the fix ships.</p><div class="hd hd-3"><h3 id='fix-revert'>Revert the backport #16591 on branch_10_6</h3><a class="hlink" href="#fix-revert" target="_self" aria-label="Link to this section" aria-describedby="fix-revert"><span aria-hidden="true">#</span></a></div><p>Not clean: <code>git revert --no-commit 4b1ed860c1</code> on <code class='nw'>d04ee73177</code> conflicts in <code class='nw'>IndexWriter.java</code> and gives a modify/delete conflict on <code>TestMergeCarryOverFromDisk.java</code>, because #16581 (<code class='nw'>eaa3a7a9ed</code>) builds on it.</p><p class='k'>Trade-offs</p><p>Larger and riskier than the clamp, and it does nothing for main.</p></div></details></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>AI tools model-checked the merge carry-over (Alloy 6, TLA+, P), starting from a suspicion formed while reading <code>buildMappedDVUpdatesFromDisk</code>: not a blind find. Alloy found it first; TLA+ and P confirmed it with directed runs; TLC later re-found it without scripted actions (14-state trace, 2-document bound chosen after the fact). Randomized single-threaded testing missed it.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>284 words</span></summary><div class='body'><p><strong>Method: model checking of the merge carry-over protocol, with the hypothesis formed while modelling</strong> (the study's "semi-formal" tier). On 2026-10-22, against Lucene main <code class='nw'>7cecf79523</code>, AI tools wrote three models of IndexWriter's NRT and merge carry-over logic from the code, one each in Alloy 6, TLA+ and P.</p><ul><li><strong>Alloy came first.</strong> While reading <code>buildMappedDVUpdatesFromDisk</code> and its comment, the AI tool suspected the <code class='nw'>diskDelGen</code> choice and built a merge sub-model to probe it. The solver found a counterexample to the no-duplicate-delGen property in 153 s (8 steps), and its trace was simpler than the AI tool's: a published, not yet applied packet is enough.</li><li><strong>TLA+.</strong> A blind breadth-first run produced a spurious counterexample (a modelling bug). Diagnosing it against the code led to the real hypothesis, confirmed in Java, then shown in the model with a directed witness. A later TLC run with no scripted actions, but with a 2-document bound chosen after the bug was known, found it again: a 14-state (13-step) trace after 21.1M distinct states and 33 minutes.</li><li><strong>P.</strong> Unguided hunt of about 40,000 schedules missed it. A directed scenario with long merges and a late second indexing thread, explored with PCT, reached the bad state in 5 to 33 schedules, and the model's copy of <code class='nw'>assertNoDupGen</code> fired ("duplicate delGen=4"). The same scenario with the clamp in the model found nothing.</li><li><strong>Testing missed it.</strong> The randomized model-based tester runs one thread with <code>SerialMergeScheduler</code>, so it cannot reach the race.</li></ul><p>Not a blind find: each model started from an AI tool's suspicion formed while reading the code. Independent AI verifiers then reproduced it (Alloy, TLA+ and P verifications), and AI tools wrote the Java tests, the standalone repro and the candidate fix.</p></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No earlier report found in GitHub issues and PRs (all 410 open PRs checked), review threads or the dev@, java-user@ and builds@ lists, searched 2026-10-23; no separate JIRA search is recorded. Open PR #16571 edits the same method for another purpose.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p>No earlier report of this race was found. The one open item that touches the same code is PR #16571, which edits the same method for another purpose.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues and PRs (apache/lucene)</th><td class='when'>2026-10-23</td><td><code>gh search issues --include-prs</code> (titles, bodies, comments) for <code>buildMappedDVUpdatesFromDisk</code>, <code class='nw'>diskDelGen</code>, <code>duplicate delGen</code>, <code class='nw'>assertNoDupGen</code>, <code>minResidualDelGen</code>, <code class='nw'>stillRunning</code>, <code>maxDocValuesOverlays</code>, <code>TestMergeCarryOverFromDisk</code> and more; all 95 items created since 2026-10-10 listed</td><td>no report; the method name appears only in #16570 itself, #16581 and an unrelated PR #16643; #16900 is the owner's own, different issue</td></tr><tr><th scope='row'>Review threads</th><td class='when'>2026-10-23</td><td>inline and review comments of #16570, #16591, #16581, #16418, #16645, #16648 scanned for still-running, out-of-order, delGen, race, tryUpdateDocValue, duplicate</td><td>one jimczi comment on #16581 about SORTED_NUMERIC in the carry-over window, a different issue</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-10-23</td><td>all 410 open PRs, file lists checked for IndexWriter, ReadersAndUpdates, BufferedUpdatesStream, FrozenBufferedUpdates, DocValuesFieldUpdates</td><td>none changes the computation; #16571 (jimczi) edits the same method</td></tr><tr><th scope='row'>Mailing lists (lists.apache.org)</th><td class='when'>2026-10-23</td><td>dev@ (120 days), java-user@, builds@ (90 days), issues@, commits@</td><td>0 hits; issues@ and commits@ show only the #16570, #16591, #16581 traffic</td></tr><tr><th scope='row'>JIRA archive</th><td class='when'>-</td><td>no separate search is recorded for this bug; the code dates from 2026-09-01</td><td>-</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced by #16570 (<code class='nw'>9092bda09d</code>, merged to main 2026-09-01); the backport #16591 (<code class='nw'>4b1ed860c1</code>, inherited by <code class='nw'>branch_10_6</code>) put it behind the overlays setting. Main fails with any overlays setting, <code class='nw'>branch_10_6</code> only with overlays on; 10.5.2 and the fix are correct in every run.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>5 rows</span></summary><div class='body'><p><strong>Introduced by</strong> #16570 "Stop buffering doc-values updates in heap during merges" (@jimczi), merged to main on 2026-09-01T08:22:50Z as <code class='nw'>9092bda09d</code>, milestone 10.6.0. The backport #16591 (@jimczi, base <code class='nw'>branch_10x</code>, merged 2026-09-07T05:52:49Z, commit <code class='nw'>4b1ed860c1</code>) put the same code behind the overlays setting; <code class='nw'>branch_10_6</code> inherits it. The overlays feature itself is #16418 (merged 2026-08-13), backported as #16554. <code>git blame</code> of the root-cause lines gives <code class='nw'>9092bda09d</code> on main and <code class='nw'>4b1ed860c1</code> on <code class='nw'>branch_10_6</code>.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>b83101cdd2</code>, any overlays setting (default 8, 4 and 0 run)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the test branch fails 3 of 6 tests on 5 seeds with <code class='nw'>-ea</code> and <code class='nw'>-da</code>, the overlays=0 control included; the standalone program fails all 16 runs</td></tr><tr><th scope='row'><code class='nw'>branch_10_6</code> <code class='nw'>d04ee73177</code>, overlays 1, 4 or 8</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>both overlay tests fail in every run (5 seeds by 10 iterations by <code class='nw'>-ea</code>/<code class='nw'>-da</code>); the standalone program gives 111 instead of 222 in all 24 runs: silent in 18, a tragic close in the 6 tie runs with <code class='nw'>-ea</code></td></tr><tr><th scope='row'><code class='nw'>branch_10_6</code> <code class='nw'>d04ee73177</code>, overlays 0 (default)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the control test passes; the standalone program gives 222</td></tr><tr><th scope='row'>10.5.2 (Maven Central jars, sha1 checked)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the code is absent (<code class='nw'>javap</code>, byte grep); an adapted copy of the schedule gives doc 0 = 200 in 4 of 4 runs, and the standalone program keeps the newer 222 in 8 of 8</td></tr><tr><th scope='row'>fix <code class='nw'>7f12368ee2</code> (branch_10_6) and main with the fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>all tests and all 32 standalone runs correct</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>Independent AI checkers, a lens each, and a claim re-check checked the brief: the bug reproduced on main and <code class='nw'>branch_10_6</code>, 10.5.2 and the fix were clean, 2 claims were refuted and 1 judged not supportable, all corrected in brief v2. Study verifiers (Alloy, TLA+, P) each reproduced it.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>378 words</span></summary><div class='body'><p>Independent AI checkers each took a lens on the brief, and a claim re-check re-ran every disputed claim. The brief shown in the appendix is v2, with every correction applied.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>code-history-fix</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> confirmed, with corrections</span></td><td>The step-5 arithmetic was wrong for the schedule as written (<code class='nw'>minResidual</code> is per source segment and field, so the collapse is at delGen 5, not 4), and the loss is silent with <code class='nw'>-ea</code> too. Fix audit: the clamp is correct. 200/200 iterations, 1,398 index-package tests.</td></tr><tr><th scope='row'>exec-branch106</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed</span></td><td>Deterministic on 5 seeds by 10 iterations by <code class='nw'>-ea</code>/<code class='nw'>-da</code>. Wrote <code>CarryOverRace.java</code>: the race reproduces with ordinary packets on two threads, survives commit and a fresh JVM; fix jar 32/32 correct; 10.5.2 8/8 correct; main 16/16 wrong.</td></tr><tr><th scope='row'>exec-main-1052</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed</span></td><td>Main fails with any overlays setting. An independent repro that dumps pending packets shows the 100 carried at delGen 5 (or 4 in the tie). 10.5.2: doc 0 = 200 in all runs. Main plus the fix: 6/6.</td></tr><tr><th scope='row'>provenance-dups-policy</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> no duplicates; provenance corrected</span></td><td>No earlier report anywhere searched. The how-it-was-found story needed fixes: Alloy was first, the Java confirmation came before the unscripted TLC run, the trace has 14 states, and "not hinted" cannot be supported.</td></tr><tr><th scope='row'>visual check v4</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> 2 wrong, 3 misleading</span></td><td>Every thread, delGen and segment in the diagram checked out against the code and logs except two solid cells and three labels; those were changed before the final render.</td></tr><tr><th scope='row'>Claim re-check</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> status ready</span></td><td>Re-ran the instrumented test, commit and reopen, the revert, and the logs. Two claims refuted (the step-5 numbers, the order of the Java confirmation) and one judged not supportable ("not hinted"); seven must-fix items, all applied in brief v2.</td></tr><tr><th scope='row'>release-10_6 fact sheet</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> main and opt-in overlays affected</span></td><td>A separate fact sheet for the 10.6 release question (2026-10-23). On <code class='nw'>branch_10_6</code> both overlay tests fail in 25 of 25 random iterations and the overlays=0 control passes 25 of 25; main fails 3 of 6 tests; an adapted copy of the test passes on the 10.5.2 jars (<code>OK (2 tests)</code>, five seeds).</td></tr><tr><th scope='row'>study verifiers</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> new bug</span></td><td>Alloy verifier, TLA+ verifier and P-model verifier each reproduced it with their own test.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-002/bug-sequence.png' download='16570-merge-race-bug-sequence.png' target='_self'>PNG</a> <span class='n'>344 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>659 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-002, snapshot of 2026-10-29</p><dl class='card'><div><dt>Registry title</dt><dd>Merge doc-values carry-over (#16570) can lose an acknowledged update or close the writer on a duplicate delGen</dd></div><div><dt>Area</dt><dd>index / IndexWriter merge</dd></div><div><dt>Priority</dt><dd>Medium, rank 19: An acknowledged doc-values update can be silently lost in main&#x27;s default merge path (10.6 only with opt-in overlays), serious data loss but a tight race that CI never hits in unreleased code.</dd></div><div><dt>Impact class</dt><dd>data corruption</dd></div><div><dt>Impact note</dt><dd>Main's default merge path whatever maxDocValuesOverlays is set to, and branch_10_6 only with the opt-in experimental setMaxDocValuesOverlays(n&gt;0); needs a concurrent merge plus out-of-order update packets; ordinary scale; unreleased.</dd></div><div><dt>Summary</dt><dd>While a merge runs, a document in a merging segment gets an older doc-values update that is still being applied and a newer update to the same segment and field that finishes first. You expect the newest value to win on the merged segment. Instead the merge gives the carried-over on-disk value a delGen at or above the in-flight packet's, so the older value silently wins and survives commit and reopen, or, with assertions on and equal gens, a duplicate-delGen assertion closes the writer and discards uncommitted changes.</dd></div><div><dt>Introduced</dt><dd>#16570 (9092bda09d on main); backport #16591 (4b1ed860c1, base branch_10x, inherited by branch_10_6) (2026-09-01 (#16570 merged); 2026-09-07 (#16591 merged))</dd></div><div><dt>First affected version</dt><dd>unreleased (main; branch_10_6 only with opt-in overlays)</dd></div><div><dt>Affected versions</dt><dd>main b83101cdd2: yes with any maxDocValuesOverlays, 0 included [exec]; branch_10_6 d04ee73177: only with setMaxDocValuesOverlays(n&gt;0), new and experimental in 10.6.0 [exec]; 10.5.2: no, the code is absent [exec]</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed in the earlier formal verification study by independent AI checks and a rerun on Lucene main; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: Alloy, code reading; also reached by TLA+/TLC, P</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-23: gh search of issues/PRs incl. all 95 created since 2026-10-10 and all 410 open PRs; dev@ 120 d, java-user@, builds@ 90 d); open PR #16571 (jimczi) edits the same method</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>b83101cdd2</code> and branch_10_6 <code class='nw'>d04ee73177</code> (independent checks, 2026-10-23), the released 10.5.2 jars (not affected), and fix branch <code class='nw'>7f12368ee2</code>. The public-list rerun reproduced the repro on main <code class='nw'>b83101cdd2</code>; the hunt's main <code class='nw'>ea57360912ed</code> adds only #16883, which narrows LFV-004 alone and changes nothing under <code>org/apache/lucene/index</code>. <code class='nw'>branch_10_6</code> has since moved to <code class='nw'>2763db11b0a</code>, the #16883 backport; the root-cause lines are unchanged there.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/DocValuesFieldUpdates.java:163-168 (main ea57360912ed, unchanged since b83101cdd2)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/ReadersAndUpdates.java:137-159 (main assertNoDupGen)</code></li><li><code>a Lucene main checkout: git show d04ee73177:lucene/core/src/java/org/apache/lucene/index/DocValuesFieldUpdates.java (lines 172-173); main DocValuesFieldUpdates.java:163-168</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestMergeDocValuesCarryOverRace.java (JUnit test): <a href='../repro/LFV-002/src/org/apache/lucene/index/TestMergeDocValuesCarryOverRace.java'><code>repro/LFV-002/src/org/apache/lucene/index/TestMergeDocValuesCarryOverRace.java</code></a> (148 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>The v4 sequence diagram: the indexing thread, thread A and the merge thread as lifelines, steps t1 to t7, and a column of stored values (solid = on disk, dashed = in memory).</p><p>An independent, read-only visual check (2026-10-23) of the diagram's two source scripts and the sequence still compared every label with the code and the execution logs. In the sequence diagram it found two wrong cells (the two values at t6 and t7 drawn solid, though both are pending in memory) and one misleading label (<code class='nw'>forceMerge(1)</code> drawn on the merge thread's lifeline); its other two misleading labels were in the timeline script (<code class='nw'>forceMerge(1)</code> in the merge-thread row, and "one delGen for all of <code class='nw'>_0</code>'s changes", though only the on-disk changes are collapsed). The sequence script was then changed (both cells <code class='nw'>solid=False</code>, <code class='nw'>forceMerge(1)</code> marked as a helper-thread call, and the t6 caption reworded to end "one delGen for all <code class='nw'>ndv</code> changes written to <code class='nw'>_0</code> during the merge") and the files were rendered again, after the check. No later visual check is on file.</p><ul class='paths'><li><a href='../assets/LFV-002/bug-sequence.png'><code>assets/LFV-002/bug-sequence.png</code></a> (344 KB)</li></ul><p class='meta built'>Built 2026-10-29 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-29. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
 (function () {
   function copyText(btn) {
     var pre = document.getElementById(btn.getAttribute('data-copy'));

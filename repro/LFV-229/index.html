@@ -23,13 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You configure ThaiTokenizer with a user dictionary that contains an ordinary short word such as แม่น (&#x27;accurate&#x27;) or ผล (&#x27;result&#x27;) and expect it to change only where words split. Instead, when the dictionary word is followed in the text by a combining vowel or tone mark, as in แม่น้ำ (&#x27;river&#x27;) or ผลิต (&#x27;produce&#x27;), the tokenizer cuts the character cluster and throws the mark away: แม่น้ำ becomes the single token แม่น, and ผลิต becomes [ผล, ต]. Because queries are analyzed the same way, a search for แม่น้ำ also matches documents that only contain แม่น, with no error.</p>
+<p>The test shows that <code>ThaiTokenizer</code> with the user dictionary {แม่น} tokenizes แม่น้ำ (&quot;river&quot;) as just [แม่น]: the match ends inside the character cluster, so the tone mark U+0E49 and SARA AM U+0E33 are dropped.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> Every character lies in some token: with <code>{แม่น}</code>, <code>แม่น้ำ</code> stays <code>[แม่น้ำ[0,6)]</code>, and a search for <code>แม่น้ำ</code> finds 1 of the 2 documents.</li><li><b>Actual:</b> <code>แม่น้ำ</code> gives <code>[แม่น[0,4)]</code> (U+0E49 and U+0E33 in no token), the query is <code>f:แม่น</code> and finds 2 documents; 4 of 5 tests fail.</li></ul>
+<p>Expected: the tokens together hold all of แม่น้ำ. Actual: <code>expected:&lt;แม่น[้ำ]&gt; but was:&lt;แม่น[]&gt;</code> (-ea and -da).</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/analysis/th/TestThaiTokenizerUserDictionaryClusterSplit.java"><code>src/org/apache/lucene/analysis/th/TestThaiTokenizerUserDictionaryClusterSplit.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -48,5 +49,4 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.analysis.th.TestThaiTokenizerUserDictionaryClusterSplit</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestThaiDictionaryWordInsideCluster.java"><code>TestThaiDictionaryWordInsideCluster.java</code></a></li><li><a href="TestThaiTokenizerUserDictionaryClusterSplit.java"><code>TestThaiTokenizerUserDictionaryClusterSplit.java</code></a></li><li><a href="ThaiDictClusterProbe.java"><code>ThaiDictClusterProbe.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

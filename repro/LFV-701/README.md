@@ -10,20 +10,21 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index points with LatLonPoint and LatLonDocValuesField and ask for the documents that contain both P1 and P2 (CONTAINS with two Point geometries); a document that holds only P1 must not match, and LatLonPoint.newGeometryQuery, which builds one MUST clause per query point, indeed matches none. LatLonDocValuesField.newSlowGeometryQuery, which its javadoc says to pair with that query in an IndexOrDocValuesQuery (whose two queries 'must match the same documents'), accepts a document as soon as any one of its points equals any one query point, so it computes an OR instead of an AND. In the repro (1000 one-point documents, half at P1 and half at P2) the points query returns 0 hits, the doc-values query returns all 1000, and 'id:7 AND IndexOrDocValuesQuery(points, docValues)' returns document 7, with no error.
 
+The test shows that `LatLonDocValuesField.newSlowGeometryQuery(CONTAINS, (0, 0), (10, 10))` matches a document whose only point is (0, 0), so the doc-values CONTAINS is an OR over the query points, while its documented IndexOrDocValuesQuery partner `LatLonPoint.newGeometryQuery` requires every point.
+
 ## Expected vs actual
 
-- Expected: CONTAINS(P1, P2) returns [C] on both paths; with 2,000 more one-point documents the doc-values query still returns 1 hit, and `id:A AND` the wrapper and the wrapper's `explain` for A match nothing.
-- Actual: The doc-values query returns [A, B, C] (the INTERSECTS hits), then 2,003 hits; `id:A AND` the wrapper returns A, and its `explain` reports a match.
+Expected: 0 hits (the document lacks (10, 10)). Actual on main with -ea and with -da: 1 hit (expected:&lt;0&gt; but was:&lt;1&gt;).
 
 ## Files
 
-- [src/org/apache/lucene/document/TestLatLonDocValuesContainsMultiPoint.java](src/org/apache/lucene/document/TestLatLonDocValuesContainsMultiPoint.java) (JUnit test)
-- [src/LatLonDocValuesContainsMultiPointMain.java](src/LatLonDocValuesContainsMultiPointMain.java) (main() class)
+- [src/org/apache/lucene/document/TestLatLonDocValuesContainsTwoPoints.java](src/org/apache/lucene/document/TestLatLonDocValuesContainsTwoPoints.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -40,21 +41,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.document.TestLatLonDocValuesContainsMultiPoint
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" LatLonDocValuesContainsMultiPointMain
+     execute --select-class org.apache.lucene.document.TestLatLonDocValuesContainsTwoPoints
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestLatLonDocValuesContainsMultiPoint.java](TestLatLonDocValuesContainsMultiPoint.java)
-- [2-TestLatLonDocValuesContainsMultiPoint.java](2-TestLatLonDocValuesContainsMultiPoint.java)
-- [LatLonDocValuesContainsHistoryMain.java](LatLonDocValuesContainsHistoryMain.java)
-- [latlon-docvalues-contains-all-points.diff](latlon-docvalues-contains-all-points.diff)
 
 ## Feedback
 

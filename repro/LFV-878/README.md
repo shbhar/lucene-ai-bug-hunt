@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You run 'price a &lt; b' through HTMLStripCharFilter and StandardTokenizer and expect [price, a, b], which is what you get for 'price a &lt; b ' (one trailing space) or 'price a &lt; b c'. Instead you get [price, a]: when the input ends right after '&lt;' [whitespace] Name or '&lt;/' Name with no '&gt;', the end-of-input handler throws the pending text away, while anywhere else the same unclosed construct is output as text, as the upstream tests require for '&lt;ahref=http:..' at end of input. A TermQuery for 'b' therefore misses the document; other shapes are 'a&lt;b' -&gt; 'a', 'x &lt;p' -&gt; 'x ', 'a &lt;/b' -&gt; 'a ' and 'if a &lt; b.' -&gt; 'if a ' ('.' is a name character).
 
+`HTMLStripCharFilter` drops an unclosed `< name` when the input ends right after the name, but outputs it as text when any character follows.
+
 ## Expected vs actual
 
-- Expected: All five inputs strip to themselves (`a < b` stays `a < b`), and `price a < b` analyzes to `[price, a, <, b]`.
-- Actual: `a < b` strips to `a ` and `price a < b` analyzes to `[price, a]`: 39 tests, 2 failed, with assertions on and off; the control passes.
+Expected: `a < b` -&gt; `a < b` (as `a < b ` -&gt; `a < b `); actual: `a ` (`expected:<a [< b]> but was:<a []>`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/charfilter/TestHTMLStripUnclosedTagAtEndOfInput.java](src/org/apache/lucene/analysis/charfilter/TestHTMLStripUnclosedTagAtEndOfInput.java) (JUnit test)
+- [src/org/apache/lucene/analysis/charfilter/TestHTMLStripUnclosedTagAtEnd.java](src/org/apache/lucene/analysis/charfilter/TestHTMLStripUnclosedTagAtEnd.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,16 +42,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.charfilter.TestHTMLStripUnclosedTagAtEndOfInput
+     execute --select-class org.apache.lucene.analysis.charfilter.TestHTMLStripUnclosedTagAtEnd
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestHTMLStripCharFilter-eof-methods.java](TestHTMLStripCharFilter-eof-methods.java)
-- [test-main.diff](test-main.diff)
-- [TestHTMLStripUnclosedTagAtEndOfInput.java](TestHTMLStripUnclosedTagAtEndOfInput.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/htmlstrip-tag-open-name-class-vs-html-tokenizer-reference/](../../models/htmlstrip-tag-open-name-class-vs-html-tokenizer-reference/)
 

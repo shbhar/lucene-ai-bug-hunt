@@ -16,54 +16,23 @@
  */
 package org.apache.lucene.document;
 
-import org.apache.lucene.geo.Polygon;
-import org.apache.lucene.geo.Tessellator;
 import org.apache.lucene.geo.XYPolygon;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * A valid L-shaped polygon with three triangular holes: holes 0 and 1 both touch the outer ring at
- * its reflex vertex V=(4,4), and hole 2 touches hole 1 at the vertex (3,4). Every touch is at one
- * vertex. XYShape/LatLonShape.createIndexableFields reject it with "Unable to Tessellate shape".
- *
- * <pre>
- *  outer ring (clockwise): (0,0) (0,12) (4,12) (4,4) (12,4) (12,0)
- *  hole 0 (ccw): (4,4) (1,2) (2,1)
- *  hole 1 (ccw): (3,4) (4,4) (3,5)
- *  hole 2 (ccw): (2,6) (1,5) (3,4)
- * </pre>
- */
 public class TestTessellatorChainedTouchingHoles extends LuceneTestCase {
 
-  static final float[] SX = {0, 0, 4, 4, 12, 12, 0}, SY = {0, 12, 12, 4, 4, 0, 0};
-  static final float[][] HX = {{4, 1, 2, 4}, {3, 4, 3, 3}, {2, 1, 3, 2}};
-  static final float[][] HY = {{4, 2, 1, 4}, {4, 4, 5, 4}, {6, 5, 4, 6}};
-
-  static XYPolygon xy(int... holes) {
-    XYPolygon[] hs = new XYPolygon[holes.length];
-    for (int i = 0; i < holes.length; i++) hs[i] = new XYPolygon(HX[holes[i]], HY[holes[i]]);
-    return new XYPolygon(SX, SY, hs);
-  }
-
-  static double[] d(float[] f) {
-    double[] r = new double[f.length];
-    for (int i = 0; i < f.length; i++) r[i] = f[i];
-    return r;
-  }
-
-  public void testControlsTwoHoles() {
-    Tessellator.tessellate(xy(0, 1), false);
-    Tessellator.tessellate(xy(0, 2), false);
-    Tessellator.tessellate(xy(1, 2), false);
-  }
-
-  public void testXYShapeChainedTouchingHoles() {
-    XYShape.createIndexableFields("shape", xy(0, 1, 2)); // must not throw
-  }
-
-  public void testLatLonShapeChainedTouchingHoles() {
-    Polygon[] hs = new Polygon[3];
-    for (int i = 0; i < 3; i++) hs[i] = new Polygon(d(HY[i]), d(HX[i]));
-    LatLonShape.createIndexableFields("shape", new Polygon(d(SY), d(SX), hs)); // must not throw
+  public void testHolesTouchingAtSingleVertices() {
+    XYPolygon polygon =
+        new XYPolygon(
+            new float[] {0, 0, 4, 4, 12, 12, 0},
+            new float[] {0, 12, 12, 4, 4, 0, 0},
+            new XYPolygon(new float[] {4, 1, 2, 4}, new float[] {4, 2, 1, 4}),
+            new XYPolygon(new float[] {3, 4, 3, 3}, new float[] {4, 4, 5, 4}),
+            new XYPolygon(new float[] {2, 1, 3, 2}, new float[] {6, 5, 4, 6}));
+    try {
+      XYShape.createIndexableFields("shape", polygon);
+    } catch (IllegalArgumentException e) {
+      throw new AssertionError("expected the valid polygon to be tessellated, got " + e, e);
+    }
   }
 }

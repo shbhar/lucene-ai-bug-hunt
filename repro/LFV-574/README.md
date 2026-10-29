@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You set MoreLikeThis.setMaxQueryTerms(Integer.MAX_VALUE), meaning 'no limit', and call retrieveInterestingTerms(...) on a one-word document. You expect that one word back, just as like with the same setting returns a one-clause query. Instead both overloads begin with 'new ArrayList&lt;&gt;(maxQueryTerms)' (MoreLikeThis.java:889 and:914), sized from the limit rather than from the number of terms found, and throw java.lang.OutOfMemoryError: Requested array size exceeds VM limit.
 
+The test shows that with `setMaxQueryTerms(Integer.MAX_VALUE)`, `MoreLikeThis.retrieveInterestingTerms(Reader, String)` on a one-word document runs `new ArrayList<>(maxQueryTerms)` before it has found any terms.
+
 ## Expected vs actual
 
-- Expected: You expect that one word back, just as like with the same setting returns a one-clause query.
-- Actual: Both overloads begin with 'new ArrayList&lt;&gt;(maxQueryTerms)' (MoreLikeThis.java:889 and:914), sized from the limit rather than from the number of terms found, and throw java.lang.OutOfMemoryError: Requested array size exceeds VM limit.
+Expected `[lucene]`; actual `java.lang.OutOfMemoryError: Requested array size exceeds VM limit` at `MoreLikeThis.java:914` (-ea and -da).
 
 ## Files
 
 - [src/org/apache/lucene/queries/mlt/TestMoreLikeThisInterestingTermsLargeMaxQueryTerms.java](src/org/apache/lucene/queries/mlt/TestMoreLikeThisInterestingTermsLargeMaxQueryTerms.java) (JUnit test)
-- [src2/org/apache/lucene/queries/mlt/TestMoreLikeThisInterestingTermsLargeMaxQueryTerms.java](src2/org/apache/lucene/queries/mlt/TestMoreLikeThisInterestingTermsLargeMaxQueryTerms.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -34,15 +35,11 @@ CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
-javac -d classes-src -cp "$CP" $(find src -name '*.java')
-javac -d classes-src2 -cp "$CP" $(find src2 -name '*.java')
+javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes-src:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queries.mlt.TestMoreLikeThisInterestingTermsLargeMaxQueryTerms
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes-src2:$CP" org.junit.platform.console.ConsoleLauncher \
+     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.queries.mlt.TestMoreLikeThisInterestingTermsLargeMaxQueryTerms
 ```
 

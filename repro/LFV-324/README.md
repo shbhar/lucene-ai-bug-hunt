@@ -1,6 +1,6 @@
 # SortedSetDocValues faceting builds its facet tree from the byte order of the encoded paths, so a label or dimension name that equals a sibling's name followed by a character below U+001F (TAB, CR, LF, or the U+001E that FacetsConfig writes when it escapes U+001E/U+001F) moves a label's children under that sibling, or drops a whole dimension or one of its labels
 
-Bug LFV-324 · Area: facet / SortedSetDocValues faceting (DefaultSortedSetDocValuesReaderState: the per-dimension DimTree and OrdRange built from the field's ordinals in term order, shared by SortedSetDocValuesFacetCounts and ConcurrentSortedSetDocValuesFacetCounts) · Priority: medium · Impact: silent wrong results · Novelty: new
+Bug LFV-324 · Area: facet / SortedSetDocValues faceting (DefaultSortedSetDocValuesReaderState: the per-dimension DimTree and OrdRange built from the field's ordinals in term order, shared by SortedSetDocValuesFacetCounts and ConcurrentSortedSetDocValuesFacetCounts) · Priority: low · Impact: silent wrong results · Novelty: new
 
 Bug page: [../../bugs/LFV-324.html](../../bugs/LFV-324.html)
 
@@ -10,19 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index hierarchical SortedSetDocValues facets, for example cat/shoes/red in one document and cat/'shoes&lt;TAB&gt;' (an untrimmed input) in another, and expect getTopChildren(10, 'cat', 'shoes') to return red=1, as taxonomy faceting does for the same labels. Instead it returns null and the leaf 'shoes&lt;TAB&gt;' reports red=1: the encoded paths sort by byte, a character below the path delimiter U+001F places 'shoes&lt;TAB&gt;' between 'shoes' and 'shoes U+001F red', and the reader state infers parent, child and sibling links only from the order of consecutive ordinals. The same happens for a label that contains U+001F or U+001E (FacetsConfig escapes both with U+001E), and dimension names such as 'd' next to 'd&lt;TAB&gt;' make dimension d disappear or, for a flat multiValued + requireDimCount dimension, lose one label, all with no error.
 
+The test shows that SortedSetDocValues hierarchical faceting moves the children of a label to a sibling label that is the same text plus a TAB (cat/shoes/red next to cat/"shoes\t").
+
 ## Expected vs actual
 
-- Expected: `getTopChildren(10, "cat", "shoes")` returns `red (1)` and `"shoes<TAB>"` has no children; dimension `color` lists `red`; `tag` reports value 2 with `b=2, a=1`.
-- Actual: `shoes` returns null while `"shoes<TAB>"` reports `red (1)` (the same with `"shoes\u001F"`); `color` returns null; `tag` reports value 1 with only `b=2`.
+Expected `getTopChildren(10, "cat", "shoes")` to return value=1 with child red (1); actual: `null` (red is reported under "shoes\t"), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/facet/sortedset/TestSsdvFacetLabelBelowDelimiter.java](src/org/apache/lucene/facet/sortedset/TestSsdvFacetLabelBelowDelimiter.java) (JUnit test)
+- [src/org/apache/lucene/facet/sortedset/TestSsdvFacetChildrenMovedToTabSibling.java](src/org/apache/lucene/facet/sortedset/TestSsdvFacetChildrenMovedToTabSibling.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,19 +42,12 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.facet.sortedset.TestSsdvFacetLabelBelowDelimiter
+     execute --select-class org.apache.lucene.facet.sortedset.TestSsdvFacetChildrenMovedToTabSibling
 ```
 
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestSortedSetDocValuesFacetLabelOrder.java](TestSortedSetDocValuesFacetLabelOrder.java)
-- [FacetOrdOrderProbe.java](FacetOrdOrderProbe.java)
-- [TestSsdvFacetTreeDifferential.java](TestSsdvFacetTreeDifferential.java)
-- [TestSsdvFacetLabelBelowDelimiter.java](TestSsdvFacetLabelBelowDelimiter.java)
 
 ## Feedback
 

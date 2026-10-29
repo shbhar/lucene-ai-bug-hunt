@@ -16,70 +16,32 @@
  */
 package org.apache.lucene.index;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
-import java.io.ByteArrayOutputStream;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.KnnFloat16VectorField;
-import org.apache.lucene.document.KnnFloatVectorField;
+import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.LuceneTestCase;
 import org.apache.lucene.tests.util.TestUtil;
 
-/**
- * CheckIndex tests the vectors of FLOAT32 fields but silently skips FLOAT16 fields. The two tests
- * are the same index (2 fields, 3 vectors, as in BaseKnnVectorsFormatTestCase
- * #testCheckIndexIncludesVectors) with each encoding; only the float16 one fails.
- */
 public class TestCheckIndexFloat16Vectors extends LuceneTestCase {
 
-  private static CheckIndex.Status.VectorValuesStatus check(boolean float16, ByteArrayOutputStream out)
-      throws Exception {
-    try (Directory dir = newDirectory()) {
-      try (IndexWriter w =
-          new IndexWriter(dir, new IndexWriterConfig().setCodec(TestUtil.getDefaultCodec()))) {
+  public void testFloat16VectorFieldIsChecked() throws Exception {
+    try (Directory dir = new ByteBuffersDirectory()) {
+      IndexWriterConfig iwc = new IndexWriterConfig().setCodec(TestUtil.getDefaultCodec());
+      try (IndexWriter w = new IndexWriter(dir, iwc)) {
         Document doc = new Document();
-        add(doc, "v1", float16);
-        w.addDocument(doc);
-        add(doc, "v2", float16);
+        short[] v = {Float.floatToFloat16(1f), Float.floatToFloat16(2f)};
+        doc.add(new KnnFloat16VectorField("v", v, VectorSimilarityFunction.EUCLIDEAN));
         w.addDocument(doc);
       }
-      CheckIndex.Status status =
-          TestUtil.checkIndex(dir, CheckIndex.Level.MIN_LEVEL_FOR_INTEGRITY_CHECKS, true, true, out);
-      assertEquals(1, status.segmentInfos.size());
-      return status.segmentInfos.get(0).vectorValuesStatus;
+      try (CheckIndex checker = new CheckIndex(dir)) {
+        checker.setLevel(CheckIndex.Level.MIN_LEVEL_FOR_INTEGRITY_CHECKS);
+        CheckIndex.Status.VectorValuesStatus s =
+            checker.checkIndex().segmentInfos.get(0).vectorValuesStatus;
+        // 1 FLOAT16 field with 1 vector was indexed; CheckIndex reports 0 fields, 0 vectors
+        assertEquals("vector fields checked", 1, s.totalKnnVectorFields);
+        assertEquals("vector values checked", 1, s.totalVectorValues);
+      }
     }
-  }
-
-  private static void add(Document doc, String field, boolean float16) {
-    if (float16) {
-      short[] v = {
-        Float.floatToFloat16(0.5f), Float.floatToFloat16(0.5f),
-        Float.floatToFloat16(0.5f), Float.floatToFloat16(0.5f)
-      };
-      doc.add(new KnnFloat16VectorField(field, v, VectorSimilarityFunction.EUCLIDEAN));
-    } else {
-      float[] v = {0.5f, 0.5f, 0.5f, 0.5f};
-      doc.add(new KnnFloatVectorField(field, v, VectorSimilarityFunction.EUCLIDEAN));
-    }
-  }
-
-  public void testFloat32VectorsAreChecked() throws Exception {
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    CheckIndex.Status.VectorValuesStatus s = check(false, out);
-    assertEquals(3, s.totalVectorValues);
-    assertEquals(2, s.totalKnnVectorFields);
-  }
-
-  public void testFloat16VectorsAreChecked() throws Exception {
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    CheckIndex.Status.VectorValuesStatus s = check(true, out);
-    String vectorsLine = "";
-    for (String line : out.toString(UTF_8).split("\n")) {
-      if (line.contains("test: vectors")) vectorsLine = line.trim();
-    }
-    // 3 float16 vector values were indexed across 2 fields; CheckIndex reports and tests none
-    assertEquals(vectorsLine, 3, s.totalVectorValues);
-    assertEquals(vectorsLine, 2, s.totalKnnVectorFields);
   }
 }

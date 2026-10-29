@@ -10,20 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 While a merge runs, a document in a merging segment gets an older doc-values update that is still being applied and a newer update to the same segment and field that finishes first. You expect the newest value to win on the merged segment. Instead the merge gives the carried-over on-disk value a delGen at or above the in-flight packet's, so the older value silently wins and survives commit and reopen, or, with assertions on and equal gens, a duplicate-delGen assertion closes the writer and discards uncommitted changes.
 
+The test shows that during a merge, a doc-values update whose packet is still being applied loses to an older value carried over from disk, when a newer packet on the same segment and field finishes first (#16570 carry-over path, default config).
+
 ## Expected vs actual
 
-- Expected: doc 0 = 200 on the merged segment (`{0=200, 1=301, 2=302}`), under `-ea` and `-da`, and the writer stays open.
-- Actual: 3 of 6 tests fail on main: doc 0 = 100 under `-ea` and `-da`, except that with `-ea` the tie test fails on `duplicate delGen=4`, which closes the writer.
+Expected the k0 document's last update `n=2` after the merge, commit and reopen; actual: the older `n=1` (`expected:<2> but was:<1>`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/fvverify/TestMergeCommitDVCarryOverRace.java](src/fvverify/TestMergeCommitDVCarryOverRace.java) (JUnit test)
+- [src/org/apache/lucene/index/TestMergeDocValuesCarryOverRace.java](src/org/apache/lucene/index/TestMergeDocValuesCarryOverRace.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
-- Recorded outcome of run 1 on main a9779ef3c193: 5 test(s) run, 2 failed (testAdjacentGens, testLostUpdate).
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -39,17 +39,12 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class fvverify.TestMergeCommitDVCarryOverRace
+     execute --select-class org.apache.lucene.index.TestMergeDocValuesCarryOverRace
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [CarryOverRace.java](CarryOverRace.java)
-- [test-main-cad6f4fad6.diff](test-main-cad6f4fad6.diff)
 
 ## Feedback
 

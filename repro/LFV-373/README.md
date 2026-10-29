@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You load a Hunspell dictionary with CHECKCOMPOUNDTRIPLE, which hunspell(5) defines as 'Forbid compounding, if compound word contains triple repeating letters (e.g. foo|ox or xo|oof)', and expect Hunspell.spell to reject a compound with a triple letter at any boundary, as C Hunspell 1.3.2 and 1.7.2 do and as Lucene's own checkcompoundtriple fixture requires for bareeel (bare|eel). Instead Lucene rejects bareeel but accepts operabareeel, barebareeel and foobareeel (opera, bare or foo + bare|eel), and with the public Swedish dictionary (sv_SE) it accepts sommarmusikradiooomskuren while it rejects musikradiooomskuren. The cause: Hunspell.mayBreakIntoCompounds receives an absolute break position (the tail's offset in the word plus the relative break) but tests 'breakPos &lt; length - 1' against the tail's relative length, so at the second and later boundaries the x|xx half of the check is skipped whenever the absolute break position is at least the tail length minus 1, while the xx|x half ('breakPos &gt; offset + 1') is offset-aware and still works.
 
+The test shows that Hunspell's CHECKCOMPOUNDTRIPLE misses an x|xx triple letter at the second boundary of a compound: with `opera/A bare/A eel/A`, `operabareeel` (opera + bare|eel) is accepted.
+
 ## Expected vs actual
 
-- Expected: `spell("operabareeel")` and `spell("barebareeel")` return false, like `spell("bareeel")`.
-- Actual: `spell("operabareeel")` returns true: `testSecondBoundary` fails and the first-join control passes (1 of 2 fails, assertions on and off).
+Expected `spell("operabareeel")` to be false (bare|eel has "eee", and Lucene's own fixture rejects `bareeel`); actual: true (`expected:<false> but was:<true>`), with `-ea` and `-da`.
 
 ## Files
 
@@ -21,8 +22,8 @@ You load a Hunspell dictionary with CHECKCOMPOUNDTRIPLE, which hunspell(5) defin
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -45,12 +46,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestCheckCompoundTripleLaterBoundary.java](TestCheckCompoundTripleLaterBoundary.java)
-- [TestTripleLetterLaterCompoundBoundary.java](TestTripleLetterLaterCompoundBoundary.java)
-- [test-fixture.diff](test-fixture.diff)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/hunspell/](../../models/hunspell/)
 

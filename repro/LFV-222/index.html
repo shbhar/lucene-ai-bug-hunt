@@ -19,17 +19,18 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>A MUST_NOT clause next to a scoring ToParentBlockJoinQuery is checked against child documents instead of parents, so excluded parents are returned, and the search throws when a parent/child block straddles a 4096-doc window</h1>
 <p class="facts small"><span>Bug LFV-222</span><span>Area: join / block join (ToParentBlockJoinQuery.BlockJoinBulkScorer) x search / BooleanQuery MUST_NOT bulk scoring (ReqExclBulkScorer, #16669)</span><span>Priority: high</span><span>Impact: silent wrong results</span><span>Novelty: known upstream</span></p>
+<p><a href="../../bugs/LFV-222.html">Bug page for LFV-222</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index parent/child blocks and search BooleanQuery(MUST ToParentBlockJoinQuery(skill:java, parentsFilter, ScoreMode.Avg), MUST_NOT status:hidden), expecting only the parents that are not hidden, which is what count of the same query and ScoreMode.None return. Instead, on main the hidden parent p2 comes back for Avg, Max, Min and Total ([p1, p2] instead of [p1]); a MUST_NOT clause that matches only child documents (MUST_NOT skill:java) removes both parents ( instead of [p1, p2]); and in a 6,000-doc segment where a block straddles doc 4096 the search throws AssertionError in ReqExclBulkScorer$WindowBits.get with -ea and ArrayIndexOutOfBoundsException (index -1) with -da. The cause is that since #16669 ReqExclBulkScorer folds the MUST_NOT matches of each 4096-doc window into a bit set that it passes to the required clause as acceptDocs, and the join&#x27;s BlockJoinBulkScorer forwards that acceptDocs unchanged to its child scorer (ToParentBlockJoinQuery.java:541), so the exclusions are tested on child doc IDs, some of them below the window, and never on the parents it collects.</p>
+<p>The test shows that a <code>MUST_NOT</code> clause next to a scoring <code>ToParentBlockJoinQuery</code> is checked against child documents instead of parents, so an excluded parent is returned (TestBlockJoinMustNotExcludesParent#testMustNotExcludesParent).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> On main the hidden parent p2 comes back for Avg, Max, Min and Total ([p1, p2] instead of [p1]); a MUST_NOT clause that matches only child documents (MUST_NOT skill:java) removes both parents ( instead of [p1, p2]); and in a 6,000-doc segment where a block straddles doc 4096 the search throws AssertionError in ReqExclBulkScorer$WindowBits.get with -ea and ArrayIndexOutOfBoundsException (index -1) with -da.</li></ul>
+<p>Expected <code>search(q, 10)</code> to return only <code>p1</code> (as <code>count(q)</code> = 1 does); actual <code>[p1, p2]</code> (<code>expected:&lt;[p1]&gt; but was:&lt;[p1, p2]&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/search/join/TestBlockJoinMustNotAcceptDocs.java"><code>src/org/apache/lucene/search/join/TestBlockJoinMustNotAcceptDocs.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/org/apache/lucene/search/join/TestBlockJoinBulkScorerMustNot.java"><code>src/org/apache/lucene/search/join/TestBlockJoinBulkScorerMustNot.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/search/join/TestBlockJoinMustNotExcludesParent.java"><code>src/org/apache/lucene/search/join/TestBlockJoinMustNotExcludesParent.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -44,14 +45,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed 5EED0222
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=5EED0222 \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.join.TestBlockJoinMustNotAcceptDocs
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.join.TestBlockJoinBulkScorerMustNot</code></pre>
+     execute --select-class org.apache.lucene.search.join.TestBlockJoinMustNotExcludesParent</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

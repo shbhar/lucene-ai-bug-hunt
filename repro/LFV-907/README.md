@@ -2,16 +2,19 @@
 
 Bug LFV-907 · Area: search / CachingCollectorManager lifecycle (documentation; new public API in 10.6.0) · Priority: low · Impact: minor · Novelty: new
 
+Bug page: [../../bugs/LFV-907.html](../../bugs/LFV-907.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
 You wrap a reusable CollectorManager in a CachingCollectorManager, run a search with it, then run a second search with the same instance and call isCached and replay(secondPassManager), the workflow the class javadoc shows for one search. Nothing in its javadoc says an instance serves only one search, unlike TopScoreDocCollectorManager and TopFieldCollectorManager, which say 'a new collectorManager should be created for each search due to its internal states', while Lucene's stated norm (TotalHitCountCollectorManager) is that managers are generally reusable. Instead the manager keeps the per-slice caches of every search in one list that is never cleared, so replay returns the hits of both searches (the repro: [0..9] instead of the second search's [3..9]) and one earlier overflow makes isCached false for every later search, with no error.
 
+The test shows (LFV-907, documentation defect) that a `CachingCollectorManager` used for two searches replays the hits of both searches, because it never clears its per-slice cache list; its javadoc does not say an instance serves one search.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The manager keeps the per-slice caches of every search in one list that is never cleared, so replay returns the hits of both searches (the repro: [0..9] instead of the second search's [3..9]) and one earlier overflow makes isCached false for every later search, with no error.
+Expected (after searching MatchAllDocsQuery twice over one document with a stateless delegate): `replay()` returns the last search's 1 hit; actual (-ea and -da): 2. The intended fix is a javadoc sentence, so this test documents the gap rather than a future green test.
 
 ## Files
 
@@ -19,7 +22,8 @@ You wrap a reusable CollectorManager in a CachingCollectorManager, run a search 
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -34,8 +38,8 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.search.TestCachingCollectorManagerReuse
 ```

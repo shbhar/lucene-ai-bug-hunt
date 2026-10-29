@@ -1,6 +1,6 @@
 # With an index sort, a document whose sort field is indexed without doc values (for example only as a StringField) is accepted by addDocument, and the next flush throws IllegalStateException and closes the IndexWriter, losing every uncommitted document (since 8.6.0)
 
-Bug LFV-760 · Area: index / index sorting (IndexingChain index-sort field validation and flush-time sort) · Priority: medium · Impact: crash · Novelty: new
+Bug LFV-760 · Area: index / index sorting (IndexingChain index-sort field validation and flush-time sort) · Priority: low · Impact: crash · Novelty: new
 
 Bug page: [../../bugs/LFV-760.html](../../bugs/LFV-760.html)
 
@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You configure an index sort on a field, for example new Sort(new SortField("sort", SortField.Type.STRING)), and add a document that carries that field only as a StringField, without the SortedDocValuesField that sorting reads, before any committed document has the field. You expect addDocument to reject the document up front, as it has rejected a doc-values field of the wrong type since LUCENE-8441 (7.5.0), or the field to count as missing. Instead addDocument accepts it, and the next flush or commit throws IllegalStateException 'unexpected docvalues type NONE for field 'sort' (expected=SORTED). Re-index with correct docvalues type.' and closes the IndexWriter, so every document added since the last commit is lost.
 
+The test shows that with an index sort on `sort`, a document that has `sort` only as a `StringField` (no doc values) is accepted by `addDocument`, and the next commit throws and closes the `IndexWriter` (losing every uncommitted document).
+
 ## Expected vs actual
 
-- Expected: `addDocument` rejects doc 2 with `IllegalArgumentException`, as for a wrong doc-values type, and the commit keeps docs 0 and 1 (or doc 2 is kept with a missing value).
-- Actual: `addDocument` accepts doc 2; `commit` throws `IllegalStateException: unexpected docvalues type NONE for field 'sort' (expected=SORTED)`, the writer closes and the index holds 1 document.
+Expected `addDocument` to reject the document or the commit to succeed; actual on main: `commit` throws `IllegalStateException: unexpected docvalues type NONE for field 'sort' (expected=SORTED)` and `writer open=false`, with `-ea` and `-da`.
 
 ## Files
 
@@ -21,7 +22,8 @@ You configure an index sort on a field, for example new Sort(new SortField("sort
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -43,14 +45,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestIndexSortFieldWithoutDocValues.java](TestIndexSortFieldWithoutDocValues.java)
-- [NoDvSortSessionProbe.java](NoDvSortSessionProbe.java)
-- [3-TestIndexSortFieldWithoutDocValues.java](3-TestIndexSortFieldWithoutDocValues.java)
-- [TestSortFieldWithoutDocValues.java](TestSortFieldWithoutDocValues.java)
-- [TestBinarySortFieldWithoutDocValues.java](TestBinarySortFieldWithoutDocValues.java)
 
 ## Feedback
 

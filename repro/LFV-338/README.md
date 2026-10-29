@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You read a MappingCharFilter to the end, call reset to rewind it (MappingCharFilter overrides reset for this, and upstream TestMappingCharFilter.testReaderReset re-reads after it), read it again and expect correctOffset to map the second pass's output back to the input exactly as on the first pass. Instead reset rewinds the input and the filter's read state but not the offset-correction map it inherits from BaseCharFilter, so the second pass appends new corrections computed from the first pass's last cumulative diff: for the map a-&gt;xy over "a", correctOffset(2) returns 0 instead of 1, and a WhitespaceTokenizer over the re-read filter for "a b" gives xy[0,0] b[1,2] instead of xy[0,1] b[2,3]. For deleting or shrinking maps, with -ea the second read trips BaseCharFilter's 'Offset... is less than the last recorded offset' assertion, and with -da it returns offsets past the end of the input (b-&gt;'' over "ba": correctOffset(1) = 3 for a 2-character input).
 
+The test shows that `MappingCharFilter.reset()` keeps the offset corrections from the first read, so `correctOffset()` is wrong after a reset and a second read (map `a`-&gt;`xy` over `"a"`).
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: reset rewinds the input and the filter's read state but not the offset-correction map it inherits from BaseCharFilter, so the second pass appends new corrections computed from the first pass's last cumulative diff: for the map a-&gt;xy over "a", correctOffset(2) returns 0 instead of 1, and a WhitespaceTokenizer over the re-read filter for "a b" gives xy[0,0] b[1,2] instead of xy[0,1] b[2,3].
+Expected `correctOffset(2)` = 1 (end of the input) after the re-read; actual: 0 (`expected:<1> but was:<0>`), with `-ea` and `-da`.
 
 ## Files
 
@@ -19,8 +20,8 @@ You read a MappingCharFilter to the end, call reset to rewind it (MappingCharFil
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

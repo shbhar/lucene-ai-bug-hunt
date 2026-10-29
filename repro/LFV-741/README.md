@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build a zero-width path with GeoPathFactory.makeGeoPath(planetModel, 0, points) and call computePathCenterDistance or computeOutsideDistance with DistanceStyle.LINEAR_SQUARED (or NORMAL_SQUARED), expecting the square of the LINEAR (or NORMAL) distance, which is what DistanceStyle's 'convert to aggregation form, aggregate, convert back' contract gives, what the same path with width 1e-6 returns and what Lucene 9.4.2 returned. Instead, for a point 0.01 rad beside the path, computePathCenterDistance returns about 0.01 (the unsquared distance) and computeOutsideDistance returns about 1e-8 (the fourth power) where about 1e-4 is expected. The cause is an incomplete edit in the 2022 path refactor: GeoDegeneratePath's components now return the square root (the aggregation form of the squared styles), but computePathCenterDistance never squares the minimum back, and PathSegment.outsideDistance still returns the plain square, which outsideDistance then squares a second time.
 
+The test shows that on a zero-width geo3d path (`GeoPathFactory.makeGeoPath(SPHERE, 0, points)`) the squared distance style `LINEAR_SQUARED` is not the square of `LINEAR`: `computePathCenterDistance` returns the unsquared distance and `computeOutsideDistance` the fourth power.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: For a point 0.01 rad beside the path, computePathCenterDistance returns about 0.01 (the unsquared distance) and computeOutsideDistance returns about 1e-8 (the fourth power) where about 1e-4 is expected.
+Expected `LINEAR^2` = 9.9999e-5 from both calls; actual on main `computePathCenterDistance(LINEAR_SQUARED)` = 0.0099999 (`expected:<9.999916666944443E-5> but was:<0.009999958333385416>`), and, once that site is fixed, `computeOutsideDistance(LINEAR_SQUARED)` = 9.9998e-9.
 
 ## Files
 
@@ -19,7 +20,8 @@ You build a zero-width path with GeoPathFactory.makeGeoPath(planetModel, 0, poin
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

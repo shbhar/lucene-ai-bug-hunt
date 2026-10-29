@@ -8,19 +8,23 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You read the Lucene 10.6.0 release notes (CHANGES.txt or the generated Changes.html of RC1) and follow the issue link of the entry 'CheckIndex now reports which segment's.si file could not be read'. You expect it to lead to GITHUB#7820, the issue the feature commit, CheckIndex.java and main's copy of the entry all name; instead the entry says GITHUB#17820 and its GitHub issue link (number 17820) returns 404. The extra digit was added when #16788 was backported to branch_10x and branch_10_6 (main's commit of the same PR kept 7820), and it ships in the RC1 source release.
 
+The test shows that the 10.6.0 RC1 `lucene/CHANGES.txt` (branch_10_6 4ae946e5a9b, line 112) credits the CheckIndex '.si file could not be read' entry to `GITHUB#17820`, an issue that does not exist; main's copy of the entry is correct.
+
 ## Expected vs actual
 
-- Expected: You expect it to lead to GITHUB#7820, the issue the feature commit, CheckIndex.java and main's copy of the entry all name; instead the entry says GITHUB#17820 and its GitHub issue link (number 17820) returns 404.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+Expected `GITHUB#7820` (the issue CheckIndex.java links); actual `GITHUB#17820` (`expected:<GITHUB#[]7820> but was:<GITHUB#[1]7820>`, -ea and -da).
 
 ## Files
 
-- [src/ChangesIssueRefCheck.java](src/ChangesIssueRefCheck.java) (main() class)
+- [src/org/apache/lucene/index/TestChangesCheckIndexEntryIssue.java](src/org/apache/lucene/index/TestChangesCheckIndexEntryIssue.java) (JUnit test)
 
 ## Run it
 
-- How to read the outcome: a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
+- Not runnable from this site as is: this repro also needs extra JVM setup (such as an instrumentation hook) that is not exported here; see the comments at the top of the source.
 
 ```bash
 # Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -33,9 +37,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions on, seed DEADBEEF, default flags
+# run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" ChangesIssueRefCheck
+     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.index.TestChangesCheckIndexEntryIssue
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

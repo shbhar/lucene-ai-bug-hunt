@@ -8,21 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You group documents indexed as blocks with new GroupingSearch(groupEndDocs), sort the groups and the documents inside each group by fields, and leave setIncludeMaxScore at its default true (or set it), expecting TopGroups.maxScore and each GroupDocs.maxScore to hold the best score, as the setIncludeMaxScore javadoc ('Whether to include the score of the most relevant document per group') says and as two-pass grouping with the same settings returns (0.22094907 in the repro). Instead both are NaN, because GroupingSearch.groupByDocBlock asks BlockGroupingCollectorManager to compute scores only when one of the two sorts needs them and never reads includeMaxScore. Adding includeMaxScore to that needsScores argument, the rule the two-pass path already follows, fixes it.
 
+doc-block `GroupingSearch` ignores `setIncludeMaxScore(true)` when the group sort and the within-group sort are both field sorts, so `TopGroups.maxScore` is NaN.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Both are NaN, because GroupingSearch.groupByDocBlock asks BlockGroupingCollectorManager to compute scores only when one of the two sorts needs them and never reads includeMaxScore.
+Expected: the matching document's score 1.0 (`MatchAllDocsQuery`, one one-document block); actual: NaN (`expected:<1.0> but was:<NaN>`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/search/grouping/TestBlockGroupingSearchIncludeMaxScore.java](src/org/apache/lucene/search/grouping/TestBlockGroupingSearchIncludeMaxScore.java) (JUnit test)
-- [src/org/apache/lucene/search/grouping/TestBlockGroupingSearchIncludeMaxScore9x.java](src/org/apache/lucene/search/grouping/TestBlockGroupingSearchIncludeMaxScore9x.java) (JUnit test)
-- [src/org/apache/lucene/search/grouping/TestBlockGroupingSearchIncludeMaxScore8x.java](src/org/apache/lucene/search/grouping/TestBlockGroupingSearchIncludeMaxScore8x.java) (JUnit test)
-- [src/org/apache/lucene/search/grouping/TestBlockGroupingSearchIncludeMaxScore7x.java](src/org/apache/lucene/search/grouping/TestBlockGroupingSearchIncludeMaxScore7x.java) (JUnit test)
+- [src/org/apache/lucene/search/grouping/TestBlockGroupingIncludeMaxScore.java](src/org/apache/lucene/search/grouping/TestBlockGroupingIncludeMaxScore.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -42,14 +41,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.grouping.TestBlockGroupingSearchIncludeMaxScore
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.grouping.TestBlockGroupingSearchIncludeMaxScore9x \
-       --select-class org.apache.lucene.search.grouping.TestBlockGroupingSearchIncludeMaxScore8x \
-       --select-class org.apache.lucene.search.grouping.TestBlockGroupingSearchIncludeMaxScore7x
+     execute --select-class org.apache.lucene.search.grouping.TestBlockGroupingIncludeMaxScore
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

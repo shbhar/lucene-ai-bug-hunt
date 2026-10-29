@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You set MoreLikeThis.setMaxQueryTerms(Integer.MAX_VALUE), meaning &#x27;no limit&#x27;, and call retrieveInterestingTerms(...) on a one-word document. You expect that one word back, just as like with the same setting returns a one-clause query. Instead both overloads begin with &#x27;new ArrayList&lt;&gt;(maxQueryTerms)&#x27; (MoreLikeThis.java:889 and:914), sized from the limit rather than from the number of terms found, and throw java.lang.OutOfMemoryError: Requested array size exceeds VM limit.</p>
+<p>The test shows that with <code>setMaxQueryTerms(Integer.MAX_VALUE)</code>, <code>MoreLikeThis.retrieveInterestingTerms(Reader, String)</code> on a one-word document runs <code>new ArrayList&lt;&gt;(maxQueryTerms)</code> before it has found any terms.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect that one word back, just as like with the same setting returns a one-clause query.</li><li><b>Actual:</b> Both overloads begin with &#x27;new ArrayList&lt;&gt;(maxQueryTerms)&#x27; (MoreLikeThis.java:889 and:914), sized from the limit rather than from the number of terms found, and throw java.lang.OutOfMemoryError: Requested array size exceeds VM limit.</li></ul>
+<p>Expected <code>[lucene]</code>; actual <code>java.lang.OutOfMemoryError: Requested array size exceeds VM limit</code> at <code>MoreLikeThis.java:914</code> (-ea and -da).</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/queries/mlt/TestMoreLikeThisInterestingTermsLargeMaxQueryTerms.java"><code>src/org/apache/lucene/queries/mlt/TestMoreLikeThisInterestingTermsLargeMaxQueryTerms.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src2/org/apache/lucene/queries/mlt/TestMoreLikeThisInterestingTermsLargeMaxQueryTerms.java"><code>src2/org/apache/lucene/queries/mlt/TestMoreLikeThisInterestingTermsLargeMaxQueryTerms.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -40,15 +41,11 @@ CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
-javac -d classes-src -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
-javac -d classes-src2 -cp &quot;$CP&quot; $(find src2 -name &#x27;*.java&#x27;)
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queries.mlt.TestMoreLikeThisInterestingTermsLargeMaxQueryTerms
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src2:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.queries.mlt.TestMoreLikeThisInterestingTermsLargeMaxQueryTerms</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

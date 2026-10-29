@@ -18,17 +18,19 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>IndriDirichletSimilarity(float mu) uses LMSimilarity&#x27;s default (cf+1)/(|C|+1) collection model instead of IndriCollectionModel (cf/|C|), so new IndriDirichletSimilarity(2000f) scores differently from new IndriDirichletSimilarity although both print the same name</h1>
-<p class="facts small"><span>Bug LFV-744</span><span>Area: search / similarities (IndriDirichletSimilarity constructors and the LMSimilarity collection model)</span><span>Priority: medium</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
+<p class="facts small"><span>Bug LFV-744</span><span>Area: search / similarities (IndriDirichletSimilarity constructors and the LMSimilarity collection model)</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
 <p><a href="../../bugs/LFV-744.html">Bug page for LFV-744</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You install new IndriDirichletSimilarity(2000f) and expect the same similarity as new IndriDirichletSimilarity, which is documented as using &#x27;the default mu value of 2000&#x27;, and Indri&#x27;s Dirichlet smoothing log((tf + mu*cf/|C|)/(|D| + mu)) for any mu. Instead the mu-only constructor passes no collection model, so its implicit super installs LMSimilarity&#x27;s DefaultCollectionModel, (cf+1)/(|C|+1), while only the no-argument constructor installs the class&#x27;s own IndriCollectionModel, cf/|C|. On a 25-token index the term &#x27;president&#x27; (cf 3) scores -1.871553 instead of -2.119101 in the same document, although both instances print &#x27;LM IndriDirichlet(2000.000000)&#x27;.</p>
+<p>The test shows that <code>new IndriDirichletSimilarity(2000f)</code> scores differently from <code>new IndriDirichletSimilarity()</code> (documented as mu = 2000), because the mu-only constructor falls back to LMSimilarity&#x27;s (cf+1)/(|C|+1) collection model instead of IndriCollectionModel&#x27;s cf/|C|.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>IndriDirichletSimilarity(2000f)</code> scores doc 0 for &quot;president&quot; -2.119101, like <code>IndriDirichletSimilarity</code>; <code>IndriDirichletSimilarity(3f)</code> scores the &quot;george&quot; document -1.9661129, as Indri&#x27;s formula says.</li><li><b>Actual:</b> -1.871553 and -1.8718022: the mu constructor uses (cf + 1) / (|C| + 1) as the collection probability (<code>explain</code>: 0.15384616 instead of 0.12).</li></ul>
+<p>Expected equal explain() scores for term <code>a</code> in the one-document index <code>a b</code>; actual <code>expected:&lt;-0.6931472&gt; but was:&lt;-0.4057149&gt;</code> (-ea and -da).</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/search/similarities/TestIndriDirichletMuConstructor.java"><code>src/org/apache/lucene/search/similarities/TestIndriDirichletMuConstructor.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -46,5 +48,4 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.search.similarities.TestIndriDirichletMuConstructor</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestIndriDirichletMuConstructor.java"><code>TestIndriDirichletMuConstructor.java</code></a></li><li><a href="IndriCtorExplainProbe.java"><code>IndriCtorExplainProbe.java</code></a></li><li><a href="3-TestIndriDirichletMuConstructor.java"><code>3-TestIndriDirichletMuConstructor.java</code></a></li><li><a href="TestIndriMuCtorRankingV3.java"><code>TestIndriMuCtorRankingV3.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

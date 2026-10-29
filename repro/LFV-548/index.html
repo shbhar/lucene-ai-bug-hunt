@@ -22,12 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You load a synonyms file such as &#x27;couch, sofa&#x27;, then a line holding three spaces or a tab, then &#x27;big, large&#x27;, and expect it to parse, because the SolrSynonymParser javadoc says &#x27;Blank lines and lines starting with &#x27;#&#x27; are comments&#x27;. Instead the whole file is rejected with ParseException &#x27;Invalid synonym rule at line 2&#x27;: the parser skips a line only when it has zero length (or starts with &#x27;#&#x27;), so the whitespace-only line is parsed as a rule whose single term trims to the empty string, which the analyzer step rejects. A truly empty line parses fine, and so did whitespace-only lines in the Solr loader this format came from before 3.4.</p>
+<p>The test shows that <code>SolrSynonymParser.parse</code> rejects a synonyms file whose second line holds only three spaces (<code>&quot;couch, sofa\n \n&quot;</code>), although its class javadoc says blank lines are comments.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> The whole file is rejected with ParseException &#x27;Invalid synonym rule at line 2&#x27;: the parser skips a line only when it has zero length (or starts with &#x27;#&#x27;), so the whitespace-only line is parsed as a rule whose single term trims to the empty string, which the analyzer step rejects.</li></ul>
+<p>Expected: the line is skipped and parsing succeeds. Actual: <code>ParseException: Invalid synonym rule at line 2</code>, caused by <code>IllegalArgumentException: term: was completely eliminated by analyzer</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/analysis/synonym/TestSolrSynonymParserBlankLine.java"><code>src/org/apache/lucene/analysis/synonym/TestSolrSynonymParserBlankLine.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/analysis/synonym/TestSolrSynonymParserWhitespaceOnlyLine.java"><code>src/org/apache/lucene/analysis/synonym/TestSolrSynonymParserWhitespaceOnlyLine.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -44,6 +46,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.synonym.TestSolrSynonymParserBlankLine</code></pre>
+     execute --select-class org.apache.lucene.analysis.synonym.TestSolrSynonymParserWhitespaceOnlyLine</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

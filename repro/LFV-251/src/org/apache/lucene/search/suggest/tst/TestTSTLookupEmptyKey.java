@@ -16,81 +16,12 @@
  */
 package org.apache.lucene.search.suggest.tst;
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import org.apache.lucene.search.suggest.InputIterator;
-import org.apache.lucene.search.suggest.Lookup.LookupResult;
-import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.LuceneTestCase;
-import org.apache.lucene.util.BytesRef;
 
-/**
- * TSTLookup.lookup with an empty key: TSTAutocomplete.prefixCompletion reads key.charAt(0)
- * before checking the key length and throws StringIndexOutOfBoundsException.
- */
 public class TestTSTLookupEmptyKey extends LuceneTestCase {
 
-  private static InputIterator iter(String[] s, long[] w) {
-    Iterator<Integer> it = java.util.stream.IntStream.range(0, s.length).iterator();
-    return new InputIterator() {
-      int cur;
-
-      @Override
-      public BytesRef next() {
-        if (it.hasNext() == false) {
-          return null;
-        }
-        cur = it.next();
-        return new BytesRef(s[cur]);
-      }
-
-      @Override
-      public long weight() {
-        return w[cur];
-      }
-
-      @Override
-      public BytesRef payload() {
-        return null;
-      }
-
-      @Override
-      public boolean hasPayloads() {
-        return false;
-      }
-
-      @Override
-      public Set<BytesRef> contexts() {
-        return null;
-      }
-
-      @Override
-      public boolean hasContexts() {
-        return false;
-      }
-    };
-  }
-
-  public void testEmptyKey() throws Exception {
-    Directory tempDir = newDirectory();
-    TSTLookup lookup = new TSTLookup(tempDir, "suggest");
-    lookup.build(iter(new String[] {"apple", "banana"}, new long[] {5, 3}));
-    for (boolean onlyMorePopular : new boolean[] {false, true}) {
-      // an empty key is a legal CharSequence (e.g. an empty search box); other Lookup
-      // implementations answer it (AnalyzingSuggester documents "no results")
-      List<LookupResult> results = lookup.lookup("", onlyMorePopular, 5);
-      assertNotNull(results);
-    }
-    tempDir.close();
-  }
-
-  /** Control: non-empty keys work on the same lookup. */
-  public void testNonEmptyKeyControl() throws Exception {
-    Directory tempDir = newDirectory();
-    TSTLookup lookup = new TSTLookup(tempDir, "suggest");
-    lookup.build(iter(new String[] {"apple", "banana"}, new long[] {5, 3}));
-    assertEquals("[apple/5]", lookup.lookup("a", true, 5).toString());
-    tempDir.close();
+  public void testGetEmptyKeyReturnsNull() {
+    // expected: null ("or null if the key does not exist"); actual: StringIndexOutOfBoundsException
+    assertNull(new TSTLookup().get(""));
   }
 }

@@ -22,12 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>Two threads call addIndexes(CodecReader...) on one IndexWriter configured with SerialMergeScheduler; call A&#x27;s source is corrupt (or hits a read error) and call B&#x27;s source is valid. You expect A to fail with its own exception and B to add its documents, as happens in either serial order and with the default ConcurrentMergeScheduler, because IndexWriter is documented as safe for concurrent calls to any method and each addIndexes call already rethrows the failures of its own merges. Instead B, which holds the scheduler, runs A&#x27;s queued merge on its own thread after finishing its own, receives A&#x27;s exception (for example CorruptIndexException &#x27;checksum failed (hardware problem?)&#x27; naming A&#x27;s source file), deletes its own completed merge and adds nothing, while A throws the same exception.</p>
+<p>The test shows that with SerialMergeScheduler, two concurrent addIndexes(CodecReader...) calls, A with a source that has one corrupt byte and B with a valid one; B runs A&#x27;s queued merge on its own thread and fails with A&#x27;s exception.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect A to fail with its own exception and B to add its documents, as happens in either serial order and with the default ConcurrentMergeScheduler, because IndexWriter is documented as safe for concurrent calls to any method and each addIndexes call already rethrows the failures of its own merges.</li><li><b>Actual:</b> B, which holds the scheduler, runs A&#x27;s queued merge on its own thread after finishing its own, receives A&#x27;s exception (for example CorruptIndexException &#x27;checksum failed (hardware problem?)&#x27; naming A&#x27;s source file), deletes its own completed merge and adds nothing, while A throws the same exception.</li></ul>
+<p>Expected: B adds its document and succeeds. Actual (-ea and -da): B throws A&#x27;s CorruptIndexException &quot;checksum failed (hardware problem?)&quot; from SerialMergeScheduler.merge.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/index/TestAddIndexesSerialSchedulerForeignFailure.java"><code>src/org/apache/lucene/index/TestAddIndexesSerialSchedulerForeignFailure.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/index/TestSerialMergeSchedulerAddIndexesForeignFailure.java"><code>src/org/apache/lucene/index/TestSerialMergeSchedulerAddIndexesForeignFailure.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -43,6 +45,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestAddIndexesSerialSchedulerForeignFailure</code></pre>
+     execute --select-class org.apache.lucene.index.TestSerialMergeSchedulerAddIndexesForeignFailure</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

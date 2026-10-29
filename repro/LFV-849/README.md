@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index 雑誌 ('magazine'), マッチ ('match') and 三つ ('three') in a document suggester with JapaneseCompletionAnalyzer, whose javadoc lists modified Hepburn among the supported romanizations, and expect typing 'zasshi', 'macchi' or 'mittsu' to suggest them, just as 'issho' suggests 一緒 and 'maccha' suggests 抹茶. Instead nothing is suggested: the bundled romaji_map.txt gives the small-tsu rows ッシ, ッチ and ッツ only the spellings 'ssi', 'tti' and 'ttu', although the base rows シ, チ, ツ list shi, chi, tsu and the neighbouring rows ッシャ and ッチャ list 'ssha' and 'ccha'. Only the Kunrei spellings (zassi, matti, mittu) find these words.
 
+The test shows that the INDEX-mode `JapaneseCompletionAnalyzer` gives 雑誌 (ザッシ) only the Kunrei romaji `zassi`, never the modified-Hepburn `zasshi` (romaji_map.txt maps ッシ only to `ssi`), so typing "zasshi" cannot complete it.
+
 ## Expected vs actual
 
-- Expected: `zasshi`, `kesshite`, `macchi` and `mittsu` complete 雑誌, 決して, マッチ and 三つ, as `issho` completes 一緒.
-- Actual: None completes: the index-side romaji are only `zassi`, `kessite`, `matti` and `mittu`.
+Expected `zasshi` among the index-side tokens; actual `[雑誌, zassi]`, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/ja/TestCompletionSokuonSpellings.java](src/org/apache/lucene/analysis/ja/TestCompletionSokuonSpellings.java) (JUnit test)
+- [src/org/apache/lucene/analysis/ja/TestCompletionSokuonHepburn.java](src/org/apache/lucene/analysis/ja/TestCompletionSokuonHepburn.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -31,29 +33,21 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
-CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
 CP=$CP:$LUCENE/lucene/analysis/kuromoji/build/libs/lucene-analysis-kuromoji-$V.jar
-CP=$CP:$LUCENE/lucene/suggest/build/libs/lucene-suggest-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.ja.TestCompletionSokuonSpellings
+     execute --select-class org.apache.lucene.analysis.ja.TestCompletionSokuonHepburn
 ```
 
 The module(s) analysis-kuromoji also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestJapaneseCompletionSokuon.java](TestJapaneseCompletionSokuon.java)
-- [TestCompletionSokuonSpellings.java](TestCompletionSokuonSpellings.java)
-- [TestSokuonHepburnCompletion.java](TestSokuonHepburnCompletion.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/kuromoji-completion-romaji-map-vs-hepburn-kunrei-wapuro-tables/](../../models/kuromoji-completion-romaji-map-vs-hepburn-kunrei-wapuro-tables/)
 

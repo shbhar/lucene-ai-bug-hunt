@@ -19,16 +19,18 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>SortedDocValues#ordinalRangeIntoBitSet&#x27;s default implementation, called after advanceExact(d) returned false, reads ordValue for doc d, which has no value, so it marks d using a neighbouring document&#x27;s ordinal (or throws EOFException)</h1>
 <p class="facts small"><span>Bug LFV-419</span><span>Area: index / SortedDocValues bulk ordinal range (default implementation; Lucene90 sparse SORTED iterator)</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-419.html">Bug page for LFV-419</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>On a default-codec index with docs {0: &#x27;a&#x27;, 1: no value, 2: &#x27;b&#x27;} in a SORTED doc-values field, you call advanceExact(1) on the field&#x27;s SortedDocValues (it returns false) and then ordinalRangeIntoBitSet(1, 3, ord(a), ord(a), bits, 0) on the same iterator. You expect no bit, because neither doc 1 nor doc 2 has the value &#x27;a&#x27;, and that is what the per-document advanceExact/ordValue evaluation the javadoc describes returns. Instead the default starts at docID == 1, calls ordValue there (which the API calls illegal after a false advanceExact), gets doc 0&#x27;s ordinal and marks doc 1; with {0: no value, 1: &#x27;a&#x27;, 2: &#x27;b&#x27;} and advanceExact(0), the same call throws RuntimeException(EOFException).</p>
+<p>The test shows that on a default-codec segment with SORTED docs {0: &quot;a&quot;, 1: no value, 2: &quot;b&quot;}, <code>advanceExact(1)</code> returns false and then <code>ordinalRangeIntoBitSet(1, 3, ord(a), ord(a), bits, 0)</code> on the same iterator marks doc 1.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect no bit, because neither doc 1 nor doc 2 has the value &#x27;a&#x27;, and that is what the per-document advanceExact/ordValue evaluation the javadoc describes returns.</li><li><b>Actual:</b> The default starts at docID == 1, calls ordValue there (which the API calls illegal after a false advanceExact), gets doc 0&#x27;s ordinal and marks doc 1; with {0: no value, 1: &#x27;a&#x27;, 2: &#x27;b&#x27;} and advanceExact(0), the same call throws RuntimeException(EOFException).</li></ul>
+<p>Expected: doc 1 not marked (it has no value; the javadoc promises only docs whose ordinal is in range); actual (-ea and -da): bit 1 is set from doc 0&#x27;s ordinal (<code>doc 1 has no value but was marked</code>).</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/index/TestSortedOrdinalRangeAfterAdvanceExact.java"><code>src/org/apache/lucene/index/TestSortedOrdinalRangeAfterAdvanceExact.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/index/TestSortedOrdinalRangeAfterFalseAdvanceExact.java"><code>src/org/apache/lucene/index/TestSortedOrdinalRangeAfterFalseAdvanceExact.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -44,7 +46,7 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestSortedOrdinalRangeAfterAdvanceExact</code></pre>
+     execute --select-class org.apache.lucene.index.TestSortedOrdinalRangeAfterFalseAdvanceExact</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/dv-norms-cursor-coherence/index.html">dv-norms-cursor-coherence</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

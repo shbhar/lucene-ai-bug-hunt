@@ -19,45 +19,28 @@ package org.apache.lucene.spatial3d;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.spatial3d.geom.PlanetModel;
+import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * Geo3DPoint.newDistanceQuery with a 1.24 cm radius matches documents on the other side of the
- * planet. Tiny circles are either rejected with IllegalArgumentException ("Couldn't construct
- * circle plane, probably too small?") or, as here, built with the cut plane's inside on the wrong
- * side, so the "circle" is the whole world minus a speck.
- */
 public class TestGeo3DTinyRadiusMatchesWholeWorld extends LuceneTestCase {
 
-  public void testTinyRadiusDoesNotMatchFarPoints() throws Exception {
-    final PlanetModel planetModel = PlanetModel.WGS84;
-    final double lat = -6.106045660234088, lon = -17.47654698237369;
-    final double radiusMeters = 0.012391875163764922;
-    final Query q;
-    try {
-      q = Geo3DPoint.newDistanceQuery("point", planetModel, lat, lon, radiusMeters);
-    } catch (IllegalArgumentException e) {
-      return; // rejecting a circle that is too small to represent is acceptable
-    }
-    try (Directory dir = newDirectory();
-        IndexWriter w = new IndexWriter(dir, newIndexWriterConfig())) {
-      // three documents, each thousands of kilometres from the centre
-      double[][] far = {{-lat, lon + 180}, {lat + 45, lon}, {lat, lon + 90}};
-      for (double[] ll : far) {
-        Document doc = new Document();
-        doc.add(new Geo3DPoint("point", planetModel, ll[0], ll[1]));
-        w.addDocument(doc);
-      }
+  public void testTinyRadiusDoesNotMatchAntipode() throws Exception {
+    double lat = -6.106045660234088, lon = -17.47654698237369;
+    Query q =
+        Geo3DPoint.newDistanceQuery("point", PlanetModel.WGS84, lat, lon, 0.012391875163764922);
+    try (Directory dir = new ByteBuffersDirectory();
+        IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+      Document doc = new Document();
+      doc.add(new Geo3DPoint("point", PlanetModel.WGS84, -lat, lon + 180)); // the antipode
+      w.addDocument(doc);
       try (DirectoryReader reader = DirectoryReader.open(w)) {
-        IndexSearcher searcher = newSearcher(reader);
-        assertEquals(
-            "a " + radiusMeters + " m distance query must not match points thousands of km away",
-            0,
-            searcher.count(q));
+        // expected: a 1.24 cm circle matches 0 docs on the other side of the planet; actual: 1
+        assertEquals("hits for the antipode", 0, new IndexSearcher(reader).count(q));
       }
     }
   }

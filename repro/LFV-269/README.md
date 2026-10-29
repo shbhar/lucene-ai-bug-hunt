@@ -10,21 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You use BPReorderingMergePolicy with a BpVectorReorderer on a float vector field, and one segment holds only documents without that optional field, for example a batch of documents without embeddings that was flushed on its own. You expect merges to combine it with the other segments, as they do when every segment has vectors. Instead the merged view's FloatVectorValues.copy throws NullPointerException ('Cannot invoke KnnVectorValues.copy because this.sub is null'), IndexWriter treats the failed merge as a tragic event, closes itself and drops every change since the last commit, and the same merge fails again after each reopen.
 
+The test shows that `forceMerge(1)` through `BPReorderingMergePolicy` with a `BpVectorReorderer` fails when one segment (here one empty document) has no vector for the field and the other has 64 vectors.
+
 ## Expected vs actual
 
-- Expected: `forceMerge(1)` gives 1 segment with 110 documents and 100 vectors, each with its document, and the writer stays open.
-- Actual: `forceMerge(1)` throws `IOException: background merge hit exception`, caused by `NullPointerException... because "this.sub" is null`, and the writer closes itself. (In the writer-state probe, depending on timing, `forceMerge` can throw `IllegalStateException: this writer hit an unrecoverable error; cannot complete forceMerge` instead, with the same cause.)
+Expected: the two segments merge. Actual (-ea and -da): `NullPointerException: Cannot invoke "KnnVectorValues.copy()" because "this.sub" is null` from `SlowCompositeCodecReaderWrapper$DocValuesSub.copy`.
 
 ## Files
 
 - [src/org/apache/lucene/misc/index/TestBpVectorReorderSegmentWithoutVectors.java](src/org/apache/lucene/misc/index/TestBpVectorReorderSegmentWithoutVectors.java) (JUnit test)
-- [src/org/apache/lucene/index/TestSlowCompositeVectorValuesCopy.java](src/org/apache/lucene/index/TestSlowCompositeVectorValuesCopy.java) (JUnit test)
-- [src2/org/apache/lucene/index/TestSlowCompositeVectorValuesCopy.java](src2/org/apache/lucene/index/TestSlowCompositeVectorValuesCopy.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,27 +37,15 @@ CP=$CP:$LUCENE/lucene/misc/build/libs/lucene-misc-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
-javac -d classes-src -cp "$CP" $(find src -name '*.java')
-javac -d classes-src2 -cp "$CP" $(find src2 -name '*.java')
+javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes-src:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.misc.index.TestBpVectorReorderSegmentWithoutVectors \
-       --select-class org.apache.lucene.index.TestSlowCompositeVectorValuesCopy
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes-src2:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestSlowCompositeVectorValuesCopy
+     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.misc.index.TestBpVectorReorderSegmentWithoutVectors
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestBpVectorReorderSegmentWithoutVectors.java](TestBpVectorReorderSegmentWithoutVectors.java)
-- [TestSlowCompositeVectorValuesCopy.java](TestSlowCompositeVectorValuesCopy.java)
-- [TestBpVectorReorderThreshold.java](TestBpVectorReorderThreshold.java)
-- [TestFieldlessSegmentMergeWriterState.java](TestFieldlessSegmentMergeWriterState.java)
 
 ## Feedback
 

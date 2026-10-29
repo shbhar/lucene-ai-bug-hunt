@@ -10,20 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You update a doc-values field by term and, before that buffered update is resolved, call tryUpdateDocValue on the same document. You expect the later tryUpdateDocValue to win, as sequence numbers say. Instead it is applied in place with the next delete generation, the earlier term update resolves later and wins, and the wrong value (or a lost un-delete) is durable.
 
+The test shows that `IndexWriter#tryUpdateDocValue` (n=3) on a document that has an earlier, still-buffered `updateNumericDocValue` by term (n=2) succeeds, but the earlier update wins.
+
 ## Expected vs actual
 
-- Expected: `n=3` in a fresh NRT reader and in the commit (the later `tryUpdateDocValue`, sequence number 6, wins); with soft deletes, 2 live documents.
-- Actual: `n=2` in both (`expected:<nrt n=[3, commit n=3]> but was:<nrt n=[2, commit n=2]>`), with no exception and CheckIndex clean; with soft deletes, 1 live document instead of 2.
+Expected the next NRT reader to show the later value `n=3`; actual: the earlier `n=2` (`expected:<3> but was:<2>`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/TestTryUpdateDocValueVsBufferedTermUpdate.java](src/TestTryUpdateDocValueVsBufferedTermUpdate.java) (JUnit test)
+- [src/org/apache/lucene/index/TestTryUpdateDocValueAfterBufferedUpdate.java](src/org/apache/lucene/index/TestTryUpdateDocValueAfterBufferedUpdate.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
-- Recorded outcome of run 1 on main a9779ef3c193: 8 test(s) run, 3 failed (testBinaryTermUpdateThenTryUpdate, testNumericTermUpdateThenTryUpdate, testSoftDeleteByTermThenTryUndelete).
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -39,18 +39,12 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class TestTryUpdateDocValueVsBufferedTermUpdate
+     execute --select-class org.apache.lucene.index.TestTryUpdateDocValueAfterBufferedUpdate
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestTryUpdateDocValueOrder.java](TestTryUpdateDocValueOrder.java)
-- [TestTryUpdateDocValueOrderStress.java](TestTryUpdateDocValueOrderStress.java)
-- [fix-c-publish-buffer-or-decline.diff](fix-c-publish-buffer-or-decline.diff)
 
 ## Feedback
 

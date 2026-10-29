@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build an AnalyzingSuggester or FuzzySuggester with payloads from your own InputIterator whose surface forms are BytesRef slices of a larger byte array, for example "ab" at offset 1 of {0x1F, 'a', 'b'}, and expect it to behave exactly as for compact copies of the same bytes. Instead build looks for the reserved separator U+001F in bytes[0, length) of the backing array, ignoring the slice's offset, while two lines later it writes the real slice: the valid slice "ab" is rejected with IllegalArgumentException 'surface form cannot contain unit separator character U+001F', and "a&lt;U+001F&gt;b" at offset 3 of {'x','x','x','a',0x1F,'b'}, whose compact copy is rejected, is accepted. The accepted entry is then split at the wrong place: without EXACT_FIRST, lookup("a") returns key "a" with payload "b&lt;U+001F&gt;p" instead of payload "p"; with the default EXACT_FIRST it returns nothing for that entry with -da and throws AssertionError with -ea.
 
+The test shows that on main AnalyzingSuggester with payloads rejects the surface form "ab" given as `new BytesRef(new byte[] {0x1F, 'a', 'b'}, 1, 2)`, because the U+001F check reads `bytes[0, length)` and ignores `offset`.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: build looks for the reserved separator U+001F in bytes[0, length) of the backing array, ignoring the slice's offset, while two lines later it writes the real slice: the valid slice "ab" is rejected with IllegalArgumentException 'surface form cannot contain unit separator character U+001F', and "a&lt;U+001F&gt;b" at offset 3 of {'x','x','x','a',0x1F,'b'}, whose compact copy is rejected, is accepted.
+Expected: the build accepts "ab" and `lookup("a")` returns it. Actual: `build` throws `IllegalArgumentException` ('surface form cannot contain unit separator character U+001F').
 
 ## Files
 
-- [src/org/apache/lucene/search/suggest/analyzing/TestAnalyzingSuggesterSurfaceFormSlice.java](src/org/apache/lucene/search/suggest/analyzing/TestAnalyzingSuggesterSurfaceFormSlice.java) (JUnit test)
+- [src/org/apache/lucene/search/suggest/analyzing/TestAnalyzingSuggesterPayloadSurfaceSlice.java](src/org/apache/lucene/search/suggest/analyzing/TestAnalyzingSuggesterPayloadSurfaceSlice.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,7 +41,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.suggest.analyzing.TestAnalyzingSuggesterSurfaceFormSlice
+     execute --select-class org.apache.lucene.search.suggest.analyzing.TestAnalyzingSuggesterPayloadSurfaceSlice
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

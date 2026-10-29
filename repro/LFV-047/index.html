@@ -23,14 +23,15 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>With the scalar-quantized (OSQ) vectors format and COSINE, you index vectors whose normalized sum is exactly zero, such as {1,0} and {-1,0}, into one segment. You expect flush and merge to work. Instead normalizing the zero centroid throws &#x27;Cannot normalize a zero-length vector&#x27;, the writer closes tragically with its buffered documents lost, and merges stay blocked.</p>
+<p>The test shows that with <code>Lucene104ScalarQuantizedVectorsFormat</code> and COSINE, committing the two vectors <code>{1,0}</code> and <code>{-1,0}</code> fails, because their unit-scaled mean (the centroid) is exactly zero.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>commit</code>, <code>forceMerge(1)</code> and <code>forceMergeDeletes</code> succeed and kNN finds both documents, as with the default vectors format.</li><li><b>Actual:</b> Each throws <code>IllegalArgumentException: Cannot normalize a zero-length vector</code> and closes the <code>IndexWriter</code>: 4 of 5 tests fail on main, 3 of 5 on 10.5.2.</li></ul>
+<p>Expected: the commit succeeds, as it does with the default vectors format. Actual: flush throws <code>IllegalArgumentException: Cannot normalize a zero-length vector</code> from <code>computeCentroid</code> (<code>VectorUtil.l2normalize</code> on the zero centroid).</p>
 <h2>Files</h2><ul>
-<li><a href="src/TestOsqZeroCentroidVerify.java"><code>src/TestOsqZeroCentroidVerify.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/codecs/lucene104/TestOsqAntipodalZeroCentroid.java"><code>src/org/apache/lucene/codecs/lucene104/TestOsqAntipodalZeroCentroid.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.</li>
-<li>How to read the outcome: this test asserts the current, buggy behaviour: it passes while the bug is present and fails once the bug is fixed.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
+<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
@@ -43,10 +44,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class TestOsqZeroCentroidVerify</code></pre>
+     execute --select-class org.apache.lucene.codecs.lucene104.TestOsqAntipodalZeroCentroid</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestOsqAntipodalZeroCentroid.java"><code>TestOsqAntipodalZeroCentroid.java</code></a></li><li><a href="TestOsqAntipodalZeroCentroidColumnar.java"><code>TestOsqAntipodalZeroCentroidColumnar.java</code></a></li></ul>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/study-quantization-smt/index.html">study-quantization-smt</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

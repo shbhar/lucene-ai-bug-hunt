@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build the same outside-distance sort twice, for example Geo3DDocValuesField.newOutsideDistanceSort("loc", 10, 20, 1000, PlanetModel.WGS84), and compare the two with equals, with Sort.equals, or by looking one up in a HashMap keyed by Sort, and expect true (or false for two different shapes), which is what the inside-distance sort gives. Instead equals throws ClassCastException ('Geo3DPointOutsideSortField cannot be cast to class Geo3DPointSortField'): the method was copied from the sibling class Geo3DPointSortField and still casts to that class right after checking that both objects are Geo3DPointOutsideSortField, so the cast can never succeed. Searching and sorting with these sort fields work; only comparing two of them fails.
 
+The test shows that two identical `Geo3DDocValuesField.newOutsideDistanceSort("loc", 10, 20, 1000, PlanetModel.WGS84)` sort fields cannot be compared: `Geo3DPointOutsideSortField.equals` casts its argument to the sibling class `Geo3DPointSortField`.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Equals throws ClassCastException ('Geo3DPointOutsideSortField cannot be cast to class Geo3DPointSortField'): the method was copied from the sibling class Geo3DPointSortField and still casts to that class right after checking that both objects are Geo3DPointOutsideSortField, so the cast can never succeed.
+Expected: `a.equals(b)` is true. Actual: `ClassCastException` (Geo3DPointOutsideSortField cannot be cast to Geo3DPointSortField), with -ea and -da.
 
 ## Files
 
@@ -19,8 +20,8 @@ You build the same outside-distance sort twice, for example Geo3DDocValuesField.
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

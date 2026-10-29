@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You search FunctionScoreQuery.boostByQuery(in, boostMatch, 2f), where in and boostMatch are each a 600-term disjunction (1,200 term clauses that all run), with the default maxClauseCount of 1024. You expect TooManyNestedClauses, which you do get for a BooleanQuery holding the same clauses (even when half of them are scoring-only SHOULD or MUST_NOT clauses), because the check counts 'total clauses cumulatively in all of its children' and LUCENE-8811 made it cumulative so that splitting clauses over sub-queries no longer bypasses it. Instead the search runs with correct hits: FunctionScoreQuery.visit visits only `in`, FunctionMatchQuery, FunctionRangeQuery and FunctionQuery.visit call visitLeaf(this), DoubleValuesSource and ValueSource have no visit hook, and the embedded query is rewritten later with searcher.rewrite, which checks it alone with a fresh count; FunctionScoreQuery(fromQuery), FunctionMatchQuery(fromQuery) and FunctionQuery/FunctionRangeQuery over QueryValueSource behave the same.
 
+The test shows that `FunctionScoreQuery.boostByQuery(in, boostMatch, 2f)` with two 600-term disjunctions (1200 term clauses) is not rejected by IndexSearcher's cumulative clause limit, because the boost query is never visited.
+
 ## Expected vs actual
 
-- Expected: You expect TooManyNestedClauses, which you do get for a BooleanQuery holding the same clauses (even when half of them are scoring-only SHOULD or MUST_NOT clauses), because the check counts 'total clauses cumulatively in all of its children' and LUCENE-8811 made it cumulative so that splitting clauses over sub-queries no longer bypasses it.
-- Actual: The search runs with correct hits: FunctionScoreQuery.visit visits only `in`, FunctionMatchQuery, FunctionRangeQuery and FunctionQuery.visit call visitLeaf(this), DoubleValuesSource and ValueSource have no visit hook, and the embedded query is rewritten later with searcher.rewrite, which checks it alone with a fresh count; FunctionScoreQuery(fromQuery), FunctionMatchQuery(fromQuery) and FunctionQuery/FunctionRangeQuery over QueryValueSource behave the same.
+Expected `IndexSearcher.TooManyNestedClauses` (default maxClauseCount 1024); actual: the search runs, `Expected exception TooManyNestedClauses but no exception was thrown` (-ea and -da).
 
 ## Files
 
-- [src/org/apache/lucene/queries/function/TestFunctionQueriesVisitEmbeddedQuery.java](src/org/apache/lucene/queries/function/TestFunctionQueriesVisitEmbeddedQuery.java) (JUnit test)
+- [src/org/apache/lucene/queries/function/TestBoostByQueryClauseLimit.java](src/org/apache/lucene/queries/function/TestBoostByQueryClauseLimit.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -35,10 +37,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queries.function.TestFunctionQueriesVisitEmbeddedQuery
+     execute --select-class org.apache.lucene.queries.function.TestBoostByQueryClauseLimit
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

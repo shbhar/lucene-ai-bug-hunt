@@ -10,19 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 With a soft-deletes field, you soft-delete a document and later restore it with tryUpdateDocValue(reader, docID, &lt;soft-deletes field = null&gt;) while a merge of its segment is running. You expect what the javadoc promises: the segment has not been merged away, so the update succeeds and returns a sequence number &gt; 0 and the document stays live (otherwise the call returns -1 and you retry). Instead the call does return &gt; 0 and NRT readers show the document again, but the merge, which already treated it as deleted and left it out, commits without it, so the restored document disappears with no error and the next commit persists the loss.
 
+The test shows that a soft-deletes un-delete through `IndexWriter#tryUpdateDocValue(reader, docID, <soft field = null>)`, made while a merge of the document's segment is running (from the merged-segment warmer), returns a sequence number &gt; 0, and the merge then commits without the document.
+
 ## Expected vs actual
 
-- Expected: Either `tryUpdateDocValue` returns -1, or it returns &gt; 0 and the committed index has 1 hit for `id:0`.
-- Actual: It returns 11, a reader during the merge shows 3 documents, and the commit (sequence number 13) has 0 hits for `id:0`.
+Expected, per the `tryUpdateDocValue` javadoc: either `-1` or the acknowledged un-delete survives (numDocs 2). Actual: `seqNo=7 numDocs=1`.
 
 ## Files
 
-- [src/org/apache/lucene/index/TestTryUndeleteLostByRunningMerge.java](src/org/apache/lucene/index/TestTryUndeleteLostByRunningMerge.java) (JUnit test)
+- [src/org/apache/lucene/index/TestTryUndeleteDuringMerge.java](src/org/apache/lucene/index/TestTryUndeleteDuringMerge.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,15 +41,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestTryUndeleteLostByRunningMerge
+     execute --select-class org.apache.lucene.index.TestTryUndeleteDuringMerge
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestTryUndeleteDuringMerge.java](TestTryUndeleteDuringMerge.java)
-- [TestTryUndeleteLostByRunningMerge.java](TestTryUndeleteLostByRunningMerge.java)
 
 ## Feedback
 

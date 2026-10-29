@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index doc 0 with FloatDocValuesField("f", -0f) and doc 1 with FloatDocValuesField("f", 0f) and search new FunctionScoreQuery(new TermQuery(k:x), DoubleValuesSource.fromFloatField("f")) or new FunctionQuery(new FloatFieldSource("f")), expecting doc 0 to score 0 like any negative function value since LUCENE-7996 ('Scorers are no longer allowed to produce negative scores'; the test framework's AssertingScorer checks Float.compare(score, 0f) &gt;= 0) and the two zero-scored hits to tie in doc-id order. Instead doc 0 scores -0.0f, because the clamps test 'factor &gt;= 0' (FunctionScoreQuery) and 'val &gt;= 0 == false' (FunctionQuery) and -0.0 &gt;= 0 is true in Java; explain does not truncate it either. Since 10.2.0, search(q, 1) returns doc 0 while search(q, 2) returns [doc 1, doc 0], because TopScoreDocCollector's 'score &lt;= topScore' test treats the two zeros as equal while its heap and HitQueue order -0.0 below 0.0.
 
+The test shows that FunctionScoreQuery's negative-value clamp ('factor &gt;= 0') lets a function value of -0.0 through as a score of -0.0f, so top-k collection disagrees with itself (since 10.2.0).
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Doc 0 scores -0.0f, because the clamps test 'factor &gt;= 0' (FunctionScoreQuery) and 'val &gt;= 0 == false' (FunctionQuery) and -0.0 &gt;= 0 is true in Java; explain does not truncate it either.
+Expected: the docs with values -0.0 and 0.0 both score 0, and the head of search(q, 1) is the head of search(q, 2). Actual (-ea and -da): top-1 = doc 0 but top-2 = [doc 1 (0.0), doc 0 (-0.0)].
 
 ## Files
 
@@ -19,8 +20,8 @@ You index doc 0 with FloatDocValuesField("f", -0f) and doc 1 with FloatDocValues
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

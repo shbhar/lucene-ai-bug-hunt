@@ -23,14 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You build a RegExp or call Operations.repeat on an operand whose language is empty, such as (a&amp;b)*. You expect the result to accept the empty string, since the star of any language contains it. Instead the result accepts nothing.</p>
+<p>The test shows that <code>Operations.repeat(Automata.makeEmpty())</code>, the Kleene star of the empty language, returns the empty language, so it rejects <code>&quot;&quot;</code>.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>repeat(makeEmpty)</code>, <code>#*</code>, <code>(a&amp;b)*</code> and <code>(#){0,}</code> accept <code>&quot;&quot;</code>, <code>a(a&amp;b)*</code> accepts <code>a</code>, and <code>RegexpQuery</code> counts 1 hit for <code>(a&amp;b)*</code> and 1 for <code>a(a&amp;b)*</code>.</li><li><b>Actual:</b> All of them reject (<code>states=0... false</code>) and <code>RegexpQuery</code> counts 0 and 0, with no error; the 1-state empty automaton, <code>(a&amp;b)?</code> and <code>(a&amp;b){0,5}</code> are correct.</li></ul>
+<p>Expected: the star (zero or more repetitions) accepts <code>&quot;&quot;</code> (<code>true</code>). Actual: <code>false</code> (<code>expected:&lt;true&gt; but was:&lt;false&gt;</code>).</p>
 <h2>Files</h2><ul>
-<li><a href="src/TestKleeneStarOfEmptyLanguage.java"><code>src/TestKleeneStarOfEmptyLanguage.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/util/automaton/TestKleeneStarOfEmptyLanguage.java"><code>src/org/apache/lucene/util/automaton/TestKleeneStarOfEmptyLanguage.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.</li>
-<li>Recorded outcome of run 1 on main a9779ef3c193: 10 test(s) run, 9 failed (testBoundedRepeatIsSubsetOfStar, testConcatenationAmplifiesToEmptyLanguage, testOptionalIsSubsetOfStar, testRegExpEmptyCharClassStarMatchesJavaRegex, testRegExpStarAgreesWithBoundedForms, testRegexpQueryOnEmptyTerm).</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -44,9 +44,8 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class TestKleeneStarOfEmptyLanguage</code></pre>
+     execute --select-class org.apache.lucene.util.automaton.TestKleeneStarOfEmptyLanguage</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="KleeneStarOfEmpty.java"><code>KleeneStarOfEmpty.java</code></a></li><li><a href="TestKleeneStarOfEmptyLanguage.java"><code>TestKleeneStarOfEmptyLanguage.java</code></a></li><li><a href="test-regexp.diff"><code>test-regexp.diff</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

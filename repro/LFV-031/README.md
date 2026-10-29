@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You read longs or floats in bulk from a ByteBuffersDataInput built from blocks smaller than 8 bytes. You expect the same values as reading them one at a time. Instead readLongs/readFloats throw IllegalArgumentException.
 
+The test shows that `ByteBuffersDataInput.readLongs` takes the long alignment from the absolute position rather than the in-block offset, so it fails on blocks smaller than 8 bytes (`readFloats` has the same bug).
+
 ## Expected vs actual
 
-- Expected: You expect the same values as reading them one at a time.
-- Actual: readLongs/readFloats throw IllegalArgumentException.
+Expected: with 2-byte blocks, 3 bytes and then the long 42, `skipBytes(3)` followed by `readLongs` returns {42}, as `readLong()` does. Actual (-ea and -da): `IllegalArgumentException: newPosition > limit: (3 > 2)`.
 
 ## Files
 
-- [src/TestBBDISmallBlockBulkReads.java](src/TestBBDISmallBlockBulkReads.java) (JUnit test)
+- [src/org/apache/lucene/store/TestByteBuffersDataInputSmallBlockReadLongs.java](src/org/apache/lucene/store/TestByteBuffersDataInputSmallBlockReadLongs.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -36,9 +37,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class TestBBDISmallBlockBulkReads
+     execute --select-class org.apache.lucene.store.TestByteBuffersDataInputSmallBlockReadLongs
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

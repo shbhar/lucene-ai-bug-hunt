@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build an interval query that uses the same OR twice, for example maxgaps(0, unordered(X, X)) with X = or(b, phrase(c, b)), and expect what the Intervals.or javadoc promises ('Automatically rewrites if wrapped by an interval source that is sensitive to internal gaps'), so that 'c b c b' matches through b at position 1 followed by the phrase 'c b' at positions 2-3, which do not overlap and leave no gap. Instead, because the two arguments are equal, Lucene merges them into one RepeatingIntervalsSource whose pullUpDisjunctions returns only itself, so the rewrite never runs, the longer 'c b' alternative is minimized away inside X, and the query returns no hits. maxgaps(0, ordered(X, X)) and phrase(a, ordered(X, X)) miss in the same way, and so does Intervals.analyzedText for the query text 'york york' with a synonym york -&gt; 'new york' (unordered, maxGaps 0) on the document 'new york new york'.
 
+The test shows that `maxgaps(0, unordered(X, X))` with `X = or(b, phrase(c, b))` misses `c b c b`, because the repeated `X` becomes a `RepeatingIntervalsSource` whose `pullUpDisjunctions()` hides the `or()` from the gap-sensitive rewrite.
+
 ## Expected vs actual
 
-- Expected: 1 hit for each of the four bug queries, for example `maxgaps(0, unordered(X, X))` on `c b c b`.
-- Actual: 0 hits for all four, with assertions on and off; the controls pass.
+Expected: 1 hit (`b` at [1,1] and `c b` at [2,3] are disjoint with no gap). Actual: 0 hits (`expected:<1> but was:<0>`).
 
 ## Files
 
-- [src/org/apache/lucene/queries/intervals/TestRepeatedDisjunctionRewrite.java](src/org/apache/lucene/queries/intervals/TestRepeatedDisjunctionRewrite.java) (JUnit test)
+- [src/org/apache/lucene/queries/intervals/TestUnorderedRepeatedOrMaxGaps.java](src/org/apache/lucene/queries/intervals/TestUnorderedRepeatedOrMaxGaps.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,22 +39,13 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queries.intervals.TestRepeatedDisjunctionRewrite
+     execute --select-class org.apache.lucene.queries.intervals.TestUnorderedRepeatedOrMaxGaps
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestRepeatedOrRewrite.java](TestRepeatedOrRewrite.java)
-- [TestRepeatedDisjunctionRewrite.java](TestRepeatedDisjunctionRewrite.java)
-- [TestRepeatedOrUnderGapSensitiveParent.java](TestRepeatedOrUnderGapSensitiveParent.java)
-- [TestAnalyzedTextReach.java](TestAnalyzedTextReach.java)
-- [TestRepeatedOrScope.java](TestRepeatedOrScope.java)
-- [TestRepeatedOrFixOvermatch.java](TestRepeatedOrFixOvermatch.java)
 
 ## Feedback
 

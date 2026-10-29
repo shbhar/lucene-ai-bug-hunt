@@ -10,21 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You wrap several readers in a ParallelLeafReader where more than one has term vectors for the same field. You expect term vectors from the first reader that has the field, as documented. Instead, since #14373, they come from the wrong reader, and an index written from it with addIndexes fails CheckIndex.
 
+The test shows that `ParallelLeafReader.termVectors()` returns a term vector from the second reader for a field that the first reader owns ("first reader having a given field wins") and indexes without term vectors.
+
 ## Expected vs actual
 
-- Expected: `termVectors(body)=null`; the copy passes CheckIndex at level 2; 0 of 8 reader orders return the second reader's vector (10.1.0, and main with fix A).
-- Actual: `termVectors(body)=second`; the copy fails CheckIndex at level 2 ("has term vectors for field=body but FieldInfo has storeTermVector=false"); 4 of 8 orders return the second reader's vector (10.2.0 to 10.5.2 and main).
+Expected: no term vector for `body` (getFieldInfos() and terms() come from the first reader, which has none). Actual: the second reader's vector (term `second`).
 
 ## Files
 
-- [src/verify/sa2/TestParallelReaderTermVectorOwnership.java](src/verify/sa2/TestParallelReaderTermVectorOwnership.java) (JUnit test)
-- [src/verify/sa2/TestWrapForMergeParallelTermVectors.java](src/verify/sa2/TestWrapForMergeParallelTermVectors.java) (JUnit test)
+- [src/org/apache/lucene/index/TestParallelLeafReaderTermVectorsOwner.java](src/org/apache/lucene/index/TestParallelLeafReaderTermVectorsOwner.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
-- Recorded outcome of run 1 on main a9779ef3c193: 6 test(s) run, 6 failed (testAddIndexesOfParallelLeafReader, testCheckReaderAcceptsParallelLeafReader, testCheckReaderBothVectoredBothOrders, testFirstReaderWinsInBothOrders, testOwnerWithoutVectorsCompositeReader, testOwnerWithoutVectorsLeafReader).
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,22 +39,12 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class verify.sa2.TestParallelReaderTermVectorOwnership
-
-# run 2: assertions on, seed DEADBEEF, default flags
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class verify.sa2.TestWrapForMergeParallelTermVectors
+     execute --select-class org.apache.lucene.index.TestParallelLeafReaderTermVectorsOwner
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestParallelLeafReaderTermVectorsOwner.java](TestParallelLeafReaderTermVectorsOwner.java)
-- [PlrTermVectorsOwner.java](PlrTermVectorsOwner.java)
 
 ## Feedback
 

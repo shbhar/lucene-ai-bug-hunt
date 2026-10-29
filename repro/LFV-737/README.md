@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build an exact circle on the default WGS84 planet model (GeoCircleFactory.makeExactGeoCircle, centre latitude 0.3 and longitude 0.2, radius 0.1 rad, about 637 km, accuracy 1e-6) and ask computeOutsideDistance for a point 0.11 rad due north of the centre, expecting 'the distance from a point to the closest outside edge' (GeoOutsideDistance), about 0.0096. Instead you get +Infinity, and the same for every point due north or due south at any distance; on the unit sphere a point 0.001 rad due west of a 1e-4 rad exact circle gets 0.0012, the distance to the far side of the circle. The cause: GeoExactCircle.outsideDistance takes the minimum of each slice's plane distance bounded to that slice's sector and never measures the slice end points, so when the nearest edge point is a joint between two slices, the point's foot on each neighbouring plane falls just outside its sector, both return +Infinity, and the minimum is +Infinity or a foot on the far side.
 
+The test shows that GeoExactCircle.computeOutsideDistance returns +Infinity for a point due north of a WGS84 exact circle, because it never measures the slice end point (the joint where two slices meet) that is the closest edge point.
+
 ## Expected vs actual
 
-- Expected: Each meridian point's outside distance is at most its distance to the shape's own edge point (0.009558 for 0.11 north); the sphere point 0.001 west gets 0.001.
-- Actual: All six meridian points get Infinity; the sphere point gets 0.001199999997484277; the control passes.
+Expected: about 0.009558, the ARC distance from (0.41, 0.2) to the circle's north edge point. Actual (-ea and -da): +Infinity.
 
 ## Files
 
-- [src/org/apache/lucene/spatial3d/geom/TestGeoExactCircleOutsideDistanceAtSliceJoints.java](src/org/apache/lucene/spatial3d/geom/TestGeoExactCircleOutsideDistanceAtSliceJoints.java) (JUnit test)
+- [src/org/apache/lucene/spatial3d/geom/TestGeoExactCircleOutsideDistance.java](src/org/apache/lucene/spatial3d/geom/TestGeoExactCircleOutsideDistance.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,16 +42,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.spatial3d.geom.TestGeoExactCircleOutsideDistanceAtSliceJoints
+     execute --select-class org.apache.lucene.spatial3d.geom.TestGeoExactCircleOutsideDistance
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestGeoExactCircleOutsideDistanceAtSliceJoints.java](TestGeoExactCircleOutsideDistanceAtSliceJoints.java)
-- [TestExactCircleOutsideDistanceJointsV1.java](TestExactCircleOutsideDistanceJointsV1.java)
-- [TestExactCircleJointStyles.java](TestExactCircleJointStyles.java)
 
 ## Feedback
 

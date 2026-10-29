@@ -10,20 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You keep an NRT reader after its writer is rolled back or closed, then open a new writer on the same directory and change the index. You expect reader.isCurrent to return false. Instead SegmentInfos.version restarts in each writer session and the closed-writer branch of isCurrent compares only versions, so the stale reader reports true for different content.
 
+The test shows that an NRT reader whose writer was rolled back reports `isCurrent() == true` after a new writer on the same directory has committed different content, because the new session's second commit lands on the reader's SegmentInfos version (10) and the closed-writer branch of `isCurrent` compares only versions.
+
 ## Expected vs actual
 
-- Expected: `isCurrent` is false after every writer-2 commit: new commits occurred, and the reader shows 3 rolled-back documents.
-- Actual: `isCurrent` is true after writer-2 commit #2 (`segments_3`, version 10, 3 docs; the reader: version 10, 4 docs), and the test fails with an `AssertionError`.
+Expected `isCurrent()` to be false (reader maxDoc 4, latest commit maxDoc 3); actual true, with `-ea` and `-da`.
 
 ## Files
 
-- [src/TestOrphanedNrtIsCurrentAfterDiscard.java](src/TestOrphanedNrtIsCurrentAfterDiscard.java) (JUnit test)
+- [src/org/apache/lucene/index/TestOrphanedNrtReaderIsCurrent.java](src/org/apache/lucene/index/TestOrphanedNrtReaderIsCurrent.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
-- Recorded outcome of run 1 on main a9779ef3c193: 4 test(s) run, 3 failed (testCloseWithoutCommit_ByteBuffers, testRollback_ByteBuffers, testRollback_FSDirectory).
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -39,18 +39,12 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class TestOrphanedNrtIsCurrentAfterDiscard
+     execute --select-class org.apache.lucene.index.TestOrphanedNrtReaderIsCurrent
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestOrphanedNrtReaderIsCurrent.java](TestOrphanedNrtReaderIsCurrent.java)
-- [TestOrphanedNrtIsCurrentTiebreak.java](TestOrphanedNrtIsCurrentTiebreak.java)
-- [isCurrent-generation-check.patch](isCurrent-generation-check.patch)
 
 ## Feedback
 

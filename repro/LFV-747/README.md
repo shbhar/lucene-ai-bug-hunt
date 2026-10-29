@@ -1,6 +1,6 @@
 # Flexible StandardQueryParser: term literals inside fn: interval functions keep their escape backslashes, so fn:or(a\:b) searches for the text a\:b instead of the term a:b
 
-Bug LFV-747 · Area: queryparser / flexible StandardQueryParser interval functions (StandardSyntaxParser.jj IntervalText and IntervalFuzzyTerm, intervalfn AnalyzedText and FuzzyTerm) · Priority: medium · Impact: silent wrong results · Novelty: new
+Bug LFV-747 · Area: queryparser / flexible StandardQueryParser interval functions (StandardSyntaxParser.jj IntervalText and IntervalFuzzyTerm, intervalfn AnalyzedText and FuzzyTerm) · Priority: low · Impact: silent wrong results · Novelty: new
 
 Bug page: [../../bugs/LFV-747.html](../../bugs/LFV-747.html)
 
@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You parse fn:or(a\:b) (or fn:ordered(a\:b c), fn:fuzzyTerm(a\:b 0), fn:or("a\"b")) with StandardQueryParser and expect it to find the documents that hold a:b (or a"b), because the parser's javadoc says 'any character can be quoted with a backslash' and the same escaped literal outside fn: is parsed as the term a:b. Instead the IntervalText and IntervalFuzzyTerm grammar productions pass the raw token text, backslashes included, to AnalyzedText and FuzzyTerm, so the interval query searches for the text a\:b. With WhitespaceAnalyzer it misses the a:b document and matches a document that holds a\:b; with StandardAnalyzer it becomes BLOCK(a,b) and matches 'a b c'; no error is raised.
 
+The test shows that the flexible `StandardQueryParser` keeps the escape backslash in term literals inside `fn:` interval functions: `fn:or(a\:b)` is parsed as `body:a\:b`, not as the term `a:b`.
+
 ## Expected vs actual
 
-- Expected: `fn:or(a\:b)` is the query `body:a:b` and finds doc 0 (`a:b c`), like `a\:b` outside `fn:`.
-- Actual: `fn:or(a\:b)` is `body:a\:b` and finds doc 1 (`a\:b c`); all 4 tests fail, with assertions on and off.
+Expected: the query matches the one document whose body holds the term `a:b` (count 1). Actual: count 0 (`expected:<1> but was:<0>`).
 
 ## Files
 
-- [src/org/apache/lucene/queryparser/flexible/standard/TestIntervalFunctionTermEscapes.java](src/org/apache/lucene/queryparser/flexible/standard/TestIntervalFunctionTermEscapes.java) (JUnit test)
+- [src/org/apache/lucene/queryparser/flexible/standard/TestIntervalFunctionEscapedTerm.java](src/org/apache/lucene/queryparser/flexible/standard/TestIntervalFunctionEscapedTerm.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,21 +43,15 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queryparser.flexible.standard.TestIntervalFunctionTermEscapes
+     execute --select-class org.apache.lucene.queryparser.flexible.standard.TestIntervalFunctionEscapedTerm
 ```
 
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestIntervalFunctionTermEscapes.java](TestIntervalFunctionTermEscapes.java)
-- [TestIntervalFnEscapedLiterals.java](TestIntervalFnEscapedLiterals.java)
-- [TestIntervalEscapeScopeProbe.java](TestIntervalEscapeScopeProbe.java)
 
 ## Feedback
 

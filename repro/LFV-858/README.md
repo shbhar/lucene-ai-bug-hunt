@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You highlight a text with the classic Highlighter, a QueryScorer and SimpleSpanFragmenter, whose javadoc says it 'breaks text up into same-size fragments but does not split up Spans', for a query with two overlapping phrases ('new york' OR 'york city hall'), two phrases that share a start ('new york' OR 'new york city hall'), or a phrase whose words get synonyms stacked on them by SynonymGraphFilter, and you expect every phrase match shorter than the fragment size to stay inside one fragment. Instead the fragmenter cuts inside the longer phrase ('The museum is near New York City' | ' Hall and the park', 'We flew to New York City' | ' Hall last week', 'I left my big laptop' | ' bag on the train'), so getBestFragment can return only part of the phrase, and in the same-start case listing the longer phrase first in the BooleanQuery makes the phrase come out whole. Hits, scores and which words are highlighted are correct; only the fragment boundaries are wrong.
 
+The test shows that SimpleSpanFragmenter(scorer, 20) with the same-start phrases 'new york' OR 'new york city hall' splits the longer phrase match across fragments (TestSimpleSpanFragmenterSameStartPhrases#testSameStartPhrasesNotSplit).
+
 ## Expected vs actual
 
-- Expected: Every best fragment holds the whole phrase, as in the 4 controls: `We flew to <B>New</B> <B>York</B> <B>City</B> <B>Hall</B> last`.
-- Actual: 4 of 8 fail, e.g. best fragment `We flew to <B>New</B> <B>York</B> <B>City</B>`; fragments `We flew to New York City` | ` Hall last week` | ` for a conference`.
+Expected the best fragment to hold &lt;B&gt;New&lt;/B&gt; &lt;B&gt;York&lt;/B&gt; &lt;B&gt;City&lt;/B&gt; &lt;B&gt;Hall&lt;/B&gt;; actual [We flew to &lt;B&gt;New&lt;/B&gt; &lt;B&gt;York&lt;/B&gt; &lt;B&gt;City&lt;/B&gt;] (cut before "Hall"), with -ea and -da.
 
 ## Files
 
-- [src/org/apache/lucene/search/highlight/TestSimpleSpanFragmenterSpanTracking.java](src/org/apache/lucene/search/highlight/TestSimpleSpanFragmenterSpanTracking.java) (JUnit test)
+- [src/org/apache/lucene/search/highlight/TestSimpleSpanFragmenterSameStartPhrases.java](src/org/apache/lucene/search/highlight/TestSimpleSpanFragmenterSameStartPhrases.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -31,7 +33,6 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
-CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
 CP=$CP:$LUCENE/lucene/highlighter/build/libs/lucene-highlighter-$V.jar
 CP=$CP:$LUCENE/lucene/memory/build/libs/lucene-memory-$V.jar
 CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
@@ -40,17 +41,13 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions on, seed DEADBEEF
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed 5EED0858
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=5EED0858 \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.highlight.TestSimpleSpanFragmenterSpanTracking
+     execute --select-class org.apache.lucene.search.highlight.TestSimpleSpanFragmenterSameStartPhrases
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestSimpleSpanFragmenterPhraseSplit.java](TestSimpleSpanFragmenterPhraseSplit.java)
 
 ## Feedback
 

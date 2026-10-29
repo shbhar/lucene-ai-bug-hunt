@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You call reduce(new Gener) or reduce(new Lift(..)) on a stempel Trie, for example on PolishAnalyzer.getDefaultTable, which is documented as 'an unmodifiable instance of the default stemmer table', and expect what Trie.reduce's javadoc says, 'the newly reduced Trie', with the input left as it was (Optimizer and Optimizer2 behave so). Instead Lift.optimize and Gener.optimize take the input's own row list and rewrite its cells in place (Lift moves commands up a level and clears references, Gener drops infrequent commands and references) before copying them into the result, so the input answers differently afterwards: after PolishAnalyzer.getDefaultTable.reduce(new Gener) every new PolishAnalyzer stems 'książkami rzekami pracowali' to [książk, rzekami, pracowali] instead of [książek, rzekść, pracować], and a one-key trie {aa -&gt; Da} reduced with Lift(false) starts to answer getLastOnPath('a') = Da instead of nothing. Copying the rows before the rewrite fixes it; upstream TestStemmer, which reduces one trie five times, then needs a fresh trie per reduction.
 
+The test shows that `Trie.reduce(new Lift(false))` on a one-key `MultiTrie2` {aa -&gt; Da} built by the caller rewrites the input trie in place (Lift.optimize works on `orig.rows`), although reduce is documented to return "the newly reduced Trie"; Gener has the same root cause.
+
 ## Expected vs actual
 
-- Expected: A new `PolishAnalyzer` still gives [książek, rzekść, pracować], and the input trie {aa -&gt; Da} still answers nothing for 'a'.
-- Actual: It gives [książk, rzekami, pracowali], and the input answers `Da` for 'a': 2 of 2 tests fail, with assertions on and off.
+Expected: the input still answers `getLastOnPath("a")` = "" after the reduction. Actual: "Da" (`expected:<[]> but was:<[Da]>`, with -ea and -da).
 
 ## Files
 
-- [src/org/apache/lucene/analysis/stempel/TestReduceKeepsInput.java](src/org/apache/lucene/analysis/stempel/TestReduceKeepsInput.java) (JUnit test)
+- [src/org/apache/lucene/analysis/stempel/TestTrieReduceKeepsInput.java](src/org/apache/lucene/analysis/stempel/TestTrieReduceKeepsInput.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,16 +42,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.stempel.TestReduceKeepsInput
+     execute --select-class org.apache.lucene.analysis.stempel.TestTrieReduceKeepsInput
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestReduceKeepsInput.java](TestReduceKeepsInput.java)
-- [TestReduceLeavesInputUnchanged.java](TestReduceLeavesInputUnchanged.java)
-- [ReduceKeepsInputHistoryMain.java](ReduceKeepsInputHistoryMain.java)
 
 ## Feedback
 

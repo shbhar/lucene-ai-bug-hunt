@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You configure Word2VecSynonymFilter with maxSynonymsPerTerm=k, whose javadoc calls it the 'maximum number of result returned by the synonym search', so you expect at most k synonyms per token. Word2VecSynonymProvider.getSynonyms searches the HNSW graph for k+1 neighbours on the assumption that the query term is always its own nearest neighbour, drops only the query term and never caps the result, so when the term is not among the hits it returns all k+1. With three terms that share one vector and k=1, getSynonyms(c) returns [a, b] and the filter emits 2 SYNONYM tokens; with 4000 distinct clustered vectors and the factory defaults, 4 terms get 6 synonyms because the approximate search with a beam of 6 does not reach the query term itself, although it is its own strict nearest neighbour by a margin of more than 0.03.
 
+The test shows that with three terms that share one vector, `Word2VecSynonymProvider.getSynonyms(c, maxSynonymsPerTerm=1, 0.5f)` returns two synonyms.
+
 ## Expected vs actual
 
-- Expected: At most 1 synonym for each of `a`, `b` and `c`, and at most 5 for every word of the 500-word model.
-- Actual: `c` gets `[a, b]` and `w138` gets 6 synonyms: 2 of 2 tests fail, with assertions on and off.
+Expected: at most 1 synonym (`maxSynonymsPerTerm` is the "maximum number of result returned by the synonym search"); actual (-ea and -da): [a, b], because the k+1 HNSW search does not return the query term itself and nothing caps the result.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/synonym/word2vec/TestWord2VecMaxSynonymsPerTerm.java](src/org/apache/lucene/analysis/synonym/word2vec/TestWord2VecMaxSynonymsPerTerm.java) (JUnit test)
+- [src/org/apache/lucene/analysis/synonym/word2vec/TestWord2VecSynonymProviderMaxSynonyms.java](src/org/apache/lucene/analysis/synonym/word2vec/TestWord2VecSynonymProviderMaxSynonyms.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,19 +39,13 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.synonym.word2vec.TestWord2VecMaxSynonymsPerTerm
+     execute --select-class org.apache.lucene.analysis.synonym.word2vec.TestWord2VecSynonymProviderMaxSynonyms
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestWord2VecSynonymMaxSynonymsPerTerm.java](TestWord2VecSynonymMaxSynonymsPerTerm.java)
-- [TestWord2VecMaxSynonymsPerTerm.java](TestWord2VecMaxSynonymsPerTerm.java)
-- [TestSynonymCountCap.java](TestSynonymCountCap.java)
 
 ## Feedback
 

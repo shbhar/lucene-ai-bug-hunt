@@ -23,14 +23,15 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You analyse &#x27;abc the&#x27; with WhitespaceTokenizer, a StopFilter that removes &#x27;the&#x27;, and a ProtectedTermFilter that wraps a LowerCaseFilter (or the CustomAnalyzer equivalent whenTerm(...).addTokenFilter(&quot;lowercase&quot;).endwhen), and expect end to report the removed stop word as a final position increment of 1, as the same chain does without the condition and as the class itself does when the last token is protected (&#x27;x the&#x27; gives 1). Instead it reports 0 whenever the last token went through the wrapped filter, although LowerCaseFilter never touches positions: end keeps the wrapped chain&#x27;s end state, and the internal wrapper that feeds that chain resets the increment to 0. In a multi-valued field [&#x27;abc the&#x27;, &#x27;def&#x27;] with the default gap 0, &#x27;def&#x27; is then indexed at position 1 instead of 2, so the PhraseQuery &quot;abc def&quot; matches the document (1 hit) where the plain chain gives 0 (executed).</p>
+<p>The test shows that <code>ConditionalTokenFilter.end()</code> drops its input&#x27;s trailing hole (a removed trailing stop word) when the last token went through the wrapped filters, even when the wrapped filter is the identity <code>in -&gt; in</code>.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> Every chain reports the final position increment of the plain chain (1, or 2 for <code>abc a the</code>), and <code>def</code> is at position 2 with 0 hits for <code>&quot;abc def&quot;</code>.</li><li><b>Actual:</b> <code>finalPosInc expected:&lt;1&gt; but was:&lt;0&gt;</code> (and <code>&lt;2&gt;</code> but <code>&lt;1&gt;</code>), and <code>def at position [1, &quot;abc def&quot; 1] hits</code>: 5 of 5 tests fail, assertions on and off.</li></ul>
+<p>Expected the final position increment 1 that <code>StopFilter</code> reports for <code>abc the</code>; actual 0 (<code>finalPosInc expected:&lt;1&gt; but was:&lt;0&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/analysis/miscellaneous/TestConditionalTokenFilterFinalPositionIncrement.java"><code>src/org/apache/lucene/analysis/miscellaneous/TestConditionalTokenFilterFinalPositionIncrement.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/repro/ConditionalEndPosIncMain.java"><code>src/repro/ConditionalEndPosIncMain.java</code></a> <span class="dim">(main() class)</span></li>
+<li><a href="src/org/apache/lucene/analysis/miscellaneous/TestConditionalTokenFilterEndPositionIncrement.java"><code>src/org/apache/lucene/analysis/miscellaneous/TestConditionalTokenFilterEndPositionIncrement.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
+<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
@@ -46,11 +47,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.miscellaneous.TestConditionalTokenFilterFinalPositionIncrement
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; repro.ConditionalEndPosIncMain</code></pre>
+     execute --select-class org.apache.lucene.analysis.miscellaneous.TestConditionalTokenFilterEndPositionIncrement</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestConditionalTokenFilterTrailingHole.java"><code>TestConditionalTokenFilterTrailingHole.java</code></a></li><li><a href="fix-option-Bplus.diff"><code>fix-option-Bplus.diff</code></a></li><li><a href="TestConditionalTokenFilterStackedLastToken.java"><code>TestConditionalTokenFilterStackedLastToken.java</code></a></li><li><a href="TestConditionalTokenFilterFinalPositionIncrement.java"><code>TestConditionalTokenFilterFinalPositionIncrement.java</code></a></li><li><a href="TestConditionalFinalPosInc.java"><code>TestConditionalFinalPosInc.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

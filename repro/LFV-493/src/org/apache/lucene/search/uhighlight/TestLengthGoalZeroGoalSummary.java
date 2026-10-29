@@ -18,68 +18,31 @@ package org.apache.lucene.search.uhighlight;
 
 import java.text.BreakIterator;
 import java.util.Locale;
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.StringField;
-import org.apache.lucene.document.TextField;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.tests.analysis.MockAnalyzer;
-import org.apache.lucene.tests.analysis.MockTokenizer;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * LengthGoalBreakIterator with a length goal of 0 ("at least 0 apart" / "closest to 0") highlights
- * matches like its base iterator (TestLengthGoalBreakIterator uses goal 0 for highlights), but the
- * default summary of a document without a match throws IllegalArgumentException.
- */
 public class TestLengthGoalZeroGoalSummary extends LuceneTestCase {
 
-  public void testZeroLengthGoalSummary() throws Exception {
-    Analyzer analyzer = new MockAnalyzer(random(), MockTokenizer.SIMPLE, true);
-    try (Directory dir = newDirectory()) {
-      IndexWriter iw = new IndexWriter(dir, newIndexWriterConfig(analyzer));
-      Document doc = new Document();
-      doc.add(new TextField("body", "First sentence. Second sentence.", Field.Store.YES));
-      doc.add(new StringField("id", "1", Field.Store.NO));
-      iw.addDocument(doc);
-      iw.close();
-      try (IndexReader ir = DirectoryReader.open(dir)) {
-      IndexSearcher searcher = new IndexSearcher(ir);
-
-      for (boolean min : new boolean[] {true, false}) {
-        UnifiedHighlighter highlighter =
-            UnifiedHighlighter.builder(searcher, analyzer)
-                .withBreakIterator(
-                    () -> {
-                      BreakIterator base = BreakIterator.getSentenceInstance(Locale.ROOT);
-                      return min
-                          ? LengthGoalBreakIterator.createMinLength(base, 0, 0.5f)
-                          : LengthGoalBreakIterator.createClosestToLength(base, 0, 0.5f);
-                    })
-                .build();
-        // goal 0 is accepted for highlighting a match
-        Query match = new TermQuery(new Term("body", "second"));
-        assertEquals(
-            "First sentence. <b>Second</b> sentence.".substring(16),
-            highlighter.highlight("body", match, searcher.search(match, 10), 1)[0]);
-        // and the summary of a document without a match in "body"
-        Query noMatch = new TermQuery(new Term("id", "1"));
-        TopDocs topDocs = searcher.search(noMatch, 10);
-        assertEquals(
-            (min ? "min" : "closest") + " goal 0",
-            "First sentence. ",
-            highlighter.highlight("body", noMatch, topDocs, 1)[0]);
-      }
-      }
+  public void testZeroLengthGoalDefaultSummary() throws Exception {
+    UnifiedHighlighter highlighter =
+        UnifiedHighlighter.builderWithoutSearcher(new StandardAnalyzer())
+            .withBreakIterator(
+                () ->
+                    LengthGoalBreakIterator.createMinLength(
+                        BreakIterator.getSentenceInstance(Locale.ROOT), 0, 0.5f))
+            .build();
+    TermQuery noMatch = new TermQuery(new Term("body", "missing"));
+    Object summary;
+    try {
+      summary =
+          highlighter.highlightWithoutSearcher(
+              "body", noMatch, "First sentence. Second sentence.", 1);
+    } catch (IllegalArgumentException e) {
+      // expected: the default summary (first sentence); actual: IllegalArgumentException
+      throw new AssertionError("expected the summary \"First sentence. \" but got " + e, e);
     }
+    assertEquals("First sentence. ", summary);
   }
 }

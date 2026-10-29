@@ -1,6 +1,6 @@
 # PointVectorStrategy's distance value source gives a document without a point the distance 180 * multiplier even in a non-geo (Cartesian) SpatialContext, so an ascending distance sort lists it before real documents farther than 180 units and makeRecipDistanceValueSource scores it as if it were 180 units away (the other strategies that implement makeDistanceValueSource use Double.MAX_VALUE there; regression in 7.0.0 from LUCENE-7737)
 
-Bug LFV-777 · Area: spatial-extras / PointVectorStrategy distance value source (vector/DistanceValueSource missing-document value; makeDistanceValueSource, makeRecipDistanceValueSource) · Priority: medium · Impact: silent wrong results · Novelty: new
+Bug LFV-777 · Area: spatial-extras / PointVectorStrategy distance value source (vector/DistanceValueSource missing-document value; makeDistanceValueSource, makeRecipDistanceValueSource) · Priority: low · Impact: silent wrong results · Novelty: new
 
 Bug page: [../../bugs/LFV-777.html](../../bugs/LFV-777.html)
 
@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index points with PointVectorStrategy in a non-geo SpatialContext (for example world bounds -1000..1000), add a document without a point, and sort a query by makeDistanceValueSource(point).getSortField(false), expecting the point-less document last, as BBoxStrategy, SerializedDVStrategy and the prefix-tree strategies do: in a non-geo context they give it Double.MAX_VALUE, the rule LUCENE-4208 set for all strategies ('180 if geo, Double.MAX_VALUE otherwise'). Instead it gets distance 180.0, so with a document at (500, 0) and the query point (0, 0) the ascending order is none,far instead of far,none, and makeRecipDistanceValueSource over the query box -1000..1000 scores it 0.440 against 0.220 for a real document 500 units away. The cause: vector/DistanceValueSource sets nullValue = 180 * multiplier with no isGeo branch; the branch was dropped in the 7.0 port from ValueSource to DoubleValuesSource (LUCENE-7737).
 
+The test shows that in a non-geo SpatialContext, PointVectorStrategy's distance sort gives a document without a point the distance 180, so it sorts before a real document 500 units away.
+
 ## Expected vs actual
 
-- Expected: Ascending distance: near=100, far=500, none=Double.MAX_VALUE; recip score, descending: near, far, none.
-- Actual: Ascending distance: near=100, none=180, far=500; recip score: near 0.586, none 0.440, far 0.220.
+Expected doc 0 (point at (500, 0)) first in an ascending distance sort from (0, 0); actual doc 1, the one without a point (`expected:<0> but was:<1>`), with `-ea` and `-da`; passes with the isGeo() ? 180: Double.MAX_VALUE rule restored.
 
 ## Files
 
@@ -21,7 +22,8 @@ You index points with PointVectorStrategy in a non-geo SpatialContext (for examp
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -47,14 +49,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) spatial-extras also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestPointVectorStrategyMissingDistance.java](TestPointVectorStrategyMissingDistance.java)
-- [TestPointVectorMissingDistanceNonGeo.java](TestPointVectorMissingDistanceNonGeo.java)
-- [TestPointVectorNonGeoMissingDistance.java](TestPointVectorNonGeoMissingDistance.java)
-- [TestPvReachProbe.java](TestPvReachProbe.java)
-- [PointVectorMissingDistanceNonGeoMain.java](PointVectorMissingDistanceNonGeoMain.java)
 
 ## Feedback
 

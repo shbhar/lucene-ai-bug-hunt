@@ -1,6 +1,6 @@
 # MatchHighlighter.highlight(topDocs, q1, q2,...) silently drops the highlights of every field that only the second or a later query matches: each document keeps only the stored field values of the first query's MatchRegionRetriever, which loads just the fields that first query affects (regression in 10.0.0)
 
-Bug LFV-595 · Area: highlighter / matchhighlight: MatchHighlighter multi-query highlighting (DocHit field values on top of MatchRegionRetriever's per-query stored-field loading) · Priority: medium · Impact: silent wrong results · Novelty: new
+Bug LFV-595 · Area: highlighter / matchhighlight: MatchHighlighter multi-query highlighting (DocHit field values on top of MatchRegionRetriever's per-query stored-field loading) · Priority: low · Impact: silent wrong results · Novelty: new
 
 Bug page: [../../bugs/LFV-595.html](../../bugs/LFV-595.html)
 
@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You pass several queries to MatchHighlighter.highlight(topDocs, q1, q2), for example title:foo and body:bar for a document whose title is 'foo' and whose body is 'bar'; the class's own test passes the sub-clauses of the search query this way to give each query its own markers. You expect both fields to be highlighted, exactly as highlight(topDocs, title:foo OR body:bar) returns them: {title=[&gt;foo&lt;], body=[&gt;bar&lt;]}. Instead you get only {title=[&gt;foo&lt;]} (only {body=[&gt;bar&lt;]} with the queries swapped), with no error, because each document keeps only the stored fields that the first query's retriever loaded; 9.x returned both fields.
 
+The test shows that `MatchHighlighter.highlight(topDocs, title:foo, body:bar)` on one document (title "foo", body "bar") drops the field that only the second query matches.
+
 ## Expected vs actual
 
-- Expected: `highlight(topDocs, title:foo, body:bar)` returns doc 0 `{body=[>bar<], title=[>foo<]}` and doc 1 `{body=[>bar<]}`, as the combined query does.
-- Actual: It returns doc 0 `{title=[>foo<]}` and doc 1 `{}`; with the queries swapped, doc 0 `{body=[>bar<]}` and doc 1 `{body=[>bar<]}`.
+Expected: `{title=[>foo<], body=[>bar<]}`; actual (-ea and -da): `{title=[>foo<]}`, because the DocHit keeps only the field values loaded by the first query's MatchRegionRetriever (MatchHighlighter.java:173,:242).
 
 ## Files
 
@@ -21,7 +22,8 @@ You pass several queries to MatchHighlighter.highlight(topDocs, q1, q2), for exa
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -46,13 +48,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestMatchHighlighterMultiQueryFields.java](TestMatchHighlighterMultiQueryFields.java)
-- [2-TestMatchHighlighterMultiQueryFields.java](2-TestMatchHighlighterMultiQueryFields.java)
-- [TestMultiQueryCrossFieldHighlights.java](TestMultiQueryCrossFieldHighlights.java)
-- [TestMultiQueryCrossFieldControls.java](TestMultiQueryCrossFieldControls.java)
 
 ## Feedback
 

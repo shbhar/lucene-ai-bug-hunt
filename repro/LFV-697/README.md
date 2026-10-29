@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 With assertions enabled the first read instead throws AssertionError 'More lazy values then real values for field: f', because fetchRealValues asserts realValues.length &lt;= lazyValues.size (LazyDocument.java:113-114), the reverse of what its message and the loop right after it (:116-121, which reads realValues[i] once per lazy value) need.
 
+The test shows that with `-ea`, reading the first lazy value of a two-valued stored field before the field's second `LazyDocument.getField` call throws, because `fetchRealValues` asserts `realValues.length <= lazyValues.size()`, the reverse of its own message.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+actual with `-ea`: `AssertionError: More lazy values then real values for field: f` at `LazyDocument.java:113`. With `-da` the test passes (the claim is about `-ea` only).
 
 ## Files
 
@@ -19,7 +20,8 @@ With assertions enabled the first read instead throws AssertionError 'More lazy 
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

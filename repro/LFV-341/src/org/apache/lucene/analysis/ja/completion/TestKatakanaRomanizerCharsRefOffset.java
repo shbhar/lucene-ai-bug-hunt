@@ -20,35 +20,11 @@ import java.util.List;
 import org.apache.lucene.tests.util.LuceneTestCase;
 import org.apache.lucene.util.CharsRef;
 
-/**
- * KatakanaRomanizer#romanize(CharsRef) (public, in an exported package) reads input.chars from
- * index 0 instead of input.offset, so a CharsRef that is a slice of a larger array is romanized
- * from the wrong characters. Uses only public API.
- */
 public class TestKatakanaRomanizerCharsRefOffset extends LuceneTestCase {
 
-  public void testRomanizeHonorsCharsRefOffset() {
-    KatakanaRomanizer romanizer = KatakanaRomanizer.getInstance();
-    char[] buffer = "アトウキョウ".toCharArray();
-    CharsRef slice = new CharsRef(buffer, 1, 5);
-    assertEquals("トウキョウ", slice.toString());
-
-    List<CharsRef> expected = romanizer.romanize(new CharsRef("トウキョウ"));
-    assertEquals(List.of(new CharsRef("toukyou")), expected);
-    assertEquals("romanize of a CharsRef slice at offset 1", expected, romanizer.romanize(slice));
-  }
-
-  /**
-   * A slice with a lowercase suffix (the mid-IME shape): reading from index 0 starts at 'x', which
-   * matches no keystroke, so no romaji is produced at all.
-   */
-  public void testSliceWithLowercaseSuffix() {
-    KatakanaRomanizer romanizer = KatakanaRomanizer.getInstance();
-    char[] buffer = "xトウキョウt".toCharArray();
-    CharsRef slice = new CharsRef(buffer, 1, 6);
-    assertEquals("トウキョウt", slice.toString());
-    assertEquals(
-        List.of(new CharsRef("toukyout")), romanizer.romanize(new CharsRef("トウキョウt")));
-    assertEquals(List.of(new CharsRef("toukyout")), romanizer.romanize(slice));
+  public void testRomanizeSliceAtNonZeroOffset() {
+    CharsRef slice = new CharsRef("アトウキョウ".toCharArray(), 1, 5);
+    // the slice is "トウキョウ": expected [toukyou]; actual [atoukyo] (chars [0, 5) are read)
+    assertEquals(List.of(new CharsRef("toukyou")), KatakanaRomanizer.getInstance().romanize(slice));
   }
 }

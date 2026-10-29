@@ -16,13 +16,12 @@ On main you open an index whose vector segment was written by Lucene 9.8.0 (Luce
 ## Files
 
 - [src/org/apache/lucene/index/TestExitableFilteredKnnOldHnswFormat.java](src/org/apache/lucene/index/TestExitableFilteredKnnOldHnswFormat.java) (JUnit test)
-- [src/org/apache/lucene/backward_codecs/lucene95/Lucene95RWHnswVectorsFormat.java](src/org/apache/lucene/backward_codecs/lucene95/Lucene95RWHnswVectorsFormat.java)
-- [src/org/apache/lucene/backward_codecs/lucene95/Lucene95HnswVectorsWriter.java](src/org/apache/lucene/backward_codecs/lucene95/Lucene95HnswVectorsWriter.java)
 
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Before compiling, copy Lucene95RWHnswVectorsFormat.java and Lucene95HnswVectorsWriter.java, unchanged classes of Lucene's own test sources that the release jars do not contain, from lucene/backward-codecs/src/test/org/apache/lucene/backward_codecs/lucene95/ of the checkout into src/org/apache/lucene/backward_codecs/lucene95/ here.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -45,6 +44,8 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+2 other file(s) of the recorded repro are not exported.
 
 ## Feedback
 

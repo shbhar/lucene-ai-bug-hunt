@@ -6,19 +6,19 @@ Browse the table: open `index.html` (published with GitHub Pages).
 
 ## What is in this snapshot
 
-- 946 registered bugs: 696 new, for which the automated prior-report search found no earlier report (a keyword search; private reports are not visible), and 250 already known upstream (others reported or discussed the same bug; tracked, but not counted as new). Where the search found only a partial overlap, the bug's novelty note names the closest item; the owner decides whether it counts as known.
+- 1012 registered bugs: 755 new, for which the automated prior-report search found no earlier report (a keyword search; private reports are not visible), and 257 already known upstream (others reported or discussed the same bug; tracked, but not counted as new). Where the search found only a partial overlap, the bug's novelty note names the closest item; the owner decides whether it counts as known.
 - 2 of them are withheld pending security review: they appear in the table and in every count, but only with their id, module, priority tier, novelty (new or known upstream) and the line "Details withheld pending security review".
-- Priority tiers: 9 high, 316 medium, 613 low, 8 not yet ranked.
-- 343 public bug pages (`bugs/`), 944 repro directories (`repro/`) and 117 units of formal models and scripts (`models/`).
+- Priority tiers: 9 high, 217 medium, 779 low, 7 not yet ranked.
+- 363 public bug pages (`bugs/`), 1010 repro directories (`repro/`) and 132 units of formal models and scripts (`models/`).
 - The full table as data: `data/bugs.csv` and `data/bugs.json`.
 
 ## How the bugs were found
 
-The hunt used AI models (Anthropic Claude Opus and OpenAI GPT-5.6) with formal methods (TLA+/TLC model checking, Alloy, Z3/cvc5 SMT solving, Dafny proofs and bounded model checking) alongside fuzzing, model-based, property-based and differential testing, and static analysis. Of the 694 new bugs the hunt found that are shown in full, a formal tool's own output gave the first signal for 43; a semi-formal check (a check of the real jar against exact semantics over a bounded input space, exhaustive or for some harnesses randomly sampled, or a hypothesis formed while modelling that a tool then witnessed) for 404; code reading or other testing for 220; and a testing baseline for 27. Every bug ends in a minimal executable test that fails on Lucene main while the bug is present; 3 tests of the earlier study assert the current behaviour instead (they pass while the bug is present), and their repro pages say so.
+The hunt used AI models (Anthropic Claude Opus and OpenAI GPT-5.6) with formal methods (TLA+/TLC model checking, Alloy, Z3/cvc5 SMT solving, Dafny proofs and bounded model checking) alongside fuzzing, model-based, property-based and differential testing, and static analysis. Of the 753 new bugs the hunt found that are shown in full, a formal tool's own output gave the first signal for 43; a semi-formal check (a check of the real jar against exact semantics over a bounded input space, exhaustive or for some harnesses randomly sampled, or a hypothesis formed while modelling that a tool then witnessed) for 417; code reading or other testing for 266; and a testing baseline for 27. Every bug ends in a minimal executable test that fails while the bug is present (on Lucene main, or on the release branch for a bug only a release branch has).
 
 ## Lucene version
 
-Tested against Lucene main ea57360912ed (2026-10-24) unless a repro says otherwise. On 2026-10-26, 458 of the repros were set up for a rerun on main a9779ef3c193. 456 ran and still show the bug (454 unchanged, 2 with changed behaviour: LFV-160, LFV-462, one of them with an adapted repro); 2 (LFV-003, LFV-069) could not be run, because the rerun host had too little memory for them. None had been fixed upstream. The repros of the other bugs shown in full were last run on these commits: 392 on a9779ef3c193, 94 on ea57360912ed, 2 without a recorded commit; each repro page says where its repro was run.
+The hunt began on Lucene main ea57360912ed (2026-10-24). On 2026-10-26, 458 of the repros then published were set up for a rerun on main a9779ef3c193. 456 ran and still showed the bug (454 unchanged, 2 with changed behaviour: LFV-160, LFV-462, one of them with an adapted repro); 2 (LFV-003, LFV-069) could not be run, because the rerun host had too little memory for them. None had been fixed upstream. Since then, 729 of the bugs shown in full got a smaller repro, one minimal test, which replaces their earlier repro files. The repros published now were last run on these commits: 749 on 645d4fe14a20, 224 on a9779ef3c193, 33 on ea57360912ed, 2 on Lucene branch_10_6 4ae946e5a9b9, 2 on b83101cdd2; each repro page says where its repro was run, or that no run is on file.
 
 ## Reproduce a bug
 

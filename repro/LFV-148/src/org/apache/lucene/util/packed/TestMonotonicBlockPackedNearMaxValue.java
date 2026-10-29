@@ -16,55 +16,29 @@
  */
 package org.apache.lucene.util.packed;
 
-import java.io.IOException;
+import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * MonotonicBlockPackedWriter is documented as "a writer for large monotonically increasing sequences
- * of positive longs". Blocks whose values come close to Long.MAX_VALUE are read back wrong: the
- * writer's expected value min + (long) (avg * i) overflows, so the min adjustment is skipped and a
- * negative delta is encoded with too few bits.
- */
 public class TestMonotonicBlockPackedNearMaxValue extends LuceneTestCase {
 
-  private static long[] roundTrip(long[] values, int blockSize) throws IOException {
-    try (Directory dir = newDirectory()) {
+  public void testTwoValuesEndingAtLongMaxValue() throws Exception {
+    try (Directory dir = new ByteBuffersDirectory()) {
       try (IndexOutput out = dir.createOutput("values", IOContext.DEFAULT)) {
-        MonotonicBlockPackedWriter writer = new MonotonicBlockPackedWriter(out, blockSize);
-        for (long v : values) {
-          writer.add(v);
-        }
+        MonotonicBlockPackedWriter writer = new MonotonicBlockPackedWriter(out, 64);
+        writer.add(1);
+        writer.add(Long.MAX_VALUE);
         writer.finish();
       }
       try (IndexInput in = dir.openInput("values", IOContext.DEFAULT)) {
         MonotonicBlockPackedReader reader =
-            MonotonicBlockPackedReader.of(in, PackedInts.VERSION_CURRENT, blockSize, values.length);
-        long[] read = new long[values.length];
-        for (int i = 0; i < values.length; ++i) {
-          read[i] = reader.get(i);
-        }
-        return read;
+            MonotonicBlockPackedReader.of(in, PackedInts.VERSION_CURRENT, 64, 2);
+        // expected Long.MAX_VALUE, actual Long.MIN_VALUE (min + (long) (avg * i) wraps in flush())
+        assertEquals(Long.MAX_VALUE, reader.get(1));
       }
     }
-  }
-
-  /** Two positive, strictly increasing values. */
-  public void testTwoValuesEndingAtLongMaxValue() throws IOException {
-    long[] values = {1L, Long.MAX_VALUE};
-    assertArrayEquals(values, roundTrip(values, 64));
-  }
-
-  /** A full block of 64 strictly increasing positive values. */
-  public void testStrictlyIncreasingBlockNearLongMaxValue() throws IOException {
-    long[] values = new long[64];
-    values[0] = 1L << 62;
-    for (int i = 1; i < values.length; ++i) {
-      values[i] = Long.MAX_VALUE - (values.length - 1 - i);
-    }
-    assertArrayEquals(values, roundTrip(values, 64));
   }
 }

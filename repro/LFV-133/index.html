@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You create a FixedBitSet of 2^31-63 to 2^31-1 bits (for example new FixedBitSet(Integer.MAX_VALUE), a legal length: the class javadoc points to LongBitSet only for more than 2.1B bits), set some bits and call approximateCardinality; you expect a non-negative estimate of the number of set bits, as BitSet documents (&#x27;an approximation of the cardinality of this set&#x27;). Instead it returns a negative number (-2147418112 with all 2^31-1 bits set, -64 with a single set bit), because the scale factor (interval / rangeLength) * numWords / maxWord is computed in int and its product 64 * numWords wraps to Integer.MIN_VALUE once the set has 2^25 words; new BitDocIdSet(bits) then throws IllegalArgumentException &#x27;cost must be &gt;= 0&#x27;. No Lucene code path builds a bit set that long (doc-ID sets stop at IndexWriter.MAX_DOCS = 2^31-129 bits), so only external code that uses FixedBitSet directly over another int domain is affected.</p>
+<p>The test shows that <code>FixedBitSet.approximateCardinality()</code> returns a negative number for a set of Integer.MAX_VALUE bits, because its scale factor <code>64 * numWords</code> is computed in int and wraps at 2^25 words.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect a non-negative estimate of the number of set bits, as BitSet documents (&#x27;an approximation of the cardinality of this set&#x27;).</li><li><b>Actual:</b> It returns a negative number (-2147418112 with all 2^31-1 bits set, -64 with a single set bit), because the scale factor (interval / rangeLength) * numWords / maxWord is computed in int and its product 64 * numWords wraps to Integer.MIN_VALUE once the set has 2^25 words; new BitDocIdSet(bits) then throws IllegalArgumentException &#x27;cost must be &gt;= 0&#x27;.</li></ul>
+<p>Expected: a non-negative estimate (one bit is set). Actual: <code>-64</code>, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/util/TestFixedBitSetApproximateCardinalityLarge.java"><code>src/org/apache/lucene/util/TestFixedBitSetApproximateCardinalityLarge.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/util/TestFixedBitSetApproximateCardinalityOverflow.java"><code>src/org/apache/lucene/util/TestFixedBitSetApproximateCardinalityOverflow.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -42,9 +43,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx3g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.util.TestFixedBitSetApproximateCardinalityLarge</code></pre>
+     execute --select-class org.apache.lucene.util.TestFixedBitSetApproximateCardinalityOverflow</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/bitsets-livedocs-acceptdocs/index.html">bitsets-livedocs-acceptdocs</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

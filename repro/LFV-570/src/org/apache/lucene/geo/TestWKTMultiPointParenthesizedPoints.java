@@ -16,36 +16,19 @@
  */
 package org.apache.lucene.geo;
 
+import java.text.ParseException;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * MULTIPOINT with each point in its own parentheses, e.g. {@code MULTIPOINT ((1 2), (3 4))}, is
- * the form of the WKT grammar; SimpleWKTShapeParser accepts it for one point but rejects it for
- * two or more.
- */
 public class TestWKTMultiPointParenthesizedPoints extends LuceneTestCase {
 
-  private static double[][] parse(String wkt) throws Exception {
-    return (double[][]) SimpleWKTShapeParser.parse(wkt);
-  }
-
-  public void testOneParenthesizedPoint() throws Exception {
-    // control: accepted today
-    assertArrayEquals(new double[][] {{1, 2}}, parse("MULTIPOINT ((1 2))"));
-  }
-
-  public void testUnparenthesizedPoints() throws Exception {
-    // control: accepted today
-    assertArrayEquals(new double[][] {{1, 2}, {3, 4}}, parse("MULTIPOINT (1 2, 3 4)"));
-  }
-
   public void testTwoParenthesizedPoints() throws Exception {
-    assertArrayEquals(new double[][] {{1, 2}, {3, 4}}, parse("MULTIPOINT ((1 2), (3 4))"));
-  }
-
-  public void testParenthesizedPointsInCollection() throws Exception {
-    Object[] collection =
-        (Object[]) SimpleWKTShapeParser.parse("GEOMETRYCOLLECTION (MULTIPOINT ((1 2), (3 4)), POINT (5 6))");
-    assertArrayEquals(new double[][] {{1, 2}, {3, 4}}, (double[][]) collection[0]);
+    String wkt = "MULTIPOINT ((1 2), (3 4))";
+    Object shape;
+    try {
+      shape = SimpleWKTShapeParser.parse(wkt);
+    } catch (ParseException e) {
+      throw new AssertionError("expected " + wkt + " to parse as {{1, 2}, {3, 4}}, got " + e, e);
+    }
+    assertArrayEquals(new double[][] {{1, 2}, {3, 4}}, (double[][]) shape);
   }
 }

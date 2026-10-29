@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You re-sort an index that uses document blocks and a parent field (IndexWriterConfig#setParentField) the way the SortingCodecReader javadoc describes: wrap each segment with SortingCodecReader.wrap(reader, newSort) and pass the wrapped readers to IndexWriter#addIndexes(CodecReader...) of a fresh writer with the new index sort and the same parent field. You expect the re-sort to succeed, as it does with assertions disabled (the result is then correctly sorted with every block intact) and as it does for an index without blocks. Instead, with Java assertions enabled (-ea), addIndexes throws AssertionError &#x27;only sort fields should be cached twice but [_parent] is not a sort field&#x27; and the destination writer closes, because MultiSorter reads the parent field&#x27;s doc values once to find the blocks and the doc-values merge reads them again, while SortingCodecReader&#x27;s internal check allows a second read only for sort fields.</p>
+<p>The test shows that re-sorting an index with document blocks and a parent field through <code>SortingCodecReader.wrap</code> + <code>IndexWriter#addIndexes(CodecReader...)</code> (the recipe in the SortingCodecReader javadoc) trips SortingCodecReader&#x27;s doc-values cache assertion, because MultiSorter and the doc-values merge both read the <code>_parent</code> field.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect the re-sort to succeed, as it does with assertions disabled (the result is then correctly sorted with every block intact) and as it does for an index without blocks.</li><li><b>Actual:</b> With Java assertions enabled (-ea), addIndexes throws AssertionError &#x27;only sort fields should be cached twice but [_parent] is not a sort field&#x27; and the destination writer closes, because MultiSorter reads the parent field&#x27;s doc values once to find the blocks and the doc-values merge reads them again, while SortingCodecReader&#x27;s internal check allows a second read only for sort fields.</li></ul>
+<p>Expected <code>addIndexes</code> to succeed; actual with <code>-ea</code>: <code>AssertionError: only sort fields should be cached twice but [_parent] is not a sort field</code>. With <code>-da</code> the test passes, as the claim says (assertion-only bug).</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/index/TestSortingCodecReaderParentFieldAddIndexes.java"><code>src/org/apache/lucene/index/TestSortingCodecReaderParentFieldAddIndexes.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/index/TestSortingCodecReaderParentField.java"><code>src/org/apache/lucene/index/TestSortingCodecReaderParentField.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -44,6 +45,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestSortingCodecReaderParentFieldAddIndexes</code></pre>
+     execute --select-class org.apache.lucene.index.TestSortingCodecReaderParentField</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

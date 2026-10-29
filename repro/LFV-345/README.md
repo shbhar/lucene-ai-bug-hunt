@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You load a hunspell dictionary whose.aff file ends with a REP, MAP, ICONV/OCONV, COMPOUNDRULE, BREAK or CHECKCOMPOUNDPATTERN table that announces more lines than it holds (for example 'REP 2' followed by a single REP line, as a cut-off download or a careless hand edit leaves it), and expect the parse error that the Dictionary constructors document (ParseException), which is what Lucene already throws for a PFX/SFX table cut short ('Premature end of rules') and, since 10.2.0, what the tolerateRepRuleCountMismatches javadoc promises for a wrong REP count by default. Instead the parser passes the null that readLine returns at end of file straight into a string method and throws NullPointerException ('Cannot invoke "String.split(String)" because "line" is null'), with no directive or line number, which also bypasses HunspellStemFilterFactory's 'Unable to load hunspell data!' wrapping of ParseException. The file is refused either way; only the error is wrong.
 
+The test shows that hunspell `Dictionary` built from an.aff file that ends in `REP 2` followed by only one `REP a b` line fails with a NullPointerException.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The parser passes the null that readLine returns at end of file straight into a string method and throws NullPointerException ('Cannot invoke "String.split(String)" because "line" is null'), with no directive or line number, which also bypasses HunspellStemFilterFactory's 'Unable to load hunspell data!' wrapping of ParseException.
+Expected: `ParseException` (`tolerateRepRuleCountMismatches()` is false by default: "a ParseException will happen"). Actual: `NullPointerException: Cannot invoke "String.split(String)" because "line" is null`.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/hunspell/TestTruncatedAffixDirectives.java](src/org/apache/lucene/analysis/hunspell/TestTruncatedAffixDirectives.java) (JUnit test)
+- [src/org/apache/lucene/analysis/hunspell/TestTruncatedRepTable.java](src/org/apache/lucene/analysis/hunspell/TestTruncatedRepTable.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -39,7 +40,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.hunspell.TestTruncatedAffixDirectives
+     execute --select-class org.apache.lucene.analysis.hunspell.TestTruncatedRepTable
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

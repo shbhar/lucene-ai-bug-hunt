@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 In a Lucene test you search with LuceneTestCase.newSearcher (an AssertingIndexSearcher) and a collector whose collect(DocIdStream) first calls stream.forEach(5, consumer) and then stream.count for the rest, which the DocIdStream javadoc allows ('up to the given upTo exclusive... It is not possible to iterate these doc IDs again later on'). You expect the split a plain IndexSearcher gives: docs 0-4 in the first step and docs 5-9 counted afterwards. Instead the test framework's wrapper calls the wrapped stream's unbounded forEach, so the first step also receives docs 5-9 and the second step gets nothing (with -da), and with -ea the nested wrapper then rejects the legal count with AssertionError 'exhausted'.
 
+The test shows that the test framework's `AssertingLeafCollector` wraps a DocIdStream, and the wrapper's `forEach(int upTo, consumer)` ignores `upTo`, so it passes every remaining doc to the consumer.
+
 ## Expected vs actual
 
-- Expected: You expect the split a plain IndexSearcher gives: docs 0-4 in the first step and docs 5-9 counted afterwards.
-- Actual: The test framework's wrapper calls the wrapped stream's unbounded forEach, so the first step also receives docs 5-9 and the second step gets nothing (with -da), and with -ea the nested wrapper then rejects the legal count with AssertionError 'exhausted'.
+Expected: `forEach(5,...)` over docs 0-9 sees `[0, 1, 2, 3, 4]`. Actual on main with -ea and with -da: `[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]`.
 
 ## Files
 
-- [src/org/apache/lucene/tests/search/TestAssertingDocIdStreamForEachUpTo.java](src/org/apache/lucene/tests/search/TestAssertingDocIdStreamForEachUpTo.java) (JUnit test)
+- [src/org/apache/lucene/tests/search/TestAssertingLeafCollectorForEachUpTo.java](src/org/apache/lucene/tests/search/TestAssertingLeafCollectorForEachUpTo.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -34,10 +36,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed 5EED0205
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=5EED0205 \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.tests.search.TestAssertingDocIdStreamForEachUpTo
+     execute --select-class org.apache.lucene.tests.search.TestAssertingLeafCollectorForEachUpTo
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

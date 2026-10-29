@@ -22,13 +22,17 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You read the Lucene 10.6.0 release notes (CHANGES.txt or the generated Changes.html of RC1) and follow the issue link of the entry &#x27;CheckIndex now reports which segment&#x27;s.si file could not be read&#x27;. You expect it to lead to GITHUB#7820, the issue the feature commit, CheckIndex.java and main&#x27;s copy of the entry all name; instead the entry says GITHUB#17820 and its GitHub issue link (number 17820) returns 404. The extra digit was added when #16788 was backported to branch_10x and branch_10_6 (main&#x27;s commit of the same PR kept 7820), and it ships in the RC1 source release.</p>
+<p>The test shows that the 10.6.0 RC1 <code>lucene/CHANGES.txt</code> (branch_10_6 4ae946e5a9b, line 112) credits the CheckIndex &#x27;.si file could not be read&#x27; entry to <code>GITHUB#17820</code>, an issue that does not exist; main&#x27;s copy of the entry is correct.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect it to lead to GITHUB#7820, the issue the feature commit, CheckIndex.java and main&#x27;s copy of the entry all name; instead the entry says GITHUB#17820 and its GitHub issue link (number 17820) returns 404.</li><li><b>Actual:</b> While the bug is present the test fails; the failure message states expected against actual.</li></ul>
+<p>Expected <code>GITHUB#7820</code> (the issue CheckIndex.java links); actual <code>GITHUB#17820</code> (<code>expected:&lt;GITHUB#[]7820&gt; but was:&lt;GITHUB#[1]7820&gt;</code>, -ea and -da).</p>
 <h2>Files</h2><ul>
-<li><a href="src/ChangesIssueRefCheck.java"><code>src/ChangesIssueRefCheck.java</code></a> <span class="dim">(main() class)</span></li>
+<li><a href="src/org/apache/lucene/index/TestChangesCheckIndexEntryIssue.java"><code>src/org/apache/lucene/index/TestChangesCheckIndexEntryIssue.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>How to read the outcome: a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
+<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
+<li>Not runnable from this site as is: this repro also needs extra JVM setup (such as an instrumentation hook) that is not exported here; see the comments at the top of the source.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
@@ -39,8 +43,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions on, seed DEADBEEF, default flags
+# run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; ChangesIssueRefCheck</code></pre>
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.index.TestChangesCheckIndexEntryIssue</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

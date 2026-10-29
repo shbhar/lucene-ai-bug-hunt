@@ -1,6 +1,6 @@
 # QueryNodeProcessorPipeline's listIterator/subList views, and replaceAll / Collections.replaceAll built on them, put processors on the pipeline without its QueryConfigHandler, so the flexible query parser silently skips point, boost and default phrase slop handling or throws NullPointerException
 
-Bug LFV-966 · Area: queryparser / flexible core: QueryNodeProcessorPipeline (java.util.List views and default methods) · Priority: unranked · Impact: silent wrong results · Novelty: new
+Bug LFV-966 · Area: queryparser / flexible core: QueryNodeProcessorPipeline (java.util.List views and default methods) · Priority: low · Impact: silent wrong results · Novelty: new
 
 Bug page: [../../bugs/LFV-966.html](../../bugs/LFV-966.html)
 
@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You customise a flexible query parser pipeline, for example StandardQueryParser's, by inserting or replacing a processor through the pipeline's java.util.List API: pipeline.listIterator then add or set, subList(..).set, pipeline.replaceAll or Collections.replaceAll. You expect the processor to receive the pipeline's QueryConfigHandler, as it does with add(k, p) or set(k, p), because the class says it 'takes care of setting this QueryConfigHandler on all processor on pipeline'. Instead those paths write through the private ArrayList's own views and leave the processor with a null handler, so a replaced PointQueryNodeProcessor turns n:5 into a TermQuery that finds 0 of 1 matching documents, a replaced BoostQueryNodeProcessor drops field boosts, and most other stock processors throw NullPointerException at parse.
 
+The test shows that a processor put on a QueryNodeProcessorPipeline through its listIterator() (here replacing StandardQueryParser's PointQueryNodeProcessor with ListIterator.set) never gets the pipeline's QueryConfigHandler, unlike pipeline.set(k, p).
+
 ## Expected vs actual
 
-- Expected: `n:5` parses to `n:[5 TO 5]` and finds the document, `f:foo` keeps its boost as `(f:foo)^2.0`, and the inserted processor carries the pipeline's config.
-- Actual: `n:5` is a `TermQuery` with 0 hits, `f:foo` loses its boost through `replaceAll` and `subList`, and the inserted processor's config is `null`: 4 of 5 tests fail.
+Expected `n:5` (a field with a PointsConfig) to parse to a PointRangeQuery; actual: `TermQuery n:5` (`expected a PointRangeQuery, got org.apache.lucene.search.TermQuery n:5`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/queryparser/flexible/core/processors/TestPipelineListViewsConfigHandler.java](src/org/apache/lucene/queryparser/flexible/core/processors/TestPipelineListViewsConfigHandler.java) (JUnit test)
+- [src/org/apache/lucene/queryparser/flexible/core/processors/TestPipelineListIteratorSetConfigHandler.java](src/org/apache/lucene/queryparser/flexible/core/processors/TestPipelineListIteratorSetConfigHandler.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,22 +42,15 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queryparser.flexible.core.processors.TestPipelineListViewsConfigHandler
+     execute --select-class org.apache.lucene.queryparser.flexible.core.processors.TestPipelineListIteratorSetConfigHandler
 ```
 
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestPipelineListViews.java](TestPipelineListViews.java)
-- [TestPipelineListViewsConfigHandler.java](TestPipelineListViewsConfigHandler.java)
-- [TestPipelineViewEditsV1.java](TestPipelineViewEditsV1.java)
-- [PipelineInsertAfterMain.java](PipelineInsertAfterMain.java)
 
 ## Feedback
 

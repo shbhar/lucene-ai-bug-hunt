@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You call UnifiedHighlighter.highlight(field, query, topDocs, 0), or highlightFields with a per-field count of 0, and expect what the same call already does for a document without a match: a null snippet (or, if 0 is not allowed, an IllegalArgumentException that says so). Instead, for every document that has a match in the field, FieldHighlighter.maybeAddPassage tests passageQueue.size == maxPassages (0 == 0) while the passage queue is still empty and then calls passageQueue.peek.getScore, so a NullPointerException escapes the call. With {title: 0, body: 1} the body field, which asked for one passage, loses its snippet too, because the whole call throws.
 
+The test shows that `UnifiedHighlighter.highlight(field, query, topDocs, 0)` fails with an internal NullPointerException for a document that matches in the field.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: For every document that has a match in the field, FieldHighlighter.maybeAddPassage tests passageQueue.size == maxPassages (0 == 0) while the passage queue is still empty and then calls passageQueue.peek.getScore, so a NullPointerException escapes the call.
+Expected a null snippet (or an up-front `IllegalArgumentException`); actual `NullPointerException` because `PriorityQueue.peek()` is null in `FieldHighlighter.maybeAddPassage` (FieldHighlighter.java:212), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/search/uhighlight/TestUnifiedHighlighterZeroMaxPassages.java](src/org/apache/lucene/search/uhighlight/TestUnifiedHighlighterZeroMaxPassages.java) (JUnit test)
+- [src/org/apache/lucene/search/uhighlight/TestZeroMaxPassages.java](src/org/apache/lucene/search/uhighlight/TestZeroMaxPassages.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,7 +42,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.uhighlight.TestUnifiedHighlighterZeroMaxPassages
+     execute --select-class org.apache.lucene.search.uhighlight.TestZeroMaxPassages
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

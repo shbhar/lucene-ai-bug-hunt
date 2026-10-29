@@ -23,13 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You convert a code-point range that starts below U+0800 and ends at or above U+1000 into a UTF-8 automaton, as makeAnyChar and regex &#x27;.&#x27; do, and match it against binary terms that are not valid UTF-8. You expect only valid UTF-8 to match. Instead the overlong sequences E0 80..9F xx are accepted.</p>
+<p>The test shows that the UTF-8 automaton that UTF32ToUTF8 builds (via ByteRunAutomaton) for the code-point range [U+0000, U+1000] accepts the overlong 3-byte sequence E0 80 80.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> [U+007F, U+1000] compiles to 3,970 byte strings and rejects <code>E0 80 80</code>; <code>RegexpQuery(&quot;.&quot;)</code>, <code>WildcardQuery(&quot;?&quot;)</code> and <code>AutomatonQuery</code> [U+0001, U+10FFFF] each count 1 hit.</li><li><b>Actual:</b> 6,018 strings (2,048 overlong) and <code>E0 80 80</code> accepted, so each query counts 2 hits; [U+007F, U+0FFF] is exact (3,969 strings).</li></ul>
+<p>Expected: rejected (E0 80 80 is an overlong U+0000 and the UTF-8 encoding of no code point); actual (-ea and -da): accepted.</p>
 <h2>Files</h2><ul>
-<li><a href="src/TestUtf32ToUtf8OverlongVerify.java"><code>src/TestUtf32ToUtf8OverlongVerify.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/util/automaton/TestUTF32ToUTF8Overlong.java"><code>src/org/apache/lucene/util/automaton/TestUTF32ToUTF8Overlong.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -43,10 +44,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx4g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class TestUtf32ToUtf8OverlongVerify</code></pre>
+     execute --select-class org.apache.lucene.util.automaton.TestUTF32ToUTF8Overlong</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="OverlongUtf8Repro.java"><code>OverlongUtf8Repro.java</code></a></li><li><a href="TestUTF32ToUTF8OverlongResidual.java"><code>TestUTF32ToUTF8OverlongResidual.java</code></a></li><li><a href="test-utf32toutf8.diff"><code>test-utf32toutf8.diff</code></a></li></ul>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/study-automaton-verification/index.html">study-automaton-verification</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

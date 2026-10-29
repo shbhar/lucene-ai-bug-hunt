@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You declare a facet dimension as hierarchical (FacetsConfig.setHierarchical("category", true)), index SortedSetDocValues facets in which no document has "category" yet, and call getTopChildren(10, "category") or getAllChildren("category") on SortedSetDocValuesFacetCounts or ConcurrentSortedSetDocValuesFacetCounts, expecting null, because the Facets javadoc says both methods return null 'if this dimension was never seen' and the same call for a flat dimension does. Instead both throw NullPointerException: Cannot read field "dimStartOrd" because "dimTree" is null (getTopChildren when the query has hits, always with the count-all constructor and the concurrent class; getAllChildren always). The cause is a shortcut added in 9.3.0 to AbstractSortedSetDocValueFacetCounts#prepareChildIteration, which reads dimTree.dimStartOrd for an empty path without checking that state.getDimTree(dim) is non-null, while the flat branch and the path branch next to it return null for the same case.
 
+The test shows that SortedSetDocValuesFacetCounts#getAllChildren throws for a dimension that FacetsConfig declares hierarchical but no document in the reader has.
+
 ## Expected vs actual
 
-- Expected: Every root request for `category` returns null, like the absent flat dimension `publisher`.
-- Actual: `NullPointerException: Cannot read field "dimStartOrd" because "dimTree" is null` at `AbstractSortedSetDocValueFacetCounts.java:257`; 4 of 5 tests fail, the control passes.
+Expected `null` (Facets javadoc: "dimension was never seen"); actual `NullPointerException: Cannot read field "dimStartOrd" because "dimTree" is null`, with `-ea` and `-da`.
 
 ## Files
 
@@ -21,7 +22,8 @@ You declare a facet dimension as hierarchical (FacetsConfig.setHierarchical("cat
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -46,12 +48,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestSsdvHierarchicalDimNotIndexed.java](TestSsdvHierarchicalDimNotIndexed.java)
-- [TestUnseenHierarchicalSsdvDim.java](TestUnseenHierarchicalSsdvDim.java)
-- [TestSsdvHierarchicalUnseenDimHistory.java](TestSsdvHierarchicalUnseenDimHistory.java)
 
 ## Feedback
 

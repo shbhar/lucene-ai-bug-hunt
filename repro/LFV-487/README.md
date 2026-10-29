@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index a field with BlockTreeOrdsPostingsFormat (here 26 terms a00..a24 and b in one segment, default block sizes), position a TermsEnum with seekExact(0), take its termState and call seekExact(term, state) on the same enum, which the TermsEnum javadoc allows and which leaves it on a00. You expect a later seekExact("b") to return true, seekCeil("b") to return FOUND and next after a24 to return "b", as they do without the extra TermState call and with every other terms dictionary. Instead seekExact("b") returns false, seekCeil("b") throws EOFException (or, in a segment whose terms file is larger than about 7 KB, returns NOT_FOUND with a made-up term) and next after a24 throws, because seekExact(ord) loads only the target block and deliberately leaves the enum unpositioned, while the TermState seek's 'already on this term' shortcut marks it positioned anyway, so the next call reuses parent frames that were never loaded.
 
+The test shows that on a `BlockTreeOrdsPostingsFormat` TermsEnum, `seekExact(0)` followed by `seekExact(term(), termState())` on the same enum leaves it unable to find another existing term (26 terms a00..a24 and b, default block sizes).
+
 ## Expected vs actual
 
-- Expected: You expect a later seekExact("b") to return true, seekCeil("b") to return FOUND and next after a24 to return "b", as they do without the extra TermState call and with every other terms dictionary.
-- Actual: seekExact("b") returns false, seekCeil("b") throws EOFException (or, in a segment whose terms file is larger than about 7 KB, returns NOT_FOUND with a made-up term) and next after a24 throws, because seekExact(ord) loads only the target block and deliberately leaves the enum unpositioned, while the TermState seek's 'already on this term' shortcut marks it positioned anyway, so the next call reuses parent frames that were never loaded.
+Expected `seekExact("b")` to return `true`; actual `false` (`existing term b: expected seekExact true, got false`), with `-ea` and `-da`.
 
 ## Files
 
 - [src/org/apache/lucene/codecs/blocktreeords/TestOrdsTermStateSeekAfterOrdSeek.java](src/org/apache/lucene/codecs/blocktreeords/TestOrdsTermStateSeekAfterOrdSeek.java) (JUnit test)
-- [src2/org/apache/lucene/codecs/blocktreeords/TestOrdsTermStateSeekAfterOrdSeek.java](src2/org/apache/lucene/codecs/blocktreeords/TestOrdsTermStateSeekAfterOrdSeek.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -33,15 +34,11 @@ CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
-javac -d classes-src -cp "$CP" $(find src -name '*.java')
-javac -d classes-src2 -cp "$CP" $(find src2 -name '*.java')
+javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes-src:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.codecs.blocktreeords.TestOrdsTermStateSeekAfterOrdSeek
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes-src2:$CP" org.junit.platform.console.ConsoleLauncher \
+     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.codecs.blocktreeords.TestOrdsTermStateSeekAfterOrdSeek
 ```
 

@@ -18,18 +18,19 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>Range facet counters add every hit the fastMatchQuery rejects to FacetResult.value, so the dimension total is too high and depends on the segment layout</h1>
-<p class="facts small"><span>Bug LFV-151</span><span>Area: facet / range and range-on-range facet counts (FacetResult.value with a fastMatchQuery)</span><span>Priority: medium</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
+<p class="facts small"><span>Bug LFV-151</span><span>Area: facet / range and range-on-range facet counts (FacetResult.value with a fastMatchQuery)</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
 <p><a href="../../bugs/LFV-151.html">Bug page for LFV-151</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You build a range facet counter (LongRangeFacetCounts or DoubleRangeFacetCounts on a single-valued field or values source, or a range-on-range counter) with a fastMatchQuery that removes only hits outside every range, which is what it is for, and read FacetResult.value. You expect the same dimension total as without the fastMatchQuery: the number of hits that fall into at least one range. Instead each segment adds all of its hits up front but subtracts only the documents the fastMatchQuery let through, so the hits it rejected stay in the total (3 instead of 1 in the minimal repro, while the range count is 1), and the same documents and query give 3 in one segment and 1 in two.</p>
+<p>The test shows that LongRangeFacetCounts with a fastMatchQuery that only rejects documents outside the range counts those rejected hits in FacetResult.value (one segment, v = 0, 10, 20, range [0,5]).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>FacetResult.value</code> is 1 for every counter, with or without the <code>fastMatchQuery</code>, in one segment or two.</li><li><b>Actual:</b> With the <code>fastMatchQuery</code> in one segment the totals are <code>[3, 3, 3, 3, 3, 3, 1]</code> (only the multi-valued control is right), in two segments 1; every range count is 1.</li></ul>
+<p>Expected total 1 (only v=0 is in a range, the same as without the fastMatchQuery); actual 3 (<code>expected:&lt;1&gt; but was:&lt;3&gt;</code>).</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/facet/rangeonrange/TestRangeOnRangeFastMatchTotalCount.java"><code>src/org/apache/lucene/facet/rangeonrange/TestRangeOnRangeFastMatchTotalCount.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/facet/range/TestLongRangeFacetFastMatchTotal.java"><code>src/org/apache/lucene/facet/range/TestLongRangeFacetFastMatchTotal.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -46,8 +47,7 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.facet.rangeonrange.TestRangeOnRangeFastMatchTotalCount</code></pre>
+     execute --select-class org.apache.lucene.facet.range.TestLongRangeFacetFastMatchTotal</code></pre>
 <p class="small">The module(s) facet also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestRangeFacetFastMatchTotal.java"><code>TestRangeFacetFastMatchTotal.java</code></a></li><li><a href="TestRangeOnRangeFastMatchTotalCount.java"><code>TestRangeOnRangeFastMatchTotalCount.java</code></a></li><li><a href="TestRangeFacetTotalFastMatchV1.java"><code>TestRangeFacetTotalFastMatchV1.java</code></a></li><li><a href="TestRangeFacetTotalSegmentDependence.java"><code>TestRangeFacetTotalSegmentDependence.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

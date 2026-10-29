@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You call IndexWriter.deleteDocuments(query) (or updateDocuments(query, docs)) on an index with two or more segments and expect it to delete the documents IndexSearcher.search(query) returns, since the javadoc says it &#x27;Deletes the document(s) matching any of the provided queries&#x27;. Instead the writer rewrites the query on a separate one-segment IndexSearcher for each segment, so top-k, top-N term expansion and index statistics are computed per segment: a kNN query with k=2 deletes up to 2 documents per segment (4 on two segments), a default FuzzyQuery deletes 60 documents where search finds 50, and MoreLikeThisQuery or a score-range predicate deletes none of the documents search returns. With the same documents committed in one segment before the delete, the delete equals the search result, so the segment layout alone decides what is deleted, and the result is permanent once committed.</p>
+<p>The test shows that <code>IndexWriter.deleteDocuments(Query)</code> resolves a kNN query on each segment separately, so on two segments it deletes a different set than <code>IndexSearcher</code> returns for the same query.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> Every delete removes exactly the documents search returned: ids 0 and 1 for kNN, the 50 one-edit documents for the fuzzy query.</li><li><b>Actual:</b> 3 of 5 tests fail: kNN deletes ids 0, 1, 3 and 4 (also via <code>updateDocuments</code>), and the fuzzy query deletes 60 documents; both controls pass.</li></ul>
+<p>Expected: <code>KnnFloatVectorQuery</code> k=1 matches 1 of the 2 documents (one per segment), so 1 document stays live; actual: the top 1 of each segment is deleted, 0 left (<code>expected:&lt;1&gt; but was:&lt;0&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/index/TestDeleteByQueryPerSegmentEvaluation.java"><code>src/org/apache/lucene/index/TestDeleteByQueryPerSegmentEvaluation.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/index/TestDeleteByKnnQuery.java"><code>src/org/apache/lucene/index/TestDeleteByKnnQuery.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -36,7 +38,6 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
-CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
@@ -45,7 +46,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestDeleteByQueryPerSegmentEvaluation</code></pre>
+     execute --select-class org.apache.lucene.index.TestDeleteByKnnQuery</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestDeleteByQueryMatchesSearchHits.java"><code>TestDeleteByQueryMatchesSearchHits.java</code></a></li><li><a href="TestDeleteByQueryPerSegmentEvaluation.java"><code>TestDeleteByQueryPerSegmentEvaluation.java</code></a></li><li><a href="TestDeleteByQueryMatchesSearch.java"><code>TestDeleteByQueryMatchesSearch.java</code></a></li><li><a href="ProbeDeleteQueryPerSegment4x.java"><code>ProbeDeleteQueryPerSegment4x.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

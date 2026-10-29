@@ -10,20 +10,21 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index polygons with LatLonShape or XYShape and ask which of them CONTAIN a query polygon that has holes, for example a region with two lakes cut out; an indexed polygon whose own hole runs across the land between the two lakes does not cover that land, so it must not match. Polygon2D.withinTriangle rejects an indexed triangle only when one of its vertices is inside the query or one of its real (original-shape) edges crosses the query's outer ring; it never tests the query's hole edges, so an edge that starts and ends inside query holes and crosses the land between them goes unnoticed and the shape is returned as CONTAINS, with no error. Repro: query = the square [0,10]^2 with holes [1,3]x[4,6] and [7,9]x[4,6]; doc 0 = the square [-1,11]^2 with a hole [2,8]x[4.5,5.5] (it does not cover the query point (5,5)), doc 1 = the same square without a hole; CONTAINS returns [0, 1] instead of [1] for XYShape and LatLonShape, while a point query at (5,5) correctly returns only doc 1.
 
+The test shows that XYShape CONTAINS with a query polygon that has two holes matches an indexed polygon whose own hole runs across the query's land between them, because Polygon2D.withinTriangle never tests the query's hole edges.
+
 ## Expected vs actual
 
-- Expected: CONTAINS returns docs 1 and 2 (`[1, 2]`), the same docs the point query at (5,5) returns.
-- Actual: CONTAINS returns `[0, 1, 2]`: doc 0, whose own hole removes (5,5), is reported as containing the query, for XYShape and LatLonShape alike.
+Expected: 0 CONTAINS hits (the doc's hole removes (5,5), and the point query confirms the doc does not cover it). Actual: 1 (`doc must not CONTAIN the query expected:<0> but was:<1>`, with -ea and -da).
 
 ## Files
 
-- [src/org/apache/lucene/document/TestContainsQueryPolygonHoles.java](src/org/apache/lucene/document/TestContainsQueryPolygonHoles.java) (JUnit test)
-- [src/ContainsQueryPolygonHolesMain.java](src/ContainsQueryPolygonHolesMain.java) (main() class)
+- [src/org/apache/lucene/document/TestXYShapeContainsHoledQuery.java](src/org/apache/lucene/document/TestXYShapeContainsHoledQuery.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -40,23 +41,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.document.TestContainsQueryPolygonHoles
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" ContainsQueryPolygonHolesMain
+     execute --select-class org.apache.lucene.document.TestXYShapeContainsHoledQuery
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestContainsQueryPolygonHoles.java](TestContainsQueryPolygonHoles.java)
-- [TestPolygon2DWithinHoles.java](TestPolygon2DWithinHoles.java)
-- [ContainsHolesReachProbe.java](ContainsHolesReachProbe.java)
-- [WithinHoleBoundaryProbe.java](WithinHoleBoundaryProbe.java)
-- [ContainsFixLimitsProbe.java](ContainsFixLimitsProbe.java)
-- [TestContainsHoledQueryBand.java](TestContainsHoledQueryBand.java)
 
 ## Feedback
 

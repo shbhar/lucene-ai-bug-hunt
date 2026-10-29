@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You group documents by a double field with new DoubleRangeFactory(-10, 5, 10), meaning buckets 5 wide from -10 to 10 and every value below -10 in one bucket, and expect the bucket returned for -20 to be a [min, max) range that contains -20, the way LongRangeFactory returns [Long.MIN_VALUE, -10). Instead DoubleRangeFactory returns DoubleRange(4.9E-324, -10.0): it uses Double.MIN_VALUE as the lower end, and Double.MIN_VALUE is the smallest positive double, not the most negative one, so the range is inverted and holds none of its members (with min &gt; 0 it leaves out 0.0 and every negative member). Each group still holds the right documents, but its reported bounds are wrong, and a range query built from them, the way Lucene's own selector tests rebuild a group, finds none or only some of the group's documents.
 
+The test shows that `new DoubleRangeFactory(-10, 5, 10).getRange(-20, null)` gives the below-min bucket the lower bound `Double.MIN_VALUE` (the smallest positive double).
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: DoubleRangeFactory returns DoubleRange(4.9E-324, -10.0): it uses Double.MIN_VALUE as the lower end, and Double.MIN_VALUE is the smallest positive double, not the most negative one, so the range is inverted and holds none of its members (with min &gt; 0 it leaves out 0.0 and every negative member).
+Expected: a [min, -10.0) range that contains -20; actual (-ea and -da): the inverted, empty `DoubleRange(4.9E-324, -10.0)` ("DoubleRange(4.9E-324, -10.0) should contain -20.0").
 
 ## Files
 
@@ -19,8 +20,8 @@ You group documents by a double field with new DoubleRangeFactory(-10, 5, 10), m
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

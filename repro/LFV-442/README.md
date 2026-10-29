@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You configure the default TieredMergePolicy with setMaxMergedSegmentMB(0), which the setter accepts (it rejects only negative values, with the message 'must be &gt;=0'), delete some documents, and expect commit, close and forceMergeDeletes to succeed, either with no merge or with the singleton merge the class javadoc promises for segments over the maximum ('down to 1 at once, if that one has deletions'), as they do with a 1-byte maximum and as they did on 7.4.0. Instead the candidate loop in doFindMerges requires 'bytesThisMerge &lt; maxMergedSegmentBytes', which is 0 &lt; 0 before the first segment is added, so no segment is ever admitted and the candidate list stays empty. 'assert candidate.size &gt; 0' then fails with -ea, and candidate.get(0) throws IndexOutOfBoundsException ('Index 0 out of bounds for length 0') with -da, out of the writer call.
 
+The test shows that `TieredMergePolicy.setMaxMergedSegmentMB(0)`, which the setter accepts, makes `forceMergeDeletes()` throw on a 5-doc segment with 1 deleted doc: the `doFindMerges` candidate loop never admits a segment, so the merge candidate is empty.
+
 ## Expected vs actual
 
-- Expected: `commit` and `forceMergeDeletes` succeed and leave 6 and 8 live documents (or the setter rejects 0).
-- Actual: Both throw: `AssertionError` at `TieredMergePolicy.java:578` with assertions on, `IndexOutOfBoundsException: Index 0 out of bounds for length 0` at `:580` with them off.
+Expected `forceMergeDeletes()` to succeed; actual: `AssertionError` at `TieredMergePolicy.java:578` (`-ea`) or `IndexOutOfBoundsException: Index 0 out of bounds for length 0` at `:580` (`-da`), from `findForcedDeletesMerges`.
 
 ## Files
 
@@ -21,8 +22,8 @@ You configure the default TieredMergePolicy with setMaxMergedSegmentMB(0), which
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,19 +38,13 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.index.TestTieredMergePolicyZeroMaxMergedSegment
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestTieredMergePolicyZeroMaxMergedSegment.java](TestTieredMergePolicyZeroMaxMergedSegment.java)
-- [TestTMPZeroMaxMergedV1.java](TestTMPZeroMaxMergedV1.java)
-- [TestTMPZeroMaxMergedControlV1.java](TestTMPZeroMaxMergedControlV1.java)
 
 ## Feedback
 

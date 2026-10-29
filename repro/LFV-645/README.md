@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You convert a date before AD 1 or after 9999 with DateTools.timeToString (or dateToString) and expect what the class javadoc promises: strings whose lexicographic order is date order, which stringToTime turns back into the same time. Instead the SimpleDateFormat pattern 'yyyy...' prints the year of era with no era and at least four digits: 2 BC-01-01 becomes "00020101", which sorts after AD 1's "00010101" and parses back as AD 2-01-01 (at YEAR resolution 1 BC and AD 1 both give "0001"), and 10000-01-01 becomes "100000101", which sorts before "20260101" and makes stringToTime throw ParseException, because the parser is chosen by string length. Range queries, prefix queries and sorts on such terms therefore return wrong results with no error.
 
+The test shows that `DateTools.timeToString(2 BC-01-01 GMT, DAY)` gives `"00020101"` (no era), and `stringToTime` turns DateTools' own string back into AD 2-01-01.
+
 ## Expected vs actual
 
-- Expected: 2 BC sorts before AD 1 and reads back as 2 BC, 10000 sorts after 2026 and reads back, and AD 1000..1500 matches no 1200 BC document.
-- Actual: `00020101` sorts after `00010101` and reads back as AD 2, `100000101` sorts before `20260101` and throws `ParseException`, and the range matches the 1200 BC document: 5 of 6 fail.
+Expected `-62198928000000` (2 BC-01-01); actual `-62104233600000` (AD 2-01-01): `2 BC-01-01 GMT -> 00020101 expected:<-62198928000000> but was:<-62104233600000>` (-ea and -da).
 
 ## Files
 
-- [src/org/apache/lucene/document/TestDateToolsOrderOutsideFourDigitYears.java](src/org/apache/lucene/document/TestDateToolsOrderOutsideFourDigitYears.java) (JUnit test)
+- [src/org/apache/lucene/document/TestDateToolsBCRoundTrip.java](src/org/apache/lucene/document/TestDateToolsBCRoundTrip.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -39,18 +41,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.document.TestDateToolsOrderOutsideFourDigitYears
+     execute --select-class org.apache.lucene.document.TestDateToolsBCRoundTrip
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestDateToolsYearRange.java](TestDateToolsYearRange.java)
-- [TestDateToolsOrderOutsideFourDigitYears.java](TestDateToolsOrderOutsideFourDigitYears.java)
-- [TestDateToolsYearRangeV1.java](TestDateToolsYearRangeV1.java)
-- [TestDateToolsReachability.java](TestDateToolsReachability.java)
-- [DateToolsYearProbe.java](DateToolsYearProbe.java)
 
 ## Feedback
 

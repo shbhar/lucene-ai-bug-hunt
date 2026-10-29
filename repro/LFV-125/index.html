@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You build PatienceKnnVectorQuery.fromSeededQuery(SeededKnnVectorQuery.fromFloatQuery(knnQuery, seedQuery)) and search it with IndexSearcher. You expect the query object to be unchanged by the search (Weight javadoc: &#x27;searching does not modify a Query, so that a Query instance can be reused&#x27;), so it can be compared, cached and reused, including by several threads on different readers. Instead rewrite stores a new SeededKnnVectorQuery holding a seed Weight built for the current searcher in the query&#x27;s own delegate field: after one search the query&#x27;s hashCode has changed and it no longer equals an identical unsearched query, and when two searches of the same object on different readers overlap, the first one runs the other searcher&#x27;s seed Weight on its later segments and fails with &#x27;AssertionError: The top-reader used to create Weight is not the same as the current reader&#x27;s top-reader&#x27; (-ea) or &#x27;ArrayIndexOutOfBoundsException: Index 1 out of bounds for length 1&#x27; at TermStates.get (-da).</p>
+<p>The test shows that searching a PatienceKnnVectorQuery built with fromSeededQuery(SeededKnnVectorQuery) once (one document, one IndexSearcher.search) modifies the query: rewrite stores a searcher-specific seed Weight in its own delegate field, contrary to Weight&#x27;s &quot;searching does not modify a Query&quot;.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect the query object to be unchanged by the search (Weight javadoc: &#x27;searching does not modify a Query, so that a Query instance can be reused&#x27;), so it can be compared, cached and reused, including by several threads on different readers.</li><li><b>Actual:</b> Rewrite stores a new SeededKnnVectorQuery holding a seed Weight built for the current searcher in the query&#x27;s own delegate field: after one search the query&#x27;s hashCode has changed and it no longer equals an identical unsearched query, and when two searches of the same object on different readers overlap, the first one runs the other searcher&#x27;s seed Weight on its later segments and fails with &#x27;AssertionError: The top-reader used to create Weight is not the same as the current reader&#x27;s top-reader&#x27; (-ea) or &#x27;ArrayIndexOutOfBoundsException: Index 1 out of bounds for length 1&#x27; at TermStates.get (-da).</li></ul>
+<p>Expected: the searched query still equals an identical, never-searched query. Actual (-ea and -da): it does not, because its delegate now prints <code>seedWeight=weight(id:0)</code> instead of <code>seedWeight=null</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/search/TestPatienceSeededRewriteMutation.java"><code>src/org/apache/lucene/search/TestPatienceSeededRewriteMutation.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/search/TestPatienceSeededQueryUnchangedBySearch.java"><code>src/org/apache/lucene/search/TestPatienceSeededQueryUnchangedBySearch.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -44,7 +45,7 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestPatienceSeededRewriteMutation</code></pre>
+     execute --select-class org.apache.lucene.search.TestPatienceSeededQueryUnchangedBySearch</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/knn-query-layer/index.html">knn-query-layer</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

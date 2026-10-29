@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You use index sorting with a parent field (IndexWriterConfig#setParentField) and document blocks, and call IndexWriter#updateNumericDocValue or #updateDocValues on that parent field, for example to give a child document a parent mark or to set a parent's mark to null. You expect the call to be rejected with IllegalArgumentException, as IndexWriter rejects doc-values updates of index-sort fields and any document that contains the parent field ('is a reserved field'), or else the index to stay valid. Instead the update is accepted: a child given a mark can put the segment out of index-sort order, so CheckIndex fails ('segment has indexSort=&lt;long: "sort"&gt; but docID=1 sorts after docID=2') as soon as the update is committed, and a removed mark makes the next merge throw EOFException in MultiSorter and close the writer or, when the children have no sort value, silently moves the orphaned documents into the next block.
 
+The test shows that with an index sort and `setParentField("_parent")`, `IndexWriter#updateNumericDocValue(id:child, "_parent", -1)` on a committed block [child(sort=9), parent(sort=1)] is accepted and leaves a segment out of index-sort order (`TestParentFieldDocValuesUpdate#testUpdateParentFieldOfChildKeepsIndexSorted`).
+
 ## Expected vs actual
 
-- Expected: You expect the call to be rejected with IllegalArgumentException, as IndexWriter rejects doc-values updates of index-sort fields and any document that contains the parent field ('is a reserved field'), or else the index to stay valid.
-- Actual: The update is accepted: a child given a mark can put the segment out of index-sort order, so CheckIndex fails ('segment has indexSort=&lt;long: "sort"&gt; but docID=1 sorts after docID=2') as soon as the update is committed, and a removed mark makes the next merge throw EOFException in MultiSorter and close the writer or, when the children have no sort value, silently moves the orphaned documents into the next block.
+Expected: the update is rejected with `IllegalArgumentException` or the segment stays sorted (`CheckIndex.testSort` error null). Actual: `expected null, but was:<CheckIndexException: segment has indexSort=<long: "sort"> but docID=0 sorts after docID=1>`, the same with -ea and -da.
 
 ## Files
 
@@ -19,8 +20,8 @@ You use index sorting with a parent field (IndexWriterConfig#setParentField) and
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

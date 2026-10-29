@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You open a persistent Monitor (MonitorConfiguration.setIndexPath) and the open fails after the query index has built its IndexWriter, for example because a stored query no longer parses with the current parser (IllegalStateException 'Couldn't parse some queries from the index'), because no serializer was given for a non-empty index, or because of an I/O error while the index opens. You expect the failed constructor to release what it acquired, as IndexWriter's own constructor does for its write lock, so that you can fix the parser or the configuration and open the index again. Instead the IndexWriter, its SearcherManager and the write lock stay open with no object left to close them, so every later writable Monitor on that path in the same JVM fails with LockObtainFailedException 'Lock held by this virtual machine', even with a correct serializer, until the JVM restarts.
 
+The test shows that when opening a persistent Monitor fails because the parser rejects a stored query, the IndexWriter it built keeps the index's write lock, so a retry with the working serializer cannot open the index in the same JVM.
+
 ## Expected vs actual
 
-- Expected: You expect the failed constructor to release what it acquired, as IndexWriter's own constructor does for its write lock, so that you can fix the parser or the configuration and open the index again.
-- Actual: The IndexWriter, its SearcherManager and the write lock stay open with no object left to close them, so every later writable Monitor on that path in the same JVM fails with LockObtainFailedException 'Lock held by this virtual machine', even with a correct serializer, until the JVM restarts.
+Expected the retry to open the index with 1 query; actual `LockObtainFailedException: Lock held by this virtual machine` (plus the test framework's LeakFS report for the same write.lock channel), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/monitor/TestFailedOpenReleasesQueryIndex.java](src/org/apache/lucene/monitor/TestFailedOpenReleasesQueryIndex.java) (JUnit test)
+- [src/org/apache/lucene/monitor/TestMonitorReopenAfterFailedOpen.java](src/org/apache/lucene/monitor/TestMonitorReopenAfterFailedOpen.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 2 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,7 +42,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.monitor.TestFailedOpenReleasesQueryIndex
+     execute --select-class org.apache.lucene.monitor.TestMonitorReopenAfterFailedOpen
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

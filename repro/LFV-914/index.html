@@ -22,12 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You register queries with a Monitor and match documents in batches with Monitor.match(Document), which the package javadoc offers as an alternative to matching them one at a time with Monitor.match(Document) and whose only documented batch caveat is that filter-field values must agree. Each registered query is in fact rewritten and run once over one small index that holds the whole batch, so a query whose rewrite or statistics depend on the index can give a document a different answer than it gets alone: a default FuzzyQuery(&#x27;abcdef&#x27;) matches &#x27;abcdxy&#x27; alone but not in a batch with 50 documents that each hold a closer term, and a CommonTermsQuery that matches &#x27;ab&#x27; alone matches neither copy in a batch of two copies of &#x27;ab&#x27;. This is the designed behaviour (a plain IndexSearcher over an index of the same documents returns the same result), but neither Monitor.match(Document) nor the package documentation says that a batch is matched as one index, so users cannot tell that a document&#x27;s matches can depend on its batch.</p>
+<p>The test shows (documentation row) that Monitor.match(Document[]) rewrites each query once over the whole batch, so a FuzzyQuery with maxExpansions=1 matches &quot;abcdxy&quot; alone but not in a batch with the closer &quot;abcdeg&quot;; no monitor javadoc says a batch is matched as one index.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> While the bug is present the test fails; the failure message states expected against actual.</li></ul>
+<p>Expected (what package-info suggests): the same result via match(Document) and match(Document[]). Actual: <code>abcdxy matches q alone, so also in a batch expected:&lt;true&gt; but was:&lt;false&gt;</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/monitor/TestMonitorBatchTopTermsRewrite.java"><code>src/org/apache/lucene/monitor/TestMonitorBatchTopTermsRewrite.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/monitor/TestMonitorBatchMatchedAsOneIndex.java"><code>src/org/apache/lucene/monitor/TestMonitorBatchMatchedAsOneIndex.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -38,7 +40,6 @@ CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
 CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
 CP=$CP:$LUCENE/lucene/memory/build/libs/lucene-memory-$V.jar
 CP=$CP:$LUCENE/lucene/monitor/build/libs/lucene-monitor-$V.jar
-CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
@@ -47,6 +48,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.monitor.TestMonitorBatchTopTermsRewrite</code></pre>
+     execute --select-class org.apache.lucene.monitor.TestMonitorBatchMatchedAsOneIndex</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

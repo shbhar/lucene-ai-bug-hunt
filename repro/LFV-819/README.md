@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You fold text with ASCIIFoldingFilter, whose javadoc says it converts characters 'into their ASCII equivalents, if one exists' and lists the Alphabetic Presentation Forms block, and you search in plain ASCII. You expect 'faﬅ' (with the long-s-t ligature U+FB05, whose NFKD is 'st') to be indexed as 'fast', just as 'faﬆ' (U+FB06) and 'faſt' (long s U+017F) are; instead the table has cases for U+FB00-FB04 and U+FB06 but none for U+FB05, so the character passes through unchanged, the term stays 'faﬅ' and the query 'fast' finds nothing. The fix is one case label (U+FB05 added to the U+FB06 'st' group) plus the matching row of the generated testAllFoldings array.
 
+The test shows that `ASCIIFoldingFilter` has no table entry for U+FB05 LATIN SMALL LIGATURE LONG S T, although it folds its sibling U+FB06 to "st", so "fa\uFB05" is not folded.
+
 ## Expected vs actual
 
-- Expected: "faﬅ" is indexed as `fast`, like "faﬆ" and "faſt", and the query "fast" finds all 3 documents.
-- Actual: "faﬅ" is indexed as `faﬅ`, and the query "fast" finds 2 of 3 documents ("faſt" and "faﬆ").
+Expected the term "fast" (the proposed value "st" is the NFKD of U+FB05, not a promise of the current javadoc); actual: "fa\uFB05" unchanged (`term 0 expected:<fa[st]> but was:<fa[ﬅ]>`), with `-ea` and `-da`.
 
 ## Files
 
@@ -21,7 +22,8 @@ You fold text with ASCIIFoldingFilter, whose javadoc says it converts characters
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -44,14 +46,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestASCIIFoldingLongSTLigature.java](TestASCIIFoldingLongSTLigature.java)
-- [2-TestASCIIFoldingLongSTLigature.java](2-TestASCIIFoldingLongSTLigature.java)
-- [TestLongSTLigatureFoldingV1.java](TestLongSTLigatureFoldingV1.java)
-- [LongSTLigatureFold40.java](LongSTLigatureFold40.java)
-- [LongSTLigatureFold29.java](LongSTLigatureFold29.java)
 
 ## Feedback
 

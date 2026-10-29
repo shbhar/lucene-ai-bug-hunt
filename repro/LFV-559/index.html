@@ -22,14 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You enable boosting on MoreLikeThis (setBoost(true)) with a custom TFIDFSimilarity whose idf is 0 for a term that is in every document, as the textbook idf log(N/df) is, and call like(...) on text that contains that term and a rarer one. You expect a query with finite, non-negative boosts: the same call works with setBoost(false), and BoostQuery accepts a boost of 0. Instead createQuery divides each term&#x27;s score by the first score popped from its ascending queue, which is the lowest selected score (0 here), so the zero-score term&#x27;s boost is 0/0 = NaN and like throws IllegalArgumentException &#x27;boost must be a positive float, got NaN&#x27; on 8.0 and later, or builds the query with NaN and Infinity boosts on 4.10 to 7.x.</p>
+<p>The test shows that <code>MoreLikeThis</code> with <code>setBoost(true)</code> and a TFIDFSimilarity whose idf is 0 for a term in every document divides by that zero lowest score, so <code>like()</code> throws.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect a query with finite, non-negative boosts: the same call works with setBoost(false), and BoostQuery accepts a boost of 0.</li><li><b>Actual:</b> createQuery divides each term&#x27;s score by the first score popped from its ascending queue, which is the lowest selected score (0 here), so the zero-score term&#x27;s boost is 0/0 = NaN and like throws IllegalArgumentException &#x27;boost must be a positive float, got NaN&#x27; on 8.0 and later, or builds the query with NaN and Infinity boosts on 4.10 to 7.x.</li></ul>
+<p>Expected a query with finite boosts (as with setBoost(false); BoostQuery accepts 0); actual IllegalArgumentException &quot;boost must be a positive float, got NaN&quot; from MoreLikeThis.createQuery, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/queries/mlt/TestMoreLikeThisBoostZeroScore.java"><code>src/org/apache/lucene/queries/mlt/TestMoreLikeThisBoostZeroScore.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src2/org/apache/lucene/queries/mlt/TestMoreLikeThisBoostZeroScore.java"><code>src2/org/apache/lucene/queries/mlt/TestMoreLikeThisBoostZeroScore.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src3/org/apache/lucene/queries/mlt/TestMoreLikeThisBoostZeroScore.java"><code>src3/org/apache/lucene/queries/mlt/TestMoreLikeThisBoostZeroScore.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -41,19 +41,11 @@ CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
-javac -d classes-src -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
-javac -d classes-src2 -cp &quot;$CP&quot; $(find src2 -name &#x27;*.java&#x27;)
-javac -d classes-src3 -cp &quot;$CP&quot; $(find src3 -name &#x27;*.java&#x27;)
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queries.mlt.TestMoreLikeThisBoostZeroScore
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src2:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queries.mlt.TestMoreLikeThisBoostZeroScore
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src3:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.queries.mlt.TestMoreLikeThisBoostZeroScore</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/queries-mlt-commonterms-reference/index.html">queries-mlt-commonterms-reference</a></p>

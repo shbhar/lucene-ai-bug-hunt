@@ -23,13 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You register a query such as &#x27;(red apple) (green apple)&#x27; or &#x27;apple apple&#x27; in a Monitor and match the document &#x27;red green apple&#x27; with ScoringMatch or ExplainingMatch, expecting the score the query itself gives that document, which is what IndexSearcher returns, because BooleanQuery counts a repeated clause at every occurrence (0.5230583 and 0.26152915). Instead the Monitor reports 0.39229372 and 0.13076457: the default QueryDecomposer collects the query&#x27;s parts in a Set, which keeps equal parts once, and the scoring matchers add up the scores of the distinct parts, so the shared &#x27;apple&#x27; is counted once. Which queries match is not affected; only the scores and explanations of such queries are too low.</p>
+<p>The test shows that Monitor&#x27;s ScoringMatch scores the registered query <code>(red apple) (green apple)</code> on the document <code>red green apple</code> lower than IndexSearcher does, because QueryDecomposer&#x27;s Set keeps the shared part <code>apple</code> once.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The Monitor reports the query&#x27;s own score: 0.5230583 for <code>(red apple) (green apple)</code>, 0.26152915 for <code>apple apple</code> and <code>+apple +apple</code>.</li><li><b>Actual:</b> 0.39229372 and 0.13076457 (apple counted once), the same from <code>ExplainingMatch</code>; the controls pass.</li></ul>
+<p>Expected: <code>0.5230583</code> (IndexSearcher&#x27;s BM25 score of the same query on the same document). Actual: <code>expected:&lt;0.5230583&gt; but was:&lt;0.39229372&gt;</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/monitor/TestMonitorRepeatedSubqueryScore.java"><code>src/org/apache/lucene/monitor/TestMonitorRepeatedSubqueryScore.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src2/org/apache/lucene/monitor/TestMonitorRepeatedSubqueryScore.java"><code>src2/org/apache/lucene/monitor/TestMonitorRepeatedSubqueryScore.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/monitor/TestMonitorSharedSubqueryScore.java"><code>src/org/apache/lucene/monitor/TestMonitorSharedSubqueryScore.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -43,17 +44,12 @@ CP=$CP:$LUCENE/lucene/monitor/build/libs/lucene-monitor-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
-javac -d classes-src -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
-javac -d classes-src2 -cp &quot;$CP&quot; $(find src2 -name &#x27;*.java&#x27;)
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.monitor.TestMonitorRepeatedSubqueryScore
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src2:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.monitor.TestMonitorRepeatedSubqueryScore</code></pre>
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.monitor.TestMonitorSharedSubqueryScore</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestMonitorRepeatedPartScore.java"><code>TestMonitorRepeatedPartScore.java</code></a></li><li><a href="TestMonitorRepeatedSubqueryScore.java"><code>TestMonitorRepeatedSubqueryScore.java</code></a></li><li><a href="3-TestMonitorRepeatedPartScore.java"><code>3-TestMonitorRepeatedPartScore.java</code></a></li></ul>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/monitor-matcher-agreement/index.html">monitor-matcher-agreement</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

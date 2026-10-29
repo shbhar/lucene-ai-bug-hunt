@@ -23,14 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You update a doc-values field that is new to a segment while that segment is being merged. You expect the merge to finish. Instead writeFieldUpdates records the not-yet-applicable field as NUMERIC with dvGen=-1, the merge throws NullPointerException in DocIDMerger, and the IndexWriter closes tragically.</p>
+<p>The test shows that a merge of <code>_0</code> and <code>_1</code> that starts while another thread is applying an <code>updateBinaryDocValue</code> of a field that neither segment has (held at one InfoStream message) throws NullPointerException, and the IndexWriter closes.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The merge of <code>_0</code> and <code>_1</code> succeeds and the writer stays open: 4 documents, <code>a.num=7</code>, <code>a.tag=a-tag</code>; all 6 tests pass.</li><li><b>Actual:</b> <code>maybeMerge</code> throws <code>NullPointerException</code> at <code>DocIDMerger.java:123</code> and the writer closes; 3 of 6 tests fail, with assertions on and off.</li></ul>
+<p>Expected <code>maybeMerge()</code> to succeed; actual: <code>NullPointerException... &quot;this.current&quot; is null</code> at <code>DocIDMerger$SequentialDocIDMerger.next</code>, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/fvverify/TestVerifyMergeNPEUnfinishedDVPacket.java"><code>src/fvverify/TestVerifyMergeNPEUnfinishedDVPacket.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/index/TestMergeDuringUnfinishedDocValuesUpdate.java"><code>src/org/apache/lucene/index/TestMergeDuringUnfinishedDocValuesUpdate.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.</li>
-<li>Recorded outcome of run 1 on main a9779ef3c193: 8 test(s) run, 3 failed (testBinaryUpdateOfFieldNewToSegment, testNrtReaderInWindowSeesTypedFieldWithoutValues, testSoftDeleteFieldNewToSegment).</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -44,9 +44,8 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class fvverify.TestVerifyMergeNPEUnfinishedDVPacket</code></pre>
+     execute --select-class org.apache.lucene.index.TestMergeDuringUnfinishedDocValuesUpdate</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestMergeDuringUnfinishedDocValuesUpdate.java"><code>TestMergeDuringUnfinishedDocValuesUpdate.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

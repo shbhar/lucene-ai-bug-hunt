@@ -8,22 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You run Lucene's test suite on main and expect TestRuntimeDependenciesSane, TestCandidateMatcherVisibility, TestClassloadingDeadlock, TestModularLayer and TestScripts to run their 17 test methods, and TestHunspellRepositoryTestCases to check Hunspell's test data when -Phunspell.repo.path is set. Instead the build passes without running any of those methods: #16028 removed their @Test annotations, which is harmless in LuceneTestCase subclasses (LuceneTestCase finds test* methods by name), but these six classes do not extend LuceneTestCase, so JUnit 4 finds only @Test methods and there are none. Two classes report zero tests, three report one green placeholder named after the class, and the Hunspell runner fails with 'No runnable methods'.
 
+The test shows that main's TestCandidateMatcherVisibility (not a LuceneTestCase subclass) lost its @Test annotations in #16028, so JUnit 4 finds none of its three test* methods.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The build passes without running any of those methods: #16028 removed their @Test annotations, which is harmless in LuceneTestCase subclasses (LuceneTestCase finds test* methods by name), but these six classes do not extend LuceneTestCase, so JUnit 4 finds only @Test methods and there are none.
+Expected `JUnitCore.runClasses(TestCandidateMatcherVisibility.class)` to run 3 tests with no failure; actual: run=1, `initializationError... No runnable methods`, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/hunspell/TestPlainJUnit4ClassesStillRun.java](src/org/apache/lucene/analysis/hunspell/TestPlainJUnit4ClassesStillRun.java) (JUnit test)
-- [src/org/apache/lucene/analysis/hunspell/TestHunspellRepositoryTestCases.java](src/org/apache/lucene/analysis/hunspell/TestHunspellRepositoryTestCases.java) (JUnit test)
-- [src/org/apache/lucene/monitor/outsidepackage/TestCandidateMatcherVisibility.java](src/org/apache/lucene/monitor/outsidepackage/TestCandidateMatcherVisibility.java)
-- [src/org/apache/lucene/analysis/hunspell/TestSpellChecking.java](src/org/apache/lucene/analysis/hunspell/TestSpellChecking.java) (JUnit test)
+- [src/org/apache/lucene/monitor/outsidepackage/TestCandidateMatcherVisibilityRuns.java](src/org/apache/lucene/monitor/outsidepackage/TestCandidateMatcherVisibilityRuns.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -44,13 +42,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.hunspell.TestPlainJUnit4ClassesStillRun
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.hunspell.TestHunspellRepositoryTestCases \
-       --select-class org.apache.lucene.analysis.hunspell.TestSpellChecking
+     execute --select-class org.apache.lucene.monitor.outsidepackage.TestCandidateMatcherVisibilityRuns
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

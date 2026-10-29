@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You re-sort an index that uses document blocks and a parent field (IndexWriterConfig#setParentField) the way the SortingCodecReader javadoc describes: wrap each segment with SortingCodecReader.wrap(reader, newSort) and pass the wrapped readers to IndexWriter#addIndexes(CodecReader...) of a fresh writer with the new index sort and the same parent field. You expect the re-sort to succeed, as it does with assertions disabled (the result is then correctly sorted with every block intact) and as it does for an index without blocks. Instead, with Java assertions enabled (-ea), addIndexes throws AssertionError 'only sort fields should be cached twice but [_parent] is not a sort field' and the destination writer closes, because MultiSorter reads the parent field's doc values once to find the blocks and the doc-values merge reads them again, while SortingCodecReader's internal check allows a second read only for sort fields.
 
+The test shows that re-sorting an index with document blocks and a parent field through `SortingCodecReader.wrap` + `IndexWriter#addIndexes(CodecReader...)` (the recipe in the SortingCodecReader javadoc) trips SortingCodecReader's doc-values cache assertion, because MultiSorter and the doc-values merge both read the `_parent` field.
+
 ## Expected vs actual
 
-- Expected: You expect the re-sort to succeed, as it does with assertions disabled (the result is then correctly sorted with every block intact) and as it does for an index without blocks.
-- Actual: With Java assertions enabled (-ea), addIndexes throws AssertionError 'only sort fields should be cached twice but [_parent] is not a sort field' and the destination writer closes, because MultiSorter reads the parent field's doc values once to find the blocks and the doc-values merge reads them again, while SortingCodecReader's internal check allows a second read only for sort fields.
+Expected `addIndexes` to succeed; actual with `-ea`: `AssertionError: only sort fields should be cached twice but [_parent] is not a sort field`. With `-da` the test passes, as the claim says (assertion-only bug).
 
 ## Files
 
-- [src/org/apache/lucene/index/TestSortingCodecReaderParentFieldAddIndexes.java](src/org/apache/lucene/index/TestSortingCodecReaderParentFieldAddIndexes.java) (JUnit test)
+- [src/org/apache/lucene/index/TestSortingCodecReaderParentField.java](src/org/apache/lucene/index/TestSortingCodecReaderParentField.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,7 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestSortingCodecReaderParentFieldAddIndexes
+     execute --select-class org.apache.lucene.index.TestSortingCodecReaderParentField
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

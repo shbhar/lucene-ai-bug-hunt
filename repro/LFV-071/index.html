@@ -22,17 +22,16 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You scalar-quantize vectors with the Panama vector provider. You expect the same bytes as the default implementation. Instead Panama rounds with (int)fma(x, scale, 0.5f) instead of Math.round, so the two differ exactly when fl(scale*x) == 0.49999997f.</p>
+<p>The test shows that with the Panama vector provider (&gt;= 256-bit vectors), <code>ScalarQuantizer(0, 1, 8).quantize</code> rounds a value whose scaled offset is 0.49999997f up to byte 1, where Math.round (the default provider, the &quot;nearest byte&quot;) gives 0.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect the same bytes as the default implementation.</li><li><b>Actual:</b> Panama rounds with (int)fma(x, scale, 0.5f) instead of Math.round, so the two differ exactly when fl(scale*x) == 0.49999997f.</li></ul>
+<p>Expected: dest[0] == 0; actual (-ea and -da, preferredBitSize=256): <code>expected:&lt;0&gt; but was:&lt;1&gt;</code>; on 128-bit hosts or without the vector module the test passes.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/internal/vectorization/PanamaVectorConstantsProbe.java"><code>src/org/apache/lucene/internal/vectorization/PanamaVectorConstantsProbe.java</code></a></li>
-<li><a href="src/org/apache/lucene/internal/vectorization/TestSqRoundingBoundary.java"><code>src/org/apache/lucene/internal/vectorization/TestSqRoundingBoundary.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/util/quantization/TestScalarQuantizerNearestByte.java"><code>src/org/apache/lucene/util/quantization/TestScalarQuantizerNearestByte.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
-<li>This repro reads private Lucene state by reflection (setAccessible), so it depends on internals that may change.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
@@ -44,9 +43,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED --add-modules=jdk.incubator.vector -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.internal.vectorization.TestSqRoundingBoundary</code></pre>
+     execute --select-class org.apache.lucene.util.quantization.TestScalarQuantizerNearestByte</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/study-simd-equivalence/index.html">study-simd-equivalence</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

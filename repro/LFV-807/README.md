@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You ask for two occurrences of X in order with Intervals.ordered(X, X), for example X = unordered(a, b) ('a near b', twice) or X = phrase(a, a), and expect the usual ordered rule that the sub-intervals do not overlap (the fn:ordered documentation says 'Source intervals must not overlap'). Instead, because the two arguments are equal, OrderedIntervalsSource.build merges them into a RepeatingIntervalsSource, which joins consecutive intervals of a single sub-iterator without checking that they are disjoint, so ordered(unordered(a, b), unordered(a, b)) matches 'a b a', which has only one b, and ordered(phrase(a, a), phrase(a, a)) matches 'a a'. The same query with an equivalent but unequal second source, ordered(X, or(X, a term that occurs nowhere)), correctly finds nothing, and so did Lucene 8.4.1.
 
+The test shows that `Intervals.ordered(phrase(a, a), phrase(a, a))` matches the document `a a`, although its only two `a a` intervals, [0,1] and [1,2], overlap (the two equal sub-sources are merged into a `RepeatingIntervalsSource`).
+
 ## Expected vs actual
 
-- Expected: 0 hits for every repeated-copy query on the texts that are too short (`a a`, `a b a`), and the single interval [0,3] on `a a a`, as the unequal-copy controls give.
-- Actual: 1 hit for each (also both `fn:` strings), and the intervals [0,2] and [1,3] on `a a a`: all 7 tests fail at their last assertion, with assertions on and off.
+Expected: 0 hits, as for any ordered query whose sub-intervals would have to overlap. Actual: 1 hit (`expected:<0> but was:<1>`).
 
 ## Files
 
-- [src/org/apache/lucene/queries/intervals/TestOrderedRepeatOverlap.java](src/org/apache/lucene/queries/intervals/TestOrderedRepeatOverlap.java) (JUnit test)
+- [src/org/apache/lucene/queries/intervals/TestOrderedRepeatedPhraseOverlap.java](src/org/apache/lucene/queries/intervals/TestOrderedRepeatedPhraseOverlap.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,21 +39,13 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queries.intervals.TestOrderedRepeatOverlap
+     execute --select-class org.apache.lucene.queries.intervals.TestOrderedRepeatedPhraseOverlap
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestOrderedRepeatOverlap.java](TestOrderedRepeatOverlap.java)
-- [TestFnOrderedRepeatOverlap.java](TestFnOrderedRepeatOverlap.java)
-- [3-TestOrderedRepeatOverlap.java](3-TestOrderedRepeatOverlap.java)
-- [TestOrderedEqualSourcesMustNotOverlap.java](TestOrderedEqualSourcesMustNotOverlap.java)
-- [StackedTermRepeatProbe.java](StackedTermRepeatProbe.java)
 
 ## Feedback
 

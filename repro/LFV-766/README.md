@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You join orders to customers with JoinUtil.createJoinQuery("customer", false, "id", fromQuery, searcher, scoreMode), or the numeric overload with Integer.class, where fromQuery matches two orders and only one of them has a customer key, and expect only that order's customer back, because the javadoc returns the to-documents that 'have the same terms' as the matching from-documents. Instead the order without a key is collected as if its key were the empty term (term join) or 0 (numeric join), so the customer whose id is "" or 0 is returned too, in every ScoreMode, and a real customer 0 also gets the key-less order's score (Max 5.0 instead of 1.0). The same call with multipleValuesPerDocument=true on the same single-valued field, and the global-ordinals join, return the correct answer.
 
+The test shows that a single-valued numeric `JoinUtil.createJoinQuery(..., multipleValuesPerDocument=false,..., Integer.class,...)` treats an order with no customer key as if its key were 0, so it also returns customer 0.
+
 ## Expected vs actual
 
-- Expected: `[c7]` for both joins in every ScoreMode, and score 1.0 for customer 0 under Max, Avg and Total.
-- Actual: `[c0, c7]` (numeric) and `["", c7]` (term) in every ScoreMode; customer 0 scores Max 5.0, Avg 3.0, Total 6.0.
+Expected: only customer 7 (the one order that has a key points to it). Actual: customers `[7, 0]`.
 
 ## Files
 
-- [src/org/apache/lucene/search/join/TestJoinUtilMissingFromValue.java](src/org/apache/lucene/search/join/TestJoinUtilMissingFromValue.java) (JUnit test)
+- [src/org/apache/lucene/search/join/TestNumericJoinFromDocWithoutKey.java](src/org/apache/lucene/search/join/TestNumericJoinFromDocWithoutKey.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,16 +43,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.join.TestJoinUtilMissingFromValue
+     execute --select-class org.apache.lucene.search.join.TestNumericJoinFromDocWithoutKey
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestJoinUtilMissingFromValue.java](TestJoinUtilMissingFromValue.java)
-- [TestJoinFromDocWithoutKeyV1.java](TestJoinFromDocWithoutKeyV1.java)
-- [TestJoinUtilMissingFromValueWorkaround.java](TestJoinUtilMissingFromValueWorkaround.java)
 
 ## Feedback
 

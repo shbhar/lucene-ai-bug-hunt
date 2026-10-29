@@ -16,65 +16,40 @@
  */
 package org.apache.lucene.misc.index;
 
-import java.io.IOException;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
 import org.apache.lucene.document.KnnFloatVectorField;
-import org.apache.lucene.document.StringField;
-import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.LogDocMergePolicy;
+import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * BPReorderingMergePolicy with a BpVectorReorderer cannot merge a segment that has no vectors for
- * the reordering field (for example a flush of documents that do not carry the optional vector)
- * with segments that have vectors: the merged view's FloatVectorValues.copy() throws
- * NullPointerException, so the merge fails, and it fails again every time it is retried. Only
- * public API and default reorderer settings are used.
- */
 public class TestBpVectorReorderSegmentWithoutVectors extends LuceneTestCase {
 
-  private static void addDocs(IndexWriter w, int count, boolean withVector) throws IOException {
-    for (int i = 0; i < count; i++) {
-      Document doc = new Document();
-      doc.add(new StringField("id", (withVector ? "v" : "n") + i, Field.Store.YES));
-      if (withVector) {
-        doc.add(new KnnFloatVectorField("vector", new float[] {i % 7, 1 + i % 3}));
+  public void testMergeSegmentWithoutVectors() throws Exception {
+    IndexWriterConfig iwc =
+        new IndexWriterConfig()
+            .setMergeScheduler(new SerialMergeScheduler())
+            .setMergePolicy(
+                new BPReorderingMergePolicy(
+                    new LogDocMergePolicy(), new BpVectorReorderer("vector")));
+    try (Directory dir = newDirectory();
+        IndexWriter w = new IndexWriter(dir, iwc)) {
+      for (int i = 0; i < 64; i++) {
+        Document doc = new Document();
+        doc.add(new KnnFloatVectorField("vector", new float[] {i, 1}));
+        w.addDocument(doc);
       }
-      w.addDocument(doc);
-    }
-    w.commit(); // one segment per call (the merge policy below never merges on its own)
-  }
-
-  private static void mergeAndCheck(boolean secondSegmentHasVectors) throws IOException {
-    BPReorderingMergePolicy mp =
-        new BPReorderingMergePolicy(new LogDocMergePolicy(), new BpVectorReorderer("vector"));
-    try (Directory dir = newDirectory()) {
-      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig().setMergePolicy(mp))) {
-        addDocs(w, 100, true);
-        addDocs(w, 10, secondSegmentHasVectors);
+      w.commit();
+      w.addDocument(new Document());
+      w.commit();
+      // expected: the two segments merge; actual: NPE from the merged view's FloatVectorValues.copy()
+      try {
         w.forceMerge(1);
-      }
-      try (DirectoryReader r = DirectoryReader.open(dir)) {
-        assertEquals(1, r.leaves().size());
-        assertEquals(110, r.numDocs());
-        int expectedVectors = secondSegmentHasVectors ? 110 : 100;
-        assertEquals(
-            expectedVectors, r.leaves().get(0).reader().getFloatVectorValues("vector").size());
+      } catch (NullPointerException e) {
+        throw new AssertionError("expected the two segments to merge, but forceMerge threw " + e, e);
       }
     }
-  }
-
-  /** Control: every segment has vectors for the field; the reordered merge succeeds. */
-  public void testControlAllSegmentsHaveVectors() throws IOException {
-    mergeAndCheck(true);
-  }
-
-  /** One of the merged segments has no document with the vector field. */
-  public void testSegmentWithoutVectors() throws IOException {
-    mergeAndCheck(false);
   }
 }

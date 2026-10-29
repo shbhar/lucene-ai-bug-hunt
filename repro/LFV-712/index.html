@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You build a custom kuromoji system dictionary with DictionaryBuilder from an IPADIC-format CSV that has a row whose reading is 128 katakana chars long (or, more naturally, a 64-char proper noun with a 136-char reading), and you expect either an IllegalArgumentException at build time, as the builder throws for a stored base form of 16 or more chars that its compact format cannot hold, or the reading back unchanged. Instead the build succeeds, because putEntry writes each length as (byte) (length &lt;&lt; 1 | kanaFlag) with no check, so the stored length is the real length mod 128: getReading and JapaneseTokenizer&#x27;s ReadingAttribute return &quot;&quot; for the 128-char reading and only the first 8 chars of the 136-char one, a 128-char pronunciation comes back empty, a pronunciation stored after a wrapped reading is decoded from the reading&#x27;s own bytes (a 4-char pronunciation came back as the single char U+0304), and JapaneseReadingFormFilter indexes the empty or truncated reading as the term.</p>
+<p>The test shows that kuromoji&#x27;s DictionaryBuilder accepts a row whose reading has 128 chars and stores its length in 7 bits, so the built dictionary returns a wrong reading.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> Each long row is rejected at build time with an <code>IllegalArgumentException</code>, or reads back as written: 136 or 128 chars of reading, pronunciation and term.</li><li><b>Actual:</b> 2 of 4 tests fail: the 136-char row gives reading コクリツケンキュ (8 chars), pronunciation U+0B04 U+2F24 U+3B06 and term コクリツケンキュ; the 128-char row gives &quot;&quot; for all three.</li></ul>
+<p>Expected the build to reject the row or the 128-char reading to read back; actual: the build succeeds and getReading returns <code>&quot;&quot;</code> (<code>reading expected:&lt;[カ x 128]&gt; but was:&lt;[]&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/analysis/ja/dict/TestKuromojiBuilderReadingLength.java"><code>src/org/apache/lucene/analysis/ja/dict/TestKuromojiBuilderReadingLength.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/analysis/ja/dict/TestDictionaryBuilderLongReading.java"><code>src/org/apache/lucene/analysis/ja/dict/TestDictionaryBuilderLongReading.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -46,8 +48,7 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.ja.dict.TestKuromojiBuilderReadingLength</code></pre>
+     execute --select-class org.apache.lucene.analysis.ja.dict.TestDictionaryBuilderLongReading</code></pre>
 <p class="small">The module(s) analysis-kuromoji also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestDictionaryBuilderLongReading.java"><code>TestDictionaryBuilderLongReading.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

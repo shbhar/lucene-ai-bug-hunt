@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You configure BM25Similarity with its opt-in k3 parameter (new BM25Similarity(1.2f, 0.75f, true, 7f)), whose javadoc promises that a term repeated in a query is weighted ((k3 + 1) * qtf) / (k3 + qtf) instead of linearly, and you install it through a PerFieldSimilarityWrapper, the documented way to use per-field similarities, even one whose get returns that same instance for every field. You expect the query 'apple apple' to score as it does with the bare BM25Similarity, where BooleanQuery's duplicate-clause rewrite gives (body:apple)^1.7777778. Instead the rewrite asks the wrapper, which does not forward Similarity#computeQueryTermWeight and inherits its linear default, so the query becomes (body:apple)^2.0 and the document scores 0.63013375 instead of 0.5601189; StableTflSimilarity's k3 is ignored the same way.
 
+The test shows that `BM25Similarity(1.2, 0.75, true, 7)` behind a `PerFieldSimilarityWrapper` that returns it for every field scores the query "apple apple" differently from the bare similarity, because the wrapper does not forward `computeQueryTermWeight` (k3 is ignored).
+
 ## Expected vs actual
 
-- Expected: You expect the query 'apple apple' to score as it does with the bare BM25Similarity, where BooleanQuery's duplicate-clause rewrite gives (body:apple)^1.7777778.
-- Actual: The rewrite asks the wrapper, which does not forward Similarity#computeQueryTermWeight and inherits its linear default, so the query becomes (body:apple)^2.0 and the document scores 0.63013375 instead of 0.5601189; StableTflSimilarity's k3 is ignored the same way.
+Expected: the bare BM25 score 0.23247036 (duplicate-clause boost 1.7777778); actual (-ea and -da): 0.26152915 (linear boost 2.0).
 
 ## Files
 
-- [src/org/apache/lucene/search/TestPerFieldSimilarityWrapperK3.java](src/org/apache/lucene/search/TestPerFieldSimilarityWrapperK3.java) (JUnit test)
+- [src/org/apache/lucene/search/TestPerFieldWrapperK3.java](src/org/apache/lucene/search/TestPerFieldWrapperK3.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,7 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestPerFieldSimilarityWrapperK3
+     execute --select-class org.apache.lucene.search.TestPerFieldWrapperK3
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

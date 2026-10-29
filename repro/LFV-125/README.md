@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build PatienceKnnVectorQuery.fromSeededQuery(SeededKnnVectorQuery.fromFloatQuery(knnQuery, seedQuery)) and search it with IndexSearcher. You expect the query object to be unchanged by the search (Weight javadoc: 'searching does not modify a Query, so that a Query instance can be reused'), so it can be compared, cached and reused, including by several threads on different readers. Instead rewrite stores a new SeededKnnVectorQuery holding a seed Weight built for the current searcher in the query's own delegate field: after one search the query's hashCode has changed and it no longer equals an identical unsearched query, and when two searches of the same object on different readers overlap, the first one runs the other searcher's seed Weight on its later segments and fails with 'AssertionError: The top-reader used to create Weight is not the same as the current reader's top-reader' (-ea) or 'ArrayIndexOutOfBoundsException: Index 1 out of bounds for length 1' at TermStates.get (-da).
 
+The test shows that searching a PatienceKnnVectorQuery built with fromSeededQuery(SeededKnnVectorQuery) once (one document, one IndexSearcher.search) modifies the query: rewrite stores a searcher-specific seed Weight in its own delegate field, contrary to Weight's "searching does not modify a Query".
+
 ## Expected vs actual
 
-- Expected: You expect the query object to be unchanged by the search (Weight javadoc: 'searching does not modify a Query, so that a Query instance can be reused'), so it can be compared, cached and reused, including by several threads on different readers.
-- Actual: Rewrite stores a new SeededKnnVectorQuery holding a seed Weight built for the current searcher in the query's own delegate field: after one search the query's hashCode has changed and it no longer equals an identical unsearched query, and when two searches of the same object on different readers overlap, the first one runs the other searcher's seed Weight on its later segments and fails with 'AssertionError: The top-reader used to create Weight is not the same as the current reader's top-reader' (-ea) or 'ArrayIndexOutOfBoundsException: Index 1 out of bounds for length 1' at TermStates.get (-da).
+Expected: the searched query still equals an identical, never-searched query. Actual (-ea and -da): it does not, because its delegate now prints `seedWeight=weight(id:0)` instead of `seedWeight=null`.
 
 ## Files
 
-- [src/org/apache/lucene/search/TestPatienceSeededRewriteMutation.java](src/org/apache/lucene/search/TestPatienceSeededRewriteMutation.java) (JUnit test)
+- [src/org/apache/lucene/search/TestPatienceSeededQueryUnchangedBySearch.java](src/org/apache/lucene/search/TestPatienceSeededQueryUnchangedBySearch.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,7 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestPatienceSeededRewriteMutation
+     execute --select-class org.apache.lucene.search.TestPatienceSeededQueryUnchangedBySearch
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

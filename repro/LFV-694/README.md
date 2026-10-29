@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You compile a stemmer table with the stempel Compile tool using a method string that contains G (Gener, the reduction that drops infrequent commands), or reduce a trie with Gener and store it, and expect StempelStemmer.load to read the table back and stem like the trie that was stored. Instead Row.store writes the number of all cells of a row and then skips the empty cells (no command and no reference) that Gener leaves behind, so Row(DataInput) reads too many cell records and runs into the next row: usually load fails with java.io.EOFException (Compile -0ME2G, -0M2G and -0MEG on an 11-lemma Polish table, -EG on a 20-line table, the bundled table reduced with Gener, which then has 38,322 empty cells), and sometimes the table loads without error but answers wrongly (Compile G on a 4-line dictionary: for 'walked' the expected patch is Db and the loaded table gives null). Writing getCells, the existing count of the non-empty cells, fixes it in one line and changes no byte of any table without empty cells, such as the bundled table and every table compiled without G.
 
+The test shows that Row.store writes the count of all cells but skips an emptied cell (the state Gener leaves), so the next stored row reads back misaligned.
+
 ## Expected vs actual
 
-- Expected: Both `G` tables load and stem `ab` to `a`, like their no-reduction controls; the stored row reads back with 1 cell in use.
-- Actual: One `G` table throws `EOFException` at load, the other loads but stems `ab` to `null`; the row reads back with 2 cells.
+Expected getCmd('x') == 3 for the second of two rows read back with Row(DataInput); actual -1 (the second row loses its cell).
 
 ## Files
 
-- [src/org/apache/lucene/analysis/stempel/TestStoreAfterGener.java](src/org/apache/lucene/analysis/stempel/TestStoreAfterGener.java) (JUnit test)
+- [src/org/egothor/stemmer/TestRowStoreEmptyCell.java](src/org/egothor/stemmer/TestRowStoreEmptyCell.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,16 +42,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.stempel.TestStoreAfterGener
+     execute --select-class org.egothor.stemmer.TestRowStoreEmptyCell
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestStoreAfterGener.java](TestStoreAfterGener.java)
-- [2-TestStoreAfterGener.java](2-TestStoreAfterGener.java)
-- [TestGenerTableRoundTrip.java](TestGenerTableRoundTrip.java)
 
 ## Feedback
 

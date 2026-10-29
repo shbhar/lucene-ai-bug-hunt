@@ -22,12 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>With assertions enabled the first read instead throws AssertionError &#x27;More lazy values then real values for field: f&#x27;, because fetchRealValues asserts realValues.length &lt;= lazyValues.size (LazyDocument.java:113-114), the reverse of what its message and the loop right after it (:116-121, which reads realValues[i] once per lazy value) need.</p>
+<p>The test shows that with <code>-ea</code>, reading the first lazy value of a two-valued stored field before the field&#x27;s second <code>LazyDocument.getField</code> call throws, because <code>fetchRealValues</code> asserts <code>realValues.length &lt;= lazyValues.size()</code>, the reverse of its own message.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> While the bug is present the test fails; the failure message states expected against actual.</li></ul>
+<p>actual with <code>-ea</code>: <code>AssertionError: More lazy values then real values for field: f</code> at <code>LazyDocument.java:113</code>. With <code>-da</code> the test passes (the claim is about <code>-ea</code> only).</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/misc/document/TestLazyDocumentReadBeforeLastValue.java"><code>src/org/apache/lucene/misc/document/TestLazyDocumentReadBeforeLastValue.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

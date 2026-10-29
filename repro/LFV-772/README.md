@@ -10,20 +10,21 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 Query q = apple OR banana is registered in a Monitor; one thread re-registers q as cherry OR apple while another thread matches a document that contains apple. You expect the match to report q, because both versions of q match the document and every serial order of the two calls reports it. Instead the match can return no queries: register has already replaced the cache entry q_0 with the new first clause (cherry) while the searcher still holds the old index documents, so the old document for apple resolves to the cherry clause, which does not match, and the new apple clause is not searchable yet; once register returns, the same match reports q again.
 
+The test shows that a Monitor.match on another thread while Monitor.register re-registers q (apple OR banana -&gt; cherry OR apple) and is inside IndexWriter.commit() misses q (`TestMonitorMatchDuringReRegister#testMatchOnOtherThreadWhileReRegisterCommits`, one document).
+
 ## Expected vs actual
 
-- Expected: Every match of the document `apple` reports `q`: before, during and after the `register` call.
-- Actual: During `register` the match returns no queries (`before=true during=false after=true`); the control edit keeps matching.
+Expected: the match of 'apple' reports q, since both versions match it. Actual: no match (the cache already maps q_0 to cherry while the searcher still has the old apple document); fails with -ea and -da.
 
 ## Files
 
-- [src/org/apache/lucene/monitor/TestMonitorUpdateWindow.java](src/org/apache/lucene/monitor/TestMonitorUpdateWindow.java) (JUnit test)
-- [src/org/apache/lucene/monitor/MonitorUpdateWindowMain.java](src/org/apache/lucene/monitor/MonitorUpdateWindowMain.java) (main() class)
+- [src/org/apache/lucene/monitor/TestMonitorMatchDuringReRegister.java](src/org/apache/lucene/monitor/TestMonitorMatchDuringReRegister.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -43,20 +44,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.monitor.TestMonitorUpdateWindow
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.apache.lucene.monitor.MonitorUpdateWindowMain
+     execute --select-class org.apache.lucene.monitor.TestMonitorMatchDuringReRegister
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestMonitorReRegisterDuringMatch.java](TestMonitorReRegisterDuringMatch.java)
-- [TestRegisterMatchStressV1.java](TestRegisterMatchStressV1.java)
-- [TestMonitorUpdateWindow.java](TestMonitorUpdateWindow.java)
 
 ## Feedback
 

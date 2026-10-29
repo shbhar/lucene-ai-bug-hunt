@@ -22,12 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You wrap your own index query, for example TermQuery(body:a) or a 20-clause DisjunctionMaxQuery, in new CompositeVerifyQuery(indexQuery, shapePredicate), then collect its terms with QueryVisitor.termCollector or search it after IndexSearcher.setMaxClauseCount(8). You expect [body:a] and an IndexSearcher.TooManyNestedClauses error, because Query#visit is documented to &#x27;recurse through the query tree, visiting any child queries&#x27;, the wrapper rewrites its index query and runs it as the approximation that every hit must match, and the same 20 clauses as a bare query or as a sibling FILTER clause are rejected. Instead CompositeVerifyQuery.visit only calls visitor.visitLeaf(this): termCollector returns and the clause check counts the whole query as one clause, so the over-limit query runs (its hits are correct).</p>
+<p>The test shows that CompositeVerifyQuery.visit calls only visitor.visitLeaf(this) and never visits the index query that it rewrites and runs, so QueryVisitor.termCollector misses that query&#x27;s terms.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect [body:a] and an IndexSearcher.TooManyNestedClauses error, because Query#visit is documented to &#x27;recurse through the query tree, visiting any child queries&#x27;, the wrapper rewrites its index query and runs it as the approximation that every hit must match, and the same 20 clauses as a bare query or as a sibling FILTER clause are rejected.</li><li><b>Actual:</b> CompositeVerifyQuery.visit only calls visitor.visitLeaf(this): termCollector returns and the clause check counts the whole query as one clause, so the over-limit query runs (its hits are correct).</li></ul>
+<p>Expected <code>[body:a]</code> for CompositeVerifyQuery(TermQuery(body:a), predicate); actual <code>[]</code>, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/spatial/composite/TestCompositeVerifyQueryVisit.java"><code>src/org/apache/lucene/spatial/composite/TestCompositeVerifyQueryVisit.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

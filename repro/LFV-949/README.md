@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You call Polygon.fromGeoJSON on a valid GeoJSON Feature whose properties hold an array nested 10,000 levels deep (about 20 KB of text), or on malformed text with thousands of unterminated '[', and expect the polygon back, or the method's declared ParseException for bad or too-deep input. Instead java.lang.StackOverflowError escapes, because SimpleGeoJSONPolygonParser.parseObject and parseArray call each other once per nesting level with no depth limit and nothing turns the Error into a ParseException. The caller has no limit it can set, and a plain length cap does not help, because 20 KB already fails while real polygons are often longer.
 
+The test shows that `Polygon.fromGeoJSON` on a valid Feature whose property is an array nested 50,000 levels deep lets `StackOverflowError` escape from the unbounded `SimpleGeoJSONPolygonParser.parseArray` recursion.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: java.lang.StackOverflowError escapes, because SimpleGeoJSONPolygonParser.parseObject and parseArray call each other once per nesting level with no depth limit and nothing turns the Error into a ParseException.
+Expected: the polygon or the declared `ParseException`; actual: `AssertionError: expected the polygon or ParseException, got StackOverflowError` (-ea and -da).
 
 ## Files
 
@@ -19,7 +20,8 @@ You call Polygon.fromGeoJSON on a valid GeoJSON Feature whose properties hold an
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -34,8 +36,8 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed 383DEE9
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=383DEE9 \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.geo.TestGeoJSONDeepNesting
 ```

@@ -2,27 +2,29 @@
 
 Bug LFV-182 · Area: expressions / JavascriptCompiler nesting-depth guard (compile(String, Map, int maxNestingDepth), new in #16423, unreleased) · Priority: low · Impact: wrong error · Novelty: new
 
+Bug page: [../../bugs/LFV-182.html](../../bugs/LFV-182.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
 You compile an expression with the new overload JavascriptCompiler.compile(source, functions, maxNestingDepth) and pass Integer.MAX_VALUE to ask for no practical nesting limit, and you expect it to accept at least everything that Integer.MAX_VALUE - 1 accepts, because the parameter is documented only as 'the maximum depth of nesting', with no bound. Instead every expression, even '1', fails with ParseException 'Nesting level too deep (&gt;-2147483648)': the parse-time depth listener is created with maxNestingDepth + 1 to account for the root node, that int addition wraps to Integer.MIN_VALUE, and the depth check fails on the first parser rule. Integer.MAX_VALUE - 1 and the default limit of 1024 work, and the overload is in no release yet, so it can be fixed before 10.6.0 ships.
 
+The test shows that `JavascriptCompiler.compile("1", DEFAULT_FUNCTIONS, Integer.MAX_VALUE)` rejects even the trivial expression `1`, because the parse-time nesting listener is created with `maxNestingDepth + 1`, which wraps to `Integer.MIN_VALUE`.
+
 ## Expected vs actual
 
-- Expected: You expect it to accept at least everything that Integer.MAX_VALUE - 1 accepts, because the parameter is documented only as 'the maximum depth of nesting', with no bound.
-- Actual: Every expression, even '1', fails with ParseException 'Nesting level too deep (&gt;-2147483648)': the parse-time depth listener is created with maxNestingDepth + 1 to account for the root node, that int addition wraps to Integer.MIN_VALUE, and the depth check fails on the first parser rule.
+Expected: `1` compiles. Actual: `ParseException: Invalid expression '1': Nesting level too deep (>-2147483648)`, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/expressions/js/TestMaxNestingDepthOverflow.java](src/org/apache/lucene/expressions/js/TestMaxNestingDepthOverflow.java) (JUnit test)
-- [src/MaxNestingDepthOverflowMain.java](src/MaxNestingDepthOverflowMain.java) (main() class)
+- [src/org/apache/lucene/expressions/js/TestMaxNestingDepthMaxValue.java](src/org/apache/lucene/expressions/js/TestMaxNestingDepthMaxValue.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 4 test(s) run, 1 failed.
+- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -40,11 +42,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.expressions.js.TestMaxNestingDepthOverflow
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" MaxNestingDepthOverflowMain
+     execute --select-class org.apache.lucene.expressions.js.TestMaxNestingDepthMaxValue
 ```
 
 The module(s) expressions also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.

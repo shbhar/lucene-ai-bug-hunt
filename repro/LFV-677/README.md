@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You analyze Telugu text with the stock new TeluguAnalyzer, whose default stop list (te/stopwords.txt) holds common function words such as కూడా ('also') that the analyzer should drop. The analyzer normalizes every token before its StopFilter and folds long vowel signs to short ones (ూ to ు, ీ to ి, ే to ె, ో to ొ), but the list holds only the unnormalized spellings, so the StopFilter sees కుడా and never matches the entry కూడా. As a result 13 of the 43 single-word default stop words are never removed and are indexed and searched as ordinary terms, while the Hindi analyzer, which has the same chain, ships the normalized forms in its list and removes all of its stop words.
 
+The test shows that the stock `new TeluguAnalyzer()` does not remove its own default stop word కూడా ('also'), because its StopFilter runs after normalization and the list is not normalized.
+
 ## Expected vs actual
 
-- Expected: కూడా gives no token, all 43 single-word default stop words are removed, and the AND query "రాముడు కూడా" matches 2 documents.
-- Actual: కూడా is indexed as `కుడ`, 13 of the 43 single-word stop words are kept, and the AND query matches 1 document.
+Expected no token; actual one token: `TokenStream has more tokens than expected (expected count=0); extra token=కుడ` (-ea and -da).
 
 ## Files
 
-- [src/org/apache/lucene/analysis/te/TestTeluguDefaultStopwords.java](src/org/apache/lucene/analysis/te/TestTeluguDefaultStopwords.java) (JUnit test)
+- [src/org/apache/lucene/analysis/te/TestTeluguDefaultStopword.java](src/org/apache/lucene/analysis/te/TestTeluguDefaultStopword.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,20 +39,13 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.te.TestTeluguDefaultStopwords
+     execute --select-class org.apache.lucene.analysis.te.TestTeluguDefaultStopword
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestTeluguDefaultStopwordsRemoved.java](TestTeluguDefaultStopwordsRemoved.java)
-- [TestTeluguDefaultStopwords.java](TestTeluguDefaultStopwords.java)
-- [3-TestTeluguDefaultStopwords.java](3-TestTeluguDefaultStopwords.java)
-- [TestTeluguStopSetVerifyV1.java](TestTeluguStopSetVerifyV1.java)
 
 ## Feedback
 

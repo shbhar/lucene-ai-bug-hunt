@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build BooleanQuery(MUST a 600-term disjunction, MUST FloatVectorSimilarityQuery.Adaptive(field, target, 0f, filter = another 600-term disjunction)), 1,200 term clauses in all, and search it with the default maxClauseCount of 1024. You expect TooManyNestedClauses, which you do get when the same 600 clauses are a sibling FILTER clause, because the check counts 'total clauses cumulatively in all of its children' and Query#visit is documented to visit 'any child queries'. Instead the search runs: AbstractVectorSimilarityQuery.visit only calls visitor.visitLeaf(this), so the filter, which stays in the rewritten query and is executed in createWeight, is checked only on its own; ByteVectorSimilarityQuery and Float16VectorSimilarityQuery behave the same, and QueryVisitor.termCollector returns none of the filter's terms.
 
+The test shows that FloatVectorSimilarityQuery.visit() never visits its filter, so IndexSearcher's cumulative maxClauseCount check does not count the filter's clauses.
+
 ## Expected vs actual
 
-- Expected: You expect TooManyNestedClauses, which you do get when the same 600 clauses are a sibling FILTER clause, because the check counts 'total clauses cumulatively in all of its children' and Query#visit is documented to visit 'any child queries'.
-- Actual: The search runs: AbstractVectorSimilarityQuery.visit only calls visitor.visitLeaf(this), so the filter, which stays in the rewritten query and is executed in createWeight, is checked only on its own; ByteVectorSimilarityQuery and Float16VectorSimilarityQuery behave the same, and QueryVisitor.termCollector returns none of the filter's terms.
+Expected `TooManyNestedClauses` for BooleanQuery(MUST 600-term disjunction, MUST FloatVectorSimilarityQuery.Adaptive(filter = 600-term disjunction)), 1,200 clauses over the default limit of 1024; actual: no exception (`Expected exception TooManyNestedClauses but no exception was thrown`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/search/TestVectorSimilarityQueryFilterClauseLimit.java](src/org/apache/lucene/search/TestVectorSimilarityQueryFilterClauseLimit.java) (JUnit test)
-- [src/org/apache/lucene/search/TestVectorSimilarityQueryFilterClauseLimitRelease.java](src/org/apache/lucene/search/TestVectorSimilarityQueryFilterClauseLimitRelease.java) (JUnit test)
+- [src/org/apache/lucene/search/TestVectorSimilarityQueryFilterClauseCount.java](src/org/apache/lucene/search/TestVectorSimilarityQueryFilterClauseCount.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -35,15 +36,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestVectorSimilarityQueryFilterClauseLimit
-
-# run 2: assertions on, seed DEADBEEF, default flags
+# run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestVectorSimilarityQueryFilterClauseLimitRelease
+     execute --select-class org.apache.lucene.search.TestVectorSimilarityQueryFilterClauseCount
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

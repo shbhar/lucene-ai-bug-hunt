@@ -8,20 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You update a doc-values field (or use soft deletes) and open NRT readers from your IndexWriter, then delete a document, and a merge (a merge-on-commit, a merge-on-refresh, or an ordinary or forced merge) has to open a fresh copy of that segment's pooled reader with the new deletions, and opening it fails with an IOException. You expect the merge to fail cleanly and IndexWriter to give back every reader reference it took, so that once the writer is closed no file of the index is still open. Instead ReadersAndUpdates.getReaderForMerge never releases the reference it took on the pooled reader, so that segment's compound file and doc-values update files stay open after IndexWriter.close, even when the failure was not tragic and the writer went on to commit and close normally.
 
+The test shows that one segment with a doc-values update, pooled by an NRT reader, gets a delete; `forceMerge(1)` must open a refreshed reader for it and that open hits an injected `IOException` (fired while `ReadersAndUpdates.getReaderForMerge` is on the stack); `getReaderForMerge` never releases its reference on the pooled reader.
+
 ## Expected vs actual
 
-- Expected: You expect the merge to fail cleanly and IndexWriter to give back every reader reference it took, so that once the writer is closed no file of the index is still open.
-- Actual: ReadersAndUpdates.getReaderForMerge never releases the reference it took on the pooled reader, so that segment's compound file and doc-values update files stay open after IndexWriter.close, even when the failure was not tragic and the writer went on to commit and close normally.
+Expected no open file once `IndexWriter.close()` has returned; actual: `MockDirectoryWrapper.close()` reports 4 open files `{_0.cfs, _0_1_Lucene90_0.dvp,.dvs,.dvd}`.
 
 ## Files
 
-- [src/org/apache/lucene/index/TestMergeReaderRefreshFailureLeaksReader.java](src/org/apache/lucene/index/TestMergeReaderRefreshFailureLeaksReader.java) (JUnit test)
 - [src/org/apache/lucene/index/TestMergeReaderRefreshFailureLeak.java](src/org/apache/lucene/index/TestMergeReaderRefreshFailureLeak.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,11 +37,6 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestMergeReaderRefreshFailureLeaksReader
-
-# run 2: assertions on, seed DEADBEEF, default flags
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.index.TestMergeReaderRefreshFailureLeak

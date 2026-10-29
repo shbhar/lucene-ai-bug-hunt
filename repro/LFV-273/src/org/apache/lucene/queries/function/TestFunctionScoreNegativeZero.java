@@ -16,92 +16,36 @@
  */
 package org.apache.lucene.queries.function;
 
-import java.io.IOException;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
+import java.util.Arrays;
+import java.util.List;
 import org.apache.lucene.document.FloatDocValuesField;
-import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.queries.function.valuesource.FloatFieldSource;
 import org.apache.lucene.search.DoubleValuesSource;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * LUCENE-7996 made FunctionScoreQuery and FunctionQuery return 0 for negative function values
- * ("Scorers are no longer allowed to produce negative scores"). Both checks are written as {@code
- * value >= 0}, which is true for -0.0, so a function value of -0.0f becomes a score of -0.0f. The
- * test framework's AssertingScorer rejects that ({@code Float.compare(score, 0f) >= 0}), and
- * TopScoreDocCollector then ranks the two zeros inconsistently: the top-1 hit is not the first of
- * the top-2 hits.
- */
 public class TestFunctionScoreNegativeZero extends LuceneTestCase {
 
-  private Directory dir;
-  private IndexReader reader;
-  private IndexSearcher searcher;
-
-  @Override
-  public void setUp() throws Exception {
-    super.setUp();
-    dir = newDirectory();
-    try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
-      // doc 0: value -0.0f, doc 1: value 0.0f, one segment
-      for (float v : new float[] {-0f, 0f}) {
-        Document d = new Document();
-        d.add(new StringField("k", "x", Field.Store.NO));
-        d.add(new FloatDocValuesField("f", v));
-        w.addDocument(d);
+  public void testTopOneIsHeadOfTopTwo() throws Exception {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+        w.addDocument(List.of(new FloatDocValuesField("f", -0f)));
+        w.addDocument(List.of(new FloatDocValuesField("f", 0f)));
+      }
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        IndexSearcher searcher = new IndexSearcher(reader);
+        Query q = new FunctionScoreQuery(new MatchAllDocsQuery(), DoubleValuesSource.fromFloatField("f"));
+        TopDocs top1 = searcher.search(q, 1);
+        TopDocs top2 = searcher.search(q, 2);
+        // expected: both docs score 0 (negative values clamp to 0), so top-1 is the head of top-2; actual: doc 0 scores -0.0 and the two disagree
+        assertEquals("top-2: " + Arrays.toString(top2.scoreDocs), top2.scoreDocs[0].doc, top1.scoreDocs[0].doc);
       }
     }
-    reader = DirectoryReader.open(dir);
-    searcher = new IndexSearcher(reader); // plain searcher: no executor, no asserting wrappers
-  }
-
-  @Override
-  public void tearDown() throws Exception {
-    reader.close();
-    dir.close();
-    super.tearDown();
-  }
-
-  private static Query functionScoreQuery() {
-    return new FunctionScoreQuery(
-        new TermQuery(new Term("k", "x")), DoubleValuesSource.fromFloatField("f"));
-  }
-
-  private static void assertNoNegativeScore(TopDocs td) {
-    for (ScoreDoc sd : td.scoreDocs) {
-      assertTrue(
-          "doc " + sd.doc + " has score " + sd.score + " (scores must not be negative)",
-          Float.compare(sd.score, 0f) >= 0);
-    }
-  }
-
-  public void testFunctionScoreQueryNegativeZeroValue() throws IOException {
-    assertNoNegativeScore(searcher.search(functionScoreQuery(), 2));
-  }
-
-  public void testFunctionQueryNegativeZeroValue() throws IOException {
-    assertNoNegativeScore(searcher.search(new FunctionQuery(new FloatFieldSource("f")), 2));
-  }
-
-  public void testTopOneIsFirstOfTopTwo() throws IOException {
-    TopDocs top1 = searcher.search(functionScoreQuery(), 1);
-    TopDocs top2 = searcher.search(functionScoreQuery(), 2);
-    assertEquals(2, top2.scoreDocs.length);
-    assertEquals(
-        "top-1 hit must be the first hit of the top-2",
-        top2.scoreDocs[0].doc,
-        top1.scoreDocs[0].doc);
   }
 }

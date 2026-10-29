@@ -10,20 +10,21 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 With the scalar-quantized (OSQ) vectors format and COSINE, you index vectors whose normalized sum is exactly zero, such as {1,0} and {-1,0}, into one segment. You expect flush and merge to work. Instead normalizing the zero centroid throws 'Cannot normalize a zero-length vector', the writer closes tragically with its buffered documents lost, and merges stay blocked.
 
+The test shows that with `Lucene104ScalarQuantizedVectorsFormat` and COSINE, committing the two vectors `{1,0}` and `{-1,0}` fails, because their unit-scaled mean (the centroid) is exactly zero.
+
 ## Expected vs actual
 
-- Expected: `commit`, `forceMerge(1)` and `forceMergeDeletes` succeed and kNN finds both documents, as with the default vectors format.
-- Actual: Each throws `IllegalArgumentException: Cannot normalize a zero-length vector` and closes the `IndexWriter`: 4 of 5 tests fail on main, 3 of 5 on 10.5.2.
+Expected: the commit succeeds, as it does with the default vectors format. Actual: flush throws `IllegalArgumentException: Cannot normalize a zero-length vector` from `computeCentroid` (`VectorUtil.l2normalize` on the zero centroid).
 
 ## Files
 
-- [src/TestOsqZeroCentroidVerify.java](src/TestOsqZeroCentroidVerify.java) (JUnit test)
+- [src/org/apache/lucene/codecs/lucene104/TestOsqAntipodalZeroCentroid.java](src/org/apache/lucene/codecs/lucene104/TestOsqAntipodalZeroCentroid.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
-- How to read the outcome: this test asserts the current, buggy behaviour: it passes while the bug is present and fails once the bug is fixed.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -38,17 +39,12 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class TestOsqZeroCentroidVerify
+     execute --select-class org.apache.lucene.codecs.lucene104.TestOsqAntipodalZeroCentroid
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestOsqAntipodalZeroCentroid.java](TestOsqAntipodalZeroCentroid.java)
-- [TestOsqAntipodalZeroCentroidColumnar.java](TestOsqAntipodalZeroCentroidColumnar.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/study-quantization-smt/](../../models/study-quantization-smt/)
 

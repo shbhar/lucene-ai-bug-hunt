@@ -23,13 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You search with an interval query that repeats a multi-word piece, for example maxgaps(0, ordered(phrase(new, york), phrase(new, york))) on the text &#x27;new york new york&#x27;, and expect a match because the two phrases sit back to back with no gap. Instead it finds nothing: Lucene turns equal sub-sources into a RepeatingIntervalsSource whose iterator adds start - end + 1 instead of end - start + 1 for each copy, so width is 0 instead of 4, gaps is 4 instead of 0, and maxgaps rejects the interval. The Matches path of the same class uses the right formula, so Weight#matches returns a match for the very document the scorer rejected; repeats of single words are unaffected because their start equals their end.</p>
+<p>The test shows that maxgaps(0, unordered(phrase(new, york), phrase(new, york))) misses &quot;new york new york&quot;. RepeatingIntervalsSource&#x27;s iterator sums start - end + 1 per repeated copy, so width() is 0 and gaps() is 4.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>maxgaps(0, ordered(ny, ny))</code> finds <code>new york new york</code> (count 1), and the iterator reports gaps 0, width 4.</li><li><b>Actual:</b> Count 0 while <code>Weight#matches</code> matches; the iterator reports gaps 4, width 0 (three-word phrase: gaps 8, width -2).</li></ul>
+<p>Expected 1 hit (the two phrases are back to back, 0 gaps); actual 0 (<code>expected:&lt;1&gt; but was:&lt;0&gt;</code>).</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/queries/intervals/TestRepeatedSourceWidth.java"><code>src/org/apache/lucene/queries/intervals/TestRepeatedSourceWidth.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/queries/intervals/TestRepeatedPhraseMaxGaps.java"><code>src/org/apache/lucene/queries/intervals/TestRepeatedPhraseMaxGaps.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -46,7 +47,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queries.intervals.TestRepeatedSourceWidth</code></pre>
+     execute --select-class org.apache.lucene.queries.intervals.TestRepeatedPhraseMaxGaps</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestRepeatedSourceGaps.java"><code>TestRepeatedSourceGaps.java</code></a></li><li><a href="TestRepeatedSourceWidth.java"><code>TestRepeatedSourceWidth.java</code></a></li><li><a href="TestRepeatedSourceGapsV1.java"><code>TestRepeatedSourceGapsV1.java</code></a></li><li><a href="IntendedProbe.java"><code>IntendedProbe.java</code></a></li><li><a href="RepeatWidthHistoryProbe.java"><code>RepeatWidthHistoryProbe.java</code></a></li><li><a href="WorkaroundProbe.java"><code>WorkaroundProbe.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

@@ -10,20 +10,21 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index a line or polygon with LatLonShape or XYShape and search with a query polygon that has holes, for example a region with two lakes cut out; a line from one lake to the other crosses the land between them, so INTERSECTS should return it and DISJOINT should not. Polygon2D.intersectsLine/intersectsTriangle report an intersection only when a vertex of the indexed shape is inside the polygon (holes excluded) or one of its edges crosses the outer ring; they never test the hole edges, so when every vertex lies in a hole the shape counts as not intersecting. The query returns the wrong documents with no error (repro: the square [0,10]^2 with holes [1,3]x[4,6] and [7,9]x[4,6]; of the line (2,5)-(8,5), the box [2,8]x[4.5,5.5] and the point (5,5), INTERSECTS returns only the point and DISJOINT returns the line and the box).
 
+The test shows that an XYShape INTERSECTS query with a polygon that has two holes misses a line whose end points lie in the holes but which crosses the polygon between them (Polygon2D.intersectsLine never tests the hole edges).
+
 ## Expected vs actual
 
-- Expected: INTERSECTS returns 3 documents (the line, the box and the point) and DISJOINT returns 0.
-- Actual: INTERSECTS returns 1 (only the point) and DISJOINT returns 2 (the line and the box), for XYShape and LatLonShape alike.
+Expected count 1 for the line (2,5)-(8,5) against the square [0,10]^2 minus [1,3]x[4,6] and [7,9]x[4,6]; actual 0 (`expected:<1> but was:<0>`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/document/TestPolygonHolesIntersects.java](src/org/apache/lucene/document/TestPolygonHolesIntersects.java) (JUnit test)
-- [src/PolygonHolesIntersectsMain.java](src/PolygonHolesIntersectsMain.java) (main() class)
+- [src/org/apache/lucene/document/TestXYShapeLineBetweenHoles.java](src/org/apache/lucene/document/TestXYShapeLineBetweenHoles.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -40,22 +41,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.document.TestPolygonHolesIntersects
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" PolygonHolesIntersectsMain
+     execute --select-class org.apache.lucene.document.TestXYShapeLineBetweenHoles
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestPolygonHolesIntersects.java](TestPolygonHolesIntersects.java)
-- [TestPolygon2DHoleEdges.java](TestPolygon2DHoleEdges.java)
-- [PolygonHolesReachProbe.java](PolygonHolesReachProbe.java)
-- [TestHoleStripIntersects.java](TestHoleStripIntersects.java)
-- [TestHoleIntersects.java](TestHoleIntersects.java)
 
 ## Feedback
 

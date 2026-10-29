@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You call IndexWriter.updateBinaryDocValue(term, field, value), or updateDocValues(term, binaryDocValuesField), and afterwards reuse or change that BytesRef, for example one BytesRefBuilder scratch for a loop of updates or a BinaryDocValues.binaryValue taken from another reader; each document should get the value it was passed. Documents in flushed segments do, but documents still buffered in RAM get whatever bytes the BytesRef holds when the writer next adds a document or flushes, so a loop over one scratch buffer gives every buffered target the last value. The wrong value is committed silently: no exception, CheckIndex is clean, and the outcome depends on whether the target document had already been flushed.
 
+The test shows that IndexWriter.updateBinaryDocValue keeps the caller's BytesRef, so a buffered document updated through a reused BytesRefBuilder gets the scratch's later bytes instead of the value passed to its call.
+
 ## Expected vs actual
 
-- Expected: Every document reads the value passed to its update: b and b; new0, new1, new2; src0, src1, src2; x1, x2.
-- Actual: 4 of 5 tests fail: buffered=c (flushed=b); new2, new2, new2; src2, src2, src2; x2, x2. The fresh-BytesRef control passes.
+Expected doc 0 to hold `new0` after commit; actual: `new1` (`expected:<new[0]> but was:<new[1]>`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/index/TestBinaryDocValuesUpdateRetainsCallerBytes.java](src/org/apache/lucene/index/TestBinaryDocValuesUpdateRetainsCallerBytes.java) (JUnit test)
+- [src/org/apache/lucene/index/TestBinaryDocValuesUpdateReusedBytesRef.java](src/org/apache/lucene/index/TestBinaryDocValuesUpdateReusedBytesRef.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -39,15 +41,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestBinaryDocValuesUpdateRetainsCallerBytes
+     execute --select-class org.apache.lucene.index.TestBinaryDocValuesUpdateReusedBytesRef
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestBinaryDocValuesUpdateRetainsCallerBytes.java](TestBinaryDocValuesUpdateRetainsCallerBytes.java)
-- [optionA-fix-with-test.diff](optionA-fix-with-test.diff)
 
 ## Feedback
 

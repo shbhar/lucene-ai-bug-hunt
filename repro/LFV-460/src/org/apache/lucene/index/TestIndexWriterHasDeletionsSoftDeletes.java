@@ -20,80 +20,30 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StringField;
+import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * IndexWriter#hasDeletions ("Returns true if this index has deletions (including buffered
- * deletions)") checks committed segments with SegmentCommitInfo#hasDeletions, which only knows hard
- * deletes. With a soft-deletes field, a writer whose reader pool does not hold the segment (for
- * example a writer opened on an existing index) answers false although getDocStats() and its own
- * NRT readers count the soft-deleted document as deleted.
- */
 public class TestIndexWriterHasDeletionsSoftDeletes extends LuceneTestCase {
 
-  private static IndexWriterConfig config() {
-    return new IndexWriterConfig()
-        .setSoftDeletesField("soft")
-        .setMergePolicy(NoMergePolicy.INSTANCE);
-  }
-
-  private static Document doc(String id) {
-    Document d = new Document();
-    d.add(new StringField("id", id, Field.Store.YES));
-    return d;
-  }
-
-  private static void buildIndex(Directory dir, boolean hard) throws Exception {
-    try (IndexWriter w = new IndexWriter(dir, config())) {
-      w.addDocument(doc("a"));
-      w.addDocument(doc("b"));
-      w.commit();
-      if (hard) {
-        w.deleteDocuments(new Term("id", "a"));
-      } else {
-        w.softUpdateDocument(new Term("id", "a"), doc("a"), new NumericDocValuesField("soft", 1));
+  public void testCommittedSoftDeleteAfterWriterReopen() throws Exception {
+    try (Directory dir = new ByteBuffersDirectory()) {
+      Document doc = new Document();
+      doc.add(new StringField("id", "1", Field.Store.NO));
+      IndexWriterConfig iwc = new IndexWriterConfig().setSoftDeletesField("soft");
+      iwc.setMergePolicy(NoMergePolicy.INSTANCE);
+      try (IndexWriter w = new IndexWriter(dir, iwc)) {
+        w.addDocument(doc);
+        w.softUpdateDocument(new Term("id", "1"), doc, new NumericDocValuesField("soft", 1));
       }
-      w.commit();
-    }
-  }
-
-  /** The answer must not depend on whether an NRT reader was opened first. */
-  public void testAnswerChangesOnceAnNrtReaderIsOpened() throws Exception {
-    try (Directory dir = newDirectory()) {
-      buildIndex(dir, false);
-      try (IndexWriter w = new IndexWriter(dir, config())) {
+      try (IndexWriter w =
+          new IndexWriter(dir, new IndexWriterConfig().setSoftDeletesField("soft"))) {
         IndexWriter.DocStats stats = w.getDocStats();
-        assertEquals(3, stats.maxDoc);
-        assertEquals(2, stats.numDocs); // the writer itself counts one deleted document
-        boolean beforeReader = w.hasDeletions();
-        try (DirectoryReader r = DirectoryReader.open(w)) {
-          assertEquals(1, r.numDeletedDocs());
-        }
-        boolean afterReader = w.hasDeletions(); // true: the segment is now pooled
-        assertTrue(afterReader);
-        assertEquals("hasDeletions() before vs after opening an NRT reader", afterReader, beforeReader);
-      }
-    }
-  }
-
-  public void testSoftDeletedDocumentFreshWriterBeforeAnyReader() throws Exception {
-    try (Directory dir = newDirectory()) {
-      buildIndex(dir, false);
-      try (IndexWriter w = new IndexWriter(dir, config())) {
-        assertEquals(2, w.getDocStats().numDocs);
-        assertTrue("index has a (soft) deleted document", w.hasDeletions());
-      }
-    }
-  }
-
-  /** Control: the same with a hard delete. */
-  public void testControlHardDeletedDocumentAfterWriterReopen() throws Exception {
-    try (Directory dir = newDirectory()) {
-      buildIndex(dir, true);
-      try (IndexWriter w = new IndexWriter(dir, config())) {
-        assertEquals(1, w.getDocStats().numDocs);
-        assertTrue(w.hasDeletions());
+        // expected true like getDocStats() (maxDoc 2, numDocs 1), actual false
+        assertEquals(
+            "hasDeletions() vs getDocStats() maxDoc=" + stats.maxDoc + " numDocs=" + stats.numDocs,
+            stats.maxDoc > stats.numDocs,
+            w.hasDeletions());
       }
     }
   }

@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index a document in which field f carries a skip-indexed doc-values field (for example SortedDocValuesField.indexedField, new in 10.0), IndexWriter correctly rejects it with IllegalArgumentException because f is already indexed without doc values (or because another field of that document is invalid), and you keep adding documents that have f without doc values. You expect only the bad document to be rejected, as for any non-aborting exception, and the next valid documents to be accepted, as they are when the rejected document used doc values without a skip index. Instead every later document with f and no doc values in the same in-memory segment is rejected ("doc values skip index type: expected 'NONE', but it has 'RANGE'", or "field 'f' cannot have docValuesSkipIndexType=RANGE with doc values type NONE") until the next flush, because IndexingChain.FieldSchema.reset clears the per-document doc-values type but not the skip index type, so the rejected document's RANGE is left behind.
 
+The test shows that after IndexWriter rejects a document that adds `SortedDocValuesField.indexedField("f")` to a postings-only field `f`, the next valid document with only `StringField f` is rejected too, because `FieldSchema.reset()` keeps the rejected document's skip index type.
+
 ## Expected vs actual
 
-- Expected: You expect only the bad document to be rejected, as for any non-aborting exception, and the next valid documents to be accepted, as they are when the rejected document used doc values without a skip index.
-- Actual: Every later document with f and no doc values in the same in-memory segment is rejected ("doc values skip index type: expected 'NONE', but it has 'RANGE'", or "field 'f' cannot have docValuesSkipIndexType=RANGE with doc values type NONE") until the next flush, because IndexingChain.FieldSchema.reset clears the per-document doc-values type but not the skip index type, so the rejected document's RANGE is left behind.
+Expected the third document (same schema as the first) to be accepted; actual: `IllegalArgumentException... doc values skip index type: expected 'NONE', but it has 'RANGE'`, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/index/TestRejectedDocSkipIndexPoisonsField.java](src/org/apache/lucene/index/TestRejectedDocSkipIndexPoisonsField.java) (JUnit test)
+- [src/org/apache/lucene/index/TestRejectedSkipIndexDoc.java](src/org/apache/lucene/index/TestRejectedSkipIndexDoc.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,7 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestRejectedDocSkipIndexPoisonsField
+     execute --select-class org.apache.lucene.index.TestRejectedSkipIndexDoc
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

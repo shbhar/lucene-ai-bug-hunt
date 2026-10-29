@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You load a Hunspell dictionary in which an ordinary entry carries a compound-position flag, for example 'COMPOUNDBEGIN B', 'SFX A 0 s.' and the entry foo/AB (foo may also start a compound such as foobar), and ask Hunspell.getAllWordForms("foo") for all forms of that entry. You expect [foo, foos]: Lucene's own spell accepts both and analyzeSimpleWord attributes them to foo/AB, as C Hunspell 1.7.2 also does, because COMPOUNDBEGIN/MIDDLE/END only allow a word to take part in compounds while ONLYINCOMPOUND is the flag that forbids it on its own. Instead you get , because WordFormGenerator.shouldConsiderAtAll (WordFormGenerator.java:261-273) rejects the three compound-position flags together with FORBIDDENWORD and ONLYINCOMPOUND, both for the entry (so the entry yields nothing) and for affix continuation classes (so with 'SFX C 0 n/W' and W = COMPOUNDEND, getAllWordForms("Computer") never yields Computern, a word in Lucene's own germancompounding.good list); generateAllSimpleWords skips the same entries.
 
+The test shows that `Hunspell.getAllWordForms("foo")` returns nothing for the entry `foo/AB` when B is the COMPOUNDBEGIN flag, although spell() accepts foo and foos.
+
 ## Expected vs actual
 
-- Expected: `getAllWordForms("foo")` = `[foo, foos]` for each of the three flags, `[Computer, Computern]` for the suffix case, and `generateAllSimpleWords` lists `bar, foo, foos, qux, quxs`.
-- Actual: `` for all three flags, `[Computer]`, and `[qux, quxs]`: 3 of 4 tests fail with assertions on and off; the control test passes.
+Expected, per the getAllWordForms javadoc ("all word forms"): `[foo, foos]`. Actual: `[]`.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/hunspell/TestWordFormsCompoundFlags.java](src/org/apache/lucene/analysis/hunspell/TestWordFormsCompoundFlags.java) (JUnit test)
+- [src/org/apache/lucene/analysis/hunspell/TestWordFormsCompoundBeginEntry.java](src/org/apache/lucene/analysis/hunspell/TestWordFormsCompoundBeginEntry.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,19 +39,13 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.hunspell.TestWordFormsCompoundFlags
+     execute --select-class org.apache.lucene.analysis.hunspell.TestWordFormsCompoundBeginEntry
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestWordFormsCompoundPositionFlags.java](TestWordFormsCompoundPositionFlags.java)
-- [TestWordFormsCompoundFlags.java](TestWordFormsCompoundFlags.java)
-- [TestCompoundFlagWordForms.java](TestCompoundFlagWordForms.java)
 
 ## Feedback
 

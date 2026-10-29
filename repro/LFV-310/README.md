@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You count range facets over a double field with DoubleRangeFacetCounts and a range that starts at an inclusive 0.0, such as new DoubleRange("[0, 1]", 0.0, true, 1.0, true), and some documents hold -0.0 (Java's negative zero, which ordinary arithmetic such as Math.ceil(-0.25) or -1 * 0.0 produces). You expect the count to include every document the range accepts, because DoubleRange.accept and the range's own drill-down query getQuery compare with primitive &gt;= and &lt;=, treat -0.0 as equal to 0.0, and match those documents. Instead the counter converts bounds and values with NumericUtils.doubleToSortableLong, where -0.0 sorts below +0.0, so those documents are silently left out of the count (likewise +0.0 at an inclusive -0.0 upper bound), and the range [+0.0, -0.0], which the DoubleRange constructor accepts, makes DoubleRangeFacetCounts throw IllegalArgumentException 'matches nothing'.
 
+The test shows that `DoubleRangeFacetCounts` does not count a document with value `-0.0` in the inclusive range `[0, 1]`, although `DoubleRange.accept(-0.0)` (and so the range's drill-down) is true.
+
 ## Expected vs actual
 
-- Expected: You expect the count to include every document the range accepts, because DoubleRange.accept and the range's own drill-down query getQuery compare with primitive &gt;= and &lt;=, treat -0.0 as equal to 0.0, and match those documents.
-- Actual: The counter converts bounds and values with NumericUtils.doubleToSortableLong, where -0.0 sorts below +0.0, so those documents are silently left out of the count (likewise +0.0 at an inclusive -0.0 upper bound), and the range [+0.0, -0.0], which the DoubleRange constructor accepts, makes DoubleRangeFacetCounts throw IllegalArgumentException 'matches nothing'.
+Expected a facet count of 1; actual: 0 (`expected:<1> but was:<0>`), with `-ea` and `-da`.
 
 ## Files
 
@@ -19,8 +20,8 @@ You count range facets over a double field with DoubleRangeFacetCounts and a ran
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -36,8 +37,8 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.facet.range.TestDoubleRangeSignedZero
 ```

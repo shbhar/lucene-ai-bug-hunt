@@ -18,18 +18,19 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>CompletionWeight returns a non-null ScorerSupplier whose bulkScorer is null, so IndexSearcher#search of a CompletionQuery throws NullPointerException on a segment the query cannot match (regression in 10.0 from #13408)</h1>
-<p class="facts small"><span>Bug LFV-967</span><span>Area: suggest / document (NRT) suggester: CompletionWeight#scorerSupplier vs the Weight/ScorerSupplier contract and IndexSearcher#searchLeaf</span><span>Priority: unranked</span><span>Impact: crash</span><span>Novelty: new</span></p>
+<p class="facts small"><span>Bug LFV-967</span><span>Area: suggest / document (NRT) suggester: CompletionWeight#scorerSupplier vs the Weight/ScorerSupplier contract and IndexSearcher#searchLeaf</span><span>Priority: low</span><span>Impact: crash</span><span>Novelty: new</span></p>
 <p><a href="../../bugs/LFV-967.html">Bug page for LFV-967</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index suggestions with SuggestField and run a PrefixCompletionQuery through IndexSearcher#search with a CollectorManager of TopSuggestDocsCollector, on an index where one segment has no document with the suggest field (or where the query&#x27;s filter matches no document of a segment). You expect the same suggestions as SuggestIndexSearcher#suggest (3 in the repro), because Weight#scorerSupplier &#x27;must return null if the scorer is null&#x27; and IndexSearcher then skips that segment, as 9.12.3 does. Instead CompletionWeight returns a non-null ScorerSupplier whose bulkScorer returns null, and IndexSearcher#searchLeaf throws NullPointerException (&#x27;Cannot invoke BulkScorer.score(...) because &quot;scorer&quot; is null&#x27;; with a timeout set, Objects.requireNonNull in TimeLimitingBulkScorer throws it first).</p>
+<p>The test shows that IndexSearcher#search of a PrefixCompletionQuery (with a TopSuggestDocsCollector manager) over two segments, the second without the suggest field, crashes because CompletionWeight returns a non-null ScorerSupplier whose bulkScorer() is null.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>IndexSearcher#search</code> returns what <code>suggest</code> returns: the 3 suggestions, or 0 with the match-nothing filter, and no exception.</li><li><b>Actual:</b> <code>NullPointerException: Cannot invoke &quot;BulkScorer.score(...)&quot; because &quot;scorer&quot; is null</code> at <code>IndexSearcher.searchLeaf</code>; with a timeout, from <code>TimeLimitingBulkScorer.&lt;init&gt;</code>.</li></ul>
+<p>Expected: the one suggestion &#x27;apple&#x27; (as SuggestIndexSearcher#suggest and 9.12.3 return; Weight#scorerSupplier must return null when there is no scorer); actual: NullPointerException at IndexSearcher.searchLeaf (-ea and -da).</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/search/suggest/document/TestCompletionWeightNullBulkScorer.java"><code>src/org/apache/lucene/search/suggest/document/TestCompletionWeightNullBulkScorer.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/org/apache/lucene/search/suggest/document/TestCompletionWeightNullBulkScorer9x.java"><code>src/org/apache/lucene/search/suggest/document/TestCompletionWeightNullBulkScorer9x.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/search/suggest/document/TestCompletionQuerySegmentWithoutSuggestField.java"><code>src/org/apache/lucene/search/suggest/document/TestCompletionQuerySegmentWithoutSuggestField.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -44,15 +45,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -XX:ActiveProcessorCount=4 -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed 5EED0967
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=5EED0967 \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.suggest.document.TestCompletionWeightNullBulkScorer
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.suggest.document.TestCompletionWeightNullBulkScorer9x</code></pre>
+     execute --select-class org.apache.lucene.search.suggest.document.TestCompletionQuerySegmentWithoutSuggestField</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestCompletionQueryWithIndexSearcher.java"><code>TestCompletionQueryWithIndexSearcher.java</code></a></li><li><a href="TestCompletionWeightNullBulkScorer.java"><code>TestCompletionWeightNullBulkScorer.java</code></a></li><li><a href="TestHistoryCompletionQueryIndexSearcherSearch.java"><code>TestHistoryCompletionQueryIndexSearcherSearch.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

@@ -10,19 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You collect statistics for a double doc-values field with DocValuesStats.DoubleDocValuesStats (or SortedDoubleDocValuesStats) and expect max to be the largest collected value; the javadoc calls it 'the maximum value of the field' and leaves it undefined only when count is zero. If every collected value is zero or negative, max returns 4.9E-324 instead: max starts at Double.MIN_VALUE, which is the smallest positive double, not the most negative one, and no value &lt;= 0 ever beats it, so for {-5, -3, -4} you get count 3 and min -5.0 but max 4.9E-324. The same mix-up on the other side makes min return Double.MAX_VALUE when every value is +Infinity; the long variants start at Long.MAX_VALUE / Long.MIN_VALUE and are correct.
 
+The test shows that DocValuesStats.DoubleDocValuesStats starts max at Double.MIN_VALUE (the smallest positive double), so max() is wrong when every collected value is &lt;= 0. Here there is one document with -1.0.
+
 ## Expected vs actual
 
-- Expected: max of the winter readings {-12.5, -3.0, -7.25} is -3.0, of {-2.0} is -2.0 and of four 0.0 values is 0.0.
-- Actual: max is 4.9E-324 in all three, while count, sum, mean and min are right; min of two +Infinity values is 1.7976931348623157E308.
+Expected: max() == -1.0. Actual (-ea and -da): 4.9E-324.
 
 ## Files
 
-- [src/org/apache/lucene/misc/search/TestDocValuesStatsDoubleSentinels.java](src/org/apache/lucene/misc/search/TestDocValuesStatsDoubleSentinels.java) (JUnit test)
+- [src/org/apache/lucene/misc/search/TestDoubleDocValuesStatsNegativeMax.java](src/org/apache/lucene/misc/search/TestDoubleDocValuesStatsNegativeMax.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,15 +42,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.misc.search.TestDocValuesStatsDoubleSentinels
+     execute --select-class org.apache.lucene.misc.search.TestDoubleDocValuesStatsNegativeMax
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestDocValuesStatsDoubleExtremes.java](TestDocValuesStatsDoubleExtremes.java)
-- [TestDocValuesStatsDoubleSentinels.java](TestDocValuesStatsDoubleSentinels.java)
 
 ## Feedback
 

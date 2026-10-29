@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index points with LatLonPoint plus LatLonDocValuesField and run searcher.search(LatLonPoint.newDistanceFeatureQuery("loc", 1, 0, 0, 1000), 1), expecting the closest document, because Scorable#setMinCompetitiveScore lets a scorer skip only documents that score below the threshold and Lucene's own TestLatLonPointDistanceFeatureQuery asserts that pruned (TOP_SCORES) and unpruned (COMPLETE) top-k agree for this query. Instead, once a document 999.999 m due north (score 0.50000024) fills the queue, a document 999.803 m due north (score 0.5000492) is never visited and the farther one is returned. The scorer turns the threshold into a radius with a binary search that stops when the interval is 1 m wide and keeps the lower end (999.729 m, although every distance up to 999.999 m still competes), and the box it then searches adds only 7 cm to that radius, so competitive documents just beyond the box edge are dropped.
 
+The test shows that top-k pruning in LatLonPoint.newDistanceFeatureQuery skips a closer, higher-scoring document: the 1 m bisection keeps the lower end of its interval and the pruning box adds only a 7 cm pad.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Once a document 999.999 m due north (score 0.50000024) fills the queue, a document 999.803 m due north (score 0.5000492) is never visited and the farther one is returned.
+Expected `search(newDistanceFeatureQuery("loc", 1, 0, 0, 1000), 1)` to return the last doc (999.803 m due north); actual doc 0 (999.999 m due north) (`expected:<2001> but was:<0>`), with `-ea` and `-da`.
 
 ## Files
 
@@ -19,8 +20,8 @@ You index points with LatLonPoint plus LatLonDocValuesField and run searcher.sea
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

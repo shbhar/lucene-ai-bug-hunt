@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You read the grouping package overview, which says topNGroups is 'how many top groups to keep' and that groupOffset 3 'means you'll get 7 groups back (assuming topNGroups is 10)', and which names FirstPassGroupingCollectorManager as the first pass and builds BlockGroupingCollectorManager(groupSort, groupOffset, topNGroups,...), so you expect groupOffset 3 with topNGroups 10 to return 7 groups. Instead both managers, like GroupingSearch, treat topNGroups as the number of groups to return after the offset and return 10 groups (ranks 4 to 13). The '7 groups' sentence is right only for the plain FirstPassGroupingCollector and BlockGroupingCollector, which the page named until #16385 rewrote it for the managers, so paging code written from the sentence gets oversized, overlapping pages.
 
+The test shows that the grouping package overview's example ("groupOffset 3 means you'll get 7 groups back, assuming topNGroups is 10") does not hold for FirstPassGroupingCollectorManager, the first-pass class the page names (documentation defect).
+
 ## Expected vs actual
 
-- Expected: You expect groupOffset 3 with topNGroups 10 to return 7 groups.
-- Actual: Both managers, like GroupingSearch, treat topNGroups as the number of groups to return after the offset and return 10 groups (ranks 4 to 13).
+Expected 7 groups (the documented example), actual 10 (`expected:<7> but was:<10>`) on 13 one-document groups, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/search/grouping/TestGroupingPackageDocOffsetExample.java](src/org/apache/lucene/search/grouping/TestGroupingPackageDocOffsetExample.java) (JUnit test)
+- [src/org/apache/lucene/search/grouping/TestGroupingPackageDocOffset.java](src/org/apache/lucene/search/grouping/TestGroupingPackageDocOffset.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -36,10 +38,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.grouping.TestGroupingPackageDocOffsetExample
+     execute --select-class org.apache.lucene.search.grouping.TestGroupingPackageDocOffset
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

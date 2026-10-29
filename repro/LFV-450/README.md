@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You run an ordinary top-k search such as searcher.search(query, 10) with a BayesianScoreQuery, and more than 1,000 documents match. You expect the same top hits as an exhaustive search, because the probability is a monotone function of the inner score and pruning may skip only documents that score below the current k-th hit. Instead, when a later document's probability is exactly one float step above the k-th hit's (most often when probabilities are close to 1), BayesianScoreQuery turns that probability back into an inner-score threshold with a closed-form inverse that lands in the middle of the range of inner scores that all round to that probability, so the inner query skips the document and the search silently returns the weaker hit.
 
+The test shows that `BayesianScoreQuery` turns the minimum competitive probability into an inner-score threshold that skips a still-competitive hit, so the default `search(q, 1)` returns the wrong top hit after 1,000 matches.
+
 ## Expected vs actual
 
-- Expected: You expect the same top hits as an exhaustive search, because the probability is a monotone function of the inner score and pruning may skip only documents that score below the current k-th hit.
-- Actual: When a later document's probability is exactly one float step above the k-th hit's (most often when probabilities are close to 1), BayesianScoreQuery turns that probability back into an inner-score threshold with a closed-form inverse that lands in the middle of the range of inner scores that all round to that probability, so the inner query skips the document and the search silently returns the weaker hit.
+Expected doc 1001 (inner 5.0, p=0.9933072); actual doc 1000 (inner 4.999999, p=0.9933071): `score=0.9933071 expected:<1001> but was:<1000>`, with `-ea` and `-da`.
 
 ## Files
 
@@ -19,8 +20,8 @@ You run an ordinary top-k search such as searcher.search(query, 10) with a Bayes
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

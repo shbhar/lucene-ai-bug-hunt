@@ -10,19 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You strip '&lt;script&gt;&lt;!--\n// Don't remove\nvar x = 1;\n//--&gt;&lt;/script&gt;&lt;p&gt;Welcome to our store&lt;/p&gt;' with HTMLStripCharFilter and expect 'Welcome to our store', which is what you get without the apostrophe and what the filter's own tests expect after wrapped script and style blocks. Instead the output is empty: inside the &lt;!-- --&gt; section the apostrophe opens a quoted-string state that ignores '--&gt;' and '&lt;/script&gt;', and because the input ends in that state everything after the quote is dropped, so the text is never indexed and a TermQuery for a word after the block misses the document. The same happens with an apostrophe in a CSS comment of a wrapped &lt;style&gt; block or with a lone '"', with no error.
 
+The test shows that an apostrophe in a JavaScript comment inside a `<!-- -->`-wrapped `<script>` block makes HTMLStripCharFilter drop all text after the block.
+
 ## Expected vs actual
 
-- Expected: "\n\nWelcome to our store\n" and "\n\nYour order has shipped.\n", as without the apostrophe; 4 tokens [Your, order, has, shipped]
-- Actual: "" for both blocks and "token 0 does not exist" through the analyzer: 3 of 4 tests fail, assertions on and off
+Expected the output of `<script><!--\n// Don't remove\n//--></script><p>Welcome to our store</p>` to contain `Welcome to our store`; actual output: the empty string, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/charfilter/TestHTMLStripScriptCommentQuote.java](src/org/apache/lucene/analysis/charfilter/TestHTMLStripScriptCommentQuote.java) (JUnit test)
+- [src/org/apache/lucene/analysis/charfilter/TestHTMLStripQuoteInScriptComment.java](src/org/apache/lucene/analysis/charfilter/TestHTMLStripQuoteInScriptComment.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,18 +42,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.charfilter.TestHTMLStripScriptCommentQuote
+     execute --select-class org.apache.lucene.analysis.charfilter.TestHTMLStripQuoteInScriptComment
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestHTMLStripScriptCommentQuote.java](TestHTMLStripScriptCommentQuote.java)
-- [optionA-comment-states.diff](optionA-comment-states.diff)
-- [optionAB-comment-states-plus-end-tag.diff](optionAB-comment-states-plus-end-tag.diff)
-- [4-TestHTMLStripScriptCommentQuote.java](4-TestHTMLStripScriptCommentQuote.java)
-- [TestHtmlStripQuoteInScriptComment.java](TestHtmlStripQuoteInScriptComment.java)
 
 ## Feedback
 

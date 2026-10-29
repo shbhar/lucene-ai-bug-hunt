@@ -18,17 +18,19 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>ICUFoldingFilter folds the Tajik/Abkhaz letter CHE WITH DESCENDER (ҷ U+04B7, Ҷ U+04B6) to the different letter ABKHASIAN CHE (ҽ U+04BD) instead of to CHE (ч U+0447), so Tajik text is not found by the same words typed with plain ч</h1>
-<p class="facts small"><span>Bug LFV-855</span><span>Area: analysis / icu (ICUFoldingFilter UTR#30 folding data: the hand-written &#x27;Rule: verbatim&#x27; Cyrillic block of DiacriticFolding.txt, compiled into utr30.nrm)</span><span>Priority: medium</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
+<p class="facts small"><span>Bug LFV-855</span><span>Area: analysis / icu (ICUFoldingFilter UTR#30 folding data: the hand-written &#x27;Rule: verbatim&#x27; Cyrillic block of DiacriticFolding.txt, compiled into utr30.nrm)</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
 <p><a href="../../bugs/LFV-855.html">Bug page for LFV-855</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index Tajik text such as &#x27;Ҷумҳурии Тоҷикистон&#x27; with ICUFoldingFilter, whose javadoc lists &#x27;Diacritic removal (including stroke, hook, descender)&#x27;, and expect the same words typed without the Tajik letters, &#x27;Чумхурии Точикистон&#x27;, to find it, as they do for ҳ, қ and the other WITH DESCENDER letters. Instead the hand-copied line &#x27;04B7&gt;04BC&#x27; in DiacriticFolding.txt maps CHE WITH DESCENDER to ABKHASIAN CHE, so ҷ and Ҷ are indexed as ҽ while the query&#x27;s ч stays ч, and the query gets 0 hits. In Abkhaz, which uses ҷ, ҽ and ҿ as three separate letters, all three fold to ҽ and match each other.</p>
+<p>The test shows that <code>ICUFoldingFilter</code> folds the Tajik/Abkhaz letter CHE WITH DESCENDER &quot;ҷ&quot; (U+04B7) to the different letter ABKHASIAN CHE &quot;ҽ&quot; (U+04BD), not to CHE &quot;ч&quot; (U+0447) as every sibling WITH DESCENDER letter keeps its base letter.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> &quot;Ҷумҳурии Тоҷикистон&quot; is indexed as <code>чумхурии точикистон</code> and the query &quot;Чумхурии Точикистон&quot; finds it (1 hit); ҷ and Ҷ fold to <code>ч</code>.</li><li><b>Actual:</b> It is indexed as <code>ҽумхурии тоҽикистон</code>, so the query finds 0 documents; ҷ and Ҷ fold to <code>ҽ</code>.</li></ul>
+<p>Expected <code>term 0 expected:&lt;[ч]&gt;</code>; actual <code>but was:&lt;[ҽ]&gt;</code>, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/analysis/icu/TestICUFoldingCheWithDescender.java"><code>src/org/apache/lucene/analysis/icu/TestICUFoldingCheWithDescender.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -48,5 +50,4 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.analysis.icu.TestICUFoldingCheWithDescender</code></pre>
 <p class="small">The module(s) analysis-icu also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestICUFoldingCheWithDescender.java"><code>TestICUFoldingCheWithDescender.java</code></a></li><li><a href="TestCheWithDescenderFolding.java"><code>TestCheWithDescenderFolding.java</code></a></li><li><a href="CheFoldHistoryMain.java"><code>CheFoldHistoryMain.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

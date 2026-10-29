@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You register queries in a Monitor and match documents with ParallelMatcher or PartitionMatcher, which the package docs offer as a performance option, and one registered query throws an unchecked exception at match time, for example an IntPoint range query meeting a field indexed as LongPoint (IllegalArgumentException). You expect what the default serial matcher does: that query is reported in getErrors and every other match is returned. Instead the worker threads catch only IOException, so Monitor.match throws RuntimeException('Interrupted during match') and the whole batch's matches are lost, and with ParallelMatcher, once every worker has died, the caller blocks forever in LinkedBlockingQueue.put (executed: 4 threads, one registered query with 4 failing disjuncts plus 1,100 other queries, still blocked after 20 s, 77 interrupts to stop).
 
+The test shows that with PartitionMatcher, a registered query that throws an unchecked exception at match time (an IntPoint query on a field indexed as LongPoint) makes `Monitor.match` throw, and the other query's match is lost.
+
 ## Expected vs actual
 
-- Expected: You expect what the default serial matcher does: that query is reported in getErrors and every other match is returned.
-- Actual: The worker threads catch only IOException, so Monitor.match throws RuntimeException('Interrupted during match') and the whole batch's matches are lost, and with ParallelMatcher, once every worker has died, the caller blocks forever in LinkedBlockingQueue.put (executed: 4 threads, one registered query with 4 failing disjuncts plus 1,100 other queries, still blocked after 20 s, 77 interrupts to stop).
+Expected 1 match ("long") plus an error reported for "int" in getErrors(), as the serial matcher returns; actual: `RuntimeException: Interrupted during match` (caused by the IllegalArgumentException), with -ea and -da.
 
 ## Files
 
-- [src/org/apache/lucene/monitor/TestConcurrentMatcherQueryErrors.java](src/org/apache/lucene/monitor/TestConcurrentMatcherQueryErrors.java) (JUnit test)
+- [src/org/apache/lucene/monitor/TestPartitionMatcherUncheckedQueryError.java](src/org/apache/lucene/monitor/TestPartitionMatcherUncheckedQueryError.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,7 +42,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.monitor.TestConcurrentMatcherQueryErrors
+     execute --select-class org.apache.lucene.monitor.TestPartitionMatcherUncheckedQueryError
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

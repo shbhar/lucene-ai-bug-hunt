@@ -17,66 +17,32 @@
 package org.apache.lucene.analysis.icu.segmentation;
 
 import java.io.StringReader;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.apache.lucene.analysis.Tokenizer;
-import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.apache.lucene.tests.util.StringMockResourceLoader;
 
-/**
- * An ICUTokenizerFactory per-script rule file saved as UTF-8 with a byte order mark (as some
- * editors do) is accepted without an error, but the BOM becomes a literal character of the first
- * rule, so every token of that script disappears.
- *
- * <p>Public API only: ICUTokenizerFactory(Map), inform(ResourceLoader), create(AttributeFactory).
- */
-public class TestICUTokenizerFactoryRuleFileBom extends BaseTokenStreamTestCase {
+public class TestICUTokenizerFactoryRuleFileBom extends LuceneTestCase {
 
-  private static final String BOM = "\uFEFF";
-
-  /** The rules of the upstream test file Latin-break-only-on-whitespace.rbbi (with a comment). */
-  private static final String WHITESPACE_RULES =
-      "# Latin: break only on whitespace\n"
-          + "!!forward;\n"
-          + "$Whitespace = [\\p{Whitespace}];\n"
-          + "$NonWhitespace = [\\P{Whitespace}];\n"
-          + "$Letter = [\\p{Letter}];\n"
-          + "$Number = [\\p{Number}];\n"
-          + "$Whitespace;\n"
-          + "$NonWhitespace* $Letter $NonWhitespace*   {200};\n"
-          + "$NonWhitespace* $Number $NonWhitespace*   {100};\n"
-          + "$NonWhitespace+   {1};\n";
-
-  private static final String KEYWORD_RULES = ".+ {200};\n";
-
-  private Tokenizer latin(String ruleFile) throws Exception {
-    Map<String, String> args = new HashMap<>();
-    args.put("rulefiles", "Latn:latin.rbbi");
-    ICUTokenizerFactory factory = new ICUTokenizerFactory(args);
-    factory.inform(new StringMockResourceLoader(ruleFile));
-    return factory.create(newAttributeFactory());
-  }
-
-  private void check(String ruleFile, String text, String... expected) throws Exception {
-    Tokenizer t = latin(ruleFile);
-    t.setReader(new StringReader(text));
-    assertTokenStreamContents(t, expected);
-  }
-
-  /** Control: the files without a BOM. */
-  public void testNoBom() throws Exception {
-    check(WHITESPACE_RULES, "Don't,break.at?/(punct)! here", "Don't,break.at?/(punct)!", "here");
-    check(KEYWORD_RULES, "ab cd", "ab cd");
-  }
-
-  /** The same whitespace rules file saved with a BOM. */
-  public void testWhitespaceRulesWithBom() throws Exception {
-    check(
-        BOM + WHITESPACE_RULES, "Don't,break.at?/(punct)! here", "Don't,break.at?/(punct)!", "here");
-  }
-
-  /** The same keyword rules file saved with a BOM. */
-  public void testKeywordRulesWithBom() throws Exception {
-    check(BOM + KEYWORD_RULES, "ab cd", "ab cd");
+  public void testRuleFileWithUtf8Bom() throws Exception {
+    ICUTokenizerFactory factory =
+        new ICUTokenizerFactory(new HashMap<>(Map.of("rulefiles", "Latn:latin.rbbi")));
+    factory.inform(new StringMockResourceLoader("\uFEFF.+ {200};\n"));
+    List<String> tokens = new ArrayList<>();
+    try (Tokenizer tokenizer = factory.create()) {
+      CharTermAttribute term = tokenizer.addAttribute(CharTermAttribute.class);
+      tokenizer.setReader(new StringReader("ab cd"));
+      tokenizer.reset();
+      while (tokenizer.incrementToken()) {
+        tokens.add(term.toString());
+      }
+      tokenizer.end();
+    }
+    // same tokens as for the file without the BOM; actual: none (the BOM became rule text)
+    assertEquals(List.of("ab cd"), tokens);
   }
 }

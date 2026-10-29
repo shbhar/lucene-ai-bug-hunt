@@ -23,14 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You run WordDelimiterGraphFilter with CATENATE_WORDS or CATENATE_NUMBERS on a token such as &#x27;U+20000-ab-12&#x27; (a supplementary character at the start) or &#x27;@x-ab-12&#x27; with &#x27;@&#x27; mapped to ALPHANUM, and expect catenations only of adjacent subwords of one kind, each placed over exactly the parts it contains, as the ASCII control &#x27;x-ab-12&#x27; gets (xab at [0,2), no number catenation). Instead, because such a subword is typed ALPHA|DIGIT and a run started by it is never ended by a subword it does not absorb, the filter emits catenations of non-adjacent parts (&#x27;U+20000 12&#x27;, &#x27;@x12&#x27;, &#x27;U+20000abcd&#x27; across &#x27;12&#x27;) and catenations whose position length also covers the skipped part (&#x27;U+20000ab&#x27; at [0,3), over &#x27;12&#x27;). At search time QueryBuilder turns that graph into a phrase query with a bare-term alternative, so the phrase &#x27;U+20000hot-sale-50&#x27; also matches a document &#x27;U+20000hot-sale-49&#x27; (executed).</p>
+<p>The test shows that <code>WordDelimiterGraphFilter</code> with <code>CATENATE_NUMBERS</code> catenates non-adjacent parts when a run starts with a subword typed ALPHA|DIGIT: <code>#x-ab-12</code> with <code>#</code> typed <code>ALPHANUM</code> (public constructor type table) emits <code>#x12</code> across the word part <code>ab</code>.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>#hotsale</code> covers 2 positions, <code>#x-ab-12</code> gives only <code>#x</code>, <code>ab</code>, <code>12</code>, and the phrase <code>#hot-sale-50</code> finds only <code>#hot-sale-50</code>.</li><li><b>Actual:</b> <code>posLength 0 term=#hotsale expected:&lt;2&gt; but was:&lt;3&gt;</code>, an extra <code>#x12</code>, and the phrase matches <code>#hot-sale</code>, <code>#hot-sale-49</code> and <code>#hot-sale-50</code>: 4 of 4 tests fail, assertions on and off.</li></ul>
+<p>Expected tokens <code>[#x, ab, 12]</code>; actual has an extra first token <code>#x12</code> (<code>term 0 expected:&lt;#x[]&gt; but was:&lt;#x[12]&gt;</code>), with <code>-ea</code> and <code>-da</code>; passes with the doc&#x27;s option A fix.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/analysis/miscellaneous/TestWdgfAlphanumCatenation.java"><code>src/org/apache/lucene/analysis/miscellaneous/TestWdgfAlphanumCatenation.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src2/org/apache/lucene/analysis/miscellaneous/TestWdgfAlphanumCatenation.java"><code>src2/org/apache/lucene/analysis/miscellaneous/TestWdgfAlphanumCatenation.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/analysis/miscellaneous/TestWordDelimiterGraphFilterAlphanumCatenation.java"><code>src/org/apache/lucene/analysis/miscellaneous/TestWordDelimiterGraphFilterAlphanumCatenation.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -42,16 +42,11 @@ CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
-javac -d classes-src -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
-javac -d classes-src2 -cp &quot;$CP&quot; $(find src2 -name &#x27;*.java&#x27;)
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.miscellaneous.TestWdgfAlphanumCatenation
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src2:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.miscellaneous.TestWdgfAlphanumCatenation</code></pre>
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.analysis.miscellaneous.TestWordDelimiterGraphFilterAlphanumCatenation</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestWordDelimiterGraphFilterAlphanumRuns.java"><code>TestWordDelimiterGraphFilterAlphanumRuns.java</code></a></li><li><a href="fix-option-A.diff"><code>fix-option-A.diff</code></a></li><li><a href="TestWdgfAlphanumCatenation.java"><code>TestWdgfAlphanumCatenation.java</code></a></li><li><a href="TestWdgfRunAcrossIncompatibleSubword.java"><code>TestWdgfRunAcrossIncompatibleSubword.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

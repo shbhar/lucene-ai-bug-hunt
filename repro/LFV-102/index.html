@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>In a test you call the test framework&#x27;s CheckHits.checkTopScores on a BooleanQuery of three term clauses with setMinimumNumberShouldMatch(2), for example (f:a f:b f:c)~2. You expect it to pass, because the query returns the same matching docs with the same scores in COMPLETE and TOP_SCORES mode (checked in the same test). Instead it throws AssertionError &#x27;expected:&lt;1&gt; but was:&lt;0&gt;&#x27; in CheckHits.doCheckMaxScores (CheckHits.java:751): the checker requires the two scorers&#x27; two-phase approximations, which only have to be supersets of the matches, to stop on the same docs, and the TOP_SCORES WANDScorer legitimately stops on doc 0 (it holds only &#x27;c&#x27;), which matches then rejects.</p>
+<p>The test shows that the test-framework checker <code>CheckHits.checkTopScores</code> rejects the correct query <code>(f:a f:b f:c)~2</code> on a 2-doc index (doc 0 = &quot;c&quot;, doc 1 = &quot;a b&quot;), because it walks the COMPLETE and TOP_SCORES two-phase approximations in lockstep and the TOP_SCORES WANDScorer&#x27;s approximation also stops on doc 0.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect it to pass, because the query returns the same matching docs with the same scores in COMPLETE and TOP_SCORES mode (checked in the same test).</li><li><b>Actual:</b> It throws AssertionError &#x27;expected:&lt;1&gt; but was:&lt;0&gt;&#x27; in CheckHits.doCheckMaxScores (CheckHits.java:751): the checker requires the two scorers&#x27; two-phase approximations, which only have to be supersets of the matches, to stop on the same docs, and the TOP_SCORES WANDScorer legitimately stops on doc 0 (it holds only &#x27;c&#x27;), which matches then rejects.</li></ul>
+<p>Expected: the check passes (doc 1 is the only match, same score in both modes); actual (-ea and -da): AssertionError <code>expected:&lt;1&gt; but was:&lt;0&gt;</code> at CheckHits.java:751.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/search/TestCheckTopScoresMinShouldMatch.java"><code>src/org/apache/lucene/search/TestCheckTopScoresMinShouldMatch.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

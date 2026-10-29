@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 Two threads call addIndexes(CodecReader...) on one IndexWriter configured with SerialMergeScheduler; call A's source is corrupt (or hits a read error) and call B's source is valid. You expect A to fail with its own exception and B to add its documents, as happens in either serial order and with the default ConcurrentMergeScheduler, because IndexWriter is documented as safe for concurrent calls to any method and each addIndexes call already rethrows the failures of its own merges. Instead B, which holds the scheduler, runs A's queued merge on its own thread after finishing its own, receives A's exception (for example CorruptIndexException 'checksum failed (hardware problem?)' naming A's source file), deletes its own completed merge and adds nothing, while A throws the same exception.
 
+The test shows that with SerialMergeScheduler, two concurrent addIndexes(CodecReader...) calls, A with a source that has one corrupt byte and B with a valid one; B runs A's queued merge on its own thread and fails with A's exception.
+
 ## Expected vs actual
 
-- Expected: You expect A to fail with its own exception and B to add its documents, as happens in either serial order and with the default ConcurrentMergeScheduler, because IndexWriter is documented as safe for concurrent calls to any method and each addIndexes call already rethrows the failures of its own merges.
-- Actual: B, which holds the scheduler, runs A's queued merge on its own thread after finishing its own, receives A's exception (for example CorruptIndexException 'checksum failed (hardware problem?)' naming A's source file), deletes its own completed merge and adds nothing, while A throws the same exception.
+Expected: B adds its document and succeeds. Actual (-ea and -da): B throws A's CorruptIndexException "checksum failed (hardware problem?)" from SerialMergeScheduler.merge.
 
 ## Files
 
-- [src/org/apache/lucene/index/TestAddIndexesSerialSchedulerForeignFailure.java](src/org/apache/lucene/index/TestAddIndexesSerialSchedulerForeignFailure.java) (JUnit test)
+- [src/org/apache/lucene/index/TestSerialMergeSchedulerAddIndexesForeignFailure.java](src/org/apache/lucene/index/TestSerialMergeSchedulerAddIndexesForeignFailure.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,7 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestAddIndexesSerialSchedulerForeignFailure
+     execute --select-class org.apache.lucene.index.TestSerialMergeSchedulerAddIndexesForeignFailure
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

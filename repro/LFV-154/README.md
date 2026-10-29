@@ -8,20 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You run a query once through a CachingCollector (or CachingCollectorManager) and then replay the cached hits into a second-pass collector, expecting the same result as running that collector through IndexSearcher. When the second-pass collector stops a segment early by throwing CollectionTerminatedException, which is how LeafCollector#collect documents early termination and what a stock TopFieldCollector sorted by the index sort does once a segment has more than 1000 hits, IndexSearcher simply moves on to the next segment, but replay lets the exception escape to the caller, without a stack trace. Catching it around replay is no workaround: the later segments are never replayed, so in the repro the top 10 come back as [1000..1009] instead of [0..9].
 
+The test shows that `CachingCollector#replay` lets a `CollectionTerminatedException` thrown by the second-pass collector's `collect` (the documented per-leaf stop signal) escape to the caller.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+Expected: replay ends that leaf and returns, as `IndexSearcher.search` does. Actual: the exception escapes `replay`, with -ea and -da.
 
 ## Files
 
-- [src/org/apache/lucene/search/TestCachingCollectorManagerReplayTermination.java](src/org/apache/lucene/search/TestCachingCollectorManagerReplayTermination.java) (JUnit test)
-- [src/org/apache/lucene/search/TestCachingCollectorReplayTerminationLegacy.java](src/org/apache/lucene/search/TestCachingCollectorReplayTerminationLegacy.java) (JUnit test)
+- [src/org/apache/lucene/search/TestCachingCollectorReplayTerminatedLeaf.java](src/org/apache/lucene/search/TestCachingCollectorReplayTerminatedLeaf.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -39,12 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestCachingCollectorManagerReplayTermination
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestCachingCollectorReplayTerminationLegacy
+     execute --select-class org.apache.lucene.search.TestCachingCollectorReplayTerminatedLeaf
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

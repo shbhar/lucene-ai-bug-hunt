@@ -22,12 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You configure LMDirichletSimilarity with mu = 0, which both constructors accept (&#x27;must be a non-negative finite value&#x27;) and which upstream&#x27;s TestLMDirichletSimilarity uses as its &#x27;minimum value&#x27;. You expect documents that contain the query term more often than the collection model predicts to get a positive score and be ranked, as they are for every mu &gt; 0 down to Float.MIN_VALUE, where the score already equals its finite mu -&gt; 0 limit log(tf/(dl*P)). Instead score computes log(1 + tf/0) + log(0/dl) = +Infinity + -Infinity = NaN, the &#x27;score &gt; 0 ? score: 0&#x27; clamp returns 0.0, and every hit scores 0.0, so the best match can come back last; explain shows &#x27;Infinity = term weight&#x27; and &#x27;-Infinity = document norm&#x27; under a 0.0 total.</p>
+<p>The test shows that with <code>new LMDirichletSimilarity(0f)</code> (accepted, &quot;non-negative finite&quot;), a TermQuery hit that is far above the collection model scores 0 (<code>TestLMDirichletMuZero#testMuZeroScoresBestMatchAboveZero</code>, 3 documents).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect documents that contain the query term more often than the collection model predicts to get a positive score and be ranked, as they are for every mu &gt; 0 down to Float.MIN_VALUE, where the score already equals its finite mu -&gt; 0 limit log(tf/(dl*P)).</li><li><b>Actual:</b> score computes log(1 + tf/0) + log(0/dl) = +Infinity + -Infinity = NaN, the &#x27;score &gt; 0 ? score: 0&#x27; clamp returns 0.0, and every hit scores 0.0, so the best match can come back last; explain shows &#x27;Infinity = term weight&#x27; and &#x27;-Infinity = document norm&#x27; under a 0.0 total.</li></ul>
+<p>Expected: doc &quot;a&quot; (tf/dl = 1, P = 3/8) scores &gt; 0. Actual: 0.0, because log(1 + tf/0) + log(0/dl) = +Infinity + -Infinity = NaN is clamped to 0; fails with -ea and -da.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/search/similarities/TestLMDirichletMuZero.java"><code>src/org/apache/lucene/search/similarities/TestLMDirichletMuZero.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

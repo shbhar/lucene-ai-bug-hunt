@@ -1,6 +1,6 @@
 # Intervals.before(source, reference) treats a source interval at position 0 as before a reference interval that also starts at position 0, so for example before(york, york) matches the one-word document 'york'
 
-Bug LFV-293 · Area: queries / intervals (Intervals.before, OffsetIntervalsSource PRECEDING) · Priority: medium · Impact: silent wrong results · Novelty: new
+Bug LFV-293 · Area: queries / intervals (Intervals.before, OffsetIntervalsSource PRECEDING) · Priority: low · Impact: silent wrong results · Novelty: new
 
 Bug page: [../../bugs/LFV-293.html](../../bugs/LFV-293.html)
 
@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You search with Intervals.before(source, reference), for example before(term new, phrase(new, york)) on the text 'new york', or before(term york, term york) on the one-word text 'york'. You expect no match, because the javadoc says before 'Returns intervals from the source that appear before intervals from the reference' and nothing comes before the first word. Instead both documents match: before is built from a helper that places a pseudo-interval one position before each reference match, and for a reference at position 0 the helper clamps that position to 0 instead of producing nothing, so a source at position 0 counts as 'before' it; prepend one unrelated word and the same text correctly stops matching.
 
+The test shows that `Intervals.before(york, york)` matches the one-word document "york", so a term at position 0 counts as before a reference that also starts at position 0.
+
 ## Expected vs actual
 
-- Expected: `before(york, york)` matches only `york york` (`[2]`), and `before(new, phrase(new york))` only `new x new york` (`[3]`).
-- Actual: `[0, 2]`: the lone `york` matches too; and `[0, 2, 3]`: `new york` and `new york city` match too.
+Expected 0 hits (nothing comes before the only word); actual: 1 hit (`expected:<0> but was:<1>`), with `-ea` and `-da`.
 
 ## Files
 
@@ -21,8 +22,8 @@ You search with Intervals.before(source, reference), for example before(term new
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -45,14 +46,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestIntervalsBeforeFirstPosition.java](TestIntervalsBeforeFirstPosition.java)
-- [TestBeforeAtFirstPosition.java](TestBeforeAtFirstPosition.java)
-- [TestBeforeFirstPositionV1.java](TestBeforeFirstPositionV1.java)
-- [TestBeforeBoundaryControls.java](TestBeforeBoundaryControls.java)
-- [TestBeforeIntent.java](TestBeforeIntent.java)
 
 ## Feedback
 

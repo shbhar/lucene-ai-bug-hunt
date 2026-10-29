@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You build an exact circle on the default WGS84 planet model (GeoCircleFactory.makeExactGeoCircle, centre latitude 0.3 and longitude 0.2, radius 0.1 rad, about 637 km, accuracy 1e-6) and ask computeOutsideDistance for a point 0.11 rad due north of the centre, expecting &#x27;the distance from a point to the closest outside edge&#x27; (GeoOutsideDistance), about 0.0096. Instead you get +Infinity, and the same for every point due north or due south at any distance; on the unit sphere a point 0.001 rad due west of a 1e-4 rad exact circle gets 0.0012, the distance to the far side of the circle. The cause: GeoExactCircle.outsideDistance takes the minimum of each slice&#x27;s plane distance bounded to that slice&#x27;s sector and never measures the slice end points, so when the nearest edge point is a joint between two slices, the point&#x27;s foot on each neighbouring plane falls just outside its sector, both return +Infinity, and the minimum is +Infinity or a foot on the far side.</p>
+<p>The test shows that GeoExactCircle.computeOutsideDistance returns +Infinity for a point due north of a WGS84 exact circle, because it never measures the slice end point (the joint where two slices meet) that is the closest edge point.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> Each meridian point&#x27;s outside distance is at most its distance to the shape&#x27;s own edge point (0.009558 for 0.11 north); the sphere point 0.001 west gets 0.001.</li><li><b>Actual:</b> All six meridian points get Infinity; the sphere point gets 0.001199999997484277; the control passes.</li></ul>
+<p>Expected: about 0.009558, the ARC distance from (0.41, 0.2) to the circle&#x27;s north edge point. Actual (-ea and -da): +Infinity.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/spatial3d/geom/TestGeoExactCircleOutsideDistanceAtSliceJoints.java"><code>src/org/apache/lucene/spatial3d/geom/TestGeoExactCircleOutsideDistanceAtSliceJoints.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/spatial3d/geom/TestGeoExactCircleOutsideDistance.java"><code>src/org/apache/lucene/spatial3d/geom/TestGeoExactCircleOutsideDistance.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -45,7 +47,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.spatial3d.geom.TestGeoExactCircleOutsideDistanceAtSliceJoints</code></pre>
+     execute --select-class org.apache.lucene.spatial3d.geom.TestGeoExactCircleOutsideDistance</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestGeoExactCircleOutsideDistanceAtSliceJoints.java"><code>TestGeoExactCircleOutsideDistanceAtSliceJoints.java</code></a></li><li><a href="TestExactCircleOutsideDistanceJointsV1.java"><code>TestExactCircleOutsideDistanceJointsV1.java</code></a></li><li><a href="TestExactCircleJointStyles.java"><code>TestExactCircleJointStyles.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

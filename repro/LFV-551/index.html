@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index documents with Geo3DDocValuesField, at least one of them with two or more points (the javadoc allows this and says the closest one is used), and ask for the top 2 hits sorted by Geo3DDocValuesField.newDistanceSort; you expect the head of the full sorted order, each hit carrying its own closest distance. Instead the top 2 come back in the wrong order and a hit reports the distance of the next document, because the comparator reads the document&#x27;s values once in compareBottom (or compareTop) and again in copy without re-positioning the SortedNumericDocValues iterator, which its javadoc forbids (&#x27;Do not call this more than docValueCount times&#x27;), so the second read takes the following document&#x27;s values or runs past the end of the data and throws EOFException. The same happens with searchAfter paging and all seven Geo3D sort factories, and because document order decides which value is read, a hit can report the distance of a document that a filter, a live-docs wrapper or a delete hides from the search.</p>
+<p>The test shows that a top-2 <code>Geo3DDocValuesField.newDistanceSort</code> search over a segment with a two-point document returns the wrong order and another document&#x27;s distance, because the comparator reads the document&#x27;s doc values twice.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> Top 2 = doc 2 at 0.5°, then doc 0 at 1°; the page after doc 2 = doc 0 at 1°, doc 1 at 2°.</li><li><b>Actual:</b> Top 2 = doc 0 at 1°, then doc 2 at 5° (doc 3&#x27;s point); <code>EOFException</code> with the two-point document last and on the <code>searchAfter</code> page.</li></ul>
+<p>Expected the head of the full sort, doc 2 at 55,599 m then doc 0 at 111,194 m; actual: doc 0, then doc 2 at 555,976 m (doc 3&#x27;s distance), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/spatial3d/TestGeo3DSortMultiValued.java"><code>src/org/apache/lucene/spatial3d/TestGeo3DSortMultiValued.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/spatial3d/TestGeo3DDistanceSortMultiValued.java"><code>src/org/apache/lucene/spatial3d/TestGeo3DDistanceSortMultiValued.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -45,7 +47,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.spatial3d.TestGeo3DSortMultiValued</code></pre>
+     execute --select-class org.apache.lucene.spatial3d.TestGeo3DDistanceSortMultiValued</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestGeo3DSortMultiValued.java"><code>TestGeo3DSortMultiValued.java</code></a></li><li><a href="2-TestGeo3DSortMultiValued.java"><code>2-TestGeo3DSortMultiValued.java</code></a></li><li><a href="TestGeo3DSortRereadV1.java"><code>TestGeo3DSortRereadV1.java</code></a></li><li><a href="TestGeo3DSortRereadV1Controls.java"><code>TestGeo3DSortRereadV1Controls.java</code></a></li><li><a href="Geo3DSortRereadHistoryProbe.java"><code>Geo3DSortRereadHistoryProbe.java</code></a></li><li><a href="TestGeo3DSortHiddenDocumentLeak.java"><code>TestGeo3DSortHiddenDocumentLeak.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

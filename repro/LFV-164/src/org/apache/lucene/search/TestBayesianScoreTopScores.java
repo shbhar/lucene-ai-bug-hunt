@@ -16,6 +16,7 @@
  */
 package org.apache.lucene.search;
 
+import java.io.IOException;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.TextField;
@@ -23,61 +24,38 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.tests.analysis.MockAnalyzer;
 import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
 
-/**
- * When every calibrated score is below 1e-7 (e.g. a small base rate such as the 1e-6 that
- * BayesianScoreEstimator can return), BayesianScoreScorer#setMinCompetitiveScore clamps the
- * minimum competitive score up to 1e-7 before inverting the sigmoid. The inner scorer is then
- * told to skip documents that are still competitive, and a top-k search returns the wrong hits.
- */
 public class TestBayesianScoreTopScores extends LuceneTestCase {
 
   public void testTopHitIsNotPruned() throws Exception {
-    Directory dir = newDirectory();
-    IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(new MockAnalyzer(random())));
-    for (int i = 0; i < 3900; i++) { // docs 0..3899 do not match
+    try (Directory dir = new ByteBuffersDirectory();
+        IndexWriter w =
+            new IndexWriter(dir, new IndexWriterConfig().setCodec(TestUtil.getDefaultCodec()))) {
+      addDocs(w, 3900, "filler filler");
+      addDocs(w, 1100, "a filler filler filler");
+      addDocs(w, 1, "a a a");
+      w.forceMerge(1);
+      try (DirectoryReader reader = DirectoryReader.open(w)) {
+        IndexSearcher searcher = new IndexSearcher(reader);
+        Query q = new BayesianScoreQuery(new TermQuery(new Term("body", "a")), 1f, 5f, 1e-6f);
+        ScoreDoc best =
+            searcher.search(q, new TopScoreDocCollectorManager(1, Integer.MAX_VALUE)).scoreDocs[0];
+        ScoreDoc top = searcher.search(q, 1).scoreDocs[0];
+        // expected: search(q, 1) returns the exhaustive top hit (doc 5000); actual: doc 3900
+        assertEquals("exhaustive " + best + ", search(q, 1) " + top, best.doc, top.doc);
+      }
+    }
+  }
+
+  private static void addDocs(IndexWriter w, int count, String body) throws IOException {
+    for (int i = 0; i < count; i++) {
       Document doc = new Document();
-      doc.add(new TextField("body", "filler filler", Field.Store.NO));
+      doc.add(new TextField("body", body, Field.Store.NO));
       w.addDocument(doc);
     }
-    for (int i = 0; i < 1100; i++) { // docs 3900..4999: weak matches (one occurrence, longer field)
-      Document doc = new Document();
-      doc.add(new TextField("body", "a filler filler filler", Field.Store.NO));
-      w.addDocument(doc);
-    }
-    Document best = new Document(); // doc 5000: the best match
-    best.add(new TextField("body", "a a a", Field.Store.NO));
-    w.addDocument(best);
-    w.forceMerge(1);
-    DirectoryReader reader = DirectoryReader.open(w);
-    w.close();
-    IndexSearcher searcher = new IndexSearcher(reader);
-
-    Query query = new BayesianScoreQuery(new TermQuery(new Term("body", "a")), 1f, 5f, 1e-6f);
-
-    // Exhaustive reference (no pruning).
-    TopDocs complete = searcher.search(query, new TopScoreDocCollectorManager(1, Integer.MAX_VALUE));
-    assertEquals(5000, complete.scoreDocs[0].doc);
-    assertTrue("calibrated scores are tiny", complete.scoreDocs[0].score < 1e-7f);
-
-    // Default top-k search: dynamic pruning starts after 1000 hits.
-    TopDocs top = searcher.search(query, 1);
-    float explained = searcher.explain(query, 5000).getValue().floatValue();
-    reader.close();
-    dir.close();
-    assertEquals(
-        "the best hit (doc 5000, score "
-            + complete.scoreDocs[0].score
-            + ", explain "
-            + explained
-            + ") must be returned, got doc "
-            + top.scoreDocs[0].doc
-            + " with score "
-            + top.scoreDocs[0].score,
-        5000,
-        top.scoreDocs[0].doc);
   }
 }

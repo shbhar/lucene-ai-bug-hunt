@@ -18,17 +18,19 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>A zero-length token makes TokenStreamToAutomaton drop every path through it, so ConcatenateGraphFilter emits nothing and the document suggester, AnalyzingSuggester and FuzzySuggester silently lose that suggestion (stock trigger: a standalone tatweel U+0640 with ArabicAnalyzer, PersianAnalyzer or SoraniAnalyzer)</h1>
-<p class="facts small"><span>Bug LFV-523</span><span>Area: analysis / TokenStreamToAutomaton (core), reached through ConcatenateGraphFilter (analysis-common) and the completion suggesters (suggest: NRT document suggester, AnalyzingSuggester, FuzzySuggester)</span><span>Priority: medium</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
+<p class="facts small"><span>Bug LFV-523</span><span>Area: analysis / TokenStreamToAutomaton (core), reached through ConcatenateGraphFilter (analysis-common) and the completion suggesters (suggest: NRT document suggester, AnalyzingSuggester, FuzzySuggester)</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
 <p><a href="../../bugs/LFV-523.html">Bug page for LFV-523</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index the suggestion &#x27;foo ـ bar&#x27; (a standalone Arabic tatweel between two words) with ArabicAnalyzer into a SuggestField, or build an AnalyzingSuggester or FuzzySuggester from it, and expect a lookup for &#x27;foo&#x27; to return it next to &#x27;foo bar&#x27;, because ArabicAnalyzer turns the tatweel into an ordinary empty token and ConcatenateGraphFilter promises one output token for every path through the token graph. Instead TokenStreamToAutomaton adds a token&#x27;s transitions only inside its per-byte loop, which never runs for a zero-length token, so the token&#x27;s end state is unreachable: ConcatenateGraphFilter emits nothing, the document suggester indexes no entry for the value and the analyzing suggesters skip the input, so the suggestion never comes back. A stacked empty token loses only its own alternative path; nothing throws, with assertions on or off.</p>
+<p>The test shows that a zero-length token (ArabicAnalyzer turns the standalone tatweel in <code>foo ـ bar</code> into <code>foo, &quot;&quot;, bar</code>) makes TokenStreamToAutomaton drop the path through it, so ConcatenateGraphFilter emits nothing.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> [foo ـ bar, foo bar] for the prefix &quot;foo&quot;; 1 path and 1 joined token for <code>a</code>, <code>&quot;&quot;</code>, <code>b</code> (2 paths when the empty token is stacked).</li><li><b>Actual:</b> [foo bar] from <code>SuggestField</code> and <code>AnalyzingSuggester</code>; 0 paths (1 of 2 when stacked) and 0 tokens from <code>ConcatenateGraphFilter</code>; nothing throws.</li></ul>
+<p>Expected one output token for the one path; actual none (<code>expected:&lt;1&gt; but was:&lt;0&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/search/suggest/document/TestEmptyTokenDropsSuggestion.java"><code>src/org/apache/lucene/search/suggest/document/TestEmptyTokenDropsSuggestion.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/analysis/miscellaneous/TestConcatenateGraphFilterEmptyToken.java"><code>src/org/apache/lucene/analysis/miscellaneous/TestConcatenateGraphFilterEmptyToken.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -37,7 +39,6 @@ CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
 CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
-CP=$CP:$LUCENE/lucene/suggest/build/libs/lucene-suggest-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
@@ -46,7 +47,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.suggest.document.TestEmptyTokenDropsSuggestion</code></pre>
+     execute --select-class org.apache.lucene.analysis.miscellaneous.TestConcatenateGraphFilterEmptyToken</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestEmptyTokenSuggestions.java"><code>TestEmptyTokenSuggestions.java</code></a></li><li><a href="optionA2-hole-arc-unless-all-empty.diff"><code>optionA2-hole-arc-unless-all-empty.diff</code></a></li><li><a href="test-graphtokenizers.diff"><code>test-graphtokenizers.diff</code></a></li><li><a href="TestEmptyTokenDropsSuggestion.java"><code>TestEmptyTokenDropsSuggestion.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

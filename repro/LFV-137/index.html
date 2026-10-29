@@ -22,15 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index into one segment until doc IDs pass about 1.91 billion (legal: IndexWriter.MAX_DOCS is 2^31-129) with a doc-values or norms field that only some documents have, then commit; you expect every indexed value to be in the segment. Instead, when the field&#x27;s DocsWithFieldSet grows its FixedBitSet to the new doc ID, FixedBitSet.ensureCapacity computes the new length as arr.length &lt;&lt; 6 in int arithmetic, which wraps negative once the backing array has 2^25 words, so the set&#x27;s iterator returns no document although cardinality counts them, and the flushed segment has no document with a value for that field (with -da; with -ea addDocument throws ArrayIndexOutOfBoundsException for that document). The same call on a small set, ensureCapacity(new FixedBitSet(64), 2_000_000_000), returns a set with length = -2,044,967,232; the twin LongBitSet.ensureCapacity had the identical overflow and was fixed in 2015 (LUCENE-6409), but FixedBitSet was not.</p>
+<p>The test shows that <code>FixedBitSet.ensureCapacity(new FixedBitSet(64), 2_000_000_000)</code> returns a set that cannot hold bit 2,000,000,000, because the new length is computed as <code>arr.length &lt;&lt; 6</code> in int arithmetic and wraps negative once the grown array has 2^25 words.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect every indexed value to be in the segment.</li><li><b>Actual:</b> When the field&#x27;s DocsWithFieldSet grows its FixedBitSet to the new doc ID, FixedBitSet.ensureCapacity computes the new length as arr.length &lt;&lt; 6 in int arithmetic, which wraps negative once the backing array has 2^25 words, so the set&#x27;s iterator returns no document although cardinality counts them, and the flushed segment has no document with a value for that field (with -da; with -ea addDocument throws ArrayIndexOutOfBoundsException for that document).</li></ul>
+<p>Expected: <code>length() &gt; 2,000,000,000</code>. Actual: <code>length() = -2,044,967,232</code> with -da; with -ea the FixedBitSet constructor&#x27;s ghost-bits assertion throws <code>ArrayIndexOutOfBoundsException: Index -31952613 out of bounds for length 35156251</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/util/TestFixedBitSetEnsureCapacityLarge.java"><code>src/org/apache/lucene/util/TestFixedBitSetEnsureCapacityLarge.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/org/apache/lucene/index/TestDocsWithFieldSetLargeDocIds.java"><code>src/org/apache/lucene/index/TestDocsWithFieldSetLargeDocIds.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/org/apache/lucene/index/TestSparseDocValuesBeyond1_91BillionDocs.java"><code>src/org/apache/lucene/index/TestSparseDocValuesBeyond1_91BillionDocs.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/util/TestFixedBitSetEnsureCapacityOverflow.java"><code>src/org/apache/lucene/util/TestFixedBitSetEnsureCapacityOverflow.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -44,15 +43,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx3g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.util.TestFixedBitSetEnsureCapacityLarge \
-       --select-class org.apache.lucene.index.TestDocsWithFieldSetLargeDocIds
-
-# run 2: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false -Xmx3g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestSparseDocValuesBeyond1_91BillionDocs</code></pre>
+     execute --select-class org.apache.lucene.util.TestFixedBitSetEnsureCapacityOverflow</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/bitsets-livedocs-acceptdocs/index.html">bitsets-livedocs-acceptdocs</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

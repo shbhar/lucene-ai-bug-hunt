@@ -20,125 +20,44 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StringField;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
-import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.search.TopFieldCollectorManager;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
 
-/**
- * An INT index sort on a NumericDocValuesField whose value does not fit in an int. The flush-time
- * sorter (IndexSorter.IntSorter#getDocComparator) and the search-time IntComparator both use
- * (int) longValue(); the merge-time sorter (IntSorter#getComparableProviders) compares the full
- * long. A merge therefore writes a segment that is not in the declared index sort order.
- */
 public class TestIntIndexSortMergeOrder extends LuceneTestCase {
 
-  private static final Sort SORT = new Sort(new SortField("s", SortField.Type.INT));
-
-  private static Document doc(String id, long value) {
-    Document d = new Document();
-    d.add(new StringField("id", id, Field.Store.YES));
-    d.add(new NumericDocValuesField("s", value));
-    return d;
-  }
-
-  /**
-   * Index a (INT sort value (int) 2^32 = 0), b (1) and c (2): a alone in the first segment, b and c
-   * in the second, or all three in one segment.
-   */
-  private static Directory index(boolean oneSegment, boolean merge) throws Exception {
-    Directory dir = new ByteBuffersDirectory();
-    IndexWriterConfig iwc = new IndexWriterConfig();
-    iwc.setIndexSort(SORT);
-    iwc.setMergePolicy(new LogDocMergePolicy());
-    try (IndexWriter w = new IndexWriter(dir, iwc)) {
+  public void testMergeKeepsIntSortOrder() throws Exception {
+    IndexWriterConfig iwc =
+        new IndexWriterConfig()
+            .setIndexSort(new Sort(new SortField("s", SortField.Type.INT)))
+            .setCodec(TestUtil.getDefaultCodec());
+    try (Directory dir = new ByteBuffersDirectory();
+        IndexWriter w = new IndexWriter(dir, iwc)) {
       w.addDocument(doc("a", 1L << 32));
-      if (oneSegment == false) {
-        w.commit();
-      }
+      w.commit();
       w.addDocument(doc("b", 1));
       w.addDocument(doc("c", 2));
-      w.commit();
-      if (merge) {
-        w.forceMerge(1);
-        w.commit();
-      }
-    }
-    return dir;
-  }
-
-  private static String order(Directory dir) throws Exception {
-    StringBuilder sb = new StringBuilder();
-    try (DirectoryReader r = DirectoryReader.open(dir)) {
-      for (LeafReaderContext ctx : r.leaves()) {
-        StoredFields sf = ctx.reader().storedFields();
-        for (int i = 0; i < ctx.reader().maxDoc(); i++) {
-          sb.append(sf.document(i).get("id"));
+      w.forceMerge(1);
+      try (DirectoryReader r = DirectoryReader.open(w)) {
+        LeafReader leaf = getOnlyLeafReader(r);
+        StoredFields storedFields = leaf.storedFields();
+        StringBuilder order = new StringBuilder();
+        for (int doc = 0; doc < leaf.maxDoc(); doc++) {
+          order.append(storedFields.document(doc).get("id"));
         }
-        sb.append('|');
+        // expected: int order a (int 0), b (1), c (2), as flush and search use; actual: b, c, a
+        assertEquals("abc", order.toString());
       }
     }
-    return sb.toString();
   }
 
-  private static String firstHit(Directory dir) throws Exception {
-    try (DirectoryReader r = DirectoryReader.open(dir)) {
-      // totalHitsThreshold 1 lets the collector stop early on the index-sorted segment
-      TopDocs td =
-          new IndexSearcher(r)
-              .search(new MatchAllDocsQuery(), new TopFieldCollectorManager(SORT, 1, null, 1));
-      return r.storedFields().document(td.scoreDocs[0].doc).get("id");
-    }
-  }
-
-  private static boolean checkIndexClean(Directory dir) throws Exception {
-    try (CheckIndex ci = new CheckIndex(dir)) {
-      // the index-sort test runs from level 2 (MIN_LEVEL_FOR_INTEGRITY_CHECKS)
-      ci.setLevel(CheckIndex.Level.MIN_LEVEL_FOR_INTEGRITY_CHECKS);
-      return ci.checkIndex().clean;
-    }
-  }
-
-  /** Control: the flush-time sort (one segment) agrees with the search-time comparator. */
-  public void testFlushedSegmentIsSorted() throws Exception {
-    try (Directory dir = index(true, false)) {
-      assertEquals("abc|", order(dir));
-      assertTrue(checkIndexClean(dir));
-      assertEquals("a", firstHit(dir));
-    }
-  }
-
-  /** Control: two unmerged segments. */
-  public void testUnmergedSegments() throws Exception {
-    try (Directory dir = index(false, false)) {
-      assertTrue(checkIndexClean(dir));
-      assertEquals("a", firstHit(dir));
-    }
-  }
-
-  /** The merged segment must still be sorted by the index sort (a=0, b=1, c=2). */
-  public void testMergedSegmentOrder() throws Exception {
-    try (Directory dir = index(false, true)) {
-      assertEquals("abc|", order(dir));
-    }
-  }
-
-  /** CheckIndex must find the merged segment sorted. */
-  public void testMergedSegmentPassesCheckIndex() throws Exception {
-    try (Directory dir = index(false, true)) {
-      assertTrue("CheckIndex reports the merged segment out of index-sort order", checkIndexClean(dir));
-    }
-  }
-
-  /** A sorted search on the merged index must return the same top hit as before the merge. */
-  public void testMergedSegmentSortedSearch() throws Exception {
-    try (Directory dir = index(false, true)) {
-      assertEquals("a", firstHit(dir));
-    }
+  private static Document doc(String id, long value) {
+    Document doc = new Document();
+    doc.add(new StringField("id", id, Field.Store.YES));
+    doc.add(new NumericDocValuesField("s", value));
+    return doc;
   }
 }

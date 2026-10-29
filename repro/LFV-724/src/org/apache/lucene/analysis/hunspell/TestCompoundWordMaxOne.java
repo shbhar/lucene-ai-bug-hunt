@@ -17,30 +17,24 @@
 package org.apache.lucene.analysis.hunspell;
 
 import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/** hunspell(5) COMPOUNDWORDMAX: "Set maximum word count in a compound word." Public API only. */
 public class TestCompoundWordMaxOne extends LuceneTestCase {
 
-  private static Hunspell load(int max) throws Exception {
-    String aff = "COMPOUNDFLAG C\nCOMPOUNDMIN 1\nCOMPOUNDWORDMAX " + max + "\n";
+  public void testTwoWordCompoundAtMaxOne() throws Exception {
+    String aff = "COMPOUNDFLAG C\nCOMPOUNDMIN 1\nCOMPOUNDWORDMAX 1\n";
     String dic = "2\nfoo/C\nbar/C\n";
-    try (InputStream a = new ByteArrayInputStream(aff.getBytes(StandardCharsets.UTF_8));
-        InputStream d = new ByteArrayInputStream(dic.getBytes(StandardCharsets.UTF_8))) {
-      return new Hunspell(new Dictionary(new ByteBuffersDirectory(), "dict", a, d));
-    }
-  }
-
-  public void testMaxTwoAndOne() throws Exception {
-    Hunspell two = load(2);
-    assertTrue(two.spell("foobar"));
-    assertFalse(two.spell("foobarfoo")); // 3 words > 2: rejected, as documented
-    Hunspell one = load(1);
-    assertTrue(one.spell("foo"));
-    // 2 words > 1: expected rejected, as C Hunspell does (fails: true)
-    assertFalse("COMPOUNDWORDMAX 1, two-word compound foobar", one.spell("foobar"));
+    Dictionary dictionary =
+        new Dictionary(
+            new ByteBuffersDirectory(),
+            "dict",
+            new ByteArrayInputStream(aff.getBytes(StandardCharsets.UTF_8)),
+            new ByteArrayInputStream(dic.getBytes(StandardCharsets.UTF_8)));
+    // hunspell(5): COMPOUNDWORDMAX = maximum word count in a compound; expected false, actual true
+    assertFalse(
+        "COMPOUNDWORDMAX 1: spell(\"foobar\") (2 words) expected false, was true",
+        new Hunspell(dictionary).spell("foobar"));
   }
 }

@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build a query with the public DocAndScoreQuery.createDocAndScoreQuery from a TopDocs that lists some document twice, for example the concatenated, score-sorted results of two KnnFloatVectorQuery searches that both found it, and you expect what the javadoc promises, a query that 'matches exactly the documents in topK', so each document is counted and returned once. Instead every entry is kept: for 4 documents found through both fields IndexSearcher#count and totalHits are 8, each hit comes back twice and the leaf iterator returns 1 1 2 2 3 3 4 4. When the repeated document is the first document of a segment (docs [64, 64, 65] with segment 1 starting at 64), Arrays.binarySearch in findSegmentStarts can land on the later copy, so segment 0's iterator returns doc 64, which equals its maxDoc: a plain search then throws ArrayIndexOutOfBoundsException from the live docs when segment 0 has deletions, a doc-values sort throws or sorts the document by another document's value, and when segment 0 has no deletions the document is returned even if it is deleted or excluded by a MUST_NOT clause.
 
+The test shows that the public `DocAndScoreQuery.createDocAndScoreQuery` keeps a repeated doc id, and when it is the first document of a segment the previous segment's iterator returns a doc id equal to that segment's maxDoc.
+
 ## Expected vs actual
 
-- Expected: You expect what the javadoc promises, a query that 'matches exactly the documents in topK', so each document is counted and returned once.
-- Actual: Every entry is kept: for 4 documents found through both fields IndexSearcher#count and totalHits are 8, each hit comes back twice and the leaf iterator returns 1 1 2 2 3 3 4 4.
+Expected segment 0 (doc 0 only) to match nothing for topK = [1, 1, 2]; actual: its iterator returns doc 1 (`expected:<2147483647> but was:<1>`), with `-ea` and `-da`.
 
 ## Files
 
 - [src/org/apache/lucene/search/TestDocAndScoreQueryRepeatedDoc.java](src/org/apache/lucene/search/TestDocAndScoreQueryRepeatedDoc.java) (JUnit test)
-- [src/org/apache/lucene/search/TestDocAndScoreQueryRepeatedDocControl.java](src/org/apache/lucene/search/TestDocAndScoreQueryRepeatedDocControl.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -39,11 +40,6 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.search.TestDocAndScoreQueryRepeatedDoc
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestDocAndScoreQueryRepeatedDocControl
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

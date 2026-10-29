@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index full-precision dates such as 2014-10-23T21:22:33.159 with a NumberRangePrefixTreeStrategy over DateRangePrefixTree on which you called setPointsOnly(true), and search makeQuery(new SpatialArgs(SpatialOperation.Intersects, tree.parseShape("2014-10"))). You expect the documents from October 2014, because each point lies inside that month, IsWithin with the same shape and the same query with pointsOnly=false find them, and the LUCENE-7845 CHANGES entry describes this pointsOnly TermQuery shortcut as an optimization for 'a simple date interval (e.g. 1 month)'. Instead RecursivePrefixTreeStrategy.makeGridShapeIntersectsQuery builds a TermQuery on the month's token plus the leaf byte, a term that pointsOnly indexing at full precision, the normal path, never writes (each point stores every coarser level only as a non-leaf prefix term), so the query matches nothing; the same happens for a year, day, hour, minute or second and for a range that normalizes to one unit.
 
+The test shows that NumberRangePrefixTreeStrategy with setPointsOnly(true) returns no hits for an Intersects query on a date unit coarser than full precision (here the month 2014-10).
+
 ## Expected vs actual
 
-- Expected: All five `Intersects` queries (`2014`, `2014-10`, `[2014-10-01 TO 2014-10-31]`, `2014-10-23`, `2014-10-23T21:22:33`) find the one document, as `IsWithin` does.
-- Actual: `IsWithin` = 1 but `Intersects` = 0 for all five; with `pointsOnly=false` both are 1.
+One document indexed at 2014-10-23T21:22:33.159; Intersects('2014-10'): expected 1 hit, actual 0 (`expected:<1> but was:<0>`), with `-ea` and `-da`.
 
 ## Files
 
@@ -21,7 +22,8 @@ You index full-precision dates such as 2014-10-23T21:22:33.159 with a NumberRang
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -47,13 +49,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) spatial-extras also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestNumberRangePointsOnlyUnitIntersects.java](TestNumberRangePointsOnlyUnitIntersects.java)
-- [TestPointsOnlyDateUnitIntersects.java](TestPointsOnlyDateUnitIntersects.java)
-- [NrPointsOnlyUnitIntersectsHistory.java](NrPointsOnlyUnitIntersectsHistory.java)
-- [fix.diff](fix.diff)
 
 ## Feedback
 

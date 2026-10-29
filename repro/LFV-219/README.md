@@ -8,21 +8,21 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build an XYPolygon with large but finite float coordinates, which the constructor accepts (any finite float), for example the triangle (0,0), (2^66,2^66), (2^67,2^66), and index it with XYShape.createIndexableFields; you expect it to index exactly like the same triangle at scale 1, because multiplying every coordinate by a power of two is exact and changes neither the shape nor its orientation. The constructor computes the winding sum with float products, which overflow to Infinity once coordinate differences reach about 1.8e19; Infinity minus Infinity is NaN, and a NaN sum is labelled CW. The Tessellator then links the ring the wrong way round, finds no ear to cut, and rejects the valid polygon with 'Unable to Tessellate shape. Possible malformed shape detected.'
 
+The test shows that `XYShape.createIndexableFields` rejects the triangle (0,0),(1,1),(2,1) scaled by 2^66 (exact in float), because `XYPolygon` sums its winding order in float, which overflows to NaN and gives the wrong orientation.
+
 ## Expected vs actual
 
-- Expected: You expect it to index exactly like the same triangle at scale 1, because multiplying every coordinate by a power of two is exact and changes neither the shape nor its orientation.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+Expected: the scaled triangle indexes as it does at scale 1. Actual: `IllegalArgumentException: Unable to Tessellate shape. Possible malformed shape detected.`
 
 ## Files
 
-- [src/org/apache/lucene/geo/TestXYPolygonLargeCoordinates.java](src/org/apache/lucene/geo/TestXYPolygonLargeCoordinates.java) (JUnit test)
-- [src/XYPolygonLargeCoordinatesMain.java](src/XYPolygonLargeCoordinatesMain.java) (main() class)
+- [src/org/apache/lucene/document/TestXYShapeLargeTriangle.java](src/org/apache/lucene/document/TestXYShapeLargeTriangle.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -39,11 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.geo.TestXYPolygonLargeCoordinates
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" XYPolygonLargeCoordinatesMain
+     execute --select-class org.apache.lucene.document.TestXYShapeLargeTriangle
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

@@ -10,19 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You run a KnnFloatVectorQuery with a k larger than the index, for example k = Integer.MAX_VALUE to mean 'all vectors', and expect every vector back, as k = 1000 over 3 vectors gives, and as 9.9.2 gives for any k. Instead each segment's collector is built with a heap sized from k (k + 1 longs on a single-segment index) before the segment's vector count is looked at: k = Integer.MAX_VALUE throws IllegalArgumentException('initialCapacity must be &gt; 0 and &lt; 2147483630; got: 2147483647') from TernaryLongHeap, and k = 2^28 over a 3-document index throws OutOfMemoryError with a 2 GiB heap. Lucene used to cap k at the segment's vector count ('bound k by total number of vectors to prevent oversizing data structures'); a search speed-up change dropped that cap in 9.10.0, and the join DiversifyingChildren*KnnVectorQuery never had it.
 
+The test shows that KnnFloatVectorQuery without a filter, k = Integer.MAX_VALUE, over a 3-vector single-segment index sizes the per-segment collector heap from k (TestKnnQueryKMaxValue#testKMaxValue).
+
 ## Expected vs actual
 
-- Expected: Every search returns the 3 documents, as k = 1000 and the filtered k = `Integer.MAX_VALUE` do.
-- Actual: k = `Integer.MAX_VALUE` throws `IllegalArgumentException: initialCapacity must be > 0 and < 2147483630; got: 2147483647`, and k = 2^28 throws `OutOfMemoryError` with a 2 GiB heap.
+Expected 3 hits (k is "the number of documents to find"); actual IllegalArgumentException 'initialCapacity must be &gt; 0 and &lt; 2147483630; got: 2147483647' from TernaryLongHeap, with -ea and -da.
 
 ## Files
 
-- [src/org/apache/lucene/search/TestKnnQueryHugeK.java](src/org/apache/lucene/search/TestKnnQueryHugeK.java) (JUnit test)
+- [src/org/apache/lucene/search/TestKnnQueryKMaxValue.java](src/org/apache/lucene/search/TestKnnQueryKMaxValue.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,21 +38,13 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed 5EED0454
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=5EED0454 \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestKnnQueryHugeK
+     execute --select-class org.apache.lucene.search.TestKnnQueryKMaxValue
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestKnnQueryLargeK.java](TestKnnQueryLargeK.java)
-- [TestDiversifyingKnnLargeK.java](TestDiversifyingKnnLargeK.java)
-- [TestKnnQueryHugeK.java](TestKnnQueryHugeK.java)
-- [TestKnnLargeKVariants.java](TestKnnLargeKVariants.java)
-- [TestDiversifyingKnnLargeKVariants.java](TestDiversifyingKnnLargeKVariants.java)
 
 ## Feedback
 

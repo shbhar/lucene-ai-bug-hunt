@@ -23,13 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index documents in blocks (children followed by their parent) with IndexWriterConfig#setParentField, and use BPReorderingMergePolicy with a BpVectorReorderer over a float vector field. You expect merges to keep every block together with its parent last, because IndexWriter only lets a merge reorder documents when the parent field identifies the blocks, and setParentField promises that IndexWriter does not alter the order of a block. Instead BpVectorReorderer moves each document on its own and puts every document without a vector after all documents with one, so the merged segment&#x27;s blocks are silently scrambled and ToParentBlockJoinQuery joins children to the wrong parent (59 of 60 children in one run), with no exception and with assertions on or off.</p>
+<p>The test shows that forceMerge through BPReorderingMergePolicy with BpVectorReorderer breaks document blocks even though IndexWriterConfig#setParentField is set (2 blocks [child with vector, parent], one segment each).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> Every block stays together after the merge, parent last: each child is followed by its own parent.</li><li><b>Actual:</b> <code>b0c0 b0c1 b1c0 b1c1 b2c0 b2c1 b3c0 b3c1 b0p b1p b2p b3p</code>: 6 of 8 children now belong to <code>b0p</code>; with vectors on the parents, all 8 have no parent.</li></ul>
+<p>Expected each child directly before its own parent, e.g. [c0, p0, c1, p1]. Actual: [c0, c1, p0, p1], so c1 now belongs to p0&#x27;s block.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/misc/index/TestBpVectorReordererBlocks.java"><code>src/org/apache/lucene/misc/index/TestBpVectorReordererBlocks.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/misc/index/TestBpVectorMergeKeepsBlocks.java"><code>src/org/apache/lucene/misc/index/TestBpVectorMergeKeepsBlocks.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -37,9 +38,7 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
-CP=$CP:$LUCENE/lucene/join/build/libs/lucene-join-$V.jar
 CP=$CP:$LUCENE/lucene/misc/build/libs/lucene-misc-$V.jar
-CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
@@ -48,7 +47,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.misc.index.TestBpVectorReordererBlocks</code></pre>
+     execute --select-class org.apache.lucene.misc.index.TestBpVectorMergeKeepsBlocks</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestBpVectorMergeBlocks.java"><code>TestBpVectorMergeBlocks.java</code></a></li><li><a href="TestBpVectorMergeBlockJoin.java"><code>TestBpVectorMergeBlockJoin.java</code></a></li><li><a href="skip-segments-with-blocks.diff"><code>skip-segments-with-blocks.diff</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

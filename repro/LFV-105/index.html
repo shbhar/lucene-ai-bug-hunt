@@ -23,14 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index one value in an untokenized field whose FieldType has DOCS_AND_FREQS and norms enabled, once through a plain Field (TokenStream inversion) and once through the single-term path (a Field subclass whose invertableType returns BINARY, or an IndexWriter#addBatch BinaryColumn or DictionaryColumn). You expect the same field length and norm, 1 per value, because FieldInvertState#getLength is the &#x27;total number of terms in this field&#x27; and a BINARY value is documented as a single value with term frequency one. Instead IndexingChain.invertTerm adds 2 to the length for every value, so the norm is 2 (2k for k values) and the BM25 score of the identical document drops (0.082873434 to 0.058813408 in the repro), while the postings still record freq 1 per value.</p>
+<p>The test shows that one value of an untokenized <code>DOCS_AND_FREQS</code> field with norms, indexed through a <code>Field</code> whose <code>invertableType()</code> is <code>BINARY</code>, gets field length 2 in <code>IndexingChain.invertTerm</code>, so its BM25 norm is 2.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> Both documents get the same norm (1 for one value, 2 for two) and the same BM25 score for the term query.</li><li><b>Actual:</b> Norms [1, 2] and [2, 4]; BM25 0.082873434 vs 0.058813408 for the identical document.</li></ul>
+<p>Expected norm 1 (one term, as <code>FieldInvertState#getLength</code> and the <code>InvertableType.BINARY</code> javadoc say); actual 2 (<code>expected:&lt;1&gt; but was:&lt;2&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/index/TestBinaryInvertableTypeFieldLength.java"><code>src/org/apache/lucene/index/TestBinaryInvertableTypeFieldLength.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/org/apache/lucene/index/TestColumnBatchUntokenizedFieldLength.java"><code>src/org/apache/lucene/index/TestColumnBatchUntokenizedFieldLength.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/index/TestBinaryInvertableTypeNorm.java"><code>src/org/apache/lucene/index/TestBinaryInvertableTypeNorm.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -46,12 +46,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestColumnBatchUntokenizedFieldLength
-
-# run 2: assertions on, seed DEADBEEF
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestBinaryInvertableTypeFieldLength</code></pre>
+     execute --select-class org.apache.lucene.index.TestBinaryInvertableTypeNorm</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestBinaryInvertedFieldNorms.java"><code>TestBinaryInvertedFieldNorms.java</code></a></li><li><a href="TestColumnBatchUntokenizedNorms.java"><code>TestColumnBatchUntokenizedNorms.java</code></a></li><li><a href="TestBinaryInvertableTypeFieldLength.java"><code>TestBinaryInvertableTypeFieldLength.java</code></a></li><li><a href="TestBinaryInvertLengthV1.java"><code>TestBinaryInvertLengthV1.java</code></a></li><li><a href="TestBinaryInvertLengthConsistency.java"><code>TestBinaryInvertLengthConsistency.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

@@ -22,14 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You run Lucene&#x27;s NRT segment replication and fail over cleanly: the old primary (generation 1) is closed, then replica A is promoted to primary (generation 2), and replica B follows A and pre-copies A&#x27;s merged segment. A last notification from the old primary, delayed in transit, then reaches B; you expect B to ignore it, as it already ignores out-of-order older NRT versions, because the primary generation only ever grows. Instead ReplicaNode.maybeNewPrimary treats the older generation as a primary change and deletes A&#x27;s pre-copied merged files before its only check (an assert), so B&#x27;s cut-over to A&#x27;s merged point fails with &#x27;_3.si cannot be read - it may be missing or corrupt&#x27; or B copies the merged segment again, and with assertions off B also sets lastPrimaryGen back to 1.</p>
+<p>The test shows that an NRT replica following primaryGen 2 deletes that primary&#x27;s pre-copied merged segment when a late newNRTPoint(1, olderVersion) from the older generation arrives (ReplicaNode.maybeNewPrimary deletes pendingMergeFiles before its only check, an assert).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect B to ignore it, as it already ignores out-of-order older NRT versions, because the primary generation only ever grows.</li><li><b>Actual:</b> ReplicaNode.maybeNewPrimary treats the older generation as a primary change and deletes A&#x27;s pre-copied merged files before its only check (an assert), so B&#x27;s cut-over to A&#x27;s merged point fails with &#x27;_3.si cannot be read - it may be missing or corrupt&#x27; or B copies the merged segment again, and with assertions off B also sets lastPrimaryGen back to 1.</li></ul>
+<p>Expected: the stale call is ignored or rejected and [_2.cfe, _2.cfs, _2.si] stay in the replica&#x27;s directory. Actual (-ea and -da): the three files are gone.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/replicator/nrt/TestLateNotificationDropsPreCopiedMerge.java"><code>src/org/apache/lucene/replicator/nrt/TestLateNotificationDropsPreCopiedMerge.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/org/apache/lucene/replicator/nrt/InProcNodes.java"><code>src/org/apache/lucene/replicator/nrt/InProcNodes.java</code></a></li>
+<li><a href="src/org/apache/lucene/replicator/nrt/TestReplicaLateOldPrimaryNotification.java"><code>src/org/apache/lucene/replicator/nrt/TestReplicaLateOldPrimaryNotification.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -44,10 +44,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions on, seed A0D1745
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=A0D1745 \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.replicator.nrt.TestLateNotificationDropsPreCopiedMerge</code></pre>
+     execute --select-class org.apache.lucene.replicator.nrt.TestReplicaLateOldPrimaryNotification</code></pre>
 <p class="small">The module(s) facet, replicator also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

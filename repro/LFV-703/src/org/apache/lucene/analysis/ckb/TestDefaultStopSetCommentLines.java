@@ -16,66 +16,29 @@
  */
 package org.apache.lucene.analysis.ckb;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.lucene.analysis.CharArraySet;
-import org.apache.lucene.analysis.bg.BulgarianAnalyzer;
 import org.apache.lucene.analysis.gl.GalicianAnalyzer;
 import org.apache.lucene.analysis.lv.LatvianAnalyzer;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * The bundled stopword files of SoraniAnalyzer, LatvianAnalyzer and GalicianAnalyzer use '#'
- * comment lines, like the files of the other language analyzers. The other analyzers load their
- * file with WordlistLoader.getWordSet(Reader, "#"), which skips comment lines; these three call
- * WordlistLoader.getWordSet(Reader), which "adds every line as an entry", so the comment lines end
- * up in getDefaultStopSet().
- */
 public class TestDefaultStopSetCommentLines extends LuceneTestCase {
 
-  private static List<String> commentEntries(CharArraySet set) {
-    List<String> out = new ArrayList<>();
-    for (Object o : set) {
-      String s = new String((char[]) o);
-      if (s.startsWith("#")) {
-        out.add(s);
+  public void testNoCommentLinesInDefaultStopSets() {
+    // expected: no entry starts with '#' (the '#' lines of the bundled stopwords.txt are comments)
+    assertEquals(
+        "Sorani 0, Latvian 0, Galician 0",
+        "Sorani " + comments(SoraniAnalyzer.getDefaultStopSet())
+            + ", Latvian " + comments(LatvianAnalyzer.getDefaultStopSet())
+            + ", Galician " + comments(GalicianAnalyzer.getDefaultStopSet()));
+  }
+
+  private static int comments(CharArraySet set) {
+    int n = 0;
+    for (Object entry : set) {
+      if (new String((char[]) entry).startsWith("#")) {
+        n++;
       }
     }
-    return out;
-  }
-
-  /** Control: a sibling analyzer whose file has the same '#' header loads no comment line. */
-  public void testControlBulgarian() {
-    assertEquals(List.of(), commentEntries(BulgarianAnalyzer.getDefaultStopSet()));
-  }
-
-  public void testSorani() {
-    CharArraySet set = SoraniAnalyzer.getDefaultStopSet();
-    List<String> bad = commentEntries(set);
-    assertEquals(
-        "comment lines in SoraniAnalyzer.getDefaultStopSet() (" + bad.size() + " of " + set.size()
-            + "): " + bad,
-        0,
-        bad.size());
-  }
-
-  public void testLatvian() {
-    CharArraySet set = LatvianAnalyzer.getDefaultStopSet();
-    List<String> bad = commentEntries(set);
-    assertEquals(
-        "comment lines in LatvianAnalyzer.getDefaultStopSet() (" + bad.size() + " of " + set.size()
-            + "): " + bad,
-        0,
-        bad.size());
-  }
-
-  public void testGalician() {
-    CharArraySet set = GalicianAnalyzer.getDefaultStopSet();
-    List<String> bad = commentEntries(set);
-    assertEquals(
-        "comment lines in GalicianAnalyzer.getDefaultStopSet() (" + bad.size() + " of "
-            + set.size() + "): " + bad,
-        0,
-        bad.size());
+    return n;
   }
 }

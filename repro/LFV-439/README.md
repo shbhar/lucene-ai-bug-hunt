@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build DictionaryCompoundWordTokenFilterFactory on main without the onlyLongestMatch key, for example with only onlyLongestMatchIgnoreSubwords, and expect no message about a key you never used; instead every construction logs the WARNING 'onlyLongestMatch has been removed and replaced by onlyLongestMatchIgnoreSubwords'. A configuration that does pass onlyLongestMatch="false", the one setting whose meaning is now ignored, gets no warning, because the factory reads the removed key with default true and warns when the value is true (getBoolean(args, "onlyLongestMatch", true); if (onlyLongestMatch) LOG.warning(...)), not when the key is present. Only the log is wrong: the tokens are the same with or without the warning.
 
+The test shows that `DictionaryCompoundWordTokenFilterFactory` on main logs "onlyLongestMatch has been removed" for a configuration that never passes `onlyLongestMatch` (only `dictionary`).
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+Expected no WARNING; actual `expected:<[]> but was:<[onlyLongestMatch has been removed and replaced by onlyLongestMatchIgnoreSubwords]>`, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/analysis/compound/TestDictCompoundFactoryRemovedKeyWarning.java](src/org/apache/lucene/analysis/compound/TestDictCompoundFactoryRemovedKeyWarning.java) (JUnit test)
+- [src/org/apache/lucene/analysis/compound/TestDictionaryCompoundFactoryRemovedKeyWarning.java](src/org/apache/lucene/analysis/compound/TestDictionaryCompoundFactoryRemovedKeyWarning.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -39,7 +40,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.compound.TestDictCompoundFactoryRemovedKeyWarning
+     execute --select-class org.apache.lucene.analysis.compound.TestDictionaryCompoundFactoryRemovedKeyWarning
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

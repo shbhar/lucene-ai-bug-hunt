@@ -1,78 +1,49 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.apache.lucene.queries.mlt;
 
 import java.io.StringReader;
-import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
+import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.tests.analysis.MockAnalyzer;
-import org.apache.lucene.tests.analysis.MockTokenizer;
-import org.apache.lucene.tests.index.RandomIndexWriter;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * With boost enabled, MoreLikeThis divides every term score by the LOWEST selected score. A
- * TFIDFSimilarity whose idf reaches 0 for a term that occurs in every document (the textbook
- * idf = log(N / df)) makes that lowest score 0, the boost 0 / 0 = NaN, and like() throws
- * IllegalArgumentException from BoostQuery.
- */
 public class TestMoreLikeThisBoostZeroScore extends LuceneTestCase {
 
   public void testBoostWithZeroIdfTerm() throws Exception {
-    Directory dir = newDirectory();
-    Analyzer analyzer = new MockAnalyzer(random(), MockTokenizer.WHITESPACE, false);
-    RandomIndexWriter w = new RandomIndexWriter(random(), dir, analyzer);
-    for (String text : new String[] {"common rare", "common"}) {
-      Document doc = new Document();
-      doc.add(newTextField("text", text, Field.Store.NO));
-      w.addDocument(doc);
+    try (Directory dir = new ByteBuffersDirectory();
+        IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+      for (String text : new String[] {"common rare", "common"}) {
+        Document doc = new Document();
+        doc.add(new TextField("text", text, Field.Store.NO));
+        w.addDocument(doc);
+      }
+      try (DirectoryReader reader = DirectoryReader.open(w)) {
+        MoreLikeThis mlt =
+            new MoreLikeThis(
+                reader,
+                new ClassicSimilarity() {
+                  @Override
+                  public float idf(long docFreq, long docCount) {
+                    return (float) Math.log((double) docCount / docFreq); // 0 for "common"
+                  }
+                });
+        mlt.setAnalyzer(new StandardAnalyzer());
+        mlt.setFieldNames(new String[] {"text"});
+        mlt.setMinTermFreq(1);
+        mlt.setMinDocFreq(1);
+        mlt.setBoost(true);
+        try {
+          mlt.like("text", new StringReader("common rare"));
+        } catch (IllegalArgumentException e) {
+          throw new AssertionError("expected a query with finite boosts, got " + e, e);
+        }
+      }
     }
-    IndexReader reader = w.getReader();
-    w.close();
-
-    // textbook idf: 0 for a term that is in every document, positive otherwise
-    ClassicSimilarity sim =
-        new ClassicSimilarity() {
-          @Override
-          public float idf(long docFreq, long docCount) {
-            return (float) Math.log((double) docCount / docFreq);
-          }
-        };
-    MoreLikeThis mlt = new MoreLikeThis(reader, sim);
-    mlt.setAnalyzer(analyzer);
-    mlt.setFieldNames(new String[] {"text"});
-    mlt.setMinTermFreq(1);
-    mlt.setMinDocFreq(1);
-
-    // control: without boost the same call returns text:common text:rare
-    mlt.setBoost(false);
-    assertEquals(2, ((BooleanQuery) mlt.like("text", new StringReader("common rare"))).clauses().size());
-
-    mlt.setBoost(true);
-    BooleanQuery q = (BooleanQuery) mlt.like("text", new StringReader("common rare"));
-    assertEquals(2, q.clauses().size());
-
-    reader.close();
-    dir.close();
-    analyzer.close();
   }
 }

@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build a suggester from a text file with lines such as 'foo bar|10|p1', read with new FileDictionary(reader, "|"), and expect the entry (suggestion 'foo bar', weight 10, payload 'p1') that the class javadoc's line format describes. Instead FileDictionary passes the delimiter to String.split, which reads it as a regular expression: '|' (an empty alternation) splits between every character, so getEntryIterator throws IllegalArgumentException 'More than 3 fields in one line'; '.' and '+' throw ArrayIndexOutOfBoundsException and PatternSyntaxException. With '$' or '^' no line is ever split, so every line silently becomes one suggestion such as 'foo bar$10$p1' with weight 1 and no payload, and a suggester built from it returns that key.
 
+The test shows that `FileDictionary` passes its `fieldDelimiter` to `String.split`, which reads it as a regular expression, so the valid line `foo bar|10` with delimiter `"|"` cannot be read.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: FileDictionary passes the delimiter to String.split, which reads it as a regular expression: '|' (an empty alternation) splits between every character, so getEntryIterator throws IllegalArgumentException 'More than 3 fields in one line'; '.' and '+' throw ArrayIndexOutOfBoundsException and PatternSyntaxException.
+Expected: one entry, suggestion `foo bar` with weight 10. Actual: `getEntryIterator()` throws `IllegalArgumentException: More than 3 fields in one line`.
 
 ## Files
 
-- [src/org/apache/lucene/search/suggest/TestFileDictionaryDelimiterIsRegex.java](src/org/apache/lucene/search/suggest/TestFileDictionaryDelimiterIsRegex.java) (JUnit test)
+- [src/org/apache/lucene/search/suggest/TestFileDictionaryPipeDelimiter.java](src/org/apache/lucene/search/suggest/TestFileDictionaryPipeDelimiter.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -39,7 +41,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.suggest.TestFileDictionaryDelimiterIsRegex
+     execute --select-class org.apache.lucene.search.suggest.TestFileDictionaryPipeDelimiter
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build a numeric-interval automaton with Automata.makeDecimalInterval(min, max, digits) and pass a negative min, for example (-1, 5, 0). You expect either the documented IllegalArgumentException or an automaton for the non-negative integers in the interval (here 0 to 5, as makeDecimalInterval(0, 5, 0) gives). Instead the call returns without error an automaton that rejects "0" to "4" and accepts "12", "49", "-1" and "-5", and some all-negative ranges such as (-15, -1, 0) throw an undocumented StringIndexOutOfBoundsException.
 
+The test shows that `Automata.makeDecimalInterval(-1, 5, 0)` accepts a negative min without error and returns an automaton with the wrong language.
+
 ## Expected vs actual
 
-- Expected: You expect either the documented IllegalArgumentException or an automaton for the non-negative integers in the interval (here 0 to 5, as makeDecimalInterval(0, 5, 0) gives).
-- Actual: The call returns without error an automaton that rejects "0" to "4" and accepts "12", "49", "-1" and "-5", and some all-negative ranges such as (-15, -1, 0) throw an undocumented StringIndexOutOfBoundsException.
+Expected `IllegalArgumentException`, or "0" (in [-1, 5]) accepted and "12" (&gt; max) rejected; actual: "0" rejected and "12" accepted (`expected:<[0]> but was:<[12]>`), with `-ea` and `-da`.
 
 ## Files
 
@@ -19,8 +20,8 @@ You build a numeric-interval automaton with Automata.makeDecimalInterval(min, ma
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -35,8 +36,8 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.util.automaton.TestMakeDecimalIntervalNegativeMin
 ```

@@ -23,13 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You search the fields title and body with MultiFieldQueryParser under AND_OPERATOR and expect what its class javadoc promises: every query term must appear, in any field, so adding a field never loses a document that QueryParser on one of those fields finds. Instead getFieldQuery takes clause i of each field&#x27;s analyzed BooleanQuery as &#x27;term position i&#x27; and requires every such group: with title tokenized on whitespace and body on letters, &#x27;wi-fi router&#x27; becomes +(title:wi-fi body:wi) +(title:router body:fi) +(body:router), which misses a document titled &#x27;wi-fi router&#x27; and matches one with title &#x27;router&#x27; and body &#x27;wi router&#x27; (released since 6.2.0, default settings since 7.0.0; since #16446 the single word &#x27;wi-fi&#x27; loses the match too). Since #16446 (unreleased), with autoGeneratePhraseQueries and the multi-word synonym &#x27;guinea pig&#x27; -&gt; &#x27;cavy&#x27;, &#x27;guinea-pig&#x27; becomes +(body:&quot;guinea pig&quot;) +(body:cavy), so even MultiFieldQueryParser over body alone finds nothing where QueryParser(body) finds the document.</p>
+<p>The test shows that under AND with autoGeneratePhraseQueries, <code>MultiFieldQueryParser</code> over the single field <code>body</code> turns the synonym alternatives of <code>guinea-pig</code> (<code>&quot;guinea pig&quot;</code> OR <code>cavy</code>) into two required clauses.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>wi-fi router</code> finds doc 0 only, <code>wi-fi</code> finds doc 0, and <code>guinea-pig</code> finds the guinea-pig document, as <code>QueryParser</code> does.</li><li><b>Actual:</b> <code>wi-fi router</code> finds doc 1 instead of doc 0 (also on 10.5.2 and 9.12.3); <code>wi-fi</code> and <code>guinea-pig</code> find nothing on main.</li></ul>
+<p>Expected: 1 hit, the same as <code>QueryParser(&quot;body&quot;)</code> (<code>body:&quot;guinea pig&quot; body:cavy</code>). Actual: <code>+(body:&quot;guinea pig&quot;) +(body:cavy)</code> finds 0 hits.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/queryparser/classic/TestMultiFieldQueryParserPositionGroups.java"><code>src/org/apache/lucene/queryparser/classic/TestMultiFieldQueryParserPositionGroups.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/queryparser/classic/TestMultiFieldQueryParserSynonymGraph.java"><code>src/org/apache/lucene/queryparser/classic/TestMultiFieldQueryParserSynonymGraph.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -49,9 +50,8 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queryparser.classic.TestMultiFieldQueryParserPositionGroups</code></pre>
+     execute --select-class org.apache.lucene.queryparser.classic.TestMultiFieldQueryParserSynonymGraph</code></pre>
 <p class="small">The module(s) facet also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestMultiFieldQueryParserClauseGroups.java"><code>TestMultiFieldQueryParserClauseGroups.java</code></a></li><li><a href="fix-b.diff"><code>fix-b.diff</code></a></li></ul>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/queryparser-classic/index.html">queryparser-classic</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

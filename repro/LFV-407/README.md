@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You group documents with new LongRangeFactory(10, 10, 25), meaning buckets 10 wide starting at 10 and everything at or above 25 in one bucket, and expect what the javadoc says: [10, 20), a shorter final bucket [20, 25), and [25, MAX). Instead the value 22 is labelled LongRange(20, 30) while 27 is labelled LongRange(25, MAX), so the two reported ranges overlap; each group holds the right documents, but a range query built from the label [20, 30), the way Lucene's own selector tests rebuild a group, also returns the document with value 27 from the other group. DoubleRangeFactory behaves the same, because both getRange methods set the bucket's upper bound to its lower bound + width and never cap it at max.
 
+The test shows that `LongRangeFactory` and `DoubleRangeFactory` do not end the final range below `max` at `max` when `max - min` is not a multiple of `width`.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The value 22 is labelled LongRange(20, 30) while 27 is labelled LongRange(25, MAX), so the two reported ranges overlap; each group holds the right documents, but a range query built from the label [20, 30), the way Lucene's own selector tests rebuild a group, also returns the document with value 27 from the other group.
+Expected `new LongRangeFactory(10, 10, 25).getRange(22, null)` = `LongRange(20, 25)` (and `DoubleRange(20.0, 25.0)`); actual `LongRange(20, 30)` / `DoubleRange(20.0, 30.0)`, overlapping the `[25, MAX)` range, with `-ea` and `-da`.
 
 ## Files
 
@@ -19,8 +20,8 @@ You group documents with new LongRangeFactory(10, 10, 25), meaning buckets 10 wi
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 2 test(s) run, 2 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

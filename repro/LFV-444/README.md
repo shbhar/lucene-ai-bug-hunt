@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You analyze '가격: $100' or '다음\n\n문장' with KoreanTokenizer(factory, null, DISCARD, outputUnknownUnigrams=true, discardPunctuation=true), or with the 'korean' factory given only outputUnknownUnigrams="true", and expect punctuation and whitespace to be dropped, as the discardPunctuation javadoc says ('true if punctuation tokens should be dropped from the output') and as happens with outputUnknownUnigrams=false ([가격, 100], [다음, 문장]) and in 7.4.0-8.1.1. Instead you get [가격, $, 1, 0, 0] and [다음, \n, \n, 문장], and 'test@example.com' keeps its '@' and '.': the unigram branch of nori's Viterbi.backtrace adds each single-character token of an unknown word without the shouldFilterToken check that the other branch applies. Every such character becomes an index term and pushes the following words one position further, so an exact phrase across it no longer matches.
 
+The test shows that `KoreanTokenizer` with `outputUnknownUnigrams=true` and `discardPunctuation=true` keeps the `$` of `가격: $100` as a token (the unigram branch of `Viterbi.backtrace` skips the `shouldFilterToken` check).
+
 ## Expected vs actual
 
-- Expected: `가격: $100` analyzes to `[가격, 1, 0, 0]`, the line breaks, `%`, spaces, tab, `@` and `.` are dropped, and the phrase `가격 100` finds 1 document.
-- Actual: `가격: $100` analyzes to `[가격, $, 1, 0, 0]`, `다음\n\n문장` keeps two `\n` tokens, the e-mail address keeps `@`, and the phrase `가격 100` finds 0 documents.
+Expected, per the `discardPunctuation` javadoc and the `outputUnknownUnigrams=false` output: `[가격, 1, 0, 0]`. Actual: `[가격, $, 1, 0, 0]` (`term 1 expected:<[1]> but was:<[$]>`).
 
 ## Files
 
@@ -21,8 +22,8 @@ You analyze '가격: $100' or '다음\n\n문장' with KoreanTokenizer(factory, n
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -32,7 +33,6 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
-CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
 CP=$CP:$LUCENE/lucene/analysis/nori/build/libs/lucene-analysis-nori-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
@@ -48,13 +48,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) analysis-nori also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestKoreanTokenizerUnigramPunctuation.java](TestKoreanTokenizerUnigramPunctuation.java)
-- [TestKoreanUnigramsDiscardPunctuation.java](TestKoreanUnigramsDiscardPunctuation.java)
-- [TestNoriUnigramsKeepPunctuation.java](TestNoriUnigramsKeepPunctuation.java)
-- [KoreanUnigramPunctHistoryProbe.java](KoreanUnigramPunctHistoryProbe.java)
 
 ## Feedback
 

@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You use the Geo3d spatial context (Geo3dSpatialContextFactory) with PointVectorStrategy or BBoxStrategy and query or index a box that crosses the dateline, such as rect(170, -170, -10, 10), or one that spans longitude 0, such as rect(-10, 10, -10, 10). You expect getCrossesDateLine to follow the spatial4j Rectangle contract (true exactly when the box crosses the -180/180 meridian, that is minX &gt; maxX, as spatial4j's RectangleImpl and this class's own getWidth assume), so a point at longitude 175 is found inside 170..-170 and an indexed box -10..10 does not match a query box at 100..110. Instead Geo3dRectangleShape.getCrossesDateLine returns getMaxX &gt; 0 &amp;&amp; getMinX &lt; 0 ('spans longitude 0'), which is false for 170..-170 and true for -10..10: PointVectorStrategy searches the empty range 170..-170 and returns 0 hits (also for circle(180, 0, 5)), and BBoxStrategy stores xdl=F for the dateline box and misses it (0 hits instead of 1), but stores xdl=T for -10..10, reads it as [-10, 180] plus [-180, 10] and matches it against 100..110 (1 hit instead of 0).
 
+The test shows that `PointVectorStrategy` in the Geo3d spatial context misses a point at longitude 175 for `Intersects(rect(170, -170, -10, 10))`, because `Geo3dRectangleShape.getCrossesDateLine()` tests `maxX > 0 && minX < 0` (spans longitude 0) instead of `minX > maxX`.
+
 ## Expected vs actual
 
-- Expected: Each Geo3d leg answers like the spatial4j leg: the flag true for 170..-170, 1 hit for each point or box inside a query, 0 hits for each far one.
-- Actual: 6 of 6 tests fail in the Geo3d leg: the flag false for 170..-170, 0 hits for the three inside cases, 1 hit for the two far ones; no exception.
+Expected 1 hit; actual: 0 (`expected:<1> but was:<0>`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/spatial/spatial4j/TestGeo3dRectangleCrossesDateLine.java](src/org/apache/lucene/spatial/spatial4j/TestGeo3dRectangleCrossesDateLine.java) (JUnit test)
+- [src/org/apache/lucene/spatial/spatial4j/TestGeo3dDatelineBoxQuery.java](src/org/apache/lucene/spatial/spatial4j/TestGeo3dDatelineBoxQuery.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,22 +40,15 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.spatial.spatial4j.TestGeo3dRectangleCrossesDateLine
+     execute --select-class org.apache.lucene.spatial.spatial4j.TestGeo3dDatelineBoxQuery
 ```
 
 The module(s) spatial-extras also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestGeo3dRectangleDateLineFlag.java](TestGeo3dRectangleDateLineFlag.java)
-- [TestGeo3dRectangleCrossesDateLine.java](TestGeo3dRectangleCrossesDateLine.java)
-- [TestGeo3dDatelineFlag.java](TestGeo3dDatelineFlag.java)
-- [TestGeo3dBoundingBoxDatelineFlagBisect.java](TestGeo3dBoundingBoxDatelineFlagBisect.java)
 
 ## Feedback
 

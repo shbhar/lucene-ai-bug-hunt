@@ -10,19 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You search with an interval query that repeats a multi-word piece, for example maxgaps(0, ordered(phrase(new, york), phrase(new, york))) on the text 'new york new york', and expect a match because the two phrases sit back to back with no gap. Instead it finds nothing: Lucene turns equal sub-sources into a RepeatingIntervalsSource whose iterator adds start - end + 1 instead of end - start + 1 for each copy, so width is 0 instead of 4, gaps is 4 instead of 0, and maxgaps rejects the interval. The Matches path of the same class uses the right formula, so Weight#matches returns a match for the very document the scorer rejected; repeats of single words are unaffected because their start equals their end.
 
+The test shows that maxgaps(0, unordered(phrase(new, york), phrase(new, york))) misses "new york new york". RepeatingIntervalsSource's iterator sums start - end + 1 per repeated copy, so width() is 0 and gaps() is 4.
+
 ## Expected vs actual
 
-- Expected: `maxgaps(0, ordered(ny, ny))` finds `new york new york` (count 1), and the iterator reports gaps 0, width 4.
-- Actual: Count 0 while `Weight#matches` matches; the iterator reports gaps 4, width 0 (three-word phrase: gaps 8, width -2).
+Expected 1 hit (the two phrases are back to back, 0 gaps); actual 0 (`expected:<1> but was:<0>`).
 
 ## Files
 
-- [src/org/apache/lucene/queries/intervals/TestRepeatedSourceWidth.java](src/org/apache/lucene/queries/intervals/TestRepeatedSourceWidth.java) (JUnit test)
+- [src/org/apache/lucene/queries/intervals/TestRepeatedPhraseMaxGaps.java](src/org/apache/lucene/queries/intervals/TestRepeatedPhraseMaxGaps.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,19 +42,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queries.intervals.TestRepeatedSourceWidth
+     execute --select-class org.apache.lucene.queries.intervals.TestRepeatedPhraseMaxGaps
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestRepeatedSourceGaps.java](TestRepeatedSourceGaps.java)
-- [TestRepeatedSourceWidth.java](TestRepeatedSourceWidth.java)
-- [TestRepeatedSourceGapsV1.java](TestRepeatedSourceGapsV1.java)
-- [IntendedProbe.java](IntendedProbe.java)
-- [RepeatWidthHistoryProbe.java](RepeatWidthHistoryProbe.java)
-- [WorkaroundProbe.java](WorkaroundProbe.java)
 
 ## Feedback
 

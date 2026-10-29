@@ -1,6 +1,6 @@
 # ICUFoldingFilter folds the Tajik/Abkhaz letter CHE WITH DESCENDER (ҷ U+04B7, Ҷ U+04B6) to the different letter ABKHASIAN CHE (ҽ U+04BD) instead of to CHE (ч U+0447), so Tajik text is not found by the same words typed with plain ч
 
-Bug LFV-855 · Area: analysis / icu (ICUFoldingFilter UTR#30 folding data: the hand-written 'Rule: verbatim' Cyrillic block of DiacriticFolding.txt, compiled into utr30.nrm) · Priority: medium · Impact: silent wrong results · Novelty: new
+Bug LFV-855 · Area: analysis / icu (ICUFoldingFilter UTR#30 folding data: the hand-written 'Rule: verbatim' Cyrillic block of DiacriticFolding.txt, compiled into utr30.nrm) · Priority: low · Impact: silent wrong results · Novelty: new
 
 Bug page: [../../bugs/LFV-855.html](../../bugs/LFV-855.html)
 
@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index Tajik text such as 'Ҷумҳурии Тоҷикистон' with ICUFoldingFilter, whose javadoc lists 'Diacritic removal (including stroke, hook, descender)', and expect the same words typed without the Tajik letters, 'Чумхурии Точикистон', to find it, as they do for ҳ, қ and the other WITH DESCENDER letters. Instead the hand-copied line '04B7&gt;04BC' in DiacriticFolding.txt maps CHE WITH DESCENDER to ABKHASIAN CHE, so ҷ and Ҷ are indexed as ҽ while the query's ч stays ч, and the query gets 0 hits. In Abkhaz, which uses ҷ, ҽ and ҿ as three separate letters, all three fold to ҽ and match each other.
 
+The test shows that `ICUFoldingFilter` folds the Tajik/Abkhaz letter CHE WITH DESCENDER "ҷ" (U+04B7) to the different letter ABKHASIAN CHE "ҽ" (U+04BD), not to CHE "ч" (U+0447) as every sibling WITH DESCENDER letter keeps its base letter.
+
 ## Expected vs actual
 
-- Expected: "Ҷумҳурии Тоҷикистон" is indexed as `чумхурии точикистон` and the query "Чумхурии Точикистон" finds it (1 hit); ҷ and Ҷ fold to `ч`.
-- Actual: It is indexed as `ҽумхурии тоҽикистон`, so the query finds 0 documents; ҷ and Ҷ fold to `ҽ`.
+Expected `term 0 expected:<[ч]>`; actual `but was:<[ҽ]>`, with `-ea` and `-da`.
 
 ## Files
 
@@ -21,7 +22,8 @@ You index Tajik text such as 'Ҷумҳурии Тоҷикистон' with ICUFol
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -46,12 +48,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) analysis-icu also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestICUFoldingCheWithDescender.java](TestICUFoldingCheWithDescender.java)
-- [TestCheWithDescenderFolding.java](TestCheWithDescenderFolding.java)
-- [CheFoldHistoryMain.java](CheFoldHistoryMain.java)
 
 ## Feedback
 

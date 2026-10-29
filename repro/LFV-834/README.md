@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 Wrap a PayloadScoreQuery in another one, for example PayloadScoreQuery(PayloadScoreQuery(SpanTermQuery(f:x), Sum, FLOAT_DECODER, false), Max, FLOAT_DECODER, false), over two documents whose token x carries the payloads 3 and 5. You expect the outer payload function to see those payloads and score the documents 3.0 and 5.0, as PayloadScoreQuery(SpanTermQuery(f:x), Max, FLOAT_DECODER, false) does, because a PayloadScoreQuery's spans are those of the query it wraps. Instead both hits score 1.0, the function's value for 'no payloads seen', and the same query built with the 3-argument constructor (includeSpanScore=true) makes IndexSearcher.search throw an AssertionError ('PayloadSpanScorer has a null docScorer!') with -ea or a NullPointerException with -da.
 
+The test shows that a PayloadScoreQuery that wraps another PayloadScoreQuery ignores the payloads (includeSpanScore=false), because the outer weight borrows the inner weight's null SimScorer.
+
 ## Expected vs actual
 
-- Expected: You expect the outer payload function to see those payloads and score the documents 3.0 and 5.0, as PayloadScoreQuery(SpanTermQuery(f:x), Max, FLOAT_DECODER, false) does, because a PayloadScoreQuery's spans are those of the query it wraps.
-- Actual: Both hits score 1.0, the function's value for 'no payloads seen', and the same query built with the 3-argument constructor (includeSpanScore=true) makes IndexSearcher.search throw an AssertionError ('PayloadSpanScorer has a null docScorer!') with -ea or a NullPointerException with -da.
+Expected: score 3.0 for the one document whose token x has payload 3, as the non-nested query gives. Actual (-ea and -da): 1.0, the no-payload score.
 
 ## Files
 
@@ -19,7 +20,8 @@ Wrap a PayloadScoreQuery in another one, for example PayloadScoreQuery(PayloadSc
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -29,7 +31,6 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
-CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
 CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)

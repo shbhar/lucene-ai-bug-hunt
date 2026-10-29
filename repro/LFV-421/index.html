@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index DOT_PRODUCT or COSINE float vectors and reorder them with BpVectorReorderer, by calling computeDocMap or by merging through BPReorderingMergePolicy, for example 64 legal unit vectors where docs 0..31 alternate (1,0) and (-1,0) and docs 32..63 are (0,1); you expect a valid reordering, as for any other legal vectors. Instead the half whose vectors cancel out sums to the zero vector, computeCentroid normalizes it by 1/sqrt(0) = Infinity and the centroid becomes NaN. With assertions on, VectorUtil.dotProduct then fails with &#x27;AssertionError: not finite: NaN from &lt;[1.0, 0.0],[NaN, NaN]&gt;&#x27; and the merge path closes the IndexWriter; with assertions off nothing throws, but the NaN biases leave that split in doc-ID order.</p>
+<p>The test shows that <code>BpVectorReorderer.computeDocMap</code> on 64 legal DOT_PRODUCT unit vectors, where docs 0..31 alternate (1, 0) and (-1, 0) and sum to zero, scales that half&#x27;s centroid by 1/sqrt(0) and gets NaN.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect a valid reordering, as for any other legal vectors.</li><li><b>Actual:</b> The half whose vectors cancel out sums to the zero vector, computeCentroid normalizes it by 1/sqrt(0) = Infinity and the centroid becomes NaN.</li></ul>
+<p>Expected a DocMap; actual with <code>-ea</code>: <code>AssertionError: not finite: NaN from &lt;[1.0, 0.0],[NaN, NaN]&gt;</code>. With <code>-da</code> the test passes, as the claim says: nothing throws, and that split is just left in doc-ID order.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/misc/index/TestBpVectorReordererZeroCentroid.java"><code>src/org/apache/lucene/misc/index/TestBpVectorReordererZeroCentroid.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

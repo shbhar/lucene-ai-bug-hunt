@@ -10,21 +10,21 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You search one shard of a collection with an IndexSearcher whose termStats and fieldStats overrides return the statistics of the whole collection, as their javadoc suggests, and run SynonymQuery(quick, fast) where 'fast' occurs only on another shard. You expect each document to get the score it gets when you search the whole collection, as TermQuery and PhraseQuery do. Instead the query asks the override only about 'quick', because it calls termStats only for terms whose local docFreq is above 0, so it scores the document 0.573 instead of 0.170 and ranks it above an equally relevant document on the other shard; MultiPhraseQuery, CombinedFieldQuery and SpanOrQuery are off the same way.
 
+The test shows that `SynonymQuery` never asks an `IndexSearcher#termStats` override about a synonym that is absent from the local shard, so a shard searcher that supplies whole-collection statistics scores `SynonymQuery(quick, fast)` differently from the collection (shard 0 = {quick}, shard 1 = {fast, fast}).
+
 ## Expected vs actual
 
-- Expected: Doc A scores the same on the shard as in the whole collection: 0.170 for `SynonymQuery(quick, fast)`, 0.325 for `CombinedFieldQuery`, 1.316 for `MultiPhraseQuery`.
-- Actual: 0.573, 0.565 and 1.147 on the shard (span-or 0.573 instead of 0.743): 4 of 7 core and 2 of 3 span tests fail, the controls pass, assertions on and off.
+Expected doc 0's score on shard 0 to equal its score in the whole collection, `0.21363801`; actual `0.44583148` (the statistics of `fast` are left out), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/search/TestDistributedStatsLocallyAbsentTerm.java](src/org/apache/lucene/search/TestDistributedStatsLocallyAbsentTerm.java) (JUnit test)
-- [src/repro/DistributedStatsReleaseCheck.java](src/repro/DistributedStatsReleaseCheck.java) (main() class)
-- [src2/repro/DistributedStatsReleaseCheck.java](src2/repro/DistributedStatsReleaseCheck.java) (main() class)
+- [src/org/apache/lucene/search/TestSynonymQueryDistributedStats.java](src/org/apache/lucene/search/TestSynonymQueryDistributedStats.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -33,32 +33,18 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
-CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
-javac -d classes-src -cp "$CP" $(find src -name '*.java')
-javac -d classes-src2 -cp "$CP" $(find src2 -name '*.java')
+javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes-src:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestDistributedStatsLocallyAbsentTerm
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes-src:$CP" repro.DistributedStatsReleaseCheck
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes-src2:$CP" repro.DistributedStatsReleaseCheck
+     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.search.TestSynonymQueryDistributedStats
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestDistributedStatsLocallyAbsentTerm.java](TestDistributedStatsLocallyAbsentTerm.java)
-- [TestSpanDistributedStatsLocallyAbsentTerm.java](TestSpanDistributedStatsLocallyAbsentTerm.java)
-- [optionA-fix-with-tests.diff](optionA-fix-with-tests.diff)
 
 ## Feedback
 

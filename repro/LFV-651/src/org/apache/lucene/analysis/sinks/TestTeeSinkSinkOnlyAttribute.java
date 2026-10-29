@@ -1,0 +1,57 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.sinks;
+
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.analysis.CharArraySet;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.core.WhitespaceTokenizer;
+import org.apache.lucene.analysis.en.PorterStemFilter;
+import org.apache.lucene.analysis.miscellaneous.SetKeywordMarkerFilter;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+public class TestTeeSinkSinkOnlyAttribute extends LuceneTestCase {
+
+  public void testKeywordMarkerOnSink() throws Exception {
+    Tokenizer tokenizer = new WhitespaceTokenizer();
+    tokenizer.setReader(new StringReader("quick foxes"));
+    TeeSinkTokenFilter tee = new TeeSinkTokenFilter(tokenizer);
+    TokenStream sink =
+        new PorterStemFilter(
+            new SetKeywordMarkerFilter(
+                tee.newSinkTokenStream(), new CharArraySet(List.of("quick"), false)));
+    tee.reset();
+    tee.consumeAllTokens();
+    tee.end();
+    tee.close();
+
+    CharTermAttribute term = sink.addAttribute(CharTermAttribute.class);
+    List<String> terms = new ArrayList<>();
+    sink.reset();
+    while (sink.incrementToken()) {
+      terms.add(term.toString());
+    }
+    sink.end();
+    sink.close();
+    // expected: only "quick" is protected, "foxes" is stemmed; actual: [quick, foxes]
+    assertEquals(List.of("quick", "fox"), terms);
+  }
+}

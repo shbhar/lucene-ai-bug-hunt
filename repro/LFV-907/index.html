@@ -19,15 +19,18 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>CachingCollectorManager (new in 10.6.0) does not document that it is single-use: reused for a second search, replay replays the hits of both searches and one earlier overflow keeps isCached false</h1>
 <p class="facts small"><span>Bug LFV-907</span><span>Area: search / CachingCollectorManager lifecycle (documentation; new public API in 10.6.0)</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-907.html">Bug page for LFV-907</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You wrap a reusable CollectorManager in a CachingCollectorManager, run a search with it, then run a second search with the same instance and call isCached and replay(secondPassManager), the workflow the class javadoc shows for one search. Nothing in its javadoc says an instance serves only one search, unlike TopScoreDocCollectorManager and TopFieldCollectorManager, which say &#x27;a new collectorManager should be created for each search due to its internal states&#x27;, while Lucene&#x27;s stated norm (TotalHitCountCollectorManager) is that managers are generally reusable. Instead the manager keeps the per-slice caches of every search in one list that is never cleared, so replay returns the hits of both searches (the repro: [0..9] instead of the second search&#x27;s [3..9]) and one earlier overflow makes isCached false for every later search, with no error.</p>
+<p>The test shows (LFV-907, documentation defect) that a <code>CachingCollectorManager</code> used for two searches replays the hits of both searches, because it never clears its per-slice cache list; its javadoc does not say an instance serves one search.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> The manager keeps the per-slice caches of every search in one list that is never cleared, so replay returns the hits of both searches (the repro: [0..9] instead of the second search&#x27;s [3..9]) and one earlier overflow makes isCached false for every later search, with no error.</li></ul>
+<p>Expected (after searching MatchAllDocsQuery twice over one document with a stateless delegate): <code>replay()</code> returns the last search&#x27;s 1 hit; actual (-ea and -da): 2. The intended fix is a javadoc sentence, so this test documents the gap rather than a future green test.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/search/TestCachingCollectorManagerReuse.java"><code>src/org/apache/lucene/search/TestCachingCollectorManagerReuse.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -40,8 +43,8 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.search.TestCachingCollectorManagerReuse</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>

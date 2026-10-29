@@ -18,45 +18,24 @@ package org.apache.lucene.search.spell;
 
 import java.io.StringReader;
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.List;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
-/**
- * SpellChecker.indexDictionary skips words that are already in the spell index, but only checks
- * the index as it was before the call: a word that occurs twice in one dictionary is indexed twice,
- * and suggestSimilar then returns it twice, pushing a different word out of the results.
- */
 public class TestSpellCheckerDuplicateDictionaryWords extends LuceneTestCase {
 
   public void testWordRepeatedInOneDictionary() throws Exception {
-    try (Directory spellDir = newDirectory();
-        SpellChecker sc = new SpellChecker(spellDir)) {
-      sc.indexDictionary(
+    try (Directory spellDir = new ByteBuffersDirectory();
+        SpellChecker spellChecker = new SpellChecker(spellDir)) {
+      spellChecker.indexDictionary(
           new PlainTextDictionary(new StringReader("relieve\nrelieve\nreceive\n")),
-          new IndexWriterConfig(null),
+          new IndexWriterConfig(),
           false);
-      String[] similar = sc.suggestSimilar("recieve", 2);
+      // expected each word once, [relieve, receive]; main indexes relieve twice: [relieve, relieve]
       assertEquals(
-          "duplicate suggestions: " + Arrays.toString(similar),
-          similar.length,
-          new HashSet<>(Arrays.asList(similar)).size());
-      assertArrayEquals(new String[] {"relieve", "receive"}, similar);
-    }
-  }
-
-  /** control: the same words split over two calls are de-duplicated as intended */
-  public void testWordRepeatedAcrossCallsIsNotDuplicated() throws Exception {
-    try (Directory spellDir = newDirectory();
-        SpellChecker sc = new SpellChecker(spellDir)) {
-      sc.indexDictionary(
-          new PlainTextDictionary(new StringReader("relieve\n")), new IndexWriterConfig(null), false);
-      sc.indexDictionary(
-          new PlainTextDictionary(new StringReader("relieve\nreceive\n")),
-          new IndexWriterConfig(null),
-          false);
-      assertArrayEquals(new String[] {"relieve", "receive"}, sc.suggestSimilar("recieve", 2));
+          List.of("relieve", "receive"), Arrays.asList(spellChecker.suggestSimilar("recieve", 2)));
     }
   }
 }

@@ -18,17 +18,19 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>MatchHighlighter.highlight(topDocs, q1, q2,...) silently drops the highlights of every field that only the second or a later query matches: each document keeps only the stored field values of the first query&#x27;s MatchRegionRetriever, which loads just the fields that first query affects (regression in 10.0.0)</h1>
-<p class="facts small"><span>Bug LFV-595</span><span>Area: highlighter / matchhighlight: MatchHighlighter multi-query highlighting (DocHit field values on top of MatchRegionRetriever&#x27;s per-query stored-field loading)</span><span>Priority: medium</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
+<p class="facts small"><span>Bug LFV-595</span><span>Area: highlighter / matchhighlight: MatchHighlighter multi-query highlighting (DocHit field values on top of MatchRegionRetriever&#x27;s per-query stored-field loading)</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
 <p><a href="../../bugs/LFV-595.html">Bug page for LFV-595</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You pass several queries to MatchHighlighter.highlight(topDocs, q1, q2), for example title:foo and body:bar for a document whose title is &#x27;foo&#x27; and whose body is &#x27;bar&#x27;; the class&#x27;s own test passes the sub-clauses of the search query this way to give each query its own markers. You expect both fields to be highlighted, exactly as highlight(topDocs, title:foo OR body:bar) returns them: {title=[&gt;foo&lt;], body=[&gt;bar&lt;]}. Instead you get only {title=[&gt;foo&lt;]} (only {body=[&gt;bar&lt;]} with the queries swapped), with no error, because each document keeps only the stored fields that the first query&#x27;s retriever loaded; 9.x returned both fields.</p>
+<p>The test shows that <code>MatchHighlighter.highlight(topDocs, title:foo, body:bar)</code> on one document (title &quot;foo&quot;, body &quot;bar&quot;) drops the field that only the second query matches.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>highlight(topDocs, title:foo, body:bar)</code> returns doc 0 <code>{body=[&gt;bar&lt;], title=[&gt;foo&lt;]}</code> and doc 1 <code>{body=[&gt;bar&lt;]}</code>, as the combined query does.</li><li><b>Actual:</b> It returns doc 0 <code>{title=[&gt;foo&lt;]}</code> and doc 1 <code>{}</code>; with the queries swapped, doc 0 <code>{body=[&gt;bar&lt;]}</code> and doc 1 <code>{body=[&gt;bar&lt;]}</code>.</li></ul>
+<p>Expected: <code>{title=[&gt;foo&lt;], body=[&gt;bar&lt;]}</code>; actual (-ea and -da): <code>{title=[&gt;foo&lt;]}</code>, because the DocHit keeps only the field values loaded by the first query&#x27;s MatchRegionRetriever (MatchHighlighter.java:173,:242).</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/search/matchhighlight/TestMatchHighlighterMultiQueryFields.java"><code>src/org/apache/lucene/search/matchhighlight/TestMatchHighlighterMultiQueryFields.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -49,5 +51,4 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.search.matchhighlight.TestMatchHighlighterMultiQueryFields</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestMatchHighlighterMultiQueryFields.java"><code>TestMatchHighlighterMultiQueryFields.java</code></a></li><li><a href="2-TestMatchHighlighterMultiQueryFields.java"><code>2-TestMatchHighlighterMultiQueryFields.java</code></a></li><li><a href="TestMultiQueryCrossFieldHighlights.java"><code>TestMultiQueryCrossFieldHighlights.java</code></a></li><li><a href="TestMultiQueryCrossFieldControls.java"><code>TestMultiQueryCrossFieldControls.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

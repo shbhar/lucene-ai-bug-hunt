@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You split an index with MultiPassIndexSplitter.split, the split throws while it writes one of the output parts (for example the disk fills up, a file of the source index is corrupted, or the source index was created by the previous major version), and you then retry the split or open an IndexWriter on that output directory in the same JVM. You expect this to work once the cause is gone, because the failed split should close the IndexWriter it opened on the output. Instead split calls close only after addIndexes succeeds, so the writer, which the caller cannot reach, keeps the output's write lock, and every later IndexWriter or split into that directory throws LockObtainFailedException 'Lock held by this virtual machine' until the JVM restarts.
 
+The test shows that when `IndexWriter#addIndexes` throws inside `MultiPassIndexSplitter.split` (here because the source index was created by the previous major version), split() does not close the IndexWriter it opened on the output, so the output stays write-locked.
+
 ## Expected vs actual
 
-- Expected: You expect this to work once the cause is gone, because the failed split should close the IndexWriter it opened on the output.
-- Actual: split calls close only after addIndexes succeeds, so the writer, which the caller cannot reach, keeps the output's write lock, and every later IndexWriter or split into that directory throws LockObtainFailedException 'Lock held by this virtual machine' until the JVM restarts.
+Expected a new `IndexWriter` on out1 to open after the failed split; actual: `LockObtainFailedException` "lock instance already obtained... write.lock", with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/misc/index/TestMultiPassIndexSplitterFailure.java](src/org/apache/lucene/misc/index/TestMultiPassIndexSplitterFailure.java) (JUnit test)
+- [src/org/apache/lucene/misc/index/TestMultiPassIndexSplitterFailedSplit.java](src/org/apache/lucene/misc/index/TestMultiPassIndexSplitterFailedSplit.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,7 +40,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.misc.index.TestMultiPassIndexSplitterFailure
+     execute --select-class org.apache.lucene.misc.index.TestMultiPassIndexSplitterFailedSplit
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

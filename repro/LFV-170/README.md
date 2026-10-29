@@ -8,20 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You have one segment of about 2^31 documents (within about 8,000 docs of IndexWriter.MAX_DOCS) with a term whose postings are dense near the end of the doc-ID space, for example a term that every document has, and you call docIDRunEnd on its postings or run CheckIndex at level 2 or higher. You expect docIDRunEnd to return a doc ID greater than the current one, as its javadoc promises, and CheckIndex to pass. Instead, in the dense blocks after the term's last full 8,192-doc level-1 skip block (4,096 docs in 10.2-10.3), the default postings reader returns Integer.MIN_VALUE and CheckIndex reports the healthy segment as corrupt ('Run end -2147483648 is &lt;= doc ID 2147475456'); query results stay correct, and the repro writes the postings through the public codec API rather than indexing 2^31 documents with IndexWriter.
 
+The test shows that Lucene104 postings docIDRunEnd() on a dense 256-doc block that follows the term's last level-1 block, with doc IDs within 8,192 of 2^31, returns NO_MORE_DOCS + 1 = Integer.MIN_VALUE. The test is codec level: it writes 8,448 doc IDs with the postings writer.
+
 ## Expected vs actual
 
-- Expected: You expect docIDRunEnd to return a doc ID greater than the current one, as its javadoc promises, and CheckIndex to pass.
-- Actual: In the dense blocks after the term's last full 8,192-doc level-1 skip block (4,096 docs in 10.2-10.3), the default postings reader returns Integer.MIN_VALUE and CheckIndex reports the healthy segment as corrupt ('Run end -2147483648 is &lt;= doc ID 2147475456'); query results stay correct, and the repro writes the postings through the public codec API rather than indexing 2^31 documents with IndexWriter.
+Expected: docIDRunEnd() &gt; docID() = 2147475456. Actual (-ea and -da): -2147483648.
 
 ## Files
 
 - [src/org/apache/lucene/codecs/lucene104/TestDocIDRunEndNearMaxDoc.java](src/org/apache/lucene/codecs/lucene104/TestDocIDRunEndNearMaxDoc.java) (JUnit test)
-- [src/org/apache/lucene/codecs/lucene104/TestDocIDRunEndAllDocsTerm.java](src/org/apache/lucene/codecs/lucene104/TestDocIDRunEndAllDocsTerm.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -36,15 +36,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.codecs.lucene104.TestDocIDRunEndNearMaxDoc
-
-# run 2: assertions on, seed DEADBEEF, default flags
+# run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.codecs.lucene104.TestDocIDRunEndAllDocsTerm
+     execute --select-class org.apache.lucene.codecs.lucene104.TestDocIDRunEndNearMaxDoc
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

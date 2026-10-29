@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You take the terms enum of a sorted-set doc-values view with more than 2^31 distinct values (for example MultiDocValues.getSortedSetValues over a very large multi-segment index), position it on a term with seekCeil, keep ord or termState, and later return with seekExact(ord) or seekExact(term, state); you expect to land on that term again, because sorted-set ordinals are longs and termsEnum is documented to support ord and seekExact(long). Instead seekExact(long) stores &#x27;(int) ord&#x27; (SortedSetDocValuesTermsEnum.java:69), so for ordinals from 2^31 to 2^32-1 it asks the values for a negative ordinal and throws, and for 2^32+5 it silently positions on ordinal 5 and returns that term, with -ea and -da. seekCeil, seekExact(BytesRef), next and ord use long arithmetic and are correct; the fix is to drop the cast.</p>
+<p>The test shows that the default <code>SortedSetDocValues#termsEnum()</code> casts the ordinal to int in <code>seekExact(long)</code>, so on a view with more than 2^32 values <code>seekExact(2^32 + 5)</code> silently lands on ordinal 5.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect to land on that term again, because sorted-set ordinals are longs and termsEnum is documented to support ord and seekExact(long).</li><li><b>Actual:</b> seekExact(long) stores &#x27;(int) ord&#x27; (SortedSetDocValuesTermsEnum.java:69), so for ordinals from 2^31 to 2^32-1 it asks the values for a negative ordinal and throws, and for 2^32+5 it silently positions on ordinal 5 and returns that term, with -ea and -da. seekCeil, seekExact(BytesRef), next and ord use long arithmetic and are correct; the fix is to drop the cast.</li></ul>
+<p>Expected: <code>ord()</code> is 4294967301 after <code>seekExact(4294967301)</code>. Actual: <code>expected:&lt;4294967301&gt; but was:&lt;5&gt;</code>, no exception, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/index/TestSortedSetDocValuesTermsEnumLongOrd.java"><code>src/org/apache/lucene/index/TestSortedSetDocValuesTermsEnumLongOrd.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/index/TestSortedSetTermsEnumSeekExactLongOrd.java"><code>src/org/apache/lucene/index/TestSortedSetTermsEnumSeekExactLongOrd.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -44,6 +45,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestSortedSetDocValuesTermsEnumLongOrd</code></pre>
+     execute --select-class org.apache.lucene.index.TestSortedSetTermsEnumSeekExactLongOrd</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

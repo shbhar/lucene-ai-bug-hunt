@@ -22,12 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You configure an IndexWriter with NoMergeScheduler (also with NoMergePolicy, the pairing the NoMergeScheduler javadoc recommends) and call addIndexes(CodecReader...). You expect the call to add the readers, as it did up to 9.3.0, or at least to return or throw. Instead, since 9.4.0 (LUCENE-10216) the call hands its reader merge to the merge scheduler and then waits for it with no time limit; NoMergeScheduler.merge does nothing, so the call blocks until another thread interrupts it or rolls the writer back.</p>
+<p>The test shows that with <code>NoMergeScheduler</code> + <code>NoMergePolicy</code>, <code>IndexWriter.addIndexes(CodecReader...)</code> of one 1-document reader hands its merge to the scheduler, which never runs it, and parks in <code>MergeSpecification.await()</code> with no time limit.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect the call to add the readers, as it did up to 9.3.0, or at least to return or throw.</li><li><b>Actual:</b> Since 9.4.0 (LUCENE-10216) the call hands its reader merge to the merge scheduler and then waits for it with no time limit; NoMergeScheduler.merge does nothing, so the call blocks until another thread interrupts it or rolls the writer back.</li></ul>
+<p>Expected: the call returns or throws. Actual: <code>addIndexes must return or throw, but was still blocked after 10 s</code> (the test then calls <code>rollback()</code> to release it).</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/index/TestAddIndexesNoMergeScheduler.java"><code>src/org/apache/lucene/index/TestAddIndexesNoMergeScheduler.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

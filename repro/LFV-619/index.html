@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You parse a date such as 2014-11-31, or a range such as [2014-11-01 TO 2014-11-31], with DateRangePrefixTree.parseCalendar or parseShape and expect a ParseException, which the parser has given since LUCENE-8640 for day 32, month 13, hour 25 and minute 60. Instead the day is checked only against 1..31 and set on a lenient java.util.Calendar, which moves it into the next month when the fields are read: 2014-11-31 becomes 2014-12-01, 2014-02-30 becomes 2014-03-02, and the range parses to [2014-11 TO 2014-12-01], so an Intersects query on a NumberRangePrefixTreeStrategy index also returns a document dated 2014-12-01.</p>
+<p>The test shows that <code>DateRangePrefixTree.parseCalendar</code> accepts a day its month does not have (<code>2014-11-31</code>) and rolls it into the next month, while it rejects day 32 with a ParseException.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>2014-11-31</code>, <code>2014-02-30</code>, <code>2013-02-29</code> and <code>2014-04-31T10</code> throw <code>ParseException</code> like <code>2014-11-32</code>, and so does the range <code>[2014-11-01 TO 2014-11-31]</code>.</li><li><b>Actual:</b> They parse as 2014-12-01, 2014-03-02, 2013-03-01 and 2014-05-01T10; the range becomes <code>[2014-11 TO 2014-12-01]</code> and matches 2014-11-15 and 2014-12-01.</li></ul>
+<p>Expected: <code>ParseException</code> for <code>2014-11-31</code> (as for <code>2014-11-32</code>); actual: parses to <code>2014-12-01</code>, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/spatial/prefix/tree/TestDateRangeParseNonexistentDay.java"><code>src/org/apache/lucene/spatial/prefix/tree/TestDateRangeParseNonexistentDay.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/spatial/prefix/tree/TestDateRangeNonexistentDay.java"><code>src/org/apache/lucene/spatial/prefix/tree/TestDateRangeNonexistentDay.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -46,8 +48,7 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.spatial.prefix.tree.TestDateRangeParseNonexistentDay</code></pre>
+     execute --select-class org.apache.lucene.spatial.prefix.tree.TestDateRangeNonexistentDay</code></pre>
 <p class="small">The module(s) spatial-extras also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestDateRangeNonexistentDay.java"><code>TestDateRangeNonexistentDay.java</code></a></li><li><a href="DateRangeDaySweep.java"><code>DateRangeDaySweep.java</code></a></li><li><a href="TestDateRangeParseNonexistentDay.java"><code>TestDateRangeParseNonexistentDay.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

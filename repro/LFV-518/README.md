@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index a word list into SpellChecker with one indexDictionary call, and the list contains a word twice, for example a PlainTextDictionary with the lines relieve, relieve, receive. You expect each word to be indexed once, as indexDictionary already ensures for words that were in the spell index before the call, so suggestSimilar("recieve", 2) returns [relieve, receive]. Instead the duplicate check looks only at the spell index as it was before the call, so the repeated word is indexed twice and suggestSimilar returns [relieve, relieve], pushing receive out; the same words split over two calls are de-duplicated correctly.
 
+SpellChecker.indexDictionary indexes a word twice when one dictionary repeats it, so suggestSimilar returns the same word twice and drops a distinct suggestion.
+
 ## Expected vs actual
 
-- Expected: `[relieve, receive]` and one spell-index document for `relieve` in all four tests.
-- Actual: `[relieve, relieve]` and 2 documents for `relieve` in the three one-call tests; the split-over-two-calls control passes.
+Expected suggestSimilar("recieve", 2) = [relieve, receive]; main returns [relieve, relieve].
 
 ## Files
 
@@ -21,7 +22,8 @@ You index a word list into SpellChecker with one indexDictionary call, and the l
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -45,12 +47,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestSpellCheckerRepeatedDictionaryEntries.java](TestSpellCheckerRepeatedDictionaryEntries.java)
-- [TestSpellCheckerDuplicateDictionaryWords.java](TestSpellCheckerDuplicateDictionaryWords.java)
-- [TestSpellCheckerRepeatedEntries.java](TestSpellCheckerRepeatedEntries.java)
 
 ## Feedback
 

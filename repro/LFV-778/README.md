@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You score a geo spatial query with makeRecipDistanceValueSource, whose javadoc says zScaling is one tenth of the distance from the centre to the farthest edge, so scores run from 1 at the centre down to about 0.1 at the furthest edge. For a box wider than 180 degrees of longitude the method instead takes half the great-circle distance between the box's two opposite corners, and that distance goes the short way round the globe: for rect(-170,170,-10,10) zScaling is 1.41 instead of 17.0, and the edge point (170,0) scores 0.0082 instead of about 0.091 (for the band rect(-180,180,-5,5), 0.0028). Nothing fails; distance is over-weighted, so with FunctionScoreQuery.boostByValue a hit with inner score 10 at 170 degrees ranks below a hit with inner score 1 at 10 degrees on the band query, the reverse of the documented scaling.
 
+The test shows that `SpatialStrategy#makeRecipDistanceValueSource` for the geo box `rect(-170, 170, -10, 10)` (wider than 180 degrees) scores the point (170, 0) on its east edge far below the documented value.
+
 ## Expected vs actual
 
-- Expected: The edge points (170, 0) and (180, 5) score about 0.091 (within 0.10 +- 0.09) on every strategy, as the two controls do.
-- Actual: They score 0.00823 and 0.00285 on all four strategies; both controls pass.
+Expected: ~0.1 at the furthest edge (javadoc; 17 / 187 = 0.091, upstream tolerance 0.10 +- 0.09); actual (-ea and -da): 0.00823, because zScaling is taken from the corner-to-corner great circle, which goes the short way round the globe.
 
 ## Files
 
-- [src/org/apache/lucene/spatial/TestRecipDistanceWideQueryShape.java](src/org/apache/lucene/spatial/TestRecipDistanceWideQueryShape.java) (JUnit test)
+- [src/org/apache/lucene/spatial/TestRecipDistanceBoxWiderThan180.java](src/org/apache/lucene/spatial/TestRecipDistanceBoxWiderThan180.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -31,7 +33,6 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
-CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
 CP=$CP:$LUCENE/lucene/spatial-extras/build/libs/lucene-spatial-extras-$V.jar
 CP=$CP:$LUCENE/lucene/spatial3d/build/libs/lucene-spatial3d-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
@@ -42,18 +43,12 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.spatial.TestRecipDistanceWideQueryShape
+     execute --select-class org.apache.lucene.spatial.TestRecipDistanceBoxWiderThan180
 ```
 
 The module(s) spatial-extras also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestRecipDistanceWideGeoBox.java](TestRecipDistanceWideGeoBox.java)
-- [TestRecipDistanceWideQueryShape.java](TestRecipDistanceWideQueryShape.java)
-- [3-TestRecipDistanceWideGeoBox.java](3-TestRecipDistanceWideGeoBox.java)
 
 ## Feedback
 

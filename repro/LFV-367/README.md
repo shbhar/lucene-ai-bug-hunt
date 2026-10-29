@@ -1,6 +1,6 @@
 # DrillDownQuery.clone shares the per-dimension BooleanQuery.Builder objects with the original, so adding a value to a dimension both copies already constrain changes what the other copy matches (released since 4.7.0)
 
-Bug LFV-367 · Area: facet / DrillDownQuery (clone and the per-dimension BooleanQuery.Builder state) · Priority: medium · Impact: silent wrong results · Novelty: new
+Bug LFV-367 · Area: facet / DrillDownQuery (clone and the per-dimension BooleanQuery.Builder state) · Priority: low · Impact: silent wrong results · Novelty: new
 
 Bug page: [../../bugs/LFV-367.html](../../bugs/LFV-367.html)
 
@@ -10,19 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build a DrillDownQuery that restricts color=red, call clone, and add color=blue to the clone (or to the original), expecting the copy you did not touch to keep matching only red, as clone and the upstream testClone imply. Instead both copies match red OR blue: the clone shares each dimension's internal BooleanQuery.Builder with its source, and add on an existing dimension appends a SHOULD clause to that shared builder in place. Since 9.0 a copy that was already searched keeps a cached snapshot and shows the leaked value only after its own dimension changes again (then 3 hits where 2 are correct), and the two copies stay equals with the same hashCode while they match different documents.
 
+The test shows that `DrillDownQuery.clone()` shares the per-dimension `BooleanQuery.Builder` with the original, so adding `color=blue` to the clone also widens the original.
+
 ## Expected vs actual
 
-- Expected: The untouched copy keeps matching red only (1 document); a searched copy matches red or green (2) after its own add; copies that match 1 and 2 documents are not equal.
-- Actual: The untouched copy matches 2 in both directions (`expected:<1> but was:<2>`), the searched copy matches 3 (`expected:<2> but was:<3>`), and the two copies compare equal.
+Expected: the original (`color=red`) still matches 1 of the 2 documents. Actual: 2 (`expected:<1> but was:<2>`, with `-ea` and `-da`).
 
 ## Files
 
-- [src/org/apache/lucene/facet/TestDrillDownQueryCloneShares.java](src/org/apache/lucene/facet/TestDrillDownQueryCloneShares.java) (JUnit test)
+- [src/org/apache/lucene/facet/TestDrillDownQueryCloneIsolation.java](src/org/apache/lucene/facet/TestDrillDownQueryCloneIsolation.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,19 +42,12 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.facet.TestDrillDownQueryCloneShares
+     execute --select-class org.apache.lucene.facet.TestDrillDownQueryCloneIsolation
 ```
 
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestDrillDownQueryCloneIsolation.java](TestDrillDownQueryCloneIsolation.java)
-- [TestDrillDownQueryCloneShares.java](TestDrillDownQueryCloneShares.java)
-- [TestDrillDownQueryCloneIndependence.java](TestDrillDownQueryCloneIndependence.java)
-- [DrillDownCloneStateMain.java](DrillDownCloneStateMain.java)
 
 ## Feedback
 

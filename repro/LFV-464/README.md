@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index text with payloads, for example 'big|adj dog|noun' (doc 0) and 'big|adj dog|verb' (doc 1) through DelimitedPayloadTokenFilter, and query IntervalQuery(f, Intervals.term("dog", payload is 'noun')), which correctly hits only doc 0. You expect Weight#matches to be null for doc 1, which the query does not match, and non-null for doc 1 as a hit of +f:big -&lt;that query&gt;. Instead the payload-filtered source returns an empty but non-null MatchesIterator for every document that contains 'dog' at all, so Weight#matches reports a match for the non-hit and the BooleanQuery returns null Matches for its real hit (the default UnifiedHighlighter then leaves that hit unhighlighted, and Lucene monitor's HighlightsMatch matcher reports the non-hit as a match), while hits, counts and scores stay correct.
 
+The test shows that `Intervals.term(term, payloadFilter)` gives a non-null `Weight#matches` for a document in which the filter rejects every position of the term, so the query does not match it (one doc, one token `dog` with payload `verb`, filter "payload is `noun`").
+
 ## Expected vs actual
 
-- Expected: You expect Weight#matches to be null for doc 1, which the query does not match, and non-null for doc 1 as a hit of +f:big -&lt;that query&gt;.
-- Actual: The payload-filtered source returns an empty but non-null MatchesIterator for every document that contains 'dog' at all, so Weight#matches reports a match for the non-hit and the BooleanQuery returns null Matches for its real hit (the default UnifiedHighlighter then leaves that hit unhighlighted, and Lucene monitor's HighlightsMatch matcher reports the non-hit as a match), while hits, counts and scores stay correct.
+Expected `Weight#matches(ctx, 0) == null` (count is 0); actual: a non-null `Matches` (`expected null, but was:<MatchesUtils$3@...>`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/queries/intervals/TestPayloadFilteredIntervalsMatchesNonMatchingDoc.java](src/org/apache/lucene/queries/intervals/TestPayloadFilteredIntervalsMatchesNonMatchingDoc.java) (JUnit test)
+- [src/org/apache/lucene/queries/intervals/TestPayloadFilteredIntervalsMatches.java](src/org/apache/lucene/queries/intervals/TestPayloadFilteredIntervalsMatches.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -30,17 +31,16 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
-CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
 CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queries.intervals.TestPayloadFilteredIntervalsMatchesNonMatchingDoc
+     execute --select-class org.apache.lucene.queries.intervals.TestPayloadFilteredIntervalsMatches
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

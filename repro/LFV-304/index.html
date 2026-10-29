@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You build a DisjunctionMaxQuery with tieBreakerMultiplier NaN (for example a computed value, or the XML query parser text tieBreaker=&#x27;NaN&#x27;), or a LatLonPoint.newDistanceFeatureQuery with pivotDistance NaN or +Infinity, and expect the IllegalArgumentException that both constructors already throw for every other out-of-range value (&#x27;tieBreakerMultiplier must be in [0, 1]&#x27;, &#x27;pivotDistance must be &gt; 0&#x27;). Instead the value is accepted, because the checks are written as &#x27;x &lt; 0 || x &gt; 1&#x27; and &#x27;x &lt;= 0&#x27;, which are false for NaN (and &#x27;&lt;= 0&#x27; is false for +Infinity): on main the hits come back with NaN scores, although the distance feature javadoc promises scores in [0, weight], and for a NaN value q.equals(q) is false because equals compares the field with ==. Older releases are worse: with a NaN tie-breaker, 8.0.0 and 8.11.4 return no top-k hits while count finds them, and 9.12.3 with assertions off returns a sentinel ScoreDoc (doc 2147483647, score -Infinity) in place of a hit.</p>
+<p>The test shows that <code>new DisjunctionMaxQuery(List.of(), Float.NaN)</code> and <code>LatLonPoint.newDistanceFeatureQuery(&quot;f&quot;, 1, 0, 0, Double.NaN)</code> pass their range checks (<code>x &lt; 0 || x &gt; 1</code> and <code>x &lt;= 0</code> are false for NaN) (<code>TestQueryRangeChecksAdmitNaN</code>, one method per constructor).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> The value is accepted, because the checks are written as &#x27;x &lt; 0 || x &gt; 1&#x27; and &#x27;x &lt;= 0&#x27;, which are false for NaN (and &#x27;&lt;= 0&#x27; is false for +Infinity): on main the hits come back with NaN scores, although the distance feature javadoc promises scores in [0, weight], and for a NaN value q.equals(q) is false because equals compares the field with ==.</li></ul>
+<p>Expected <code>IllegalArgumentException</code> (&#x27;tieBreakerMultiplier must be in [0, 1]&#x27; / &#x27;pivotDistance must be &gt; 0&#x27;, as for every other out-of-range value); actual: both are accepted (<code>Expected exception IllegalArgumentException but no exception was thrown</code>, 2 of 2), with -ea and -da.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/search/TestQueryRangeChecksAdmitNaN.java"><code>src/org/apache/lucene/search/TestQueryRangeChecksAdmitNaN.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 2 test(s) run, 2 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

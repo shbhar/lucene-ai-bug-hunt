@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You reopen a FilterDirectoryReader, for example a SoftDeletesDirectoryReaderWrapper, with DirectoryReader.openIfChanged (directly or through SearcherManager or ReaderManager), and the call fails after the inner reader was reopened, while the wrapper wraps it: for example an I/O error while the soft-deletes wrapper reads the new segment's soft-deletes doc values. You expect the failed call to release what it opened, so that closing your old reader, the only one you hold ('The provided reader is not closed (you are responsible for doing so); if a new reader is returned you also must eventually close it'), frees every segment reader and file. Instead FilterDirectoryReader.wrapDirectoryReader neither returns nor closes the inner reader it was just given, so that reader keeps an extra reference on every shared segment (refCount 2 after the failure, still 1 after you close the old reader) and the new segments' files stay open.
 
+The test shows that when `DirectoryReader.openIfChanged` on a `FilterDirectoryReader` throws while wrapping the reopened reader, the reopened inner reader is never closed, so it keeps its reference on the segment it shares with the old reader.
+
 ## Expected vs actual
 
-- Expected: You expect the failed call to release what it opened, so that closing your old reader, the only one you hold ('The provided reader is not closed (you are responsible for doing so); if a new reader is returned you also must eventually close it'), frees every segment reader and file.
-- Actual: FilterDirectoryReader.wrapDirectoryReader neither returns nor closes the inner reader it was just given, so that reader keeps an extra reference on every shared segment (refCount 2 after the failure, still 1 after you close the old reader) and the new segments' files stay open.
+Expected the shared segment reader's refCount to be back to 1 (only the old reader holds it); actual: 2 (`expected:<1> but was:<2>`), with `-ea` and `-da`.
 
 ## Files
 
@@ -19,7 +20,8 @@ You reopen a FilterDirectoryReader, for example a SoftDeletesDirectoryReaderWrap
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

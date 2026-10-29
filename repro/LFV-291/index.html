@@ -23,13 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index &#x27;i love new york&#x27;, &#x27;york city is big&#x27; and &#x27;york is here&#x27; and search notContainedBy(york, or(phrase(new, york), phrase(york, city))), meaning &#x27;york that is not part of new york or york city&#x27;; you expect only the third document, which is what or(false,...) and the nested form notContainedBy(notContainedBy(york, &#x27;new york&#x27;), &#x27;york city&#x27;) return. Instead all three documents match: the default disjunction rewrite (LUCENE-8477) pulls the OR out of the excluded operand and builds or(NOT_CONTAINED_BY(york, &#x27;new york&#x27;), NOT_CONTAINED_BY(york, &#x27;york city&#x27;)), which computes &#x27;not inside B1 or not inside B2&#x27; where the javadoc promises &#x27;not inside (B1 or B2)&#x27;. So adding a clause to the exclusion adds hits: notContainedBy(a, or(phrase(c, a), b)) matches &#x27;c a&#x27; although notContainedBy(a, phrase(c, a)) does not.</p>
+<p>The test shows that Intervals.notContainedBy(a, or(phrase(c, a), b)) returns the &quot;a&quot; of the document &quot;c a&quot;, although that &quot;a&quot; lies inside &quot;c a&quot;, one clause of the excluded OR (the default rewrite ORs one filter per clause).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>testOrOfPhrasesAsBigSource</code>: 1 hit (doc 2, &quot;york is here&quot;), as the chained and <code>or(false,...)</code> controls give; <code>testAddingClauseToBigSourceAddsNoHits</code>: 0 hits.</li><li><b>Actual:</b> 3 hits, then 1 hit: the query is built as <code>or(NOT_CONTAINED_BY(york,BLOCK(new,york)),NOT_CONTAINED_BY(york,BLOCK(york,city)))</code>, one filter per phrase.</li></ul>
+<p>Expected: 0 hits. Actual (-ea and -da): 1 hit, from the rewritten source or(NOT_CONTAINED_BY(a,BLOCK(c,a)),NOT_CONTAINED_BY(a,b)).</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/queries/intervals/TestNotContainedByDisjunction.java"><code>src/org/apache/lucene/queries/intervals/TestNotContainedByDisjunction.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/queries/intervals/TestNotContainedByOrRewrite.java"><code>src/org/apache/lucene/queries/intervals/TestNotContainedByOrRewrite.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -46,7 +47,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queries.intervals.TestNotContainedByDisjunction</code></pre>
+     execute --select-class org.apache.lucene.queries.intervals.TestNotContainedByOrRewrite</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestNotContainedByDisjunction.java"><code>TestNotContainedByDisjunction.java</code></a></li><li><a href="fix-with-test.diff"><code>fix-with-test.diff</code></a></li><li><a href="TestNotContainedByNestedClauses.java"><code>TestNotContainedByNestedClauses.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

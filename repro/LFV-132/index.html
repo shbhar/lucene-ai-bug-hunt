@@ -22,36 +22,29 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You set maxTokenLength to 1 on StandardTokenizer (or StandardAnalyzer, UAX29URLEmailTokenizer, or a factory with maxTokenLength=1) and tokenize text that contains a code point above U+FFFF, for example &#x27;ab U+10400 cd&#x27; or &#x27;hello U+1F600 world&#x27;. You expect what the setter documents, that too-long tokens are chopped and emitted as multiple tokens, so the words after that character are still tokenized and end reports the input length as the final offset. Instead the 1-char scan buffer cannot hold the surrogate pair, the scanner&#x27;s refill reports end of input at a token start, and the stream stops: [a, b] with final offset 3 of 8, [h, e, l, l, o], and nothing after the character is indexed.</p>
+<p>The test shows that <code>StandardTokenizer</code> with <code>setMaxTokenLength(1)</code> ends the token stream at the first supplementary character (here U+10400), so later text is never tokenized.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect what the setter documents, that too-long tokens are chopped and emitted as multiple tokens, so the words after that character are still tokenized and end reports the input length as the final offset.</li><li><b>Actual:</b> The 1-char scan buffer cannot hold the surrogate pair, the scanner&#x27;s refill reports end of input at a token start, and the stream stops: [a, b] with final offset 3 of 8, [h, e, l, l, o], and nothing after the character is indexed.</li></ul>
+<p>Expected for <code>&quot;ab U+10400 cd&quot;</code>: <code>c</code> and <code>d</code> are still emitted and the final offset is 8; actual: <code>[a, b]</code> and final offset 3, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/analysis/standard/TestStandardTokenizerMaxTokenLengthOne.java"><code>src/org/apache/lucene/analysis/standard/TestStandardTokenizerMaxTokenLengthOne.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/org/apache/lucene/analysis/email/TestUAX29URLEmailTokenizerMaxTokenLengthOne.java"><code>src/org/apache/lucene/analysis/email/TestUAX29URLEmailTokenizerMaxTokenLengthOne.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src/maxlen1/MaxTokenLengthOneMain.java"><code>src/maxlen1/MaxTokenLengthOneMain.java</code></a> <span class="dim">(main() class)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
+<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
-CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions on, seed 28CA5EF0
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=28CA5EF0 \
-     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.standard.TestStandardTokenizerMaxTokenLengthOne \
-       --select-class org.apache.lucene.analysis.email.TestUAX29URLEmailTokenizerMaxTokenLengthOne
-
-# run 2: assertions on, seed DEADBEEF, default flags
+# run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; maxlen1.MaxTokenLengthOneMain</code></pre>
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.analysis.standard.TestStandardTokenizerMaxTokenLengthOne</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

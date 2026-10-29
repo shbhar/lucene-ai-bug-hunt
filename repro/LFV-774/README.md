@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You highlight a stored value with matchhighlight's FieldValueHighlighters, for example maxLeadingCharacters(5, '...', fields) on a value that starts with the word BOLD written in mathematical bold capitals (U+1D401 U+1D40E U+1D40B U+1D403, two UTF-16 units each), or highlighted(5,...) with a term query that matches that word. You expect a snippet of whole characters within the 5-unit budget, for example the first two letters and '...', just as the ASCII value 'boldtext' is cut inside the word but between characters ('boldt...'). Instead the snippet ends with the first half of the third letter ('\uD835\uDC01\uD835\uDC0E\uD835...' and '&gt;\uD835\uDC01\uD835\uDC0E\uD835&lt;...'), because PassageSelector cuts windows and long matches at a raw UTF-16 offset and BreakIteratorShrinkingAdjuster keeps that raw edge when no word boundary fits in the window.
 
+The test shows that the default matchhighlight PassageSelector (as used by `FieldValueHighlighters.maxLeadingCharacters(5,...)`) ends a 5-unit passage between the two halves of a supplementary character, so the snippet carries an unpaired high surrogate.
+
 ## Expected vs actual
 
-- Expected: You expect a snippet of whole characters within the 5-unit budget, for example the first two letters and '...', just as the ASCII value 'boldtext' is cut inside the word but between characters ('boldt...').
-- Actual: The snippet ends with the first half of the third letter ('\uD835\uDC01\uD835\uDC0E\uD835...' and '&gt;\uD835\uDC01\uD835\uDC0E\uD835&lt;...'), because PassageSelector cuts windows and long matches at a raw UTF-16 offset and BreakIteratorShrinkingAdjuster keeps that raw edge when no word boundary fits in the window.
+Expected a passage ending on a code point boundary; actual `[[from=0, to=5], markers=[]]`, offset 5 inside U+1D40B (-ea and -da).
 
 ## Files
 
@@ -19,7 +20,8 @@ You highlight a stored value with matchhighlight's FieldValueHighlighters, for e
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You analyze Japanese text with JapaneseTokenizer and JapaneseReadingFormFilter(useRomaji=true), whose romanizer is documented as &#x27;Romanize katakana with modified hepburn&#x27;, and expect the small tsu ッ to double the next consonant, as the method already does for キット -&gt; &#x27;kitto&#x27; and マッチ -&gt; &#x27;matchi&#x27;. Instead the &#x27;ッ&#x27; case appends a consonant only for the カ, サ, タ and パ rows and appends nothing otherwise, so バッグ &#x27;bag&#x27; becomes &#x27;bagu&#x27;, the same term as バグ &#x27;bug&#x27;, ベッド becomes &#x27;bedo&#x27; and スタッフ becomes &#x27;sutafu&#x27;. Distinct words then match each other, and a romaji query &#x27;baggu&#x27; finds no document that contains バッグ.</p>
+<p>The test shows that Kuromoji&#x27;s <code>ToStringUtil.getRomanization</code> drops the small tsu ッ before the ガ row instead of doubling the consonant, as it does before k/s/t/p (キット -&gt; kitto).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> バッグ → <code>baggu</code> (not バグ&#x27;s <code>bagu</code>), ベッド → <code>beddo</code>, ビッグ → <code>biggu</code>: the ッ doubles the next consonant, as in キット → <code>kitto</code>.</li><li><b>Actual:</b> 7 of 7 lose the ッ (バッグ → <code>bagu</code>, ベッド → <code>bedo</code>, ビッグ → <code>bigu</code>, キッズ → <code>kizu</code>,...), and the filter emits <code>bagu</code> for バッグ.</li></ul>
+<p>Expected <code>getRomanization(&quot;バッグ&quot;)</code> to be &quot;baggu&quot;; actual &quot;bagu&quot; (the romaji of バグ), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/analysis/ja/TestRomajiSokuonBeforeVoicedConsonant.java"><code>src/org/apache/lucene/analysis/ja/TestRomajiSokuonBeforeVoicedConsonant.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/analysis/ja/dict/TestToStringUtilSokuon.java"><code>src/org/apache/lucene/analysis/ja/dict/TestToStringUtilSokuon.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -45,8 +47,7 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.ja.TestRomajiSokuonBeforeVoicedConsonant</code></pre>
+     execute --select-class org.apache.lucene.analysis.ja.dict.TestToStringUtilSokuon</code></pre>
 <p class="small">The module(s) analysis-kuromoji also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestRomajiSokuon.java"><code>TestRomajiSokuon.java</code></a></li><li><a href="TestRomajiSokuonBeforeVoicedConsonant.java"><code>TestRomajiSokuonBeforeVoicedConsonant.java</code></a></li><li><a href="TestSokuonDirect.java"><code>TestSokuonDirect.java</code></a></li><li><a href="TestSokuonFilter.java"><code>TestSokuonFilter.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

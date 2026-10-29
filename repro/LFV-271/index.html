@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You build a path with GeoPathFactory.makeGeoPath and a width &gt; 0 and call computeDistance with DistanceStyle.LINEAR_SQUARED (or NORMAL_SQUARED), expecting the square of the LINEAR (or NORMAL) path distance, which is what DistanceStyle&#x27;s &#x27;convert to aggregation form, aggregate, convert back&#x27; contract gives and what end-cap points, the zero-width path and Lucene 9.4.2 return. For a point inside a path segment you get the square of that value instead: 0.00803 rather than 0.0896 for a point whose LINEAR distance is 0.299, so the value jumps about 6x across a segment&#x27;s end cutoff plane and can rank a farther point ahead of a nearer one. The cause is a leftover conversion from the 2022 path refactor: PathSegment.distance already converts its result back from aggregation form, and GeoStandardPath.distance converts the component tree&#x27;s result back a second time.</p>
+<p>The test shows that <code>GeoPath.computeDistance(DistanceStyle.LINEAR_SQUARED, p)</code> on a width-0.1 path (a <code>GeoStandardPath</code>) for a point inside the path segment.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> While the bug is present the test fails; the failure message states expected against actual.</li></ul>
+<p>Expected: LINEAR^2 = 0.0896. Actual (-ea and -da): 0.00803 = LINEAR^4, the result is converted back from aggregation form twice.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/spatial3d/geom/TestGeoPathSquaredDistance.java"><code>src/org/apache/lucene/spatial3d/geom/TestGeoPathSquaredDistance.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

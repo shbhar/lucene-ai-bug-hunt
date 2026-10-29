@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index a document with DoubleDocValuesField("d", -5.0) and search new FunctionRangeQuery(new DoubleFieldSource("d"), -10.0, 10.0, true, true), expecting a non-negative score, because since LUCENE-7996 (8.0) scorers must not produce negative scores and FunctionQuery over the same source scores that document 0. Instead it scores -5.0 (-Infinity and NaN become -Float.MAX_VALUE), because ValueSourceScorer.score returns the raw value and LUCENE-7996 clamped FunctionQuery, BoostedQuery and FunctionScoreQuery but not this scorer. Since 10.1.0 this also loses hits: with minimumNumberShouldMatch = 2 over SHOULD clauses FunctionRangeQuery(d, open range), body:a and body:b (sparse term clauses; also dense ones since 10.5.0), a matching document whose value is -Infinity is missing from search(q, 10), whose totalHits says '3 hits' while count(q) is 4, because WANDScorer rejects a candidate whose scaled score is below the initial minimum competitive score of 0.
 
+The test shows that `FunctionRangeQuery` scores a document with its raw negative value (`-Infinity` becomes `-Float.MAX_VALUE`), so a `minimumNumberShouldMatch = 2` BooleanQuery drops that matching document from top-k results.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: It scores -5.0 (-Infinity and NaN become -Float.MAX_VALUE), because ValueSourceScorer.score returns the raw value and LUCENE-7996 clamped FunctionQuery, BoostedQuery and FunctionScoreQuery but not this scorer.
+Expected `search(q, 10)` to return all `count(q) = 2` matches; actual: 1 (`expected:<2> but was:<1>`) with `-da`. With `-ea` the search throws `AssertionError` at `WANDScorer.scaleMaxScore` (`assert maxScore >= 0`).
 
 ## Files
 
-- [src/org/apache/lucene/queries/function/TestFunctionRangeQueryNegativeScore.java](src/org/apache/lucene/queries/function/TestFunctionRangeQueryNegativeScore.java) (JUnit test)
+- [src/org/apache/lucene/queries/function/TestFunctionRangeQueryNegativeScoreHitLoss.java](src/org/apache/lucene/queries/function/TestFunctionRangeQueryNegativeScoreHitLoss.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -39,7 +40,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queries.function.TestFunctionRangeQueryNegativeScore
+     execute --select-class org.apache.lucene.queries.function.TestFunctionRangeQueryNegativeScoreHitLoss
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

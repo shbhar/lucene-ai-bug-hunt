@@ -16,62 +16,23 @@
  */
 package org.apache.lucene.analysis.synonym.word2vec;
 
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.custom.CustomAnalyzer;
-import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
-import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
 
-/**
- * Word2VecSynonymFilterFactory accepts any maxSynonymsPerTerm > 0 ("must be a positive integer
- * greater than 0"). Word2VecSynonymProvider.getSynonyms passes maxSynonymsPerTerm + 1 to the HNSW
- * search as the queue size, unclamped by the model size, so a value of 2147483629 or more (e.g.
- * Integer.MAX_VALUE as "no limit, keep everything above the threshold") makes every token that has
- * a model vector throw IllegalArgumentException from the search queue. Public API only.
- */
-public class TestWord2VecLargeMaxSynonymsPerTerm extends LuceneTestCase {
+public class TestWord2VecLargeMaxSynonymsPerTerm extends BaseTokenStreamTestCase {
 
-  private static List<String> analyze(Analyzer a, String text) throws Exception {
-    List<String> out = new ArrayList<>();
-    try (TokenStream ts = a.tokenStream("f", text)) {
-      CharTermAttribute term = ts.addAttribute(CharTermAttribute.class);
-      ts.reset();
-      while (ts.incrementToken()) out.add(term.toString());
-      ts.end();
-    }
-    return out;
-  }
-
-  public void testMaxIntMaxSynonymsPerTermAcceptedByFactory() throws Exception {
-    Path dir = createTempDir("w2v-large-k");
-    String[] words = {"alpha", "beta", "gamma"};
-    float[][] vecs = {{1f, 0f}, {0.9f, 0.1f}, {0f, 1f}};
-    StringBuilder syn0 = new StringBuilder(words.length + " 2 " + words.length + "\n");
-    for (int i = 0; i < words.length; i++) {
-      syn0.append("B64:")
-          .append(Base64.getEncoder().encodeToString(words[i].getBytes(StandardCharsets.UTF_8)))
-          .append(' ')
-          .append(vecs[i][0])
-          .append(' ')
-          .append(vecs[i][1])
-          .append('\n');
-    }
-    // unique file name: Word2VecSynonymProviderFactory caches providers JVM-wide by file name
-    String modelName = "large-k-model-" + random().nextInt(Integer.MAX_VALUE) + ".zip";
-    try (OutputStream os = Files.newOutputStream(dir.resolve(modelName));
-        ZipOutputStream zip = new ZipOutputStream(os)) {
+  public void testMaxIntMaxSynonymsPerTerm() throws Exception {
+    Path dir = createTempDir();
+    Path model = dir.resolve("max-synonyms-per-term-model.zip");
+    try (ZipOutputStream zip = new ZipOutputStream(Files.newOutputStream(model))) {
       zip.putNextEntry(new ZipEntry("syn0.txt"));
-      zip.write(syn0.toString().getBytes(StandardCharsets.UTF_8));
-      zip.closeEntry();
+      zip.write("2 2\nalpha 1 0\nbeta 0.9 0.1\n".getBytes(StandardCharsets.UTF_8));
     }
     Analyzer a;
     try {
@@ -81,15 +42,19 @@ public class TestWord2VecLargeMaxSynonymsPerTerm extends LuceneTestCase {
               .addTokenFilter(
                   Word2VecSynonymFilterFactory.NAME,
                   "model",
-                  modelName,
+                  model.getFileName().toString(),
                   "maxSynonymsPerTerm",
                   Integer.toString(Integer.MAX_VALUE))
               .build();
-    } catch (IllegalArgumentException rejected) {
-      return; // rejecting the value at configuration time would be a valid outcome
+    } catch (IllegalArgumentException rejectedAtConfiguration) {
+      return;
     }
-    // beta (cosine 0.994 with alpha) is the only term above the default threshold
-    assertEquals(List.of("alpha", "beta"), analyze(a, "alpha"));
+    try {
+      assertAnalyzesTo(a, "alpha", new String[] {"alpha", "beta"});
+    } catch (IllegalArgumentException e) {
+      // expected: alpha plus its synonym beta (cosine 0.99), or a rejection at configuration time
+      throw new AssertionError("expected [alpha, beta], got " + e, e);
+    }
     a.close();
   }
 }

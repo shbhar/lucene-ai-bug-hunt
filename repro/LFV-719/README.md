@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You configure ICUTokenizerFactory with rulefiles="Latn:latin.rbbi" and a rule file saved as UTF-8 with a byte order mark (BOM), as editors such as Windows Notepad often write and as ICU's own rule-file compiler genbrk accepts (it strips the BOM, and its man page recommends one), and expect the same tokens as with the same file without the BOM. Instead ICUTokenizerFactory.parseRules decodes the BOM to U+FEFF and passes it to ICU's RuleBasedBreakIterator(String) as rule text: a file that starts with the rule '.+ {200};' (alone or after '#' comment lines) compiles with U+FEFF as a literal prefix of that rule, so 'ab cd' gives no tokens at all instead of ['ab cd'], and a file that starts with a comment and '!!forward;' (the shape of Lucene's Latin-break-only-on-whitespace.rbbi) fails with 'IllegalArgumentException: Error 66052 at line 2 column 1'. Nothing on disk is corrupted, but in the silent case all text of the tailored script disappears from the analyzed output with no error.
 
+The test shows that `ICUTokenizerFactory` keeps a UTF-8 byte order mark at the start of a `rulefiles` rule file as rule text: the file `<BOM>.+ {200};` loads without error, then the Latin text is dropped.
+
 ## Expected vs actual
 
-- Expected: Each BOM file gives the tokens of the same file without the BOM: `[ab cd]`, the 6 tokens of the Cyrillic and Thai test, and `[Don't,break.at?/(punct)!] [here]`.
-- Actual: `token 0 does not exist`, `term 2 expected:<[Немного русский. ]> but was:<[More]>` and `IllegalArgumentException: Error 66052 at line 20 column 1`: 3 of 3 tests fail, assertions on and off.
+Expected `[ab cd]` for `ab cd` (as without the BOM); actual `[]` (`expected:<[ab cd]> but was:<[]>`), with `-ea` and `-da`; passes when parseRules skips a leading U+FEFF.
 
 ## Files
 
@@ -21,7 +22,8 @@ You configure ICUTokenizerFactory with rulefiles="Latn:latin.rbbi" and a rule fi
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -46,13 +48,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) analysis-icu also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestICUTokenizerFactoryRuleFileBom.java](TestICUTokenizerFactoryRuleFileBom.java)
-- [fix-option-A.diff](fix-option-A.diff)
-- [3-TestICUTokenizerFactoryRuleFileBom.java](3-TestICUTokenizerFactoryRuleFileBom.java)
-- [TestIcuRuleFileBom.java](TestIcuRuleFileBom.java)
 
 ## Feedback
 

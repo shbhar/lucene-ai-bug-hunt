@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index one rectangle with BBoxStrategy (planar area 800) and score it with two FunctionScoreQuery SHOULD clauses whose sources differ only in the multiplier, new ShapeAreaValueSource(strategy.makeShapeValueSource, ctx, false, 1.0) and the same with 3.0, expecting the sum 800 + 2400 = 3200. Instead ShapeAreaValueSource equals/hashCode compare only geoArea and the shape source, so the two clauses are equal, BooleanQuery.rewrite merges them into one clause with boost 2 that keeps only the first multiplier, and the document scores 1600 (4800 with the clauses swapped). Area filters built on such sources are de-duplicated the same way, so a FILTER or MUST_NOT area clause can be silently dropped and the hit set changes (2550 hits expected, 3800 returned).
 
+The test shows that two ShapeAreaValueSource instances that differ only in the multiplier compare equal, so a SHOULD disjunction of FunctionScoreQuery clauses over them is merged into one clause and loses the second multiplier.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: ShapeAreaValueSource equals/hashCode compare only geoArea and the shape source, so the two clauses are equal, BooleanQuery.rewrite merges them into one clause with boost 2 that keeps only the first multiplier, and the document scores 1600 (4800 with the clauses swapped).
+Expected: one rectangle of area 800 scores 800 x 1 + 800 x 3 = 3200. Actual (-ea and -da): 1600.
 
 ## Files
 
-- [src/org/apache/lucene/spatial/util/TestShapeAreaValueSourceEquals.java](src/org/apache/lucene/spatial/util/TestShapeAreaValueSourceEquals.java) (JUnit test)
+- [src/org/apache/lucene/spatial/util/TestShapeAreaValueSourceMultiplier.java](src/org/apache/lucene/spatial/util/TestShapeAreaValueSourceMultiplier.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,7 +42,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.spatial.util.TestShapeAreaValueSourceEquals
+     execute --select-class org.apache.lucene.spatial.util.TestShapeAreaValueSourceMultiplier
 ```
 
 The module(s) spatial-extras also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.

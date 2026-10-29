@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You use the Geo3d spatial context (Geo3dSpatialContextFactory) with BBoxStrategy and read each document's box with makeShapeValueSource or rank by makeOverlapRatioValueSource(queryBox,...), or you call reset(10, 20, 30, 40) on a Geo3d rectangle yourself. You expect reset to replace the whole rectangle (the spatial4j Rectangle.reset javadoc: 'Resets the state of this shape given the arguments'; spatial4j's own RectangleImpl.reset assigns all four bounds), so getMinX..getMaxY return 10, 20, 30, 40, the shape values return each document's indexed box, and a document box equal to the query scores 1.0, as it does with the default SpatialContext.GEO. Instead Geo3dRectangleShape.reset rebuilds only the wrapped GeoBBox and clears the center and bounding-box caches, never assigning the four fields that getMinX..getMaxY, getWidth, getHeight and getCrossesDateLine read: the rectangle equals rect(10, 20, 30, 40) but reports its previous bounds, BBoxValueSource (which creates one rect(0, 0, 0, 0) per segment and resets it for each document) reports (0, 0, 0, 0) for every document, and the self-overlap score is 0.0.
 
+The test shows that in the Geo3d spatial context, `Rectangle.reset(minX, maxX, minY, maxY)` does not update the bounds that `getMinX()`..`getMaxY()` return.
+
 ## Expected vs actual
 
-- Expected: Each Geo3d leg answers like the spatial4j leg: bounds 10, 20, 30, 40 after the reset; shape values P and Q as indexed; scores 1.0 and 0.25.
-- Actual: 3 of 3 tests fail in the Geo3d leg: bounds still -50, -40, -30, -20; both shape values (0, 0, 0, 0); both scores 0.0; no exception.
+Expected `rect(-50, -40, -30, -20).reset(10, 20, 30, 40).getMinX() == 10`; actual `-50` (`expected:<10.0> but was:<-50.0>`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/spatial/spatial4j/TestGeo3dRectangleReset.java](src/org/apache/lucene/spatial/spatial4j/TestGeo3dRectangleReset.java) (JUnit test)
+- [src/org/apache/lucene/spatial/spatial4j/TestGeo3dRectangleResetBounds.java](src/org/apache/lucene/spatial/spatial4j/TestGeo3dRectangleResetBounds.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,23 +40,15 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.spatial.spatial4j.TestGeo3dRectangleReset
+     execute --select-class org.apache.lucene.spatial.spatial4j.TestGeo3dRectangleResetBounds
 ```
 
 The module(s) spatial-extras also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestGeo3dRectangleResetBounds.java](TestGeo3dRectangleResetBounds.java)
-- [TestGeo3dRectangleReset.java](TestGeo3dRectangleReset.java)
-- [TestGeo3dRectResetVerify.java](TestGeo3dRectResetVerify.java)
-- [TestGeo3dBridgeRectangleResetBisect.java](TestGeo3dBridgeRectangleResetBisect.java)
-- [FixOrderProbe.java](FixOrderProbe.java)
 
 ## Feedback
 

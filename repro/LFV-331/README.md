@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 On a file system that refuses to delete open files (Windows, or a virus scanner), you delete a file that a reader still holds open, so FSDirectory keeps it as a pending delete; after the reader closes, one thread re-creates that name with createOutput (or renames another file onto it), writes and closes it, while another thread makes any mutating call on the same directory, for example sync of an unrelated file. You expect the new file to stay, like any file that was created, closed and never deleted. Instead the other thread's pending-delete retry, which copied the pending set before the revive, deletes the new file: listAll no longer lists it and openInput fails (on main under the test framework's WindowsFS: 'x was created and closed successfully but is gone: [other]').
 
+The test shows that on a delete-refusing file system (WindowsFS), FSDirectory's pending-delete retry on one thread deletes x that another thread has just re-created with createOutput and closed (`TestFSDirectoryPendingDeleteRetry#testRetryKeepsFileRecreatedByAnotherThread`, two pending files, one forced interleaving).
+
 ## Expected vs actual
 
-- Expected: You expect the new file to stay, like any file that was created, closed and never deleted.
-- Actual: The other thread's pending-delete retry, which copied the pending set before the revive, deletes the new file: listAll no longer lists it and openInput fails (on main under the test framework's WindowsFS: 'x was created and closed successfully but is gone: [other]').
+Expected: x stays, like any file that was created, closed and never deleted. Actual: listAll() is [] (the retry, iterating a copy of the pending set taken before the re-create, deleted the new x); fails with -ea and -da.
 
 ## Files
 
-- [src/org/apache/lucene/store/TestFSDirectoryPendingDeleteRetryRace.java](src/org/apache/lucene/store/TestFSDirectoryPendingDeleteRetryRace.java) (JUnit test)
+- [src/org/apache/lucene/store/TestFSDirectoryPendingDeleteRetry.java](src/org/apache/lucene/store/TestFSDirectoryPendingDeleteRetry.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,7 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.store.TestFSDirectoryPendingDeleteRetryRace
+     execute --select-class org.apache.lucene.store.TestFSDirectoryPendingDeleteRetry
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

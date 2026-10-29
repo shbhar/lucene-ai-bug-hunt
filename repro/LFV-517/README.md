@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You join tokens with ConcatenateGraphFilter (or the concatenateGraph factory) and a custom tokenSeparator, and expect what the javadoc says, every token joined with that separator: the single token 'e-mail' stays 'e-mail', 'e-mail' and 'x' joined with '-' give 'e-mail-x', and 'new' and 'york' joined with U+2013 give the UTF-8 bytes of new, U+2013, york. Instead the filter passes the custom separator to an escaper written for its internal one-byte label U+001F, so every occurrence of an ASCII separator inside a token is doubled ('e--mail', 'e--mail-x', and 'new york' for a keyword token with a space separator). A non-ASCII separator fails the escaper's assertion with -ea and, with -da, is cut to its low byte: U+2013 gives 'new' U+0013 'york', and U+00B7 gives the invalid UTF-8 term [6e 65 77 b7 79 6f 72 6b].
 
+The test shows that `ConcatenateGraphFilter` with the custom separator U+2013 (EN DASH) treats it as its internal one-byte separator label when joining `new` and `york`.
+
 ## Expected vs actual
 
-- Expected: `e-mail` stays `e-mail`, `e-mail x` joins to `e-mail-x`, and U+2013 and U+00B7 are written as their UTF-8 bytes (`e2 80 93`, `c2 b7`).
-- Actual: `e--mail` and `e--mail-x`; U+2013 becomes the byte `13` and U+00B7 a lone `b7` (with assertions on: `AssertionError`): 5 tests, 4 failed.
+Expected: the term bytes are the UTF-8 of `new–york`, `[6e 65 77 e2 80 93 79 6f 72 6b]`. Actual: with `-ea` an `AssertionError` inside the filter (`ConcatenateGraphFilter.java:260`); with `-da` `[6e 65 77 13 79 6f 72 6b]` (U+2013 cut to 0x13).
 
 ## Files
 
-- [src/org/apache/lucene/analysis/miscellaneous/TestConcatenateGraphCustomSeparator.java](src/org/apache/lucene/analysis/miscellaneous/TestConcatenateGraphCustomSeparator.java) (JUnit test)
+- [src/org/apache/lucene/analysis/miscellaneous/TestConcatenateGraphNonAsciiSeparator.java](src/org/apache/lucene/analysis/miscellaneous/TestConcatenateGraphNonAsciiSeparator.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -40,16 +42,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.analysis.miscellaneous.TestConcatenateGraphCustomSeparator
+     execute --select-class org.apache.lucene.analysis.miscellaneous.TestConcatenateGraphNonAsciiSeparator
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestConcatenateGraphFilterCustomSeparator.java](TestConcatenateGraphFilterCustomSeparator.java)
-- [TestConcatenateGraphCustomSeparator.java](TestConcatenateGraphCustomSeparator.java)
-- [TestConcatGraphSeparatorV1.java](TestConcatGraphSeparatorV1.java)
 
 ## Feedback
 

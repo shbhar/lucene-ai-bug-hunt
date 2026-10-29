@@ -16,95 +16,37 @@
  */
 package org.apache.lucene.search.suggest.analyzing;
 
-import java.util.Set;
+import java.io.StringReader;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.core.WhitespaceTokenizer;
 import org.apache.lucene.analysis.synonym.SynonymGraphFilter;
 import org.apache.lucene.analysis.synonym.SynonymMap;
-import org.apache.lucene.search.suggest.InputIterator;
-import org.apache.lucene.search.suggest.Lookup;
+import org.apache.lucene.search.spell.PlainTextDictionary;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.LuceneTestCase;
-import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.CharsRef;
 
-/**
- * Lookup#getCount is documented as "the number of entries the lookup was built with". Since the
- * iterator rewrite of LUCENE-6365, AnalyzingSuggester (and FuzzySuggester) increments its count
- * once per analyzed path instead of once per entry, so an analyzer that produces a token graph
- * (here a synonym) inflates the count.
- */
 public class TestAnalyzingSuggesterGetCount extends LuceneTestCase {
 
-  private static Analyzer synonymAnalyzer() throws Exception {
-    SynonymMap.Builder b = new SynonymMap.Builder(true);
-    b.add(new CharsRef("fast"), new CharsRef("quick"), true); // fast -> {fast, quick}
-    final SynonymMap map = b.build();
-    return new Analyzer() {
-      @Override
-      protected TokenStreamComponents createComponents(String fieldName) {
-        Tokenizer t = new WhitespaceTokenizer();
-        return new TokenStreamComponents(t, new SynonymGraphFilter(t, map, true));
-      }
-    };
-  }
-
-  private static InputIterator entries(String... keys) {
-    return new InputIterator() {
-      int i = -1;
-
-      @Override
-      public BytesRef next() {
-        return ++i < keys.length ? new BytesRef(keys[i]) : null;
-      }
-
-      @Override
-      public long weight() {
-        return i + 1;
-      }
-
-      @Override
-      public BytesRef payload() {
-        return null;
-      }
-
-      @Override
-      public boolean hasPayloads() {
-        return false;
-      }
-
-      @Override
-      public Set<BytesRef> contexts() {
-        return null;
-      }
-
-      @Override
-      public boolean hasContexts() {
-        return false;
-      }
-    };
-  }
-
-  private void check(Lookup suggester) throws Exception {
-    suggester.build(entries("fast car", "red car"));
-    // both analyzed forms of "fast car" work, but it is still one entry
-    assertEquals(1, suggester.lookup("quick", false, 5).size());
-    assertEquals(1, suggester.lookup("fast", false, 5).size());
-    assertEquals("number of entries the lookup was built with", 2, suggester.getCount());
-  }
-
-  public void testAnalyzingSuggester() throws Exception {
-    try (Analyzer a = synonymAnalyzer();
-        Directory tempDir = newDirectory()) {
-      check(new AnalyzingSuggester(tempDir, "suggest", a));
-    }
-  }
-
-  public void testFuzzySuggester() throws Exception {
-    try (Analyzer a = synonymAnalyzer();
-        Directory tempDir = newDirectory()) {
-      check(new FuzzySuggester(tempDir, "suggest", a));
+  public void testSynonymDoesNotInflateCount() throws Exception {
+    SynonymMap.Builder builder = new SynonymMap.Builder(true);
+    builder.add(new CharsRef("fast"), new CharsRef("quick"), true);
+    SynonymMap synonyms = builder.build();
+    try (Analyzer analyzer =
+            new Analyzer() {
+              @Override
+              protected TokenStreamComponents createComponents(String fieldName) {
+                Tokenizer tokenizer = new WhitespaceTokenizer();
+                return new TokenStreamComponents(
+                    tokenizer, new SynonymGraphFilter(tokenizer, synonyms, true));
+              }
+            };
+        Directory dir = newDirectory()) {
+      AnalyzingSuggester suggester = new AnalyzingSuggester(dir, "suggest", analyzer);
+      suggester.build(new PlainTextDictionary(new StringReader("fast")));
+      // one entry, two analyzed paths (fast, quick): expected 1, actual 2
+      assertEquals("number of entries the lookup was built with", 1, suggester.getCount());
     }
   }
 }

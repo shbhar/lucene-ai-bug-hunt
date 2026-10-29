@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You run LatLonPoint.newDistanceQuery("p", 0.43945312499999994, 0, 9958692.080819247), a valid centre and a finite, non-negative radius whose circle stops about 7 cm short of the north pole, and expect it to match the two indexed points inside the circle. Instead IndexSearcher.count throws IllegalArgumentException 'invalid longitude NaN; must be between -180.0 and 180.0' from Rectangle.fromPointDistance, and LatLonDocValuesField.newSlowDistanceQuery throws the same when it is built. The bounding box computes asin(sin(r) / cos(lat)) without a clamp, and SloppyMath.cos, which is not monotone across its lookup-table switches, makes the quotient 1.0000000000000002 although its exact value is below 1, so asin returns NaN.
 
+The test shows that `LatLonPoint.newDistanceQuery` on a legal circle (centre 0.43945312499999994, 0; radius 9958692.080819247 m, the edge stops about 7 cm short of the north pole) fails at search time: `Rectangle.fromPointDistance` takes `asin` of a SloppyMath quotient that rounds to 1.0000000000000002 and gets NaN.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: IndexSearcher.count throws IllegalArgumentException 'invalid longitude NaN; must be between -180.0 and 180.0' from Rectangle.fromPointDistance, and LatLonDocValuesField.newSlowDistanceQuery throws the same when it is built.
+Expected 1 hit (the indexed centre point); actual: `IllegalArgumentException: invalid longitude NaN; must be between -180.0 and 180.0` from `LatLonPointDistanceQuery.createWeight`, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/document/TestDistanceQueryBoxNaN.java](src/org/apache/lucene/document/TestDistanceQueryBoxNaN.java) (JUnit test)
-- [src/org/apache/lucene/document/TestDistanceQueryBoxNaNControl.java](src/org/apache/lucene/document/TestDistanceQueryBoxNaNControl.java) (JUnit test)
+- [src/org/apache/lucene/document/TestDistanceQueryNearPoleNaN.java](src/org/apache/lucene/document/TestDistanceQueryNearPoleNaN.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -35,15 +36,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions on, seed 2670A1B2C3D4E5F6
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=2670A1B2C3D4E5F6 \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.document.TestDistanceQueryBoxNaN
-
-# run 2: assertions on, seed DEADBEEF, default flags
+# run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.document.TestDistanceQueryBoxNaNControl
+     execute --select-class org.apache.lucene.document.TestDistanceQueryNearPoleNaN
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

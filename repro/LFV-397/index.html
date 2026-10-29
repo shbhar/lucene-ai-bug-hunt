@@ -23,13 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You analyse &#x27;the quick brown fox jumps&#x27; with a stop-word analyzer, search for the phrase &quot;quick the fox&quot; with slop Integer.MAX_VALUE (for example from the user text &quot;quick the fox&quot;~3000000000, which the classic QueryParser turns into &quot;quick ? fox&quot;~2147483647; the query matches), and highlight the hit with Highlighter and QueryScorer, expecting &#x27;the &lt;B&gt;quick&lt;/B&gt; brown &lt;B&gt;fox&lt;/B&gt; jumps&#x27;, which slop Integer.MAX_VALUE - 1 or the same phrase without the hole gives. Instead getBestFragment returns null, with no error: WeightedSpanTermExtractor rewrites the phrase as new SpanNearQuery(clauses, slop + positionGaps, inorder) with a plain int sum, the removed stop word counts as one position gap, the sum wraps to -2147483648, and a span query with that slop accepts no match, so no term is marked. MultiPhraseQuery has the same sum, and the UnifiedHighlighter with weight matches turned off reaches it through PhraseHelper and returns the passage with no highlight.</p>
+<p>The test shows that Highlighter with QueryScorer returns no fragment for a matching PhraseQuery with a position hole and slop Integer.MAX_VALUE, because WeightedSpanTermExtractor&#x27;s int sum slop + positionGaps wraps negative.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> Every case returns <code>the &lt;B&gt;quick&lt;/B&gt; brown &lt;B&gt;fox&lt;/B&gt; jumps</code> (UnifiedHighlighter: <code>the &lt;b&gt;quick&lt;/b&gt; brown &lt;b&gt;fox&lt;/b&gt; jumps</code>), as both controls do.</li><li><b>Actual:</b> 3 of 5 fail: the typed <code>&quot;quick ? fox&quot;~2147483647</code> and the MultiPhraseQuery give <code>null</code>; the UnifiedHighlighter returns <code>the quick brown fox jumps</code> with nothing marked.</li></ul>
+<p>Expected <code>the &lt;B&gt;quick&lt;/B&gt; brown &lt;B&gt;fox&lt;/B&gt; jumps</code>; actual <code>null</code> (<code>expected:&lt;the &lt;B&gt;quick&lt;/B&gt; brown &lt;B&gt;fox&lt;/B&gt; jumps&gt; but was:&lt;null&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/search/highlight/TestHighlighterHugePhraseSlop.java"><code>src/org/apache/lucene/search/highlight/TestHighlighterHugePhraseSlop.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/search/highlight/TestHighlighterPhraseSlopOverflow.java"><code>src/org/apache/lucene/search/highlight/TestHighlighterPhraseSlopOverflow.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -37,7 +38,6 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
-CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
 CP=$CP:$LUCENE/lucene/highlighter/build/libs/lucene-highlighter-$V.jar
 CP=$CP:$LUCENE/lucene/memory/build/libs/lucene-memory-$V.jar
 CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
@@ -46,11 +46,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.highlight.TestHighlighterHugePhraseSlop</code></pre>
+     execute --select-class org.apache.lucene.search.highlight.TestHighlighterPhraseSlopOverflow</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestHighlighterPhraseHugeSlop.java"><code>TestHighlighterPhraseHugeSlop.java</code></a></li></ul>
 <p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/overflow-at-scale-2/index.html">overflow-at-scale-2</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

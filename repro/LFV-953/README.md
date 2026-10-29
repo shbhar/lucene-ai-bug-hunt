@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You call Polygon.fromGeoJSON on a GeoJSON Polygon whose "coordinates" is null or an object, such as {"type":"Polygon","coordinates":null}, or on a MultiPolygon with an object element, {"type":"MultiPolygon","coordinates":[{}]}, and expect the ParseException that the parser has an explicit check for ('coordinates should be an array, but got:...', 'elements of coordinates array should be an array, but got:...'), as you get when coordinates is a string, a number or a boolean. Instead java.lang.NullPointerException ('Cannot invoke "Object.getClass" because "o" is null') escapes, because SimpleGeoJSONPolygonParser stores JSON null and nested objects as Java null and both checks build their message with + o.getClass. Every other type check in the class builds its message with + o, which is null-safe.
 
+The test shows that `Polygon.fromGeoJSON` throws `NullPointerException` instead of its own `ParseException` when `"coordinates"` is JSON null (`{"type":"Polygon","coordinates":null}`) or a MultiPolygon element is an object (`[{}]`): both 'should be an array, but got: ' messages call `o.getClass()` on the null the parser stores for null/object values.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: java.lang.NullPointerException ('Cannot invoke "Object.getClass" because "o" is null') escapes, because SimpleGeoJSONPolygonParser stores JSON null and nested objects as Java null and both checks build their message with + o.getClass.
+Expected `ParseException` (as for a string value). Actual: `NullPointerException: Cannot invoke "Object.getClass()" because "o" is null` (SimpleGeoJSONPolygonParser.java:208, and:90 for the MultiPolygon line).
 
 ## Files
 
@@ -19,7 +20,8 @@ You call Polygon.fromGeoJSON on a GeoJSON Polygon whose "coordinates" is null or
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -34,8 +36,8 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed 383DEE9
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=383DEE9 \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.geo.TestGeoJSONNullCoordinates
 ```

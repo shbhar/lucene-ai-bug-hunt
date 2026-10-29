@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You call GroupingSearch.search(searcher, query, 0, Integer.MAX_VALUE) or setGroupDocsLimit(Integer.MAX_VALUE) to get every group, or every document of each group, and expect the same TopGroups as with a limit of maxDoc, the way IndexSearcher.search(query, Integer.MAX_VALUE) returns every hit. Instead the search throws: with offset 0 a NegativeArraySizeException -2147483648, an OutOfMemoryError 'Requested array size exceeds VM limit' or a queue-size IllegalArgumentException, and with offset 1 an IllegalArgumentException such as 'topNGroups must be &gt;= 1 (got -2147483648)' or 'numHits must be &gt; 0'. GroupingSearch hands the limits on uncapped to collectors that add offset + limit in int and pre-size their queues by the limit; nothing is ever returned wrong.
 
+The test shows that `GroupingSearch.search(searcher, query, 0, Integer.MAX_VALUE)` ("all groups") throws on a 1-document index, because GroupingSearch does not cap the limit at maxDoc as `IndexSearcher.search` does.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The search throws: with offset 0 a NegativeArraySizeException -2147483648, an OutOfMemoryError 'Requested array size exceeds VM limit' or a queue-size IllegalArgumentException, and with offset 1 an IllegalArgumentException such as 'topNGroups must be &gt;= 1 (got -2147483648)' or 'numHits must be &gt; 0'.
+Expected the 1 group that a limit of maxDoc returns; actual: `NegativeArraySizeException: -2147483648` (topNGroups + 1 wraps), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/search/grouping/TestGroupingSearchNoLimit.java](src/org/apache/lucene/search/grouping/TestGroupingSearchNoLimit.java) (JUnit test)
+- [src/org/apache/lucene/search/grouping/TestGroupingSearchLimitMaxValue.java](src/org/apache/lucene/search/grouping/TestGroupingSearchLimitMaxValue.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -36,10 +38,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.grouping.TestGroupingSearchNoLimit
+     execute --select-class org.apache.lucene.search.grouping.TestGroupingSearchLimitMaxValue
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

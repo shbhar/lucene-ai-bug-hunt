@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You sort parent documents by a string field of their children, descending, with new ToParentBlockJoinSortField("s", STRING, reverse=true, null, SortField.STRING_LAST, parents, children) (or the 8-argument form with reverseChildren=true), and expect the search to return the parents with children that lack the field sorted as missing-last, because the javadoc lists STRING_LAST as a legal child missing value that 'participates in the min/max selection among siblings'. Instead, as soon as the search collects a parent that has one child with the field and another child without it, it throws IndexOutOfBoundsException from the doc-values terms dictionary (Lucene90DocValuesProducer$TermsDict.seekExact via ToParentDocValues$SortedDVs.lookupOrd), with -ea and -da. The cause is that the block-join wrapper reports 'a missing child, sorted last, won the max' as the ordinal Integer.MAX_VALUE, and the string comparator TermOrdValComparator treats every ordinal other than -1 as a real one and looks it up.
 
+The test shows that sorting block-join parents with `ToParentBlockJoinSortField` on a STRING field, `reverseChildren=true` (max child) and `childMissingValue=STRING_LAST` throws when a parent has one child with the field and one without (one block).
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: As soon as the search collects a parent that has one child with the field and another child without it, it throws IndexOutOfBoundsException from the doc-values terms dictionary (Lucene90DocValuesProducer$TermsDict.seekExact via ToParentDocValues$SortedDVs.lookupOrd), with -ea and -da.
+Expected the search to return the parent (1 hit); actual: `IndexOutOfBoundsException` from `lookupOrd(Integer.MAX_VALUE)` in `TermOrdValComparator.copy` (`expected 1 sorted hit, got java.lang.IndexOutOfBoundsException`), with `-ea` and `-da`.
 
 ## Files
 
@@ -19,8 +20,8 @@ You sort parent documents by a string field of their children, descending, with 
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,8 +38,8 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.search.join.TestBlockJoinSortStringLastReverse
 ```

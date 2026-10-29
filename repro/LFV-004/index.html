@@ -23,14 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You keep an old NRT reader open, roll back writers until a later writer reuses its segment name, and then merge that reader, for example with addIndexes(CodecReader...). You expect the merge to copy the old reader&#x27;s own stored fields and vectors. Instead its merge instance opens the file again by name and copies the newer segment&#x27;s data, silently (CheckIndex on the target is clean) or, for compound files of another layout, with a loud exception.</p>
+<p>The test shows that addIndexes(CodecReader) of a stale NRT reader on MMapDirectory with ADVISE_BY_CONTEXT copies the stored fields of a later segment that reused the name _0, because the merge instance re-opens the file by name.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The target&#x27;s copy has R&#x27;s own document: <code>old</code> and its 4096 letters, as on 10.5.2.</li><li><b>Actual:</b> The copy has writer 3&#x27;s document, <code>new</code> and its letters; no exception, <code>CheckIndex</code> on the target is clean, and R still reads <code>old</code>.</li></ul>
+<p>Expected: the copy has the reader&#x27;s own id &quot;old&quot;. Actual: org.junit.ComparisonFailure: expected:&lt;[old]&gt; but was:&lt;[new]&gt; (main 645d4fe, -ea and -da). 10.5.2 passes.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/index/TestNRTReaderCleanup.java"><code>src/org/apache/lucene/index/TestNRTReaderCleanup.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/index/TestMergeInstanceReopenByName.java"><code>src/org/apache/lucene/index/TestMergeInstanceReopenByName.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.</li>
-<li>Recorded outcome of run 1 on main a9779ef3c193: 7 test(s) run, 4 failed (testAddIndexesCopiesTheCompoundFileOfAReaderWhoseSegmentNameIsReused, testAddIndexesCopiesTheStoredFieldsOfAReaderWhoseSegmentNameIsReused, testAddIndexesCopiesTheVectorsOfAReaderWhoseSegmentNameIsReused, testMinimalAdviseByContext).</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -46,7 +46,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.index.TestNRTReaderCleanup</code></pre>
+     execute --select-class org.apache.lucene.index.TestMergeInstanceReopenByName</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestNRTReaderCleanup.java"><code>TestNRTReaderCleanup.java</code></a></li><li><a href="VisualExample.java"><code>VisualExample.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

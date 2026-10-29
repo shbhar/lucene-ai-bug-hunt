@@ -10,19 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index blocks with two kinds of non-parent documents, for example P1 = [type:a s=y n=40, type:b s=x n=7, parent P1] and P2 = [type:a s=d n=10, parent P2], and sort the parents of a ToParentBlockJoinQuery with new ToParentBlockJoinSortField("s", STRING, false, parents, childFilter type:a), expecting 'P2=d P1=y', which is what Lucene 10.4.0 returns. Instead 10.5.0 and later return 'P1=null P2=d', sorting P1 as if it had a child without the field although every document in both blocks has it, and a LONG sort with childMissingValue=0 gives 'P1=0 P2=10' instead of 'P2=10 P1=40'. The cause is that ToParentDocValues decides whether some child lacks a value by comparing the number of childFilter documents that have a value with the number of all documents in the block, so any document outside childFilter, with or without the field, forces the missing value.
 
+The test shows that `ToParentBlockJoinSortField` (STRING, ascending, childFilter `type:a`) sorts parent P1 as if it had a child without a value only because its block also holds a `type:b` sibling outside childFilter, although every document has the sort field.
+
 ## Expected vs actual
 
-- Expected: `P2=d P1=y` (STRING ascending, as on 10.4.0) and `P2=10 P1=40` (LONG ascending, `childMissingValue=0`).
-- Actual: `P1=null P2=d` and `P1=0 P2=10`: P1 sorts as missing although no child lacks the field.
+Expected `P2=d P1=y` (MIN over the type:a children, as on 10.4.0); actual: `P1=null P2=d`, with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/search/join/TestBlockJoinSortChildFilterMissing.java](src/org/apache/lucene/search/join/TestBlockJoinSortChildFilterMissing.java) (JUnit test)
+- [src/org/apache/lucene/search/join/TestBlockJoinSortFilteredOutSibling.java](src/org/apache/lucene/search/join/TestBlockJoinSortFilteredOutSibling.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -39,19 +40,13 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.join.TestBlockJoinSortChildFilterMissing
+     execute --select-class org.apache.lucene.search.join.TestBlockJoinSortFilteredOutSibling
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestBlockJoinSortFilteredSibling.java](TestBlockJoinSortFilteredSibling.java)
-- [TestHistoryBlockJoinSortFilteredSibling.java](TestHistoryBlockJoinSortFilteredSibling.java)
-- [filter-relative-count.diff](filter-relative-count.diff)
 
 ## Feedback
 

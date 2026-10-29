@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build a facet range with an exclusive bound that is an infinity, for example new DoubleRange("&gt; +Inf", Double.POSITIVE_INFINITY, false, Double.POSITIVE_INFINITY, true), meaning 'value &gt; +Infinity', or the mirror [-Inf, -Inf) 'value &lt; -Infinity'. No double is greater than +Infinity, so you expect a range that matches nothing, rejected with IllegalArgumentException 'matches nothing' as the class does for other empty ranges and as LongRange and DimRange.fromLongs do for an exclusive Long.MAX_VALUE bound. Instead the constructor makes the bound inclusive with Math.nextUp (or Math.nextAfter / Math.nextDown for the max), which leaves an infinity unchanged, so the range becomes [+Inf, +Inf]: DoubleRangeFacetCounts counts and the drill-down query matches every +Infinity document, and the copies in rangeonrange.DoubleRange and DimRange.fromDoubles/fromFloats count the same documents.
 
+The test shows that `new DoubleRange("x", +Inf, false, +Inf, true)`, i.e. "value &gt; +Infinity", is accepted and matches +Infinity, because the exclusive min is made inclusive with `Math.nextUp(+Inf) == +Inf`.
+
 ## Expected vs actual
 
-- Expected: You expect a range that matches nothing, rejected with IllegalArgumentException 'matches nothing' as the class does for other empty ranges and as LongRange and DimRange.fromLongs do for an exclusive Long.MAX_VALUE bound.
-- Actual: The constructor makes the bound inclusive with Math.nextUp (or Math.nextAfter / Math.nextDown for the max), which leaves an infinity unchanged, so the range becomes [+Inf, +Inf]: DoubleRangeFacetCounts counts and the drill-down query matches every +Infinity document, and the copies in rangeonrange.DoubleRange and DimRange.fromDoubles/fromFloats count the same documents.
+Expected: IllegalArgumentException ("matches nothing") or `accept(+Inf) == false`; actual (-ea and -da): the range is built and `accept(+Inf)` returns true.
 
 ## Files
 
-- [src/org/apache/lucene/facet/range/TestDoubleRangeExclusiveInfinity.java](src/org/apache/lucene/facet/range/TestDoubleRangeExclusiveInfinity.java) (JUnit test)
+- [src/org/apache/lucene/facet/range/TestDoubleRangeExclusiveInfinityBound.java](src/org/apache/lucene/facet/range/TestDoubleRangeExclusiveInfinityBound.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -36,10 +37,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.facet.range.TestDoubleRangeExclusiveInfinity
+     execute --select-class org.apache.lucene.facet.range.TestDoubleRangeExclusiveInfinityBound
 ```
 
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.

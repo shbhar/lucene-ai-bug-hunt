@@ -23,12 +23,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index a valid polygon with holes, for example an L-shaped outer ring (0,0) (0,12) (4,12) (4,4) (12,4) (12,0) with three small triangular holes that touch the ring and each other only at single shared corners, which the Tessellator javadoc allows (&#x27;Holes may only touch at one vertex&#x27;), and you expect XYShape.createIndexableFields or LatLonShape.createIndexableFields to return its triangles, as 10.4.0 does. Instead, since #15739 (first released in 10.5.0), both calls throw IllegalArgumentException &#x27;Unable to Tessellate shape. Possible malformed shape detected.&#x27;, so the document cannot be indexed, although every proper subset of the holes tessellates. The cause is that #15739 changed the reflex-vertex branch of Tessellator.isLocallyInside from &#x27;&lt; 0&#x27; to &#x27;&lt;= 0&#x27;, which accepts a candidate exactly collinear with a neighbouring edge; reverting that comparison fixes this polygon but breaks the #15731 polygon #15739 was written for, so a correct fix has to be more selective.</p>
+<p>The test shows that <code>XYShape.createIndexableFields</code> rejects a valid polygon whose three holes touch the outer ring and each other only at single shared vertices (a regression from #15739; 10.4.0 accepts it).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> Both calls return the polygon&#x27;s triangles (13, total area 75.5, as on 10.4.0), and the control passes.</li><li><b>Actual:</b> Both throw <code>IllegalArgumentException: Unable to Tessellate shape. Possible malformed shape detected.</code>; the control passes (2 of 3 tests fail).</li></ul>
+<p>Expected the polygon to be tessellated; actual on main: <code>IllegalArgumentException: Unable to Tessellate shape. Possible malformed shape detected.</code> (from <code>Tessellator.earcutLinkedList</code> via <code>splitEarcut</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/document/TestTessellatorChainedTouchingHoles.java"><code>src/org/apache/lucene/document/TestTessellatorChainedTouchingHoles.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -46,5 +48,4 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.document.TestTessellatorChainedTouchingHoles</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestTessellatorChainedTouchingHoles.java"><code>TestTessellatorChainedTouchingHoles.java</code></a></li><li><a href="test-tessellator.diff"><code>test-tessellator.diff</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

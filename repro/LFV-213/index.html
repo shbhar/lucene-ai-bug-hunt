@@ -22,13 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You use TemporalMergePolicy and call IndexWriter.forceMergeDeletes while some time window holds exactly one segment whose share of deleted documents is above forceMergeDeletesPctAllowed (default 10%), for example in a single-segment index, or after forceMerge(1), which leaves one segment per window. You expect that segment to be rewritten without its deleted documents, as the policy&#x27;s setForceMergeDeletesPctAllowed javadoc and MergePolicy.findForcedDeletesMerges (&#x27;expunge all deletes&#x27;) describe and as TieredMergePolicy and LogMergePolicy do. Instead the policy skips every window with fewer than two eligible segments (and drops the one left over after full batches of maxThreshold), so the call schedules no merge and returns at once: a 10-document segment with 5 deletes still has maxDoc 10, and calling it again changes nothing.</p>
+<p>The test shows that <code>IndexWriter.forceMergeDeletes()</code> with a default <code>TemporalMergePolicy</code> does not expunge deletes from a segment that is the only eligible segment in its time window (here a one-segment index, 1 of 2 documents deleted, above the default 10% threshold).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect that segment to be rewritten without its deleted documents, as the policy&#x27;s setForceMergeDeletesPctAllowed javadoc and MergePolicy.findForcedDeletesMerges (&#x27;expunge all deletes&#x27;) describe and as TieredMergePolicy and LogMergePolicy do.</li><li><b>Actual:</b> The policy skips every window with fewer than two eligible segments (and drops the one left over after full batches of maxThreshold), so the call schedules no merge and returns at once: a 10-document segment with 5 deletes still has maxDoc 10, and calling it again changes nothing.</li></ul>
+<p>Expected: the segment is rewritten, so maxDoc is 1. Actual: no merge is scheduled and maxDoc stays 2 (<code>expected:&lt;1&gt; but was:&lt;2&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/index/TestTemporalMergePolicyForceMergeDeletes.java"><code>src/org/apache/lucene/index/TestTemporalMergePolicyForceMergeDeletes.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

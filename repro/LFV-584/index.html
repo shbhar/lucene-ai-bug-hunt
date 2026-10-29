@@ -18,18 +18,19 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>QueryBuilder drops every token boost (BoostAttribute) from a quoted phrase as soon as one of its words has a single-word synonym, so typed word|weight boosts and weighted-synonym weights are silently ignored there, while plain phrases, graph phrases and unquoted queries keep them</h1>
-<p class="facts small"><span>Bug LFV-584</span><span>Area: core / util QueryBuilder phrase building with token boosts (analyzeMultiPhrase; BoostAttribute from DelimitedBoostTokenFilter and weighted synonyms; reached through the classic, multi-field and simple query parsers)</span><span>Priority: medium</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
+<p class="facts small"><span>Bug LFV-584</span><span>Area: core / util QueryBuilder phrase building with token boosts (analyzeMultiPhrase; BoostAttribute from DelimitedBoostTokenFilter and weighted synonyms; reached through the classic, multi-field and simple query parsers)</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
 <p><a href="../../bugs/LFV-584.html">Bug page for LFV-584</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You give a phrase a token boost, for example &quot;fast|0.5 car&quot; through DelimitedBoostTokenFilter, or use weighted synonyms such as &#x27;cat, kitty|0.5&#x27;, and expect the quoted phrase to keep the boost the way QueryBuilder&#x27;s other paths do: &quot;fast|0.5 tiger&quot; becomes (body:&quot;fast tiger&quot;)^0.5, and a multi-word weighted synonym gives one boosted phrase per path. But as soon as one word of the phrase has a single-word synonym (&#x27;car, automobile&#x27;), QueryBuilder builds a MultiPhraseQuery in analyzeMultiPhrase, which never reads BoostAttribute: &quot;fast|0.5 car&quot; becomes the unboosted body:&quot;fast (automobile car)&quot; (score 0.2615 instead of 0.1308), and the quoted &quot;cat food&quot; scores &#x27;kitty food&#x27; the same as &#x27;cat food&#x27; (0.7130 both), although the unquoted query ranks it lower. The matching documents are unchanged; only scores and ranking are wrong, and there is no error.</p>
+<p>The test shows that <code>QueryBuilder.createPhraseQuery</code> drops the token boost of a phrase once one of its words has a single-word synonym: <code>&quot;fast|0.5 car&quot;</code> with the synonym car -&gt; automobile builds an unboosted <code>MultiPhraseQuery</code>, while <code>&quot;fast|0.5 tiger&quot;</code> gives <code>(body:&quot;fast tiger&quot;)^0.5</code>.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> <code>(field:&quot;fast (dogs dog)&quot;)^0.5</code>: the boost 0.5 on <code>fast</code> is kept, as in <code>(field:&quot;fast cats&quot;)^0.5</code>.</li><li><b>Actual:</b> <code>field:&quot;fast (dogs dog)&quot;</code> with no boost; with the stock filters <code>&quot;fast|0.5 car&quot;</code> scores 0.2615 instead of 0.1308.</li></ul>
+<p>Expected boost 0.5; actual 1.0 (<code>body:&quot;fast (automobile car)&quot; expected:&lt;0.5&gt; but was:&lt;1.0&gt;</code>), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/util/TestQueryBuilderMultiPhraseBoost.java"><code>src/org/apache/lucene/util/TestQueryBuilderMultiPhraseBoost.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src2/org/apache/lucene/util/TestQueryBuilderMultiPhraseBoost.java"><code>src2/org/apache/lucene/util/TestQueryBuilderMultiPhraseBoost.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -41,16 +42,11 @@ CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
-javac -d classes-src -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
-javac -d classes-src2 -cp &quot;$CP&quot; $(find src2 -name &#x27;*.java&#x27;)
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.util.TestQueryBuilderMultiPhraseBoost
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src2:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.util.TestQueryBuilderMultiPhraseBoost</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Files shown on the bug page</h2><ul><li><a href="TestQueryBuilderMultiPhraseBoosts.java"><code>TestQueryBuilderMultiPhraseBoosts.java</code></a></li><li><a href="TestDelimitedBoostPhraseQueries.java"><code>TestDelimitedBoostPhraseQueries.java</code></a></li><li><a href="TestQueryParserMultiPhraseBoost.java"><code>TestQueryParserMultiPhraseBoost.java</code></a></li><li><a href="TestQueryBuilderMultiPhraseBoost.java"><code>TestQueryBuilderMultiPhraseBoost.java</code></a></li><li><a href="TestPhraseTokenBoosts.java"><code>TestPhraseTokenBoosts.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

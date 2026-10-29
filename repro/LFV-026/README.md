@@ -8,20 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You parse the query string *&gt;a with the flexible StandardQueryParser. You expect a query or a QueryNodeException for bad syntax. Instead parse throws an unchecked ClassCastException.
 
+The test shows that the flexible `StandardQueryParser` parsing the open range `*>a` (field `*`) throws an unchecked `ClassCastException`.
+
 ## Expected vs actual
 
-- Expected: You expect a query or a QueryNodeException for bad syntax.
-- Actual: parse throws an unchecked ClassCastException.
+Expected: a Query or the documented `QueryNodeException`. Actual: `ClassCastException: MatchAllDocsQueryNode cannot be cast to FieldValuePairQueryNode` from `AbstractRangeQueryNode.getUpperBound`.
 
 ## Files
 
-- [src/TestStarFieldRangeCCE.java](src/TestStarFieldRangeCCE.java) (JUnit test)
+- [src/org/apache/lucene/queryparser/flexible/standard/TestStarFieldOpenRange.java](src/org/apache/lucene/queryparser/flexible/standard/TestStarFieldOpenRange.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
-- Recorded outcome of run 1 on main a9779ef3c193: 6 test(s) run, 2 failed (testAllStarFieldRangesHonourContract, testStarGreaterThanThrowsOnlyQueryNodeException).
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -31,7 +31,6 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
-CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
 CP=$CP:$LUCENE/lucene/facet/build/libs/lucene-facet-$V.jar
 CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
 CP=$CP:$LUCENE/lucene/queryparser/build/libs/lucene-queryparser-$V.jar
@@ -42,9 +41,9 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class TestStarFieldRangeCCE
+     execute --select-class org.apache.lucene.queryparser.flexible.standard.TestStarFieldOpenRange
 ```
 
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.

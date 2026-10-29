@@ -1,6 +1,6 @@
 # SpanWithinQuery's Weight#matches reports the contained (little) span's positions but the enclosing (big) span's offsets and sub-matches, so Matches-based highlighting (the default UnifiedHighlighter, MatchRegionRetriever) marks the enclosing terms and a field with offsets highlights differently from the same text indexed with positions only
 
-Bug LFV-266 · Area: queries / span queries Matches API (SpanWeight#matches takes offsets and sub-matches from ContainSpans#collect for SpanWithinQuery; seen through the UnifiedHighlighter and MatchRegionRetriever) · Priority: medium · Impact: silent wrong results · Novelty: new
+Bug LFV-266 · Area: queries / span queries Matches API (SpanWeight#matches takes offsets and sub-matches from ContainSpans#collect for SpanWithinQuery; seen through the UnifiedHighlighter and MatchRegionRetriever) · Priority: low · Impact: silent wrong results · Novelty: new
 
 Bug page: [../../bugs/LFV-266.html](../../bugs/LFV-266.html)
 
@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index 'ab ac bc' in a field with offsets and ask Weight#matches for SpanWithinQuery(big = SpanNear([ab, bc], slop 1, in order), little = ac); you expect one match, 'ac' at position 1 with offsets [3,5) and sub-matches only inside it, which is what the equivalent Intervals.containedBy(ac, ordered(ab, bc)) reports. Instead the match says positions [1,1] but offsets [0,8) and lists ab@0 and bc@2 as sub-matches, because the offsets and sub-matches come from Spans#collect, which for SpanWithinQuery also collects the enclosing span. So the default UnifiedHighlighter marks '&lt;b&gt;ab&lt;/b&gt; &lt;b&gt;ac&lt;/b&gt; &lt;b&gt;bc&lt;/b&gt;' instead of 'ab &lt;b&gt;ac&lt;/b&gt; bc', and MatchRegionRetriever returns [0,8) on a field with offsets but [3,5) on the same text indexed with positions only; hits and scores are unaffected.
 
+The test shows that Weight#matches of SpanWithinQuery(SpanNear([ab, bc], 1, ordered), ac) on "ab ac bc" reports the contained span's position (ac@1) but the enclosing span's offsets.
+
 ## Expected vs actual
 
-- Expected: Each match is `ac` only: position 1, offsets [3,5), one sub-match; the default UnifiedHighlighter gives `ab <b>ac</b> bc` on both fields.
-- Actual: Offsets [0,8) and sub-matches `ab`, `ac`, `bc`; the UnifiedHighlighter gives `<b>ab</b> <b>ac</b> <b>bc</b>`; MatchRegionRetriever gives [0,8) with offsets, [3,5) without.
+Expected startOffset 3 (the match is "ac", offsets [3,5)); actual 0, the start of the enclosing "ab" (`expected:<3> but was:<0>`).
 
 ## Files
 
@@ -21,8 +22,8 @@ You index 'ab ac bc' in a field with offsets and ask Weight#matches for SpanWith
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -45,12 +46,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestSpanWithinMatches.java](TestSpanWithinMatches.java)
-- [TestSpanWithinHighlighting.java](TestSpanWithinHighlighting.java)
-- [TestSpanWithinMatchesOffsets.java](TestSpanWithinMatchesOffsets.java)
 
 ## Feedback
 

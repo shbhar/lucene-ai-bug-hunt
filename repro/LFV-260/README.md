@@ -8,21 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You run Lucene's NRT segment replication and call commit on a replica while the primary keeps publishing NRT points, and during the commit's fsync the replica installs a newer point (version 5, documents [d1, d2]). You expect the commit's VERSION_KEY to name the version whose content it holds (version 3, [d1]), or at worst an older one, because the module uses that value as the place to resume replaying operations and PrimaryNode.commit accepts only a lagging value ('replaying more ops than necessary'). Instead commit writes the SegmentInfos it captured before the fsync (version 3) but reads VERSION_KEY from the searcher that is current after it (5), so a primary started on that commit reports getLastCommitVersion=5 while it holds only d1, and a replay from version 5 skips d2.
 
+The test shows that `ReplicaNode.commit()` stores in `VERSION_KEY` the version of a newer NRT point installed while the commit fsyncs, not the version of the SegmentInfos it commits.
+
 ## Expected vs actual
 
-- Expected: You expect the commit's VERSION_KEY to name the version whose content it holds (version 3, [d1]), or at worst an older one, because the module uses that value as the place to resume replaying operations and PrimaryNode.commit accepts only a lagging value ('replaying more ops than necessary').
-- Actual: commit writes the SegmentInfos it captured before the fsync (version 3) but reads VERSION_KEY from the searcher that is current after it (5), so a primary started on that commit reports getLastCommitVersion=5 while it holds only d1, and a replay from version 5 skips d2.
+Expected `VERSION_KEY` = the committed SegmentInfos version 3; actual: 5 (`expected:<3> but was:<5>`), with `-ea` and `-da`.
 
 ## Files
 
 - [src/org/apache/lucene/replicator/nrt/TestReplicaCommitVersionKey.java](src/org/apache/lucene/replicator/nrt/TestReplicaCommitVersionKey.java) (JUnit test)
-- [src/org/apache/lucene/replicator/nrt/InProcNodes.java](src/org/apache/lucene/replicator/nrt/InProcNodes.java)
-- [src2/org/apache/lucene/replicator/nrt/InProcNodes.java](src2/org/apache/lucene/replicator/nrt/InProcNodes.java)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,12 +36,11 @@ CP=$CP:$LUCENE/lucene/replicator/build/libs/lucene-replicator-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
-javac -d classes-src -cp "$CP" $(find src -name '*.java')
-javac -d classes-src2 -cp "$CP" $(find src2 -name '*.java')
+javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions off (production-like), seed DEADBEEF
-java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes-src:$CP" org.junit.platform.console.ConsoleLauncher \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.replicator.nrt.TestReplicaCommitVersionKey
 ```
 

@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You write a one-dimensional binary key into a scratch byte, build BinaryPoint.newExactQuery(field, scratch), write the next key into the same array, build a second query and OR the two; you expect each query to match the key it was built for, as BinaryPoint's two-dimension range queries and its one-value newSetQuery do. Instead both queries now mean the second key (they compare equal and print the same bounds) and the OR finds 1 document instead of 2; likewise a one-dimensional newRangeQuery whose lo/hi arrays the caller overwrites afterwards matches 0 documents instead of the range it was built for. BinaryPoint.pack returns new BytesRef(point[0]), a wrapper over the caller's array, when there is one dimension, and PointRangeQuery stores that array as its bounds, so matching, equals, hashCode and toString read whatever the caller's array holds at the time.
 
+The test shows that `BinaryPoint.newExactQuery` on a one-dimensional field keeps the caller's `byte[]` as its bounds, so writing into that array after building the query changes what the query matches.
+
 ## Expected vs actual
 
-- Expected: The OR of three exact queries matches 3 documents, the range built for keys [1, 2] matches 2, and the first query still prints key 1.
-- Actual: The OR matches 1 (`expected:<3> but was:<1>`), the range matches 1 (`expected:<2> but was:<1>`), and the query prints key 2.
+Expected 1 hit (the query was built for value {1}, which the only document holds); actual 0 after the caller writes 2 into the array (`expected:<1> but was:<0>`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/search/TestBinaryPointQueryArrayAliasing.java](src/org/apache/lucene/search/TestBinaryPointQueryArrayAliasing.java) (JUnit test)
+- [src/org/apache/lucene/document/TestBinaryPointExactQueryOwnsValue.java](src/org/apache/lucene/document/TestBinaryPointExactQueryOwnsValue.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -39,18 +41,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestBinaryPointQueryArrayAliasing
+     execute --select-class org.apache.lucene.document.TestBinaryPointExactQueryOwnsValue
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestBinaryPointQueryArrayOwnership.java](TestBinaryPointQueryArrayOwnership.java)
-- [TestBinaryPointQueryArrayAliasing.java](TestBinaryPointQueryArrayAliasing.java)
-- [TestBinaryPointQueryOwnershipV1.java](TestBinaryPointQueryOwnershipV1.java)
-- [TestBinaryPointOneDimOwnership.java](TestBinaryPointOneDimOwnership.java)
-- [TestAudit4BinaryPointOwnership.java](TestAudit4BinaryPointOwnership.java)
 
 ## Feedback
 

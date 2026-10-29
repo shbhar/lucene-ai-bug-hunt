@@ -1,6 +1,6 @@
 # Surround query parser keeps the escaping backslashes inside a quoted term, so "a\"b" searches for a\"b instead of a"b and "c:\\temp dir" searches for c:\\temp dir instead of c:\temp dir
 
-Bug LFV-687 · Area: queryparser / surround (QueryParser.jj QUOTED token and SimpleTerm production, SrndTermQuery) · Priority: medium · Impact: silent wrong results · Novelty: new
+Bug LFV-687 · Area: queryparser / surround (QueryParser.jj QUOTED token and SimpleTerm production, SrndTermQuery) · Priority: low · Impact: silent wrong results · Novelty: new
 
 Bug page: [../../bugs/LFV-687.html](../../bugs/LFV-687.html)
 
@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You parse a surround query with a quoted term that escapes a double quote or a backslash, such as "a\"b" or "c:\\temp dir", and run it on a field that holds the untokenized value a"b or c:\temp dir. You expect a match, because the grammar comment on the QUOTED token says 'escape quoted quote or backslash by backslash' and the lexer accepts a backslash inside quotes only as such an escape. Instead the parser strips only the outer quotes, so SrndTermQuery searches for a\"b and c:\\temp dir with the backslashes kept: 0 hits, or a silent match on a different document that holds that escaped text, and no surround syntax matches those terms exactly.
 
+The test shows that the surround query parser keeps the escaping backslash inside a quoted term, so "a\"b" searches for a\"b instead of a"b.
+
 ## Expected vs actual
 
-- Expected: `"a\"b"` matches doc quote (`a"b`) and `"c:\\temp dir"` matches doc path (`c:\temp dir`).
-- Actual: They match doc raw-quote (`a\"b`) and doc raw-path (`c:\\temp dir`) instead; without those documents, 0 hits.
+Expected: 1 hit on the one document whose StringField holds a"b. Actual (-ea and -da): 0 hits.
 
 ## Files
 
@@ -21,7 +22,8 @@ You parse a surround query with a quoted term that escapes a double quote or a b
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -49,13 +51,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestSurroundQuotedTermEscapes.java](TestSurroundQuotedTermEscapes.java)
-- [TestSrndQuotedTermEscapes.java](TestSrndQuotedTermEscapes.java)
-- [TestSurroundQuotedEscapesV1.java](TestSurroundQuotedEscapesV1.java)
-- [TestSrndQuotedEscapesV3.java](TestSrndQuotedEscapesV3.java)
 
 ## Feedback
 

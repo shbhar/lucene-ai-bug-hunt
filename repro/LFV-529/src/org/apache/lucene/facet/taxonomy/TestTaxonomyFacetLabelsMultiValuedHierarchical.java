@@ -25,70 +25,36 @@ import org.apache.lucene.facet.taxonomy.directory.DirectoryTaxonomyReader;
 import org.apache.lucene.facet.taxonomy.directory.DirectoryTaxonomyWriter;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.LuceneTestCase;
-import org.apache.lucene.util.IOUtils;
 
-/**
- * TaxonomyFacetLabels is the "utility class to easily retrieve previously indexed facet labels,
- * allowing you to skip also adding stored fields for these values". For the same document it
- * returns only the indexed label when the dimension is single-valued, but adds the label's
- * ancestors (and, with requireDimCount, the bare dimension) when the dimension is configured
- * multi-valued: FacetsConfig indexes those ordinals internally for counting.
- */
 public class TestTaxonomyFacetLabelsMultiValuedHierarchical extends LuceneTestCase {
 
-  private static List<String> labelsOfOnlyDoc(FacetsConfig config, String dimFilter)
-      throws Exception {
-    Directory dir = newDirectory();
-    Directory taxoDir = newDirectory();
-    IndexWriter w = new IndexWriter(dir, newIndexWriterConfig());
-    DirectoryTaxonomyWriter tw = new DirectoryTaxonomyWriter(taxoDir);
+  public void testLabelsOfMultiValuedHierarchicalDim() throws Exception {
+    FacetsConfig config = new FacetsConfig();
+    config.setHierarchical("Date", true);
+    config.setMultiValued("Date", true);
     Document doc = new Document();
-    doc.add(new FacetField("Author", "Bob"));
-    doc.add(new FacetField("Publish Date", "2010", "10", "15"));
-    w.addDocument(config.build(tw, doc));
-    w.forceMerge(1);
-    DirectoryReader r = DirectoryReader.open(w);
-    TaxonomyReader tr = new DirectoryTaxonomyReader(tw);
-    List<String> labels = new ArrayList<>();
-    TaxonomyFacetLabels taxoLabels =
-        new TaxonomyFacetLabels(tr, FacetsConfig.DEFAULT_INDEX_FIELD_NAME);
-    LeafReaderContext ctx = r.leaves().get(0);
-    TaxonomyFacetLabels.FacetLabelReader reader = taxoLabels.getFacetLabelReader(ctx);
-    FacetLabel label;
-    while ((label = dimFilter == null ? reader.nextFacetLabel(0) : reader.nextFacetLabel(0, dimFilter))
-        != null) {
-      labels.add(String.join("/", java.util.Arrays.copyOf(label.components, label.length)));
+    doc.add(new FacetField("Date", "2010", "10"));
+    try (Directory dir = new ByteBuffersDirectory();
+        Directory taxoDir = new ByteBuffersDirectory();
+        IndexWriter w = new IndexWriter(dir, new IndexWriterConfig());
+        DirectoryTaxonomyWriter tw = new DirectoryTaxonomyWriter(taxoDir)) {
+      w.addDocument(config.build(tw, doc));
+      try (DirectoryReader r = DirectoryReader.open(w);
+          TaxonomyReader tr = new DirectoryTaxonomyReader(tw)) {
+        TaxonomyFacetLabels.FacetLabelReader labels =
+            new TaxonomyFacetLabels(tr, FacetsConfig.DEFAULT_INDEX_FIELD_NAME)
+                .getFacetLabelReader(r.leaves().get(0));
+        List<FacetLabel> actual = new ArrayList<>();
+        for (FacetLabel l = labels.nextFacetLabel(0); l != null; l = labels.nextFacetLabel(0)) {
+          actual.add(l);
+        }
+        // expected only the added label Date/2010/10, actual also returns its ancestor Date/2010
+        assertEquals(List.of(new FacetLabel("Date", "2010", "10")), actual);
+      }
     }
-    java.util.Collections.sort(labels);
-    IOUtils.close(r, tr, w, tw, dir, taxoDir);
-    return labels;
-  }
-
-  public void testSingleValuedHierarchicalControl() throws Exception {
-    FacetsConfig config = new FacetsConfig();
-    config.setHierarchical("Publish Date", true);
-    assertEquals(List.of("Author/Bob", "Publish Date/2010/10/15"), labelsOfOnlyDoc(config, null));
-  }
-
-  public void testMultiValuedHierarchical() throws Exception {
-    FacetsConfig config = new FacetsConfig();
-    config.setHierarchical("Publish Date", true);
-    config.setMultiValued("Publish Date", true);
-    // same document, same indexed labels; main also returns Publish Date/2010 and
-    // Publish Date/2010/10, which were never added to the document
-    assertEquals(List.of("Author/Bob", "Publish Date/2010/10/15"), labelsOfOnlyDoc(config, null));
-    assertEquals(List.of("Publish Date/2010/10/15"), labelsOfOnlyDoc(config, "Publish Date"));
-  }
-
-  public void testMultiValuedRequireDimCount() throws Exception {
-    FacetsConfig config = new FacetsConfig();
-    config.setHierarchical("Publish Date", true);
-    config.setMultiValued("Author", true);
-    config.setRequireDimCount("Author", true);
-    // main also returns the bare dimension "Author"
-    assertEquals(List.of("Author/Bob", "Publish Date/2010/10/15"), labelsOfOnlyDoc(config, null));
   }
 }

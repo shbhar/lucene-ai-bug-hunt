@@ -10,19 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index a dateline-crossing rectangle with BBoxStrategy in the default geo context and score it with makeOverlapRatioValueSource and a query rectangle that also crosses the dateline, and you expect the documented score intersectionArea/queryArea*p + intersectionArea/targetArea*(1-p), where intersectionArea is 'the area of the intersection between the query and target envelopes'. When the two boxes wrap far enough round the globe that they overlap twice, once across the dateline and once on the far side (query rect(10,-170,-10,10) and document rect(170,20,-10,10) share 170..-170 across the dateline, 20 degrees, and 10..20, 10 degrees), the score counts only the piece across the dateline: 0.10317460317460317 instead of 0.15476190476190477 at p = 0.5. The both-cross branch computes the width as right - left + 360, which is only that piece, while the branch for one crossing box already adds up both pieces.
 
+The test shows that `BBoxStrategy.makeOverlapRatioValueSource` counts only the dateline piece when two dateline-crossing boxes overlap twice (query `rect(10,-170,-10,10)`, document `rect(170,20,-10,10)`, true overlap 20 + 10 = 30 degrees).
+
 ## Expected vs actual
 
-- Expected: The two boxes overlap in 30° x 20°, so the score is 0.15476190476190477, and document A sorts above document B (0.1389).
-- Actual: The score is 0.10317460317460317 (width 20°), and B sorts above A; the same pair moved 30° west scores 0.15476190476190477.
+Expected: the documented score 600/3600*0.5 + 600/4200*0.5 = 0.15476190476190477; actual (-ea and -da): 0.10317460317460317 (width 20, from `right - left + 360`, BBoxOverlapRatioValueSource.java:181).
 
 ## Files
 
-- [src/org/apache/lucene/spatial/bbox/TestOverlapRatioTwoPieceIntersection.java](src/org/apache/lucene/spatial/bbox/TestOverlapRatioTwoPieceIntersection.java) (JUnit test)
+- [src/org/apache/lucene/spatial/bbox/TestBBoxOverlapRatioBothCrossDateline.java](src/org/apache/lucene/spatial/bbox/TestBBoxOverlapRatioBothCrossDateline.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -42,19 +43,12 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.spatial.bbox.TestOverlapRatioTwoPieceIntersection
+     execute --select-class org.apache.lucene.spatial.bbox.TestBBoxOverlapRatioBothCrossDateline
 ```
 
 The module(s) spatial-extras also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestBBoxOverlapRatioBothCrossDateline.java](TestBBoxOverlapRatioBothCrossDateline.java)
-- [TestOverlapRatioRotationAudit.java](TestOverlapRatioRotationAudit.java)
-- [TestOverlapRatioBothCrossVerifyV1.java](TestOverlapRatioBothCrossVerifyV1.java)
-- [TestOverlapRatioTwoPieceIntersection.java](TestOverlapRatioTwoPieceIntersection.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/spatial-extras/](../../models/spatial-extras/)
 

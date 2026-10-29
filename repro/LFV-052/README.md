@@ -10,23 +10,22 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You load an FST that was written before 9.0 with BYTE2 labels and save it again with Lucene 9.0 or later. You expect the re-saved FST to work like the original. Instead save writes the header version VERSION_CURRENT, so readers decode the labels with the wrong byte order and the lookups fail (0 of 9 keys found in the repro); FSTs built with setVersion(VERSION_90) are also labelled 9 and rejected by 9.8.
 
+The test shows that an FST saved by Lucene 8.11.4 (FST version 7, BYTE2 labels, one key "a" -&gt; 1) loads correctly on main, but after `FST#save` and reloading, the copy no longer finds "a": `FSTMetadata#save` writes the header version `VERSION_CURRENT`, so the copied big-endian BYTE2 labels are read little-endian.
+
 ## Expected vs actual
 
-- Expected: The re-saved copy finds 9 of 9 keys, and a `VERSION_90` FST still reports version 8 after save and reload.
-- Actual: The copy finds 0 of 9 keys (`getVersion` = 9, no exception), and the `VERSION_90` FST reports 9.
+Expected `Util.get(copy, "a") == 1` as in the loaded FST; actual `null` (`expected:<1> but was:<null>`).
 
 ## Files
 
-- [src/TestV90HeaderVerify.java](src/TestV90HeaderVerify.java) (JUnit test)
-- [src/TestResaveOldByte2Fst.java](src/TestResaveOldByte2Fst.java) (JUnit test)
+- [src/org/apache/lucene/util/fst/TestResavePre90Byte2Fst.java](src/org/apache/lucene/util/fst/TestResavePre90Byte2Fst.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
-- This repro reads private Lucene state by reflection (setAccessible), so it depends on internals that may change.
 
 ```bash
 # Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -40,20 +39,12 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class TestV90HeaderVerify \
-       --select-class TestResaveOldByte2Fst
+     execute --select-class org.apache.lucene.util.fst.TestResavePre90Byte2Fst
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestFSTMetadataSaveVersion.java](TestFSTMetadataSaveVersion.java)
-- [WriteV7Byte2Fst.java](WriteV7Byte2Fst.java)
-- [ResavePre90Byte2Fst.java](ResavePre90Byte2Fst.java)
-- [fix-save-own-version.diff](fix-save-own-version.diff)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/study-fst-verification/](../../models/study-fst-verification/)
 

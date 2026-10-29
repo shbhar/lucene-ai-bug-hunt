@@ -8,18 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index two documents, 'a|5 b|5' and 'a|5 b|5 c|5 d|5', into a field with IndexOptions.DOCS_AND_CUSTOM_FREQS (DelimitedTermFrequencyTokenFilter, a TextField type with norms). Lucene stores their lengths as term counts, 2 and 4. FieldInfo#isTermDocField says such frequencies count as 1 'for statistical and scoring purposes', and FieldStats says sumTotalTermFreq 'is also the sum of each document's field length'. So you expect sumTotalTermFreq to be 6 and BM25's average length to be 3. Instead, sumTotalTermFreq and totalTermFreq sum the custom values (30), and BM25 explains dl=2.0 against avgdl=15.0. Each document's length is compared with an average inflated by the mean custom value, which quietly weakens length normalisation.
 
+The test shows that on a `DOCS_AND_CUSTOM_FREQS` field the field length counts terms while `sumTotalTermFreq` sums the custom frequencies, so `FieldStats#sumTotalTermFreq` is not "the sum of each document's field length" as its javadoc says.
+
 ## Expected vs actual
 
-- Expected: You expect sumTotalTermFreq to be 6 and BM25's average length to be 3.
-- Actual: sumTotalTermFreq and totalTermFreq sum the custom values (30), and BM25 explains dl=2.0 against avgdl=15.0.
+Expected `sumTotalTermFreq` 1 (one document whose field length is 1: one term `a` with custom frequency 5); actual 5 (`sumTotalTermFreq expected:<1> but was:<5>`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/search/TestTermDocFieldLengthVsStats.java](src/org/apache/lucene/search/TestTermDocFieldLengthVsStats.java) (JUnit test)
+- [src/org/apache/lucene/search/TestTermDocFieldStatsVsFieldLength.java](src/org/apache/lucene/search/TestTermDocFieldStatsVsFieldLength.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -29,7 +31,6 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
-CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
@@ -38,7 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestTermDocFieldLengthVsStats
+     execute --select-class org.apache.lucene.search.TestTermDocFieldStatsVsFieldLength
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

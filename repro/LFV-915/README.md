@@ -10,18 +10,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You register a query such as wi OR "wi fi" (or the prefix query wi*, or guinea OR cavy with a 'guinea pig =&gt; cavy' synonym rule) in a Monitor whose analyzer stacks tokens at one position, match a document with HighlightsMatch.MATCHER, and expect both hits that Weight#matches reports: for 'wi fi' with ShingleFilter(2,2) and unigrams these are 0(0)-&gt;0(2) for 'wi' and 0(0)-&gt;0(5) for 'wi fi'. Instead HighlightsMatch keeps only one of them and getHitCount is 1, because Hit.compareTo compares start and end positions only and the hits are kept in TreeSets, which treat compareTo == 0 as a duplicate, although Hit's own equals (a record over all four fields) says the two hits differ. Which hit survives depends on clause order, and the same root cause makes getHits(field).contains(...) ignore offsets and lets HighlightsMatch.equals return true for two objects whose hashCodes differ.
 
+The test shows that Monitor's `HighlightsMatch` drops one of two hits at the same positions with different offsets, because `HighlightsMatch.Hit.compareTo` ignores offsets and the hits are kept in a `TreeSet`.
+
 ## Expected vs actual
 
-- Expected: Both hits at the stacked position: `[0(0)->0(2), 0(0)->0(5)]` for `wi fi` and `[0(0)->0(6), 0(0)->0(10)]` for `guinea pig`, `getHitCount` 2; `contains` and `equals` respect offsets.
-- Actual: One hit each, `[0(0)->0(2)]` and `[0(0)->0(10)]`, `getHitCount` 1; `contains` ignores offsets, and two different matches are equal with hash codes 4564 and 6480.
+Expected 2 hits for `f:wi OR f:"wi fi"` (two TermQuery clauses, the second on the shingle term) on "wi fi" with `ShingleFilter(2,2)` (unigram 0(0)-&gt;0(2) and shingle 0(0)-&gt;0(5)); actual: `getHitCount()` is 1 (`expected:<2> but was:<1>`), with `-ea` and `-da`.
 
 ## Files
 
-- [src/org/apache/lucene/monitor/TestHighlightsMatchHitOrdering.java](src/org/apache/lucene/monitor/TestHighlightsMatchHitOrdering.java) (JUnit test)
+- [src/org/apache/lucene/monitor/TestHighlightsMatchStackedHits.java](src/org/apache/lucene/monitor/TestHighlightsMatchStackedHits.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -42,18 +44,10 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.monitor.TestHighlightsMatchHitOrdering
+     execute --select-class org.apache.lucene.monitor.TestHighlightsMatchStackedHits
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestHighlightsMatchStackedTokens.java](TestHighlightsMatchStackedTokens.java)
-- [TestHighlightsMatchHitOrdering.java](TestHighlightsMatchHitOrdering.java)
-- [TestHitOffsetsV1.java](TestHitOffsetsV1.java)
-- [TestHitIdentity.java](TestHitIdentity.java)
-- [TestHitCompareToHistory.java](TestHitCompareToHistory.java)
 
 ## Feedback
 

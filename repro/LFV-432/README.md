@@ -8,10 +8,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You count facets with RandomSamplingFacetsCollector on a multi-segment index for a query with many more hits than sampleSize, and expect systematic sampling: one random hit out of every run of binSize consecutive hits, with a run that is cut by a segment boundary continued in the next segment, so every hit has about a 1/binSize chance to be sampled. Instead, when the hit picked for such a run is the first hit of the next segment, createSample leaves its carry-over state unset (it tests only randomIndex &gt; counter and randomIndex &lt; counter), so that run contributes no sample, or one at a stale offset, and the first hit of a segment that starts mid-bin is never sampled. Nothing fails; the sample and the amortized counts are just smaller than the reported sampling rate implies (4 hits in segments [1 | 3], sampleSize 2: half the seeds sample 1 hit instead of 2).
 
+The test shows that `RandomSamplingFacetsCollector` never samples the first hit of a segment that starts mid-bin: 4 hits in segments [1 | 3], sampleSize 2 (bins {0,1} {2,3}), sampler seed 1 picks hit 1 for bin {0,1}, and that bin gets no sample.
+
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: When the hit picked for such a run is the first hit of the next segment, createSample leaves its carry-over state unset (it tests only randomIndex &gt; counter and randomIndex &lt; counter), so that run contributes no sample, or one at a stale offset, and the first hit of a segment that starts mid-bin is never sampled.
+Expected 2 sampled hits (one per bin). Actual: 1, because `createSample` handles only `randomIndex > counter` and `< counter` at the end of a segment, not `==`.
 
 ## Files
 
@@ -19,8 +20,8 @@ You count facets with RandomSamplingFacetsCollector on a multi-segment index for
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

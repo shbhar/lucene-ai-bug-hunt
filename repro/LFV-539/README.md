@@ -10,10 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You index documents with a FacetField in a dimension declared hierarchical (FacetsConfig.setHierarchical("d", true)), for example d/a/x with weight 7 and d/a/y with weight 2, and sum a per-document DoubleValuesSource per label with TaxonomyFacetFloatAssociations; you expect label a under d to report value 9 and count 2, the 'Number of occurrences for this label' that FastTaxonomyFacetCounts reports for the same hits. Instead getTopChildren and getAllChildren report a (9.0) with count 4, because FloatTaxonomyFacets#updateValueFromRollup first calls super.updateValueFromRollup, which rolls up the counts of the whole sub-tree, and then its own rollup(childOrdinal), which calls updateValueFromRollup again for every descendant, so the sub-tree counts are added once more at each ancestor level. Values and leaf counts are right; only LabelAndValue.count of labels with descendants is inflated, and the deeper the tree, the larger the overcount.
 
+The test shows that `TaxonomyFacetFloatAssociations` with a `DoubleValuesSource` on a hierarchical dimension rolls the counts up twice: one document at d/a/x.
+
 ## Expected vs actual
 
-- Expected: `a (9.0)` with count 2 from `getTopChildren` and `getAllChildren`, as `FastTaxonomyFacetCounts` reports; counts 1, 1, 1 along `d/a/b/x`.
-- Actual: `a (9.0)` with count 4 from both methods (`[4, 4]`), and counts `[3, 3, 1]` along `d/a/b/x`; every value is right.
+Expected `LabelAndValue.count` of d/a = 1 (one document under it). Actual: 2, because `FloatTaxonomyFacets#updateValueFromRollup` calls `super` (a full count roll-up) and then its own `rollup`, which rolls the sub-tree counts up again.
 
 ## Files
 
@@ -21,7 +22,8 @@ You index documents with a FacetField in a dimension declared hierarchical (Face
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -46,14 +48,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
-
-## Files shown on the bug page
-
-- [TestFloatAssociationRollupCounts.java](TestFloatAssociationRollupCounts.java)
-- [TestFloatValueSourceRollupCounts.java](TestFloatValueSourceRollupCounts.java)
-- [TestValueSourceAssociationCounts.java](TestValueSourceAssociationCounts.java)
-- [TestRollupCountSemantics.java](TestRollupCountSemantics.java)
-- [TestSumValueSourceRollupCounts9x.java](TestSumValueSourceRollupCounts9x.java)
 
 ## Feedback
 

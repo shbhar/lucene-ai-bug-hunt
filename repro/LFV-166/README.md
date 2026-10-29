@@ -8,19 +8,20 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build a UniformSplit (or SharedTermsUniformSplit) postings format with targetNumBlockLines=4 and deltaNumLines=2, which the constructor accepts because its documented rule is only 0 &lt;= delta &lt; target, and commit a field with 3 terms. You expect the commit to succeed and the blocks to hold target +- delta lines. Instead the flush throws (AssertionError 'blockLines size: 3' with assertions on, IndexOutOfBoundsException 'Index -1 out of bounds for length 3' with them off) and the IndexWriter closes, because the code that splits a field's last block assumes its look-back window of 2*delta lines starts at line 1 or later, which is false whenever 3*delta &gt; target and the last block has between target-delta+1 and 2*delta lines.
 
+The test shows that UniformSplitPostingsFormat(4, 2), which its constructor accepts (documented rule 0 &lt;= deltaNumLines &lt; targetNumBlockLines), cannot commit a field with 3 terms: the last-block split in BlockWriter starts its window at 3 - 2*2 = -1.
+
 ## Expected vs actual
 
-- Expected: You expect the commit to succeed and the blocks to hold target +- delta lines.
-- Actual: The flush throws (AssertionError 'blockLines size: 3' with assertions on, IndexOutOfBoundsException 'Index -1 out of bounds for length 3' with them off) and the IndexWriter closes, because the code that splits a field's last block assumes its look-back window of 2*delta lines starts at line 1 or later, which is false whenever 3*delta &gt; target and the last block has between target-delta+1 and 2*delta lines.
+Expected the commit to succeed; actual: it throws (`AssertionError: blockLines size: 3` with `-ea`, `IndexOutOfBoundsException: Index -1 out of bounds for length 3` with `-da`), wrapped by the test as `commit with UniformSplitPostingsFormat(4, 2) threw...`.
 
 ## Files
 
-- [src/org/apache/lucene/codecs/uniformsplit/TestUniformSplitValidSettingsFlush.java](src/org/apache/lucene/codecs/uniformsplit/TestUniformSplitValidSettingsFlush.java) (JUnit test)
+- [src/org/apache/lucene/codecs/uniformsplit/TestUniformSplitLargeDeltaFlush.java](src/org/apache/lucene/codecs/uniformsplit/TestUniformSplitLargeDeltaFlush.java) (JUnit test)
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,7 +39,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.codecs.uniformsplit.TestUniformSplitValidSettingsFlush
+     execute --select-class org.apache.lucene.codecs.uniformsplit.TestUniformSplitLargeDeltaFlush
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
