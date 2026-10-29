@@ -6,7 +6,7 @@ Browse the table: open `index.html` (published with GitHub Pages).
 
 ## What is in this snapshot
 
-- 1012 registered bugs: 755 new, for which the automated prior-report search found no earlier report (a keyword search; private reports are not visible), and 257 already known upstream (others reported or discussed the same bug; tracked, but not counted as new). Where the search found only a partial overlap, the bug's novelty note names the closest item; the owner decides whether it counts as known.
+- 1012 registered bugs: 755 new, for which the automated prior-report search found no earlier report (a keyword search; private reports are not visible), and 257 already known upstream (others reported or discussed the same bug; tracked, but not counted as new).
 - 2 of them are withheld pending security review: they appear in the table and in every count, but only with their id, module, priority tier, novelty (new or known upstream) and the line "Details withheld pending security review".
 - Priority tiers: 9 high, 217 medium, 779 low, 7 not yet ranked.
 - 363 public bug pages (`bugs/`), 1010 repro directories (`repro/`) and 132 units of formal models and scripts (`models/`).
