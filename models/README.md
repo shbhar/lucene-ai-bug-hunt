@@ -23,7 +23,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [count-stats-modules](count-stats-modules/) | Python | LFV-428 |
 | [count-totalhits](count-totalhits/) | Alloy | LFV-086 |
 | [datainput-impls-strings](datainput-impls-strings/) | Python | LFV-107 |
-| [directio-nrtcaching-dirs](directio-nrtcaching-dirs/) | Python | LFV-226, LFV-224 |
+| [directio-nrtcaching-dirs](directio-nrtcaching-dirs/) | Python | LFV-226 |
 | [dismax-synonym-combined](dismax-synonym-combined/) | Python | LFV-272 |
 | [distance-feature-pruning](distance-feature-pruning/) | SMT-LIB (Z3/cvc5), Python | LFV-379 |
 | [docandscorequery-public-factory-count-and-iterator-contracts](docandscorequery-public-factory-count-and-iterator-contracts/) | Python | LFV-955 |
@@ -48,7 +48,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [hardlink-copy-unwrap-bypasses-intermediate-directory-wrappers](hardlink-copy-unwrap-bypasses-intermediate-directory-wrappers/) | TLA+/TLC | LFV-912 |
 | [hnsw-10x-merge-reuse-maxconn-mismatch](hnsw-10x-merge-reuse-maxconn-mismatch/) | Python | LFV-811 |
 | [hnsw-merge-reuse](hnsw-merge-reuse/) | Python | LFV-160 |
-| [hnsw-parallel-repair-tla](hnsw-parallel-repair-tla/) | TLA+/TLC, Python | LFV-458, LFV-466 |
+| [hnsw-parallel-repair-tla](hnsw-parallel-repair-tla/) | Python | LFV-458 |
 | [htmlstrip-tag-open-name-class-vs-html-tokenizer-reference](htmlstrip-tag-open-name-class-vs-html-tokenizer-reference/) | Python | LFV-878 |
 | [hunspell](hunspell/) | Python | LFV-373, LFV-377, LFV-374 |
 | [hunspell-set-encoding-names-vs-c-hunspell-reference](hunspell-set-encoding-names-vs-c-hunspell-reference/) | Python | LFV-933, LFV-928 |
@@ -100,12 +100,12 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [spatial3d-geometry](spatial3d-geometry/) | Python | LFV-209 |
 | [store-cross-impl-differential](store-cross-impl-differential/) | Python | LFV-492 |
 | [storedfields-compressing](storedfields-compressing/) | Python | LFV-172, LFV-186, LFV-163 |
-| [study-automaton-verification](study-automaton-verification/) | TLA+/TLC, Dafny | LFV-049, LFV-055, LFV-057, LFV-075, LFV-062 |
-| [study-bkd-points-proof](study-bkd-points-proof/) | Dafny, Python | LFV-006, LFV-078, LFV-050, LFV-059, LFV-051, LFV-076 |
+| [study-automaton-verification](study-automaton-verification/) | TLA+/TLC, Dafny | LFV-049, LFV-055, LFV-057, LFV-062 |
+| [study-bkd-points-proof](study-bkd-points-proof/) | Dafny, Python | LFV-006, LFV-078, LFV-050, LFV-059, LFV-051 |
 | [study-fst-verification](study-fst-verification/) | Alloy, Dafny, Python | LFV-052, LFV-007, LFV-070, LFV-067 |
 | [study-hnsw-concurrent-merge](study-hnsw-concurrent-merge/) | TLA+/TLC, Python | LFV-005, LFV-061, LFV-068 |
 | [study-overflow-at-scale](study-overflow-at-scale/) | SMT-LIB (Z3/cvc5), Python | LFV-048, LFV-003, LFV-058, LFV-066, LFV-069 |
-| [study-quantization-smt](study-quantization-smt/) | SMT-LIB (Z3/cvc5), Python | LFV-047, LFV-046, LFV-064, LFV-079, LFV-065, LFV-074 |
+| [study-quantization-smt](study-quantization-smt/) | SMT-LIB (Z3/cvc5), Python | LFV-047, LFV-046, LFV-064, LFV-079, LFV-065 |
 | [study-search-concurrency-model](study-search-concurrency-model/) | TLA+/TLC, Python | LFV-045, LFV-053, LFV-054, LFV-077, LFV-056 |
 | [study-simd-equivalence](study-simd-equivalence/) | SMT-LIB (Z3/cvc5), Python | LFV-044, LFV-071 |
 | [study-similarity-impacts-smt](study-similarity-impacts-smt/) | Python | LFV-063, LFV-072, LFV-073 |

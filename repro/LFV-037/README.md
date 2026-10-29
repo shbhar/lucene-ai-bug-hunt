@@ -1,6 +1,6 @@
 # MMapDirectory loses shared-arena grouping when a closing arena removes a newer live arena
 
-Bug LFV-037 · Area: store / MMapDirectory · Priority: low · Impact: minor · Novelty: new
+Bug LFV-037 · Area: store / MMapDirectory · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks. Maintainer triage: Fix in progress, triaged by Uwe Schindler (Lucene PMC) on 2026-10-28 (https://lists.apache.org/thread/qhqk32y1ot85rrm8t6m9x62brlv6pjdy). Uwe Schindler said it looks very relevant: Uwe had long felt something was wrong with shared arenas, and Gianluca Graziadei had privately reported a closely related problem. A fix is in progress in #16931 (Chris Hegarty). This site files nothing upstream.
 

@@ -10,8 +10,8 @@ You write a GroupReducer that gives each group its own FacetsCollector (or any c
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Every group's FacetsCollector reports no documents, with no error: GroupReducer.setNextReader replaces each group's leaf collector on every segment without calling finish on the previous one, GroupReducer has no finish hook, and SecondPassGroupingCollector does not override finish, so IndexSearcher's per-leaf finish reaches only the outer collector.
+- Expected: The control publishes 5; group a's collector publishes 3 and group b's 2.
+- Actual: Group a's collector publishes 0 (`expected:<3> but was:<0>`), with assertions on and off; the control passes.
 
 ## Files
 

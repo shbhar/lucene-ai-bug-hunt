@@ -11,7 +11,6 @@ These are the working models and scripts this part of the hunt used. Some encode
 - Quantized MIP/EUCLIDEAN scores become NaN when OSQ correction terms overflow (bug LFV-064; [repro](../../repro/LFV-064/))
 - Quantized MIP score of a document equal to its segment centroid is 3.0 instead of 3.5 (bug LFV-079; [repro](../../repro/LFV-079/))
 - PACKED_NIBBLE quantized vectors with an odd dimension fail once raw vectors are dropped (bug LFV-065; [repro](../../repro/LFV-065/))
-- OptimizedScalarQuantizer emits out-of-range codes when the interval width is deep-subnormal (bug LFV-074; [repro](../../repro/LFV-074/))
 
 ## Files
 

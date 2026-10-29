@@ -9,7 +9,6 @@ These are the working models and scripts this part of the hunt used. Some encode
 - Operations.isTotal returns true for a deterministic automaton that can reach a dead state, so an AutomatonQuery can match every term (bug LFV-049; [repro](../../repro/LFV-049/), [bug page](../../bugs/LFV-049.html))
 - AutomatonTermsEnum throws ArrayIndexOutOfBoundsException for an NFA with a reachable dead state (bug LFV-055; [repro](../../repro/LFV-055/))
 - UTF32ToUTF8 still accepts overlong UTF-8 for ranges that span into 3- and 4-byte code points (bug LFV-057; [repro](../../repro/LFV-057/), [bug page](../../bugs/LFV-057.html))
-- Operations.getSingleton returns null for a single-string DFA with a dead state (bug LFV-075; [repro](../../repro/LFV-075/))
 - Operations.topoSortStates misses self-loop cycles and returns an order instead of throwing (bug LFV-062; [repro](../../repro/LFV-062/))
 
 ## Files

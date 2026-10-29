@@ -10,8 +10,8 @@ You index each group as a document block and search with GroupingSearch(Query gr
 
 ## Expected vs actual
 
-- Expected: You expect each group's maxScore to be the best score in the group (GroupDocs documents it as 'Max score in this group'), as two-pass term grouping reports and as block grouping did up to 10.4.0.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Expected: `maxScore` 5 for group a, 4 for group b and 5 for `TopGroups`, as on 10.4.0.
+- Actual: `expected:<[5.0, 4.0, 5.0]> but was:<[1.0, -Infinity, 1.0]>` on main, 10.5.0 and 10.5.2; the pages themselves are right.
 
 ## Files
 

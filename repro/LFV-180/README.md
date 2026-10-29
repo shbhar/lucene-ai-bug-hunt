@@ -10,8 +10,8 @@ You wrap a FacetsCollector, or any collector that does its per-segment work in L
 
 ## Expected vs actual
 
-- Expected: You expect the same facet counts as a plain IndexSearcher search.
-- Actual: The collector reports no hits: CachingCollector's per-leaf wrapper overrides finish for its own bookkeeping and never passes the call on, and the score-caching replay never calls finish at all, although the no-score replay does.
+- Expected: `[20, 20]`: the wrapped `FacetsCollector` and the replay target each report the 20 hits.
+- Actual: `[0, 0]`: both report no `MatchingDocs`, with no error, with assertions on and off.
 
 ## Files
 
