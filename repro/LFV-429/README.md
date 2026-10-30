@@ -19,11 +19,13 @@ Expected the merged segment's docs, in pairs, to be the blocks `[c0p0, c1p1, c2p
 ## Files
 
 - [src/org/apache/lucene/misc/index/TestReorderPre99Blocks.java](src/org/apache/lucene/misc/index/TestReorderPre99Blocks.java) (JUnit test)
+- [fixture-src/MakePre99BlockIndex.java](fixture-src/MakePre99BlockIndex.java) (writes the fixture the test reads, as Run it says; not compiled with the test)
 
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- Fixture: the test reads blocks.9.8.0.zip, an index of 3 blocks (a child and its parent) in 2 segments written by Lucene 9.8.0, from its package on the class path. This site ships no binary index files, so the recipe first makes it with fixture-src/MakePre99BlockIndex.java and lucene-core-9.8.0.jar (Maven Central) and puts it in src/, which the run puts on the class path; without it the test fails for another reason.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -38,11 +40,16 @@ CP=$CP:$LUCENE/lucene/misc/build/libs/lucene-misc-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
+# fixture blocks.9.8.0.zip, written by the Lucene 9.8.0 release: lucene-core-9.8.0.jar (Maven Central)
+javac -d fixture-classes -cp lucene-core-9.8.0.jar fixture-src/MakePre99BlockIndex.java
+java -cp fixture-classes:lucene-core-9.8.0.jar MakePre99BlockIndex fixture-index
+(cd fixture-index && rm -f write.lock && zip -q -X ../src/org/apache/lucene/misc/index/blocks.9.8.0.zip *)
+
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
+     -cp "classes:src:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.misc.index.TestReorderPre99Blocks
 ```
 

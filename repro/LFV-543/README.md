@@ -16,11 +16,13 @@ You open, on Lucene main, an index that Lucene 9.12.0, 9.12.1, 10.0.0 or 10.1.0 
 ## Files
 
 - [src/org/apache/lucene/index/TestCheckIndexOldGraphRepeatedNeighbors.java](src/org/apache/lucene/index/TestCheckIndexOldGraphRepeatedNeighbors.java) (JUnit test)
+- [fixture-src/DupGen3.java](fixture-src/DupGen3.java) (writes the fixture the test reads, as Run it says; not compiled with the test)
 
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Fixtures: the test reads repeated-neighbors.9.12.0.zip, repeated-neighbors.10.0.0.zip and repeated-neighbors.10.1.0.zip, indexes of 1,000 one-dimensional vectors written by those releases whose HNSW graphs list a neighbour twice, from its package on the class path. This site ships no binary index files, so the recipe first makes them with fixture-src/DupGen3.java and each release's lucene-core jar (Maven Central): it tries seeds 0 to 99 and keeps the first index with a repeated neighbour, and the zips go to src/, which the run puts on the class path; without them every test fails for another reason.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -34,11 +36,19 @@ CP=$CP:$LUCENE/lucene/backward-codecs/build/libs/lucene-backward-codecs-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
+# fixtures repeated-neighbors.<version>.zip, written by the 9.12.0, 10.0.0 and 10.1.0 releases: lucene-core-<version>.jar
+# of each (Maven Central)
+for v in 9.12.0 10.0.0 10.1.0; do
+  javac -d fixture-classes-$v -cp lucene-core-$v.jar fixture-src/DupGen3.java
+  java -cp fixture-classes-$v:lucene-core-$v.jar DupGen3 fixture-$v 0 100 1 12 32 661 0.4185 18
+  (cd fixture-$v/seed-* && zip -q -X ../../src/org/apache/lucene/index/repeated-neighbors.$v.zip *)
+done
+
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
+     -cp "classes:src:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.index.TestCheckIndexOldGraphRepeatedNeighbors
 ```
 

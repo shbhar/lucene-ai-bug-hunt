@@ -16,10 +16,13 @@ You have an index first created by Lucene 8 that Lucene 9 later rewrote complete
 ## Files
 
 - [src/org/apache/lucene/backward_index/TestPre9CreatedIndexSchemaConsistency.java](src/org/apache/lucene/backward_index/TestPre9CreatedIndexSchemaConsistency.java) (JUnit test)
+- [fixture-src/CreateWith8x.java](fixture-src/CreateWith8x.java) (writes the fixture the test reads, as Run it says; not compiled with the test)
+- [fixture-src/ReindexWith9x.java](fixture-src/ReindexWith9x.java) (writes the fixture the test reads, as Run it says; not compiled with the test)
 
 ## Run it
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Fixtures: the test reads legacy8-exists.zip and legacy8-exists-merged.zip, an index created by Lucene 8.11.4 whose segments 9.12.3 rewrote (the second one force-merged), from its package on the class path. This site ships no binary index files, so the recipe first makes them with fixture-src/CreateWith8x.java, fixture-src/ReindexWith9x.java and the 8.11.4 and 9.12.3 release jars (Maven Central) and puts them in src/, which the run puts on the class path; without them every test fails for another reason.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -33,11 +36,22 @@ CP=$CP:$LUCENE/lucene/backward-codecs/build/libs/lucene-backward-codecs-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
+# fixtures legacy8-exists.zip and legacy8-exists-merged.zip: lucene-core-8.11.4.jar, lucene-core-9.12.3.jar and
+# lucene-backward-codecs-9.12.3.jar (Maven Central)
+javac -d fixture-classes-8 -cp lucene-core-8.11.4.jar fixture-src/CreateWith8x.java
+javac -d fixture-classes-9 -cp lucene-core-9.12.3.jar:lucene-backward-codecs-9.12.3.jar fixture-src/ReindexWith9x.java
+for mode in exists exists-merged; do
+  mkdir -p fixture-$mode
+  java -cp fixture-classes-8:lucene-core-8.11.4.jar CreateWith8x fixture-$mode
+  java -cp fixture-classes-9:lucene-core-9.12.3.jar:lucene-backward-codecs-9.12.3.jar ReindexWith9x fixture-$mode $mode
+  (cd fixture-$mode && rm -f write.lock && zip -q -X ../src/org/apache/lucene/backward_index/legacy8-$mode.zip *)
+done
+
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
+     -cp "classes:src:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.backward_index.TestPre9CreatedIndexSchemaConsistency
 ```
 

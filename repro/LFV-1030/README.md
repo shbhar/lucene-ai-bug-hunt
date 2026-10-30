@@ -20,6 +20,7 @@ Lucene main's MIGRATE.md tells users who open a Lucene 9.x or 10.x index to upgr
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Fixture: the test reads moreterms.9.0.0.zip, a test resource of Lucene's backward-codecs module (lucene/backward-codecs/src/test/org/apache/lucene/backward_index/ in the checkout), so the run puts $LUCENE/lucene/backward-codecs/src/test on the class path; without it the test fails for another reason.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -29,6 +30,7 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
+CP=$CP:$LUCENE/lucene/backward-codecs/build/libs/lucene-backward-codecs-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
@@ -36,7 +38,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF, default flags
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
+     -cp "classes:$LUCENE/lucene/backward-codecs/src/test:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.backward_index.TestMigrateUpgradeExample
 ```
 

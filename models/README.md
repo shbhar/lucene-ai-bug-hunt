@@ -6,6 +6,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 
 | Unit | Tools | Bugs found |
 |---|---|---|
+| [analysis-benchmark-backward-codecs-javadoc-examples-compile-on-main](analysis-benchmark-backward-codecs-javadoc-examples-compile-on-main/) | Python | LFV-1041, LFV-1040 |
 | [analysis-factory-javadoc-examples-and-resource-files-build-as-documented](analysis-factory-javadoc-examples-and-resource-files-build-as-documented/) | Python | LFV-931 |
 | [analysis-loaders-release-streams-and-temp-files-on-failure](analysis-loaders-release-streams-and-temp-files-on-failure/) | TLA+/TLC | LFV-1006, LFV-1010 |
 | [analysis-rule-tables-second-batch](analysis-rule-tables-second-batch/) | Python | LFV-688 |
@@ -33,7 +34,9 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [docandscorequery-public-factory-count-and-iterator-contracts](docandscorequery-public-factory-count-and-iterator-contracts/) | Python | LFV-955 |
 | [document-field-factories](document-field-factories/) | Python | LFV-140 |
 | [dv-norms-cursor-coherence](dv-norms-cursor-coherence/) | Python | LFV-415, LFV-419, LFV-418 |
+| [dv-range-primary-sort-shortcut-ignores-sort-type](dv-range-primary-sort-shortcut-ignores-sort-type/) | Python | LFV-1047 |
 | [dw-flush-control-deletequeue-tla](dw-flush-control-deletequeue-tla/) | TLA+/TLC | LFV-473, LFV-474, LFV-471 |
+| [dwfc-nextpendingflush-stale-fullflush-stock-repro](dwfc-nextpendingflush-stale-fullflush-stock-repro/) | TLA+/TLC | LFV-1045 |
 | [executor-pluggable-behaviour-sweep](executor-pluggable-behaviour-sweep/) | TLA+/TLC | LFV-637 |
 | [explanation-formula-strings-vs-their-own-operand-values](explanation-formula-strings-vs-their-own-operand-values/) | Python | LFV-922, LFV-921, LFV-920 |
 | [expressions-shallow-large-expression-escapes-documented-exceptions](expressions-shallow-large-expression-escapes-documented-exceptions/) | Python | LFV-906 |
@@ -99,6 +102,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [queryparser-classic](queryparser-classic/) | Python | LFV-319, LFV-284 |
 | [queryparser-flexible-simple-xml](queryparser-flexible-simple-xml/) | Python | LFV-356, LFV-398 |
 | [range-bound-cross-path](range-bound-cross-path/) | Python | LFV-409 |
+| [reqexcl-bulkscorer-excluded-run-skip-16669](reqexcl-bulkscorer-excluded-run-skip-16669/) | Python | LFV-1044 |
 | [rescorers-nearest-and-rescoretopn-presized-by-unbounded-topn](rescorers-nearest-and-rescoretopn-presized-by-unbounded-topn/) | Python | LFV-997, LFV-995 |
 | [rescoretopn-negative-rescore-values-maxscore-hang](rescoretopn-negative-rescore-values-maxscore-hang/) | SMT-LIB (Z3/cvc5), Python | LFV-1015, LFV-1016 |
 | [sloppymath-and-geo-distance-documented-error-bounds](sloppymath-and-geo-distance-documented-error-bounds/) | Python | LFV-771 |

@@ -19,6 +19,7 @@ Expected: `count(f:[1 TO 1])` = 1. Actual: `expected:<1> but was:<0>`.
 ## Files
 
 - [src/org/apache/lucene/search/TestDerivedSortKeyRangeQuery.java](src/org/apache/lucene/search/TestDerivedSortKeyRangeQuery.java) (JUnit test)
+- [resources/META-INF/services/org.apache.lucene.index.SortFieldProvider](resources/META-INF/services/org.apache.lucene.index.SortFieldProvider) (service registration the test needs on its class path)
 
 ## Run it
 
@@ -40,7 +41,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
+     -cp "classes:resources:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.search.TestDerivedSortKeyRangeQuery
 ```
 

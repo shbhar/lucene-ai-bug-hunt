@@ -16,12 +16,14 @@ On main you open an index whose vector segment was written by Lucene 9.8.0 (Luce
 ## Files
 
 - [src/org/apache/lucene/index/TestExitableFilteredKnnOldHnswFormat.java](src/org/apache/lucene/index/TestExitableFilteredKnnOldHnswFormat.java) (JUnit test)
+- [fixture-src/MakeOldHnswIndex.java](fixture-src/MakeOldHnswIndex.java) (writes the fixture the test reads, as Run it says; not compiled with the test)
 
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
 - Before compiling, copy Lucene95RWHnswVectorsFormat.java and Lucene95HnswVectorsWriter.java, unchanged classes of Lucene's own test sources that the release jars do not contain, from lucene/backward-codecs/src/test/org/apache/lucene/backward_codecs/lucene95/ of the checkout into src/org/apache/lucene/backward_codecs/lucene95/ here.
+- Fixture (optional): testIndexWrittenByLucene980 also reads hnsw-9.8.0.zip, an index of 5,000 16-dimensional vectors written by Lucene 9.8.0, from its package on the class path, and is skipped without it. This site ships no binary index files, so the recipe first makes it with fixture-src/MakeOldHnswIndex.java and lucene-core-9.8.0.jar (Maven Central) and puts it in src/, which the run puts on the class path.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -35,11 +37,16 @@ CP=$CP:$LUCENE/lucene/backward-codecs/build/libs/lucene-backward-codecs-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
+# optional fixture hnsw-9.8.0.zip, written by the Lucene 9.8.0 release: lucene-core-9.8.0.jar (Maven Central)
+javac -d fixture-classes -cp lucene-core-9.8.0.jar fixture-src/MakeOldHnswIndex.java
+java -cp fixture-classes:lucene-core-9.8.0.jar MakeOldHnswIndex fixture-index
+(cd fixture-index && rm -f write.lock && zip -q -X ../src/org/apache/lucene/index/hnsw-9.8.0.zip *)
+
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions off (production-like), seed DEADBEEF
 java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
+     -cp "classes:src:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.index.TestExitableFilteredKnnOldHnswFormat
 ```
 

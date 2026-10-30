@@ -20,6 +20,7 @@ You run Lucene's documented upgrade tool (java... org.apache.lucene.index.IndexU
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Fixtures: the test reads sorted.9.10.0.zip and sorted.10.5.2.zip, test resources of Lucene's backward-codecs module (lucene/backward-codecs/src/test/org/apache/lucene/backward_index/ in the checkout), so the run puts $LUCENE/lucene/backward-codecs/src/test on the class path; without them every test is skipped.
 - How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -37,7 +38,7 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
+     -cp "classes:$LUCENE/lucene/backward-codecs/src/test:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.backward_index.TestIndexUpgraderKeepsIndexSort
 ```
 

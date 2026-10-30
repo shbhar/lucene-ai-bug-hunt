@@ -26,9 +26,11 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <ul><li><b>Expected:</b> You expect it to pass: main opens, reads, searches and merges the index correctly, and upstream calls repeated HNSW neighbours benign.</li><li><b>Actual:</b> When an old unmerged segment&#x27;s graph lists the same neighbour twice (those releases&#x27; connectComponents step could add an existing link again, and their writers did not de-duplicate), CheckIndex reports &#x27;has repeated neighbors&#x27;: with failFast it throws CheckIndexException (&#x27;Segment... check failed&#x27;), otherwise it prints &#x27;test: hnsw graphs.........ERROR&#x27;, because the rule applies to every segment whatever version wrote it.</li></ul>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/index/TestCheckIndexOldGraphRepeatedNeighbors.java"><code>src/org/apache/lucene/index/TestCheckIndexOldGraphRepeatedNeighbors.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="fixture-src/DupGen3.java"><code>fixture-src/DupGen3.java</code></a> <span class="dim">(writes the fixture the test reads, as Run it says; not compiled with the test)</span></li>
 </ul><h2>Run it</h2><ul>
 <li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
 <li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Fixtures: the test reads repeated-neighbors.9.12.0.zip, repeated-neighbors.10.0.0.zip and repeated-neighbors.10.1.0.zip, indexes of 1,000 one-dimensional vectors written by those releases whose HNSW graphs list a neighbour twice, from its package on the class path. This site ships no binary index files, so the recipe first makes them with fixture-src/DupGen3.java and each release&#x27;s lucene-core jar (Maven Central): it tries seeds 0 to 99 and keeps the first index with a repeated neighbour, and the zips go to src/, which the run puts on the class path; without them every test fails for another reason.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -40,11 +42,19 @@ CP=$CP:$LUCENE/lucene/backward-codecs/build/libs/lucene-backward-codecs-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
+# fixtures repeated-neighbors.&lt;version&gt;.zip, written by the 9.12.0, 10.0.0 and 10.1.0 releases: lucene-core-&lt;version&gt;.jar
+# of each (Maven Central)
+for v in 9.12.0 10.0.0 10.1.0; do
+  javac -d fixture-classes-$v -cp lucene-core-$v.jar fixture-src/DupGen3.java
+  java -cp fixture-classes-$v:lucene-core-$v.jar DupGen3 fixture-$v 0 100 1 12 32 661 0.4185 18
+  (cd fixture-$v/seed-* &amp;&amp; zip -q -X ../../src/org/apache/lucene/index/repeated-neighbors.$v.zip *)
+done
+
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     -cp &quot;classes:src:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.index.TestCheckIndexOldGraphRepeatedNeighbors</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-29. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

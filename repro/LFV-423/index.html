@@ -26,10 +26,12 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <ul><li><b>Expected:</b> You expect the same graph walk and the same hits as on the unwrapped reader, because the wrapper only adds timeout checks and the documented threshold (60%; 0 never, 100 always) says the filtered HNSW search runs.</li><li><b>Actual:</b> The wrapper hands the 9.x reader an anonymous Bits instead of the filter&#x27;s BitSet, the reader therefore sizes the filter as 0 and never uses filtered search (even KnnSearchStrategy.Hnsw(100) returns exactly the Hnsw(0) hits), and 3 of the top 10 documents differ; every hit is still a valid, live filter match.</li></ul>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/index/TestExitableFilteredKnnOldHnswFormat.java"><code>src/org/apache/lucene/index/TestExitableFilteredKnnOldHnswFormat.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="fixture-src/MakeOldHnswIndex.java"><code>fixture-src/MakeOldHnswIndex.java</code></a> <span class="dim">(writes the fixture the test reads, as Run it says; not compiled with the test)</span></li>
 </ul><h2>Run it</h2><ul>
 <li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
 <li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
 <li>Before compiling, copy Lucene95RWHnswVectorsFormat.java and Lucene95HnswVectorsWriter.java, unchanged classes of Lucene&#x27;s own test sources that the release jars do not contain, from lucene/backward-codecs/src/test/org/apache/lucene/backward_codecs/lucene95/ of the checkout into src/org/apache/lucene/backward_codecs/lucene95/ here.</li>
+<li>Fixture (optional): testIndexWrittenByLucene980 also reads hnsw-9.8.0.zip, an index of 5,000 16-dimensional vectors written by Lucene 9.8.0, from its package on the class path, and is skipped without it. This site ships no binary index files, so the recipe first makes it with fixture-src/MakeOldHnswIndex.java and lucene-core-9.8.0.jar (Maven Central) and puts it in src/, which the run puts on the class path.</li>
 <li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -41,11 +43,16 @@ CP=$CP:$LUCENE/lucene/backward-codecs/build/libs/lucene-backward-codecs-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
+# optional fixture hnsw-9.8.0.zip, written by the Lucene 9.8.0 release: lucene-core-9.8.0.jar (Maven Central)
+javac -d fixture-classes -cp lucene-core-9.8.0.jar fixture-src/MakeOldHnswIndex.java
+java -cp fixture-classes:lucene-core-9.8.0.jar MakeOldHnswIndex fixture-index
+(cd fixture-index &amp;&amp; rm -f write.lock &amp;&amp; zip -q -X ../src/org/apache/lucene/index/hnsw-9.8.0.zip *)
+
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
 # run 1: assertions off (production-like), seed DEADBEEF
 java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     -cp &quot;classes:src:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.index.TestExitableFilteredKnnOldHnswFormat</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <p class="small dim">2 other file(s) of the recorded repro are not exported.</p>
