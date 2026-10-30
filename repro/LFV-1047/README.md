@@ -2,6 +2,8 @@
 
 Bug LFV-1047 · Area: search / doc-values range queries, index-sort shortcut (SortedNumericDocValuesRangeQuery.canUsePrimarySortShortcut, SortedSkipperScorerSupplier) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-1047.html](../../bugs/LFV-1047.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index the floats -1f and -2f as raw bits in a skip-indexed doc-values field 
 
 ## Expected vs actual
 
-- Expected: You expect 1, which is what you get without the index sort or without the skip index.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Expected: count 1: one document stores raw(-1f), and the same documents give 1 without the index sort or the skip index.
+- Actual: count 0, no error (`expected:<1> but was:<0>`); the exact query for -2f counts 2.
 
 ## Files
 
@@ -41,6 +43,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestDocValuesRangeQueryFloatIndexSort.java](TestDocValuesRangeQueryFloatIndexSort.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/dv-range-primary-sort-shortcut-ignores-sort-type/](../../models/dv-range-primary-sort-shortcut-ignores-sort-type/)
 

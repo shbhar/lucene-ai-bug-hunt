@@ -2,6 +2,8 @@
 
 Bug LFV-1050 · Area: index / index sorting with document blocks (IndexingChain flush-time sort, DocumentsWriterPerThread non-aborting rejection) · Priority: medium · Impact: crash · Novelty: new
 
+Bug page: [../../bugs/LFV-1050.html](../../bugs/LFV-1050.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You configure an index sort and a parent field, add a block (a child and its par
 
 ## Expected vs actual
 
-- Expected: You expect the rejected document simply not to be added and the commit to keep the two block documents, as it does without a parent field (upstream test testFlushAfterInconsistentSchema).
-- Actual: commit throws ArrayIndexOutOfBoundsException 'Index 2147483647 out of bounds for length 3' from the flush-time sort, IndexWriter closes itself and both block documents are lost.
+- Expected: `commit` succeeds and the index holds the 2 block documents.
+- Actual: `commit` throws `ArrayIndexOutOfBoundsException: Index 2147483647 out of bounds for length 3`; the writer closes itself and nothing is committed.
 
 ## Files
 
@@ -41,6 +43,10 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestIndexSortRejectedLastDocument.java](TestIndexSortRejectedLastDocument.java)
 
 ## Feedback
 

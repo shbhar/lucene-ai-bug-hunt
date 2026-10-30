@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Bugs found
 
-- updateDocument racing commit can leave two live documents for one key (a lost delete) and operations above the sequence number commit returned in the commit point, because DocumentsWriterFlushControl.nextPendingFlush flushes a DWPT of the new delete queue during the running full flush (bug LFV-1045; [repro](../../repro/LFV-1045/))
+- updateDocument racing commit can leave two live documents for one key (a lost delete) and operations above the sequence number commit returned in the commit point, because DocumentsWriterFlushControl.nextPendingFlush flushes a DWPT of the new delete queue during the running full flush (bug LFV-1045; [repro](../../repro/LFV-1045/), [bug page](../../bugs/LFV-1045.html))
 
 ## Files
 

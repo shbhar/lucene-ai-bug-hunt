@@ -2,6 +2,8 @@
 
 Bug LFV-937 · Area: benchmark / quality (utils.SubmissionReport, the TREC run-file writer used by QualityBenchmark and QueryDriver) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-937.html](../../bugs/LFV-937.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

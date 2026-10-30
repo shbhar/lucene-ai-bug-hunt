@@ -2,6 +2,8 @@
 
 Bug LFV-1037 · Area: search / sorting (SortField STRING_VAL, SortedSetSortField and KeywordField.newSortField missing values; index sorting) · Priority: low · Impact: wrong error · Novelty: new
 
+Bug page: [../../bugs/LFV-1037.html](../../bugs/LFV-1037.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You build a string sort with a missing value that is not STRING_FIRST or STRING_
 
 ## Expected vs actual
 
-- Expected: You expect an IllegalArgumentException when the sort field is built, as new SortField(f, Type.STRING, false, "zzz") throws and as the removed setMissingValue threw for these sorts too.
-- Actual: The value is accepted (getMissingValue and toString report it) but every comparator treats it as STRING_FIRST, so documents without a value silently sort first; and if the sort is the index sort, the segment is written without the value, so the next new IndexWriter with the very same config refuses the index with 'cannot change previous indexSort'.
+- Expected: Both constructors throw `IllegalArgumentException`, as `new SortField("f", Type.STRING, false, "zzz")` does.
+- Actual: Both accept `"zzz"`: 2 tests, 2 failures, "Expected exception IllegalArgumentException but no exception was thrown", with assertions on and off.
 
 ## Files
 
@@ -41,6 +43,11 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestStringSortMissingValue.java](TestStringSortMissingValue.java)
+- [StepsProbe.java](StepsProbe.java)
 
 ## Feedback
 

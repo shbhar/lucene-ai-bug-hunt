@@ -2,6 +2,8 @@
 
 Bug LFV-940 · Area: benchmark / search-quality package (trec.TrecJudge, the qrels reader used by QualityBenchmark and QueryDriver) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-940.html](../../bugs/LFV-940.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

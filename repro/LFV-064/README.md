@@ -2,6 +2,8 @@
 
 Bug LFV-064 · Area: codecs / vectors · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-064.html](../../bugs/LFV-064.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

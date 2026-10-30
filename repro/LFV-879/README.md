@@ -2,6 +2,8 @@
 
 Bug LFV-879 · Area: misc / DocValuesStats double statistics (DocValuesStatsCollector, DocValuesStatsCollectorManager) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-879.html](../../bugs/LFV-879.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

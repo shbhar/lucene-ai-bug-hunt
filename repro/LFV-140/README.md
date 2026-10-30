@@ -2,6 +2,8 @@
 
 Bug LFV-140 · Area: document / range fields (DoubleRange, FloatRange, their doc-values fields; facet range-on-range) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-140.html](../../bugs/LFV-140.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

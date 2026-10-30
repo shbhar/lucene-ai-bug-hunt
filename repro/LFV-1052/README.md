@@ -2,6 +2,8 @@
 
 Bug LFV-1052 · Area: util / FST (Util.TopNSearcher.search, 'Empty string!' branch) and suggest / FreeTextSuggester (lookup's per-level seen-token filter) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-1052.html](../../bugs/LFV-1052.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You build a FreeTextSuggester (default bigram model) from text in which 'foo' oc
 
 ## Expected vs actual
 
-- Expected: You expect [barn], which is also what upstream TestFreeTextSuggester's own reference model gives.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Expected: `[barn]`: the pair level gives `foo bar` 0.111, the single-word level skips the already-offered `bar` and gives `barn` 0.117.
+- Actual: `[foo bar]` (`expected:<[barn]> but was:<[foo bar]>`), with no error.
 
 ## Files
 
@@ -43,6 +45,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestFreeTextSuggesterSeenWord.java](TestFreeTextSuggesterSeenWord.java)
 
 ## Feedback
 

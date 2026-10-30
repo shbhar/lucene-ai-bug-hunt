@@ -2,6 +2,8 @@
 
 Bug LFV-1045 · Area: index / IndexWriter full flush (DocumentsWriterFlushControl.nextPendingFlush) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-1045.html](../../bugs/LFV-1045.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ Several threads replace documents by key with updateDocument while another threa
 
 ## Expected vs actual
 
-- Expected: You expect every commit point to hold exactly one live document per key and only the operations up to the sequence number commit returned.
-- Actual: An indexing thread that has just seen 'no full flush running' in nextPendingFlush can, if the commit's full flush starts at that moment, flush a buffer that belongs after the commit inside it, so the commit contains newer operations and, when the delete half of an update misses the older document, two live documents for one key.
+- Expected: Every commit point holds at most one live document per key (800 keys, up to 5,000 commits).
+- Actual: Two live documents for one key, e.g. `AssertionError: commit 106, key 388` (assertions off); with assertions on, either the same duplicate or `AssertionError: expected: DWDQ: [ generation: 811 ] but was:... 812` in `DocumentsWriter.doFlush`, which closes the writer.
 
 ## Files
 
@@ -41,6 +43,10 @@ java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=A
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestUpdateDocumentConcurrentCommit.java](TestUpdateDocumentConcurrentCommit.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/dwfc-nextpendingflush-stale-fullflush-stock-repro/](../../models/dwfc-nextpendingflush-stale-fullflush-stock-repro/)
 

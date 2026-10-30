@@ -2,6 +2,8 @@
 
 Bug LFV-1049 · Area: search / IndexSortSortedNumericDocValuesRangeQuery (index-sort range shortcut: INT sort comparator path and 4-byte points path) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-1049.html](../../bugs/LFV-1049.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You sort the index by SortField("f", SortField.Type.INT), index the values -5, 3
 
 ## Expected vs actual
 
-- Expected: You expect the 2 documents the fallback returns, as the class javadoc requires.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Expected: 2 hits (-5 and 3), the same as the fallback.
+- Actual: 1 hit: `AssertionError: expected:<2> but was:<1>` at the query assertion (line 46); the fallback assertion passes.
 
 ## Files
 
@@ -41,6 +43,10 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestIndexSortIntSortLongBound.java](TestIndexSortIntSortLongBound.java)
 
 ## Feedback
 

@@ -2,6 +2,8 @@
 
 Bug LFV-1022 · Area: misc / index: BpVectorReorderer command line (main -> reorderIndexDirectory, an in-place rewrite through an OpenMode.CREATE IndexWriter and addIndexes) · Priority: medium · Impact: data corruption · Novelty: new
 
+Bug page: [../../bugs/LFV-1022.html](../../bugs/LFV-1022.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You run BpVectorReorderer's command line (main(path, field), which calls reorder
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: When computing a doc map or addIndexes throws (for example the documented NotEnoughRAMException), the try-with-resources around the OpenMode.CREATE IndexWriter closes it, close commits by default, and the new commit holds only the segments rewritten before the failure, while the original commit and its files are deleted.
+- Expected: The reorder throws `NotEnoughRAMException`, and the index still holds its 1 document.
+- Actual: The reorder throws, and the index now holds 0 documents: `expected:<1> but was:<0>`.
 
 ## Files
 
@@ -42,6 +44,10 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestBpVectorReorderFailureKeepsIndex.java](TestBpVectorReorderFailureKeepsIndex.java)
 
 ## Feedback
 

@@ -2,6 +2,8 @@
 
 Bug LFV-082 · Area: queryparser / flexible · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-082.html](../../bugs/LFV-082.html)
+
 AI-assisted finding, reproduced on Lucene main but not yet independently re-verified, and not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

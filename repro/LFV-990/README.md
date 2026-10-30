@@ -2,6 +2,8 @@
 
 Bug LFV-990 · Area: suggest / text-file dictionaries (FileDictionary feeding Lookup.build, PlainTextDictionary feeding SpellChecker.indexDictionary) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-990.html](../../bugs/LFV-990.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

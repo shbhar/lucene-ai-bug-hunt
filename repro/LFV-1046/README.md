@@ -2,6 +2,8 @@
 
 Bug LFV-1046 · Area: index / IndexWriter buffered delete terms (DocumentsWriterDeleteQueue.DeleteSlice.apply, BufferedUpdates.DeletedTerms) · Priority: medium · Impact: index unusable · Novelty: new
 
+Bug page: [../../bugs/LFV-1046.html](../../bugs/LFV-1046.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You add a document, call deleteDocuments(new Term("id", t)) with t longer than 3
 
 ## Expected vs actual
 
-- Expected: You expect the delete to match nothing (as it did up to 9.8.0) or to be rejected, and the commit to contain the document.
-- Actual: The delete throws BytesRefHash.MaxBytesLengthExceededException after it was already queued and is never removed from the queue, so every later addDocument and delete throws the same exception and commit fails (with assertions off an IllegalStateException 'Can't close queue unless all changes are applied', with -ea an AssertionError that closes the writer); the only clean way out is rollback.
+- Expected: `commit` succeeds and the index holds 1 document, as on 9.8.0.
+- Actual: `commit` throws `IllegalStateException: Can't close queue unless all changes are applied` (assertions off) or `AssertionError: pendingNumDocs 1 != 0 totalMaxDoc` (assertions on).
 
 ## Files
 
@@ -41,6 +43,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestOverlongDeleteTermKeepsWriterUsable.java](TestOverlongDeleteTermKeepsWriterUsable.java)
 
 ## Feedback
 

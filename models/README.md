@@ -69,6 +69,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [indri-query-family-composite-score-boost-visitor-explain-laws](indri-query-family-composite-score-boost-visitor-explain-laws/) | Python | LFV-874, LFV-872, LFV-871, LFV-875 |
 | [iw-blocking-calls-watchdog-failure-visibility](iw-blocking-calls-watchdog-failure-visibility/) | TLA+/TLC | LFV-648 |
 | [iw-forcemerge-wait-protocol-tla](iw-forcemerge-wait-protocol-tla/) | TLA+/TLC | LFV-590, LFV-587, LFV-586, LFV-592 |
+| [iw-hasuncommittedchanges-read-order-race](iw-hasuncommittedchanges-read-order-race/) | TLA+/TLC | LFV-1060 |
 | [japanese-completion-fifo](japanese-completion-fifo/) | Python | LFV-346 |
 | [javadoc-package-and-overview-examples-call-removed-apis-siblings-of-16904](javadoc-package-and-overview-examples-call-removed-apis-siblings-of-16904/) | Python | LFV-989, LFV-992, LFV-987, LFV-984, LFV-988, LFV-980 |
 | [knn-query-layer](knn-query-layer/) | TLA+/TLC | LFV-106, LFV-114, LFV-117, LFV-125, LFV-123 |
@@ -85,6 +86,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [monitor-lifecycle-persistence-mbt](monitor-lifecycle-persistence-mbt/) | TLA+/TLC | LFV-499, LFV-501 |
 | [monitor-matcher-agreement](monitor-matcher-agreement/) | Python | LFV-852, LFV-853, LFV-856 |
 | [monitor-presearcher](monitor-presearcher/) | TLA+/TLC | LFV-332 |
+| [never-judged-backlog-closure-low-and-not-a-bug](never-judged-backlog-closure-low-and-not-a-bug/) | TLA+/TLC | LFV-1061, LFV-1059 |
 | [ngram-tokenizers-maxgram-above-input-length](ngram-tokenizers-maxgram-above-input-length/) | Python | LFV-1007 |
 | [nrt-reference-managers](nrt-reference-managers/) | TLA+/TLC | LFV-250, LFV-252, LFV-312, LFV-264, LFV-309 |
 | [numeric-dv-bulk-values](numeric-dv-bulk-values/) | Python | LFV-381 |
@@ -109,6 +111,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [slow-codec-reader-vector-metadata-answered-past-wrappers](slow-codec-reader-vector-metadata-answered-past-wrappers/) | Alloy | LFV-911 |
 | [smartcn-hhmm-segmentation-reference](smartcn-hhmm-segmentation-reference/) | Python | LFV-709 |
 | [snapshot-deletion-policies-commit-retention-model-based](snapshot-deletion-policies-commit-retention-model-based/) | TLA+/TLC | LFV-890 |
+| [sort-leafstart-hitsthreshold-before-setscorer-points-intersect-16857](sort-leafstart-hitsthreshold-before-setscorer-points-intersect-16857/) | TLA+/TLC | LFV-1057 |
 | [sortednumeric-dv-update](sortednumeric-dv-update/) | Alloy | LFV-134 |
 | [sorters-selectors](sorters-selectors/) | Python | LFV-372 |
 | [span-containing-within-lockstep-misses-nested-little-spans](span-containing-within-lockstep-misses-nested-little-spans/) | TLA+/TLC | LFV-909 |

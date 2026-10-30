@@ -2,6 +2,8 @@
 
 Bug LFV-1044 · Area: search / BooleanQuery MUST_NOT bulk scoring (ReqExclBulkScorer) · Priority: low · Impact: minor · Novelty: new
 
+Bug page: [../../bugs/LFV-1044.html](../../bugs/LFV-1044.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You search +R -grp:old, where R matches every document and grp:old matches one r
 
 ## Expected vs actual
 
-- Expected: You expect Lucene to jump over the excluded run, as 10.3.0 to 10.5.2 do in one docIDRunEnd step (on every release from 10.0.0 to 10.5.2 the required clause's iterator moves 1,001 times for the 1,000 hits).
-- Actual: Since #16669 ReqExclBulkScorer loads the exclusion into a bit mask per 4096-doc window and always runs the required clause over every window, even windows the exclusion covers completely, so the iterator moves 10,001 times; the 1,000 hits are still right, only the work now grows with the length of the excluded run.
+- Expected: 1,000 hits, and the required iterator moves about 1,001 times (10.0.0 to 10.5.2: 1,001).
+- Actual: 1,000 hits, but "required iterator moved 10001 times" on main and 10.6.0, with assertions on and off.
 
 ## Files
 
@@ -41,6 +43,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestReqExclSkipsExcludedRun.java](TestReqExclSkipsExcludedRun.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/reqexcl-bulkscorer-excluded-run-skip-16669/](../../models/reqexcl-bulkscorer-excluded-run-skip-16669/)
 

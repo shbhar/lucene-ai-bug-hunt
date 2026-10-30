@@ -2,6 +2,8 @@
 
 Bug LFV-310 · Area: facet / range facet counts (DoubleRange bounds and values converted to sortable longs in DoubleRangeFacetCounts, against DoubleRange.accept and getQuery) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-310.html](../../bugs/LFV-310.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

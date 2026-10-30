@@ -2,6 +2,8 @@
 
 Bug LFV-1015 · Area: search / rescoring (RescoreTopNQuery scores, consumed by MaxScoreBulkScorer dynamic pruning) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-1015.html](../../bugs/LFV-1015.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

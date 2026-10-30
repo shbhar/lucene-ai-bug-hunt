@@ -2,6 +2,8 @@
 
 Bug LFV-411 · Area: grouping / range group selectors (DoubleRangeFactory, used by DoubleRangeGroupSelector) · Priority: low · Impact: minor · Novelty: new
 
+Bug page: [../../bugs/LFV-411.html](../../bugs/LFV-411.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

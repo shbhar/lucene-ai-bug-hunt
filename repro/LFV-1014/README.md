@@ -2,6 +2,8 @@
 
 Bug LFV-1014 · Area: core / geo Rectangle (LatLonShape box queries, newGeometryQuery(Rectangle), SimpleWKTShapeParser ENVELOPE) · Priority: low · Impact: wrong error · Novelty: new
 
+Bug page: [../../bugs/LFV-1014.html](../../bugs/LFV-1014.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

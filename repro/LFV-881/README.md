@@ -2,6 +2,8 @@
 
 Bug LFV-881 · Area: grouping / GroupingSearch doc-block path (BlockGroupingCollectorManager score mode) · Priority: low · Impact: minor · Novelty: new
 
+Bug page: [../../bugs/LFV-881.html](../../bugs/LFV-881.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

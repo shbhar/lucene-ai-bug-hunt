@@ -2,6 +2,8 @@
 
 Bug LFV-979 · Area: suggest / Lookup persistence (load failure atomicity: TSTLookup, AnalyzingSuggester, FuzzySuggester, FreeTextSuggester, FSTCompletionLookup, WFSTCompletionLookup) · Priority: low · Impact: minor · Novelty: new
 
+Bug page: [../../bugs/LFV-979.html](../../bugs/LFV-979.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

@@ -1,0 +1,475 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>MUST_NOT queries no longer skip long runs of excluded documents (ReqExclBulkScorer, since #16669)</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.triage{margin:var(--s4) 0 0;padding:var(--s2) var(--s4);border-left:3px solid var(--info);background:var(--panel);
+max-width:var(--measure)}
+.triage p{margin:0;font-size:var(--step--1);line-height:1.5}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-1044 &middot; reqexcl-bulkscorer-excluded-run-skip-lost-16669</p><h1 id='top'>MUST_NOT queries no longer skip long runs of excluded documents (ReqExclBulkScorer, since #16669)</h1><p class='tldr'>When a MUST_NOT clause excludes a long run of doc IDs, <code>+R -X</code> now steps <code class='nw'>R</code> through all its matches inside the run instead of jumping it: 10,001 iterator moves instead of 1,001 for 1,000 hits. Results stay correct; it came with #16669 and ships in 10.6.0.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 319</span><span class='sub'>A core default-config ReqExclBulkScorer regression from #16669 that ships in 10.6.0 RC1 with measured 8-16x slowdowns but correct results and at most linear extra work, so it heads the Low performance-only rows just above the narrower released slowdown LFV-791.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>minor</span></dd></div><div><dt>Since</dt><dd>#16669, merged 2026-09-24; first release 10.6.0<span class='sub'>introduced 2026-09-24</span></dd></div><div class='wide'><dt>Affected</dt><dd>10.6.0 (released 2026-10-29) and main; 10.0.0 to 10.5.2 are not affected</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div class='wide'><dt>Found by</dt><dd>a 10.5.2-vs-10.6 differential review, then an operation-count test and a bounded-exhaustive cost model</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by code reading or testing and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-30.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>The 4096-doc window loop that #16669 introduced runs the required clause over every window, including windows the exclusion covers completely.</p><div class='part' id='background'><div class="hd hd-3"><h3 id='background-h'>Background: runs of doc IDs and MUST_NOT scoring</h3><a class="hlink" href="#background" target="_self" aria-label="Link to this section" aria-describedby="background-h"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span>Doc IDs in a segment follow indexing order or the index sort, so documents indexed together sit next to each other: "everything older than t" is often one long run of consecutive doc IDs.</span></li><li><span>For <code>+R -X</code> where the required side (its cheapest MUST or FILTER clause) is estimated to match more than 0.3% of the segment, Lucene uses a bulk scorer, <code>ReqExclBulkScorer</code>, that collects <code class='nw'>R</code>'s matches and drops the documents <code class='nw'>X</code> matches.</span></li><li><span>An iterator can report a run: <code class='nw'>docIDRunEnd()</code> says that every doc from the current one up to some end matches, so a caller can jump past all of them in one step. The default postings report runs for dense blocks.</span></li></ol></div><figure class='visual' id='reqexcl-bulkscorer-excluded-run-skip-lost-16669-short-visual'><div class='frame'><a class='still' href='../assets/LFV-1044/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-1044/bug.png' alt='A segment of 10,000 doc IDs; doc IDs 0 to 8,999 match the MUST_NOT clause grp:old, 9,000 to 9,999 are hits. Lucene 10.5.2 jumps the excluded run with docIDRunEnd and the required clause&#x27;s iterator moves 1,001 times. Lucene 10.6.0 and main split the segment into 4096-doc windows and run the required clause over every window, also those the exclusion covers completely: 10,001 moves for the same 1,000 hits.' width='1920' height='1080'></a></div><figcaption>The minimal repro: a 10,000-doc segment whose first 9,000 doc IDs are excluded. 10.5.2 jumps the run and moves the required clause 1,001 times; 10.6.0 runs it through every 4096-doc window and moves it 10,001 times. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><div class="hd hd-3"><h3 id='the-bug-step-by-step'>The bug, step by step</h3><a class="hlink" href="#the-bug-step-by-step" target="_self" aria-label="Link to this section" aria-describedby="the-bug-step-by-step"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span>Index 10,000 documents into one segment; the first 9,000 (doc IDs 0 to 8,999) get <code class='nw'>grp:old</code>, like the older documents of an append-ordered index.</span></li><li><span>Search <code>+R -grp:old</code>, where <code class='nw'>R</code> matches every document and counts how often its iterator moves. You expect 1,000 hits and about 1,001 moves: Lucene 10.3.0 to 10.5.2 jumps the excluded run with <code class='nw'>docIDRunEnd</code>, and no release before 10.6.0 steps <code class='nw'>R</code> through it.</span></li><li><span>You get the right 1,000 hits, but <code class='nw'>R</code> moved 10,001 times, once per document of the segment, on main and on 10.6.0.</span></li><li><span>Why: since #16669 the scorer works in windows of up to 4,096 docs. It loads the exclusion into a bit mask and always runs <code class='nw'>R</code> over the window, even when the mask accepts nothing, and <code class='nw'>R</code>'s default bulk scorer steps through all its matches before it checks the mask.</span></li><li><span>With stock queries it is real work: at 1M documents with 99.9% in one excluded run, a phrase query as <code class='nw'>R</code> reads 2,000,000 postings instead of 2,002, and indicative latency grows about 8x to 16x (term top-10: 0.30 to 2.5 ms).</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Default settings. Any <code>+R -X</code> query whose required side matches more than 0.3% of a segment and whose MUST_NOT matches form long doc-ID runs: older documents of an append-ordered or time-sorted index, an index-sorted range, a flag on a contiguous block, a cached dense filter. Hits stay exact; the query costs about as much as <code class='nw'>R</code> alone.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>666 words</span></summary><div class='body'><p>Since #16669 ("Use intoBitSet to speed up ReqExclBulkScorer with dense exclusions", merged 2026-09-24, first released in 10.6.0 on 2026-10-29), <code>ReqExclBulkScorer</code> scores <code>+R -X</code> in windows of at most 4,096 docs, each starting where the previous call to <code class='nw'>R</code>'s bulk scorer returned: it loads the exclusion of each window into a bit mask, flips it into an accept mask and always calls <code class='nw'>R</code>'s bulk scorer for the window (<code>ReqExclBulkScorer.java:53-93</code>, line 86 on main <code class='nw'>645d4fe14a20</code>), even when the mask accepts nothing. The default bulk scorer visits every match of <code class='nw'>R</code> before it checks the mask (<code>Weight.java:293-315</code>). #16669 also removed the <code class='nw'>docIDRunEnd</code> skip that 10.3.0 to 10.5.2 used to jump runs of excluded documents without moving <code class='nw'>R</code> (#14976), and the two-phase variant added in the same cycle (#16307).</p><p>So when <code class='nw'>X</code> excludes a long run of doc IDs (the older documents of an append-ordered or time-sorted segment, an index-sorted range, a flag on a contiguous block, a cached dense filter) and the required side costs more than 0.3% of <code class='nw'>maxDoc</code>, <code>+R -X</code> costs about as much as <code class='nw'>R</code> alone. Hits, counts and top-k were identical in every executed case; only the work changes. In the minimal repro (one 10,000-doc segment, run <code>[0, 9000)</code>), a counting match-all <code class='nw'>R</code> moves 10,001 times on main and on the 10.6.0 release jars, against 1,001 on every release from 10.0.0 to 10.5.2. At 1M documents with 99.9% excluded, a <code class='nw'>PhraseQuery</code> as <code class='nw'>R</code> reads 2,000,000 postings instead of 2,002. The 10.6.0 release notes still say that <code>ReqExclBulkScorer</code> "now skips runs of excluded docs". A 12-line change that scores <code class='nw'>R</code> only over the accepted part of each window never steps <code class='nw'>R</code> inside an excluded run that crosses a window boundary (any run of 4,096 documents or more), as in 10.5.2, and passes the <code>org.apache.lucene.search</code> tests.</p><div class="hd hd-3"><h3 id='what-the-bug-is-where-it-happens-main-645d4fe14a20'>Where it happens (main <code class='nw'>645d4fe14a20</code>)</h3><a class="hlink" href="#what-the-bug-is-where-it-happens-main-645d4fe14a20" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-where-it-happens-main-645d4fe14a20"><span aria-hidden="true">#</span></a></div><ol><li><strong>Routing.</strong> <code>BooleanScorerSupplier.java:203-207</code>: with a MUST_NOT clause and a supplier cost (the cheapest MUST/FILTER clause's cost, <code class='nw'>computeCost</code>) of at most <code>3L * maxDoc / 1000</code>, the doc-at-a-time <code class='nw'>ReqExclScorer</code> runs (not affected). Otherwise FILTER/MUST clauses without SHOULD get <code>requiredBulkScorer()</code> (<code class='nw'>:235-236</code>) and <code class='nw'>:259-265</code> returns <code>new ReqExclBulkScorer(positiveScorer, prohibitedScorer)</code>; several MUST_NOT clauses become one disjunction.</li><li><strong>The window loop.</strong> <code>ReqExclBulkScorer.java:53-93</code>: each window is <code>[windowMin, min(max, windowMin + 4096))</code> (<code class='nw'>:60-61</code>), where <code class='nw'>windowMin</code> is what the previous <code class='nw'>req.score</code> call returned; the exclusion is advanced to the window (<code class='nw'>:63-65</code>), loaded with <code class='nw'>intoBitSet</code> (<code class='nw'>:67-72</code>), flipped into an accept mask and combined with <code class='nw'>acceptDocs</code> (<code class='nw'>:73-84</code>); then <code>upTo = req.score(collector, windowBits, windowMin, windowMax);</code> (<code class='nw'>:86</code>) runs for every window. The class has no <code class='nw'>docIDRunEnd</code> call left.</li><li><strong>Why a rejected window still costs.</strong> The default bulk scorer loops <code>for (int doc = iterator.docID(); doc &lt; max; doc = iterator.nextDoc())</code> and only then checks <code>acceptDocs.get(doc)</code> (<code>Weight.java:293-301</code>; the two-phase loop <code class='nw'>:303-315</code> also calls <code class='nw'>matches()</code>). So a window that <code class='nw'>X</code> covers completely costs one step per match of <code class='nw'>R</code> in it.</li><li><strong>What it replaced.</strong> 10.5.2 <code>ReqExclBulkScorer.java:51-78</code>, the leap-frog loop of LUCENE-6940 (5.5.0/6.0.0): when a non-two-phase exclusion sits on <code class='nw'>upTo</code>, <code>upTo = Math.min(exclApproximation.docIDRunEnd(), max);</code> (<code class='nw'>:60-62</code>, from #14976, 10.3.0), a two-phase one is confirmed with <code class='nw'>matches()</code> and passed one doc at a time (<code class='nw'>:63-65</code>), else <code>req.score(collector, acceptDocs, upTo, Math.min(exclDoc, max))</code> (<code class='nw'>:69</code>), so <code class='nw'>R</code> is only scored on the gaps between excluded documents.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><p>Minimal repro: 10,001 required-iterator moves on main and 10.6.0 against 1,001 on 10.0.0 to 10.5.2, 1,000 hits everywhere. At 1M documents with the run <code>[0, 999000)</code>: 1,000,001 against 1,001 moves for five kinds of exclusion (postings run, index-sort range, cached bit set, two-phase doc-values range with a skip index, 2-term disjunction), count and top-10 alike; a stock <code class='nw'>PhraseQuery</code> as <code class='nw'>R</code> reads 2,000,000 postings against 2,002. Indicative wall clock on a shared host, 10.5.2 to main: term top-10 0.299 to 2.479 ms, 8-term OR top-10 2.330 to 18.506 ms, phrase count 0.711 to 11.368 ms. The claim rests on the counts, not the timings.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>245 words</span></summary><div class='body'><ul><li><strong>Configuration.</strong> Default codec, <code>IndexWriterConfig</code> and <code class='nw'>IndexSearcher</code>; assertions on or off; single thread.</li><li><strong>Which queries.</strong> A BooleanQuery with MUST/FILTER clauses and MUST_NOT clauses that <code>BooleanScorerSupplier</code> sends to <code>ReqExclBulkScorer</code> (the required side costs more than 0.3% of <code class='nw'>maxDoc</code>). By code reading the same wrapping also serves a pure SHOULD disjunction with MUST_NOT (not run).</li><li><strong>Which data.</strong> Many of <code class='nw'>R</code>'s matches must lie inside long runs of excluded doc IDs. Doc IDs follow indexing order and index sorting, so time-based exclusions on append-ordered or time-sorted segments, index-sorted ranges, flags on contiguous blocks and cached dense filters produce such runs; all five kinds of exclusion tested regress the same way.</li><li><strong>How bad.</strong> About the cost of <code class='nw'>R</code> alone: at most linear in <code class='nw'>maxDoc</code> per segment, no hang, no extra memory beyond a 4096-bit mask. Largest when <code class='nw'>R</code> decodes or scores postings per document (term top-k, phrase, disjunction): about 8x to 16x in the indicative timings. Probably small for <code>MatchAllDocsQuery</code> or another dense constant-score <code class='nw'>R</code> whose bulk scorer applies the mask word by word (code reading, not measured).</li><li><strong>Not affected:</strong> required clauses at or below 0.3% of <code class='nw'>maxDoc</code> (doc-at-a-time path). <strong>Not claimed:</strong> interleaved, non-run exclusions, the case #16669 targets: there the window path moves work from the exclusion to <code class='nw'>R</code> (on #16669's dense shape 1,000,001 required and 3 exclusion moves on main, against 40,001 and 980,003 on 10.5.2), and #16669 reports large speed-ups.</li><li><strong>Versions.</strong> 10.6.0 (released 2026-10-29) and main. All releases from 10.0.0 to 10.5.2 are fine.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>One JUnit method in <code>org.apache.lucene.search</code>: one 10,000-doc segment, <code class='nw'>grp:old</code> on docs 0 to 8,999, and a match-all MUST clause that counts its iterator's moves. Deterministic, single thread, about 1.5 s; fails with assertions on and off.</p><figure class='code'><figcaption><span class='fname'>TestReqExclSkipsExcludedRun.java (lucene/core, package org.apache.lucene.search, 1 test)</span><span class='meta'>123 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+public class TestReqExclSkipsExcludedRun extends LuceneTestCase {
+
+  public void testRequiredClauseSkipsExcludedRun() throws IOException {
+    try (Directory dir = new ByteBuffersDirectory();
+        IndexWriter w =
+            new IndexWriter(dir, new IndexWriterConfig().setCodec(TestUtil.getDefaultCodec()))) {
+      for (int i = 0; i &lt; 10_000; i++) {
+        Document doc = new Document();
+        if (i &lt; 9_000) {
+          doc.add(new StringField(&quot;grp&quot;, &quot;old&quot;, Field.Store.NO));
+        }
+        w.addDocument(doc);
+      }
+      w.forceMerge(1);
+      try (DirectoryReader reader = DirectoryReader.open(w)) {
+        IndexSearcher searcher = new IndexSearcher(reader);
+        searcher.setQueryCache(null);
+        int[] moves = new int[1];
+        Query all =
+            new Query() {
+              @Override
+              public Weight createWeight(IndexSearcher s, ScoreMode scoreMode, float boost) {
+                return new ConstantScoreWeight(this, boost) {
+                  @Override
+                  public ScorerSupplier scorerSupplier(LeafReaderContext ctx) {
+                    DocIdSetIterator it = DocIdSetIterator.all(ctx.reader().maxDoc());
+                    DocIdSetIterator counting =
+                        new DocIdSetIterator() {
+                          @Override
+                          public int docID() {
+                            return it.docID();
+                          }
+
+                          @Override
+                          public int nextDoc() throws IOException {
+                            moves[0]++;
+                            return it.nextDoc();
+                          }
+
+                          @Override
+                          public int advance(int target) throws IOException {
+                            moves[0]++;
+                            return it.advance(target);
+                          }
+
+                          @Override
+                          public long cost() {
+                            return it.cost();
+                          }
+                        };
+                    return new DefaultScorerSupplier(
+                        new ConstantScoreScorer(score(), scoreMode, counting));
+                  }
+
+                  @Override
+                  public boolean isCacheable(LeafReaderContext ctx) {
+                    return false;
+                  }
+                };
+              }
+
+              @Override
+              public String toString(String field) {
+                return &quot;all&quot;;
+              }
+
+              @Override
+              public void visit(QueryVisitor visitor) {}
+
+              @Override
+              public boolean equals(Object o) {
+                return this == o;
+              }
+
+              @Override
+              public int hashCode() {
+                return System.identityHashCode(this);
+              }
+            };
+        Query query =
+            new BooleanQuery.Builder()
+                .add(all, BooleanClause.Occur.MUST)
+                .add(new TermQuery(new Term(&quot;grp&quot;, &quot;old&quot;)), BooleanClause.Occur.MUST_NOT)
+                .build();
+        assertEquals(1_000, searcher.count(query));
+        // Expected: the required iterator jumps the excluded run [0, 9000) (about 1,001 moves, as in 10.5.2); actual on main: about 10,001
+        assertTrue(&quot;required iterator moved &quot; + moves[0] + &quot; times&quot;, moves[0] &lt;= 2_000);
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/TestReqExclSkipsExcludedRun.java $LUCENE/lucene/core/src/test/org/apache/lucene/search/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:core:test --tests org.apache.lucene.search.TestReqExclSkipsExcludedRun -Ptests.seed=1044B21F
+# the count does not depend on the seed or on assertions
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>1,000 hits, and the required iterator moves about 1,001 times (10.0.0 to 10.5.2: 1,001).</dd></div><div class='got'><dt>Observed</dt><dd>1,000 hits, but "required iterator moved 10001 times" on main and 10.6.0, with assertions on and off.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-1044/'>repro/LFV-1044/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>286 words</span></summary><div class='body'><p><code>TestReqExclSkipsExcludedRun</code> (123 lines with the license header, one test method). The counting clause is a plain <code class='nw'>Query</code> whose <code>ConstantScoreWeight</code> wraps a counting <code class='nw'>DocIdSetIterator</code> in a <code>ConstantScoreScorer</code> and <code>Weight.DefaultScorerSupplier</code>; these are public but marked <code class='nw'>@lucene.internal</code>, fine for an in-tree test (for a stock-query demonstration, use the <code class='nw'>PhraseQuery</code> postings count above). Its <code class='nw'>Weight</code> keeps <code class='nw'>count()</code> at the default -1, because with a stock <code>MatchAllDocsQuery</code> <code>IndexSearcher#count</code> would shortcut through <code>BooleanWeight#count</code> and never score. The query cache is off. The test first checks the hit count (1,000, passes everywhere), then that the required iterator moved at most 2,000 times.</p><p>The <code>&lt;= 2_000</code> bound is a judgement; the observable fact is <code>maxDoc + 1</code> moves (10,001) against <code>hits + 1</code> (1,001). It is every document of the run only because <code class='nw'>R</code> matches all documents; in general <code class='nw'>R</code> steps through every one of its matches inside the run. The comment line in the test is longer than 100 columns; wrap it before adding the test to the tree. As a regression test it can go into the existing <code>TestReqExclBulkScorer</code> as one more method.</p><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main 645d4fe14a20 (11.0.0-SNAPSHOT) and the 10.6.0 release jars (commit 4ae946e5a9b): fail; 10.0.0 to 10.5.2: pass</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux aarch64 (nothing platform-specific; the count is deterministic)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp $REPRO/TestReqExclSkipsExcludedRun.java $LUCENE/lucene/core/src/test/org/apache/lucene/search/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:core:test --tests org.apache.lucene.search.TestReqExclSkipsExcludedRun -Ptests.seed=1044B21F
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># main 645d4fe14a20, gradle, -Ptests.seed=1044B21F
+TestReqExclSkipsExcludedRun &gt; testRequiredClauseSkipsExcludedRun FAILED
+    java.lang.AssertionError: required iterator moved 10001 times
+        at org.apache.lucene.search.TestReqExclSkipsExcludedRun.testRequiredClauseSkipsExcludedRun(TestReqExclSkipsExcludedRun.java:119)
+1 test completed, 1 failed
+
+# standalone runner
+main 645d4fe14a20, -ea / -da               failures=1  required iterator moved 10001 times
+10.6.0 (Maven Central jars), -ea / -da     failures=1  required iterator moved 10001 times
+10.5.2, -da                                failures=0  (1,001 moves)
+main + recommended fix, -ea                failures=0</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>10.6.0's release notes still say "ReqExclBulkScorer now skips runs of excluded docs" (#16307), next to #16669.</li><li>#16669 deleted the old loop holding the skip (#14976) to simplify, after benchmarks with interleaved and sparse exclusions only; runs were never measured.</li><li>A fix can keep #16669's window path (its dense shape: 988,289 vs 1,000,001 required moves with fix C).</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>351 words</span></summary><div class='body'><ul><li><strong>The same release notes say the opposite.</strong> The 10.6.0 section of <code>lucene/CHANGES.txt</code> lists "GITHUB#16669: Use intoBitSet to speed up ReqExclBulkScorer with dense exclusions." (<code class='nw'>:687</code> on main) and, earlier in the same Optimizations section, "GITHUB#16307: ReqExclBulkScorer now skips runs of excluded docs via TwoPhaseIterator#docIDRunEnd for two-phase excluded clauses (e.g. a doc-values not-equals filter), instead of advancing one doc at a time." (<code class='nw'>:632-634</code>; <code class='nw'>:183-185</code> and <code class='nw'>:238</code> in the 10.6.0 release commit). The shipped class has no <code class='nw'>docIDRunEnd</code> call (0 references in the bytecode of main and of the RC1 core jar, 1 in 10.5.2).</li><li><strong>The skip was built on purpose.</strong> #14976 added it (10.3.0, <code class='nw'>CHANGES.txt:1699</code>: "Utilize docIdRunEnd on ReqExclBulkScorer."); #16142 made it cheap for several MUST_NOT clauses (10.5.0, <code class='nw'>:1158</code>: "Optimize disjunction #docIDRunEnd to skip runs of excluded documents."; it changed <code>DisjunctionDISIApproximation</code>, and its PR body says "<code>ReqExclBulkScorer</code> uses the prohibited scorer's <code class='nw'>docIDRunEnd()</code> to skip runs of excluded documents"); #16307 extended it to two-phase clauses in the 10.6 cycle.</li><li><strong>#16669 removed the old loop on purpose, but never measured runs.</strong> Its issue #16668 notes that "<code class='nw'>docIDRunEnd()</code> only helps when the iterator can expose a consecutive run of matching document IDs". Its first commit (<code class='nw'>b3094fab914</code>) kept the old leap-frog loop, with both <code class='nw'>docIDRunEnd</code> branches, as a <code class='nw'>sparseScore</code> path used only when <code>excl.cost() &lt; req.cost() &gt;&gt;&gt; 7</code>, so any exclusion costing at least 1/128 of <code class='nw'>R</code> (the minimal repro's 9,000 against 10,000, for example) already took the window path. The author then wrote "I'm exploring whether we can remove the <code class='nw'>sparse</code> path and use the <code class='nw'>dense</code> path universally, which would simplify the implementation", and commit <code class='nw'>e0c955a58c7</code> ("delete spare path") removed it. The benchmarks behind that (round-robin interleaved MUST_NOT terms, luceneutil ReqExclSparse/ReqExclDense, not-equals ranges) contain no run-shaped exclusion, and the PR body, its 9 comments and 4 review comments do not mention long runs or the skip.</li><li><strong>Why no test caught it.</strong> #14976 and #16307 added no test; #16669's tests check results, not cost.</li><li><strong>Precedent.</strong> Upstream fixed comparable MUST_NOT slowdowns (#16049, fixed by #16142; #16702, addressed by #16715) and the same window-vs-leap-frog trade-off in <code>DenseConjunctionBulkScorer</code> (#16259).</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>157 words</span></summary><div class='body'><p>The strongest case for "intended": Lucene documents matching semantics, not cost; #16669 chose the window path deliberately and deleted the leap-frog path on purpose, to simplify; and <code>+R -X</code> now costs about what <code class='nw'>R</code> alone costs, which a maintainer may accept. The cross-model intended-lens review rated this case moderate, the intended-behaviour checker weak to moderate, and upstream may label the report an enhancement, as it did #16049.</p><p>Why it does not settle it: the release notes of the very release that ships the change advertise the skip; nothing in #16669 shows the run case was measured or the loss of the skip weighed; and, as far as measured, a fix need not undo #16669, because skipping the required clause where the mask rejects every document keeps the window path for interleaved exclusions (operation counts only, no end-to-end benchmark). <strong>Verdict: an unintended performance regression against 10.3.0 to 10.5.2, results correct; a maintainer may still label it an enhancement.</strong></p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>C: score R only over the accepted part of each window (validated)</strong></p><p class='short'>Score <code class='nw'>R</code> only from the first to the last document each window's mask accepts, and skip <code class='nw'>R</code> when the mask accepts none (+12/-1 in <code>ReqExclBulkScorer.score</code>). <code class='nw'>R</code> is then never stepped inside a run that crosses a window boundary, as in 10.5.2. The repro and the 2,340 tests of <code>org.apache.lucene.search</code> pass; measured by operation counts, not benchmarked end to end.</p><pre class='snippet' tabindex='0'><code>      // Score the required clause only from the first to the last doc the mask accepts, and not at
+      // all when the mask accepts nothing, e.g. when a run of excluded docs covers the window.
+      int first = windowMask.nextSetBit(0, windowLength);
+      if (first == DocIdSetIterator.NO_MORE_DOCS) {
+        upTo = windowMax;
+        continue;
+      }
+      int last = windowMask.prevSetBit(windowLength - 1);
+      upTo = req.score(collector, windowBits, windowMin + first, windowMin + last + 1);
+      // No doc after the last accepted one can match: the next window starts at windowMax at the
+      // earliest, where the exclusion iterator is positioned after intoBitSet.
+      upTo = Math.max(upTo, windowMax);</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 922 words</span></summary><div class='body'><p>Three variants were written against <code class='nw'>645d4fe14a20</code> and measured on the same shapes (required-iterator moves; hits identical everywhere):</p><div class="tbl"><table><thead><tr><th>shape</th><th>10.5.2</th><th>main</th><th>A</th><th>C (recommended)</th><th>A+C</th></tr></thead><tbody><tr><td>minimal repro, 10,000 docs, run [0, 9000)</td><td>1,001</td><td>10,001</td><td>pass</td><td>pass</td><td>pass</td></tr><tr><td>1M docs, run [0, 999000), 5 exclusion kinds, count and top-10</td><td>1,001</td><td>1,000,001</td><td>1,001</td><td>1,001</td><td>1,001</td></tr><tr><td>1M docs, PhraseQuery R, postings reads</td><td>2,002</td><td>2,000,000</td><td>2,002</td><td>2,002</td><td>2,002</td></tr><tr><td>100k docs, run [500, 99000) (starts inside a window)</td><td>1,502</td><td>100,001</td><td>5,098</td><td>1,502</td><td>1,502</td></tr><tr><td>100k docs, runs of 4,000, 1 kept doc between</td><td>51</td><td>100,001</td><td>53,141</td><td>4,050</td><td>52,013</td></tr><tr><td>100k docs, runs of 2,000, 1 kept doc between</td><td>101</td><td>100,001</td><td>69,505</td><td>52,075</td><td>68,017</td></tr><tr><td>100k docs, alternating blocks of 100</td><td>50,500</td><td>100,001</td><td>99,817</td><td>98,713</td><td>98,713</td></tr><tr><td>#16669's dense shape, 3 interleaved MUST_NOT terms, 1M docs</td><td>40,001</td><td>1,000,001</td><td>999,272</td><td>988,289</td><td>988,337</td></tr></tbody></table></div><p>On #16669's dense shape 10.5.2 pays on the exclusion side instead (980,003 exclusion moves).</p><div class="hd hd-3"><h3 id='fix-trim-window'>C: score R only over the accepted part of each window (validated) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-trim-window" target="_self" aria-label="Link to this section" aria-describedby="fix-trim-window"><span aria-hidden="true">#</span></a></div><p><code>ReqExclBulkScorer.java</code>, replaces line 86; the 12 added lines of <code class='nw'>fix-optC.diff</code>, verbatim:</p><pre class='snippet' tabindex='0'><code>      // Score the required clause only from the first to the last doc the mask accepts, and not at
+      // all when the mask accepts nothing, e.g. when a run of excluded docs covers the window.
+      int first = windowMask.nextSetBit(0, windowLength);
+      if (first == DocIdSetIterator.NO_MORE_DOCS) {
+        upTo = windowMax;
+        continue;
+      }
+      int last = windowMask.prevSetBit(windowLength - 1);
+      upTo = req.score(collector, windowBits, windowMin + first, windowMin + last + 1);
+      // No doc after the last accepted one can match: the next window starts at windowMax at the
+      // earliest, where the exclusion iterator is positioned after intoBitSet.
+      upTo = Math.max(upTo, windowMax);</code></pre><p class='k'>Trade-offs</p><ul><li>General: works for every exclusion, whether or not its iterator reports runs, and calls no <code class='nw'>docIDRunEnd</code>. <code class='nw'>R</code> is never stepped inside an excluded run that crosses a window boundary (any run of 4,096 documents or more): windows inside the run are skipped and the run's part of its first and last window is trimmed off.</li><li><code class='nw'>upTo</code> must not fall below <code class='nw'>windowMax</code>: <code class='nw'>intoBitSet</code> has moved the exclusion iterator there, so a window starting earlier would miss excluded documents.</li><li>Leaves: a run strictly inside a window with accepted documents on both sides is still stepped (at most that window's 4,096 documents); the exclusion is still loaded into a mask for every window inside a run, as on main; if <code class='nw'>R</code> runs out of matches inside a long run, masks are loaded until the next window with an accepted document (code reading, not measured); the unreleased two-phase skip of #16307 stays gone; measured by operation counts only, not benchmarked end to end.</li></ul><p class='k'>What the checks validated</p><ul><li>gradle in a scratch worktree at <code class='nw'>645d4fe14a20</code>, <code>-Ptests.seed=1044B21F</code>: the minimal test fails without the fix and passes with it; with it, the nine closest suites pass (<code>TestReqExclBulkScorer</code>, <code class='nw'>TestBooleanQuery</code>, <code class='nw'>TestBoolean2</code>, <code>TestBooleanScorer</code>, <code>TestBooleanMinShouldMatch</code>, <code>TestBooleanScorerSupplier</code>, <code class='nw'>TestBooleanOr</code>, <code>TestBooleanRewrites</code> and the new test: 138 tests), and so does the whole <code>org.apache.lucene.search</code> package (215 classes, 2,340 tests, 49 skipped, 0 failures).</li><li>1,152 count identities, 0 mismatches; a randomized partition test (run, interleaved, two-phase doc-values and disjunction exclusions, MUST and FILTER, 10% deletions, random sub-ranges against brute force), 3 seeds, pass; independent verifiers' run tests pass.</li><li>A verifier's two-phase test still fails with C (512 <code class='nw'>matches()</code> calls where it asserts 112; that run was launched expecting a pass, so the runner marks it unexpected): C does not restore #16307's two-phase skip.</li></ul><div class="hd hd-3"><h3 id='fix-runend-at-window-start'>A: restore the docIDRunEnd skip at window starts (validated) <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-runend-at-window-start" target="_self" aria-label="Link to this section" aria-describedby="fix-runend-at-window-start"><span aria-hidden="true">#</span></a></div><p>Insert after the exclusion is advanced to <code class='nw'>windowMin</code> (<code class='nw'>:63-65</code>), +12:</p><pre class='snippet' tabindex='0'><code>      if (exclApproximation.docID() == windowMin) {
+        int runEnd =
+            exclTwoPhase == null ? exclApproximation.docIDRunEnd() : exclTwoPhase.docIDRunEnd();
+        if (runEnd &gt; windowMin) {
+          upTo = (int) Math.min((long) max, (long) runEnd);
+          continue;
+        }
+      }</code></pre><p class='k'>Trade-offs</p><p>Brings back the released mechanism: a run that reaches a window start is jumped in <code class='nw'>docIDRunEnd</code> steps without loading masks, and a two-phase exclusion with a proven run is skipped without <code class='nw'>matches()</code> (#16307); when no run is proven, the existing <code class='nw'>intoBitSet</code> path still calls <code class='nw'>matches()</code> per candidate. Limits: a run that starts inside a window is stepped up to the next window boundary (5,098 against 1,502 moves above); only exclusions whose iterator reports runs benefit.</p><p class='k'>What the checks validated</p><p>The minimal test passes with assertions on and off; 99 upstream tests of <code>TestReqExclBulkScorer</code>, <code class='nw'>TestBooleanQuery</code>, <code class='nw'>TestBoolean2</code>, <code>TestBooleanScorer</code>, <code>TestBooleanMinShouldMatch</code> and <code>TestBooleanScorerSupplier</code>, 30 iterations of <code>TestReqExclBulkScorer</code>, 1,152 count identities and 576 partitioned checks pass.</p><div class="hd hd-3"><h3 id='fix-both'>A+C: both (validated) <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-both" target="_self" aria-label="Link to this section" aria-describedby="fix-both"><span aria-hidden="true">#</span></a></div><p>+24/-1. C's trimming plus A's run jump and two-phase skip.</p><p class='k'>Trade-offs</p><p>Equal to C on most shapes and restores the two-phase skip, but worse than C on runs of 2,000 and 4,000 (68,017 and 52,013 against 52,075 and 4,050 moves), because A's jumps end at run ends and move the window starts onto the kept documents.</p><p class='k'>What the checks validated</p><p>The minimal test, the independent verifiers' run tests including the two-phase one, the partition test (2 seeds), a mid-window-run test and the 1,152 count identities pass. Through gradle at <code class='nw'>645d4fe14a20</code> it passes the minimal test and the same nine suites (138 tests).</p><div class="hd hd-3"><h3 id='fix-per-stretch'>D: per-window choice between mask and leap-frog (direction only) <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-per-stretch" target="_self" aria-label="Link to this section" aria-describedby="fix-per-stretch"><span aria-hidden="true">#</span></a></div><p>To restore 10.5.2's cost for runs inside a window too, a window whose mask has only a few accepted stretches could score <code class='nw'>R</code> once per stretch, as #16259 brought leap-frog back for sparse windows in <code>DenseConjunctionBulkScorer</code>.</p><p class='k'>Trade-offs</p><p>More code and a heuristic threshold.</p><p class='k'>What the checks validated</p><p>Not written or measured.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Not security-sensitive: results stay exact and the extra work is bounded by the cost of the required clause alone, so a service that lets users compose <code>+R -X</code> queries sees at most the CPU cost of <code class='nw'>R</code>, which those users could already run.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A review of what changed between 10.5.2 and the 10.6 release candidate flagged #16669's rewrite of the MUST_NOT bulk scorer. A timing-free count of the required iterator's moves turned it into numbers (1,001 against 1,000,001 at 1M documents), and a bounded-exhaustive cost and correctness model of the old, new and fixed loops backed it.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>115 words</span></summary><div class='body'><p><strong>Method: non-formal lead, semi-formal backing.</strong> The hunt's "10.5.2 vs 10.6.0 RC1" differential lens read the #16669 diff and compared query costs on 10.5.2, RC1 and main with identical hits; MUST_NOT queries with a contiguous excluded range stood out. A skeptic re-run replaced timings with a count of the required iterator's moves (1,001 on 10.2.2 to 10.5.2 against 1,000,001 on RC1 and main at 1M documents).</p><p>The hunt then reduced it to one JUnit, measured five kinds of exclusion and stock <code class='nw'>PhraseQuery</code>/<code class='nw'>TermQuery</code> postings reads, and built a bounded-exhaustive model of the 10.5.2, main and fixed loops: 790,324 cases for cost and correctness plus 16.4M partitioned and chunked re-entrant correctness checks, with two mutants caught.</p></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (GitHub issues and PRs including the JIRA archive, the changed files of all open PRs, the 10.6.0 release threads on dev@, downstream projects, luceneutil, the web; re-checked 2026-10-30). Related: #16669 introduced it; #14976, #16142 and #16307 added the skip it removed.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p>Related, not reports: #16669 and its issue #16668 (the introducing change); #14806/#14976, #16142 and #16307 (they added the skip); #16049 (interleaved MUST_NOT cost, fixed by #16142); #16702/#16715 (lead cost; #16715 sets the 0.3% routing threshold); #16259 (the same window-vs-leap-frog trade-off in <code>DenseConjunctionBulkScorer</code>); #12194 (an old long-runs API draft). Limits: GitHub search does not index diffs; private channels cannot be searched.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>Search tool (GitHub issues/PRs, commits, downstream repositories, dev@, java-user@, issues@, commits@, JIRA archive)</th><td class='when'>2026-10-29</td><td>three runs: identifiers, symptoms, new phrasing ("excluded docs run skip lost", "MUST_NOT 10.6 regression", "docIDRunEnd no longer used")</td><td>349, 774 and 358 hits, none a report</td></tr><tr><th scope='row'>GitHub issues and PRs (apache/lucene, Elasticsearch, OpenSearch, Solr, luceneutil)</th><td class='when'>2026-10-29</td><td>82 searches, incl. everything updated in the last 48 hours</td><td>no report</td></tr><tr><th scope='row'>Open and recent apache/lucene PRs</th><td class='when'>2026-10-29</td><td>changed files of all 409 open PRs and of the 139 closed PRs created since 2026-09-10</td><td>only #16669 (and the stale 2023 #12194) touch <code>ReqExclBulkScorer.java</code></td></tr><tr><th scope='row'>#16669 and #16668; dev@ 10.6.0 RC1 vote and release threads, java-user@; luceneutil nightly annotations</th><td class='when'>2026-10-29</td><td>read in full</td><td>no mention of runs or of dropping the skip</td></tr><tr><th scope='row'>GitHub, re-check</th><td class='when'>2026-10-30</td><td><code>ReqExclBulkScorer</code>, <code class='nw'>docIDRunEnd</code>, MUST_NOT PRs by update date; all issues updated since 2026-10-29 by title; the file's upstream commit history on main and branch_10_6</td><td>no report; not fixed (last commit still #16669)</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced by #16669 (<code class='nw'>c5fa32ce49f</code>, merged 2026-09-24) and its same-day <code class='nw'>branch_10x</code> backport (inherited by <code class='nw'>branch_10_6</code>); first released in 10.6.0 (2026-10-29). Bisected: the parent commit passes. All twelve releases 10.0.0 to 10.5.2 and 9.12.3 are clean (1,001 moves).</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>7 rows</span></summary><div class='body'><p><strong>Introduced by</strong> <code class='nw'>c5fa32ce49f</code>, apache/lucene#16669 "Use intoBitSet to speed up ReqExclBulkScorer with dense exclusions" (by kkewwei for their issue #16668; reviewed and merged by romseygeek, 2026-09-24), backported to <code class='nw'>branch_10x</code> as <code class='nw'>92ce3eaf4bf</code> the same day; <code class='nw'>branch_10_6</code> inherited it when it was cut from <code class='nw'>branch_10x</code> on 2026-10-14. It replaced the leap-frog loop of LUCENE-6940 and removed both <code class='nw'>docIDRunEnd</code> branches: the DocIdSetIterator one from #14976 (10.3.0), the released behaviour that regresses, and the two-phase one from #16307 (same 10.6 cycle, never released). Putting back only the pre-#16669 <code>ReqExclBulkScorer.java</code> makes main and RC1 pass. 10.0 to 10.2 kept <code class='nw'>R</code> out of excluded runs but stepped the excluded iterator once per excluded document, so the fair cost baseline is 10.3.0 to 10.5.2.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>645d4fe14a20</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>10,001 moves (gradle and the standalone runner, assertions on and off)</td></tr><tr><th scope='row'>10.6.0 (Maven Central jars, <code class='nw'>4ae946e5a9b</code>)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>10,001 moves (<code class='nw'>-ea</code> and <code class='nw'>-da</code>)</td></tr><tr><th scope='row'>10.6.0 RC1 (staged jars and a build of <code class='nw'>4ae946e5a9b</code>)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>10,001 moves (<code class='nw'>-ea</code> and <code class='nw'>-da</code>)</td></tr><tr><th scope='row'><code class='nw'>c5fa32ce49f</code> (#16669) vs its parent <code class='nw'>c80c9f53674</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> bisect</span></td><td>the commit fails (10,001), the parent passes (1,001)</td></tr><tr><th scope='row'>10.3.0 to 10.5.2 (7 releases)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>1,001 moves each (the <code class='nw'>docIDRunEnd</code> skip)</td></tr><tr><th scope='row'>10.0.0 to 10.2.2 (5 releases)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>1,001 moves each (leap-frog; the excluded iterator steps per excluded doc)</td></tr><tr><th scope='row'>9.12.3 (a port of the counting clause)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>1,001 moves</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, reviewers from another model family (OpenAI GPT-5.6), an intended-behaviour devil's advocate and an adjudication each ran their own tests or the minimal one; all call it real and performance only, and agree on the root cause.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>392 words</span></summary><div class='body'><p>Every check counts operations rather than timing them; the timings in this doc are indicative only. The minimal test failed on main with 10,001 moves under eight seeds (the finder, the history sweep, an intended-behaviour verifier, the adjudication, the registration check, the audit, the no-noise gate and this doc), and under a ninth in the independent fact check of this doc.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>100,000-doc test: 100,001 moves on main, 1,001 on 10.0.0, 10.2.2, 10.3.2 and 10.5.2; five exclusion kinds at 1M docs; stock <code class='nw'>PhraseQuery</code> 2,000,000 vs 2,002 postings reads; bounded-exhaustive cost and correctness model; fix A with 99 upstream tests.</td></tr><tr><th scope='row'>cross-model review, refute lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>OpenAI GPT-5.6. Its own public-API test (20,000 docs, 18,000-doc excluded prefix) moves 20,001 times for 2,000 hits on main; its alternating control passes; 10.5.2 and fix A pass.</td></tr><tr><th scope='row'>cross-model review, intended lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>OpenAI GPT-5.6. Its own test (FILTER <code>MatchAllDocsQuery</code>, 11,700 of 12,000 docs excluded) moves 12,001 times on main; rates the by-design case moderate but finds nothing that documents giving up the skip.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Stock <code>+f:a -x:y</code>: 50,001 vs 5,001 postings reads. A run that starts inside a window, <code>[2000, 29000)</code> of 30,000 docs: 30,001 moves vs 3,002 on 9.12.3 to 10.5.2; fix A passes but restores only part (5,098).</td></tr><tr><th scope='row'>Cross-model review, root-cause lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>OpenAI GPT-5.6, re-run on <code class='nw'>645d4fe14a20</code>: 8,193 moves for 1,192 hits; a two-phase exclusion makes 512 vs 112 <code class='nw'>matches()</code> calls; fix A correct over 576 partitioned checks; flagged A's window-start limit.</td></tr><tr><th scope='row'>Intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>0 <code class='nw'>docIDRunEnd</code> references in the bytecode of main and RC1 (1 in 10.5.2); no cost promise in the javadocs; no run-shaped benchmark or review comment in #16669; the stale CHANGES entry.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high</span></td><td>Re-ran the minimal test: main fails with <code class='nw'>-ea</code> and <code class='nw'>-da</code> (10,001 moves), 10.5.2 passes. Impact class minor (performance only).</td></tr><tr><th scope='row'>audit and no-noise gate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep; claim-low</span></td><td>Re-ran the minimal test with new seeds; the claim is the one minimal test, nothing left to cut.</td></tr><tr><th scope='row'>this doc</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> reproduced; fix validated</span></td><td>The minimal test through gradle on a clean <code class='nw'>645d4fe14a20</code> worktree (fails) and on the 10.6.0 Maven Central jars (fails, <code class='nw'>-ea</code> and <code class='nw'>-da</code>); fix C written and validated; A and A+C re-measured on the same shapes.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-1044/bug.png' download='reqexcl-bulkscorer-excluded-run-skip-lost-16669-bug.png' target='_self'>PNG</a> <span class='n'>473 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,541 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-1044, snapshot of 2026-10-30</p><dl class='card'><div><dt>Registry title</dt><dd>Since #16669 (10.6.0 RC1 and main), ReqExclBulkScorer no longer skips long runs of excluded doc IDs: for +R -X it scores the required clause in every 4096-doc window, even windows X fully excludes, so R's iterator steps through all of its matches inside X's runs (10,001 moves for 1,000 hits in a 10,000-doc segment, where 10.0.0-10.5.2 need 1,001; performance regression, results correct)</dd></div><div><dt>Area</dt><dd>search / BooleanQuery MUST_NOT bulk scoring (ReqExclBulkScorer)</dd></div><div><dt>Priority</dt><dd>Low, rank 319: A core default-config ReqExclBulkScorer regression from #16669 that ships in 10.6.0 RC1 with measured 8-16x slowdowns but correct results and at most linear extra work, so it heads the Low performance-only rows just above the narrower released slowdown LFV-791.</dd></div><div><dt>Impact class</dt><dd>minor</dd></div><div><dt>Impact note</dt><dd>Performance regression only, with the default codec, IndexWriterConfig and IndexSearcher, on main and the 10.6.0 RC1 (no released version): a BooleanQuery with a MUST/FILTER clause R that costs more than 0.3% of maxDoc and a MUST_NOT clause X whose matches form long doc-ID runs (for example excluding the older documents of an append-ordered or time-sorted segment, a flag set on a contiguous block of documents, a cached dense filter) now steps R through all of its matches inside X's runs instead of jumping each run in one step, so it costs about as much as R alone; hits, counts and top-k are identical, the extra work is at most linear in maxDoc per segment, and indicative wall-clock on a shared host at 1M docs with 99.9% of the docs in one excluded run went from 0.30 to 2.5 ms (term query, top-10), 2.3 to 18.5 ms (8-term OR, top-10) and 0.71 to 11.4 ms (phrase, count) between 10.5.2 and main.</dd></div><div><dt>Summary</dt><dd>You search +R -grp:old, where R matches every document and grp:old matches one run of consecutive doc IDs covering 9,000 of the 10,000 documents of a segment. You expect Lucene to jump over the excluded run, as 10.3.0 to 10.5.2 do in one docIDRunEnd step (on every release from 10.0.0 to 10.5.2 the required clause's iterator moves 1,001 times for the 1,000 hits). Instead, since #16669 ReqExclBulkScorer loads the exclusion into a bit mask per 4096-doc window and always runs the required clause over every window, even windows the exclusion covers completely, so the iterator moves 10,001 times; the 1,000 hits are still right, only the work now grows with the length of the excluded run.</dd></div><div><dt>Introduced</dt><dd>c5fa32ce49f6 (apache/lucene#16669 'Use intoBitSet to speed up ReqExclBulkScorer with dense exclusions', by kkewwei for their issue #16668; reviewed and merged by romseygeek on main 2026-09-24; branch_10_6 backport 92ce3eaf4bf the same day) [exec: commit-level bracket with the minimal repro, the parent c80c9f53674 passes (1,001 required-iterator moves) and c5fa32ce49f fails (10,001) with -ea and -da; putting back only the pre-#16669 ReqExclBulkScorer.java makes main 645d4fe14a20 and 10.6.0 RC1 pass (1,001); read: blame gives 27 of the 41 lines of score() to c5fa32ce49f, the rest is the LUCENE-6940 method frame, and the file is byte-identical on c5fa32ce49f, main 645d4fe14a20 and RC1]. It replaced the leap-frog loop (LUCENE-6940, 5.5.0/6.0.0) that called the required bulk scorer only on the gaps between excluded docs, and removed both docIDRunEnd branches: the DocIdSetIterator one from #14976 (10.3.0; the released behaviour that regresses) and the two-phase one from #16307 (added in the same 10.6 cycle, never released). (2026-09-24 (author date of c5fa32ce49f, 2026-09-24T08:30:33Z, equal to the PR merge time; the branch_10_6 backport 92ce3eaf4bf has the same author date and was committed at 08:33:25Z the same day))</dd></div><div><dt>First affected version</dt><dd>unreleased (10.6.0 would be the first release: 10.6.0 RC1 4ae946e5a9b reproduces it [exec, official staged jars and a build of the RC1 commit] and its vote closes 2026-10-29; on the main line 11.0.0, also unreleased; the last unaffected release is 10.5.2, the latest one)</dd></div><div><dt>Affected versions</dt><dd>[exec] main 645d4fe14a20 (minimal repro, -ea and -da; seeds DEADBEEF, 5EED4351, 7A11E5ED, A11CE5ED and 0D055E17 each give 10,001 required-iterator moves for 1,000 hits), the introducing commit c5fa32ce49f (-ea and -da) and 10.6.0 RC1 4ae946e5a9b (official staged core, codecs and test-framework jars, SHA-512 checked, and a build of the RC1 commit; -ea and -da); [read] upstream main head 70a428b5ba9, branch_11x head 203699279f5 and branch_10_6 head 6dde6c73bd1 (the last commit on ReqExclBulkScorer.java is still #16669 on all three, checked 2026-10-29). Not affected [exec, 1,001 moves each]: all 12 releases 10.0.0 to 10.5.2 (-da; 10.5.2 also -ea), 9.12.3 (with a two-hunk 9.x API port of the measuring clause only, -ea and -da) and the parent commit c80c9f53674; 9.0.0-9.12.3 have a byte-identical ReqExclBulkScorer.java [read]. 10.0-10.2 also kept R out of excluded runs but stepped the excluded iterator once per excluded doc, so the fair cost baseline is 10.3.0-10.5.2.</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>non-formal</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-29, read-only; the prior-report record verdict new: first pass, refresh, follow-up-step check): three scripted prior-report searches on identifier, symptom and new phrasing (62 GitHub issue/PR, 9 commit, 6 downstream, 60 mailing-list and 12 JIRA-archive queries; 349, 774 and 358 distinct hits, none a report); about 50 own GitHub searches in the first pass and 34 more in the refresh over apache/lucene, Elasticsearch, OpenSearch, Solr and luceneutil, including everything updated in the last 48 h; the changed files of all 409 open apache/lucene PRs (only the stale 2023 #12194 touches ReqExclBulkScorer.java) and of the 139 closed PRs created since 2026-09-10 (only #16669); the 70 issues and PRs updated since 2026-10-27, read by title; the dev@ '[VOTE] Release Lucene 10.6.0 RC1', feature-freeze and 'Lucene 10.6 as final minor 10.x release' threads and java-user@ October; luceneutil's nightly-benchmark annotations (no entry for #16669); the JIRA archive; and web searches. Context, not reports: #16669 and its issue #16668 (the introducing change; benchmarks cover interleaved and sparse exclusions only, and nobody mentions long runs or the dropped docIDRunEnd skip), #14806/#14976, #16142 and #16307 (they added the run skip), #16049 (other root, fixed by #16142), #16702/#16715 (lead cost, other root; #16715 narrows the trigger to required clauses above 0.3% of maxDoc), #16259 (the same window-vs-leap-frog trade-off fixed in DenseConjunctionBulkScorer), #16849, #16568, #12194, #11915. Not fixed upstream: the last commit on ReqExclBulkScorer.java is still #16669 on main (head 70a428b5ba9), branch_10_6 (head 6dde6c73bd1) and branch_11x, and no fix exists, so there is no fix commit whose author date could predate this report. Not filed by the owner (shbhar's only items are #16900 and the tracking issue #16937, which does not mention it).</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>645d4fe14a20</code> (gradle in a clean worktree and a standalone runner, assertions on and off); the 10.6.0 release jars from Maven Central (commit <code class='nw'>4ae946e5a9b</code>) and the 10.6.0 RC1 staged jars; the introducing commit <code class='nw'>c5fa32ce49f</code> and its parent <code class='nw'>c80c9f53674</code>; the releases 10.0.0 to 10.5.2 and 9.12.3 (a port of the counting clause). OpenJDK 25.0.3, Linux aarch64.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/search/ReqExclBulkScorer.java:53-93 (at 645d4fe14a20) (score: fixed 4096-doc windows, intoBitSet of the exclusion, flip, then req.score(collector, windowBits, windowMin, windowMax) at line 86 for every window; no docIDRunEnd call in the class)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/BooleanScorerSupplier.java:203-207 (at 645d4fe14a20) (MUST_NOT queries whose required cost is at most 0.3% of maxDoc go to ReqExclScorer; all others reach ReqExclBulkScorer)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/Weight.java:293-315 (at 645d4fe14a20) (DefaultBulkScorer.scoreIterator/scoreTwoPhaseIterator step the iterator over every doc below max and check acceptDocs per doc)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/DocIdSetIterator.java:245-262 (at 645d4fe14a20) (docIDRunEnd contract) and TwoPhaseIterator.java:113-132 (TwoPhaseIterator#docIDRunEnd, callable before matches())</code></li><li><code>lucene/CHANGES.txt:632-634 (at 645d4fe14a20) (10.6.0: &#x27;GITHUB#16307: ReqExclBulkScorer now skips runs of excluded docs via TwoPhaseIterator#docIDRunEnd ...&#x27;), :687 (10.6.0: GITHUB#16669) and :245 (the #16307 entry again in the 11.0.0 section)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>a Lucene main checkout (645d4fe14a20) lucene/core/src/java/org/apache/lucene/search/BooleanScorerSupplier.java:203-207, :235-236, :259-265</code></li><li><code>a Lucene main checkout (645d4fe14a20) lucene/core/src/java/org/apache/lucene/search/ReqExclBulkScorer.java:53-93 (line 86; no docIDRunEnd call)</code></li><li><code>a Lucene main checkout (645d4fe14a20) lucene/core/src/java/org/apache/lucene/search/Weight.java:293-315 (DefaultBulkScorer.scoreIterator, scoreTwoPhaseIterator)</code></li><li><code>a Lucene main checkout (645d4fe14a20) lucene/core/src/java/org/apache/lucene/search/DocIdSetIterator.java:245-263, TwoPhaseIterator.java:112-132; lucene/core/src/java/org/apache/lucene/codecs/lucene104/Lucene104PostingsReader.java:1100-1125</code></li><li><code>a Lucene clone releases/lucene/10.5.2 lucene/core/src/java/org/apache/lucene/search/ReqExclBulkScorer.java:51-78</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>a Lucene main checkout (645d4fe14a20) lucene/core/src/java/org/apache/lucene/search/BooleanScorerSupplier.java:203-207, :210-232, :259-265</code></li><li><code>Maven Central lucene-core maven-metadata.xml (release 10.6.0, lastUpdated 20261029224919) and GitHub tag releases/lucene/10.6.0 -&gt; 4ae946e5a9b (tagged 2026-10-29), read 2026-10-30</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>a Lucene main checkout (645d4fe14a20) lucene/CHANGES.txt:245, :632-634, :687, :1158, :1699; a Lucene clone 4ae946e5a9b lucene/CHANGES.txt:183-185, :238</code></li><li><code>GitHub apache/lucene PR #16669, read 2026-10-30: commit b3094fab914 (ReqExclBulkScorer.java: sparseScore with both docIDRunEnd branches; shouldUseBitSet = excl.cost() &gt;= (req.cost() &gt;&gt;&gt; 7)), commit e0c955a58c7 &#x27;delete spare path&#x27;, kkewwei&#x27;s comments of 2026-09-17 (&#x27;I&#x27;m exploring whether we can remove the `sparse` path ...&#x27;, &#x27;I remove the `sparse` path ...&#x27;)</code></li><li><code>GitHub apache/lucene PR #16142 body and changed files (DisjunctionDISIApproximation.java, MustNotBooleanQueryBenchmark.java, CHANGES.txt, a test), read 2026-10-30</code></li></ul></dd></div><div><dt>History</dt><dd><ul class='paths'><li><code>GitHub tag releases/lucene/10.6.0 -&gt; 4ae946e5a9b (tagged 2026-10-29), read 2026-10-30</code></li><li><code>a Lucene clone: git merge-base --is-ancestor 92ce3eaf4bf origin/branch_10x (yes); merge-base of origin/branch_10x and origin/branch_10_6 = 3e416dce059 (2026-10-14); release tags 10.0.0 to 10.5.2</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestReqExclSkipsExcludedRun.java (lucene/core, package org.apache.lucene.search, 1 test): <a href='../repro/LFV-1044/TestReqExclSkipsExcludedRun.java'><code>repro/LFV-1044/TestReqExclSkipsExcludedRun.java</code></a> (123 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A small diagram, made in parallel with this doc from the executed runs. Its fix part shows fix A (restore <code class='nw'>docIDRunEnd</code> at window starts) with its limit; this doc recommends fix C. Both are validated.</p><ul class='paths'><li><a href='../assets/LFV-1044/bug.png'><code>assets/LFV-1044/bug.png</code></a> (473 KB)</li></ul><p class='meta built'>Built 2026-10-30 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-30. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  var own = !base && window.top === window && /^(https?|file):$/.test(location.protocol);
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = (own ? String(location.href).split('#')[0] : base) + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

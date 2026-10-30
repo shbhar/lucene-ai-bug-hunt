@@ -2,6 +2,8 @@
 
 Bug LFV-313 · Area: facet / range, rangeonrange and facetset (exclusive-bound adjustment of double and float ranges: range.DoubleRange, rangeonrange.DoubleRange, facetset.DimRange.fromDoubles/fromFloats) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-313.html](../../bugs/LFV-313.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

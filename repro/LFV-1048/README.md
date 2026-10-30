@@ -2,6 +2,8 @@
 
 Bug LFV-1048 · Area: join / block join iterator (ParentsChildrenBlockJoinQuery advance and Weight#explain; reached through ConjunctionDISI, sorted-search competitive iterators and IndexSearcher.explain) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-1048.html](../../bugs/LFV-1048.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index the blocks [a, b, p1] and [c, p2] and build a ParentsChildrenBlockJoin
 
 ## Expected vs actual
 
-- Expected: You expect the BooleanQuery +join #id:b to match nothing and explain(join, b) to say it is not a match.
-- Actual: The conjunction returns b and explain reports b as a match: advance(target) starts counting the limit at the target instead of at the block's first child, so it returns a child that nextDoc never returns, which breaks the DocIdSetIterator#advance contract.
+- Expected: `count(+join #id:b)` = 0, because the join alone matches only `a` and `c` (`count(join)` = 2).
+- Actual: `count(+join #id:b)` = 1: `AssertionError: expected:<0> but was:<1>`, with assertions on and off.
 
 ## Files
 
@@ -43,6 +45,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestParentsChildrenChildLimitAdvance.java](TestParentsChildrenChildLimitAdvance.java)
 
 ## Feedback
 

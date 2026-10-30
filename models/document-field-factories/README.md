@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Bugs found
 
-- DoubleRange and FloatRange accept the bounds [0.0, -0.0] and store them inverted, so range queries silently miss such documents and contradict each other (WITHIN [0,0] but not INTERSECTS [0,0]) (bug LFV-140; [repro](../../repro/LFV-140/))
+- DoubleRange and FloatRange accept the bounds [0.0, -0.0] and store them inverted, so range queries silently miss such documents and contradict each other (WITHIN [0,0] but not INTERSECTS [0,0]) (bug LFV-140; [repro](../../repro/LFV-140/), [bug page](../../bugs/LFV-140.html))
 
 ## Files
 

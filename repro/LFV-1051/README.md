@@ -2,6 +2,8 @@
 
 Bug LFV-1051 · Area: index / doc-values overlays (OverlaySortedNumericDocValues over DocValuesOverlayMerger), seen through search / field sorting (SortedNumericSelector, LongComparator, TopFieldCollector) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-1051.html](../../bugs/LFV-1051.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index three documents with a multi-valued SortedNumericDocValuesField m = {5
 
 ## Expected vs actual
 
-- Expected: You expect doc 1 first (minimum 10), which is what you get with overlays disabled.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Expected: Top hit doc 1: its minimum, 10, is smaller than doc 0's 50 and doc 2's 70.
+- Actual: Top hit doc 2: `AssertionError: expected:<1> but was:<2>`, with assertions on and off.
 
 ## Files
 
@@ -41,6 +43,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestOverlaySortedNumericSort.java](TestOverlaySortedNumericSort.java)
 
 ## Feedback
 

@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Bugs found
 
-- Doc-values exact and range queries silently miss or add documents on a skip-indexed field that holds raw float/double bits and that the index is sorted by as FLOAT or DOUBLE: SortedNumericDocValuesRangeQuery's index-sort shortcut checks the sort field's name but not its type (bug LFV-1047; [repro](../../repro/LFV-1047/))
+- Doc-values exact and range queries silently miss or add documents on a skip-indexed field that holds raw float/double bits and that the index is sorted by as FLOAT or DOUBLE: SortedNumericDocValuesRangeQuery's index-sort shortcut checks the sort field's name but not its type (bug LFV-1047; [repro](../../repro/LFV-1047/), [bug page](../../bugs/LFV-1047.html))
 
 ## Files
 
