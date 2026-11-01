@@ -2,11 +2,13 @@
 
 Finding LFV-480 · Area: store / BufferedIndexInput.SlicedIndexInput (BufferedIndexInput.wrap and the default slice()) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-480.html](../../bugs/LFV-480.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You take 20 bytes of a file with BufferedIndexInput.wrap("w", in, 10, 20), or a slice of a BufferedIndexInput subclass that keeps the default slice(), call seek(21) or skipBytes(21), and expect the EOFException that IndexInput#seek promises for a position beyond the end and that every stock Directory's inputs and slices throw. Instead the call succeeds and getFilePointer() returns 21; only the next read throws EOFException. The cause is the empty SlicedIndexInput.seekInternal: BufferedIndexInput.seek hands every target outside its buffer to seekInternal, and only readInternal checks the slice's length.
+You take 20 bytes of a file with BufferedIndexInput.wrap("w", in, 10, 20), or a slice of a BufferedIndexInput subclass that keeps the default slice(), call seek(21) or skipBytes(21), and expect the EOFException that IndexInput#seek promises for a position beyond the end and that the stock Directories' inputs and slices throw in normal use. Instead the call succeeds and getFilePointer() returns 21; only the next read throws EOFException. The cause is the empty SlicedIndexInput.seekInternal: BufferedIndexInput.seek hands every target outside its buffer to seekInternal, and only readInternal checks the slice's length.
 
 The test shows that an input from `BufferedIndexInput.wrap("w", in, 0, 20)` accepts `seek(21)` because `SlicedIndexInput.seekInternal` is empty (the default `BufferedIndexInput#slice` and `skipBytes` reach the same method).
 

@@ -19,9 +19,10 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>SparseFixedBitSet.nextClearBit returns NO_MORE_DOCS in the last 4096-bit block</h1>
 <p class="facts small"><span>Finding LFV-058</span><span>Area: util / bitsets</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-058.html">Finding page for LFV-058</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
-<p>You call nextClearBit on a SparseFixedBitSet longer than 2^31-4096 bits at a position in its last 4096-bit block. You expect the next clear bit. Instead blockBase + 4096 wraps, it returns NO_MORE_DOCS, and BitSetIterator.docIDRunEnd then claims absent documents (DenseConjunctionBulkScorer collected 3,966 docs instead of 1 in the repro).</p>
+<p>You call nextClearBit on a SparseFixedBitSet longer than 2^31-4096 bits at a position in its last 4096-bit block. You expect the next clear bit. Instead blockBase + 4096 wraps, it returns NO_MORE_DOCS, and BitSetIterator.docIDRunEnd then claims absent documents.</p>
 <p>The test shows that <code>SparseFixedBitSet.nextClearBit</code> returns NO_MORE_DOCS for a position in the last 4096-bit block of a set longer than 2^31-4096 bits, because <code>blockBase + 4096</code> overflows to Integer.MIN_VALUE.</p>
 <h2>Expected vs actual</h2>
 <p>Expected: on an empty <code>SparseFixedBitSet(Integer.MAX_VALUE)</code>, <code>nextClearBit(Integer.MAX_VALUE - 1)</code> = 2147483646. Actual: 2147483647 (NO_MORE_DOCS).</p>

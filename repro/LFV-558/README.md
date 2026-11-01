@@ -2,6 +2,8 @@
 
 Finding LFV-558 · Area: facet / taxonomy writer (DirectoryTaxonomyWriter construction, failure cleanup) · Priority: low · Impact: crash · Novelty: new
 
+Finding page: [../../bugs/LFV-558.html](../../bugs/LFV-558.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

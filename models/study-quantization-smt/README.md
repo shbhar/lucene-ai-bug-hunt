@@ -10,7 +10,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 - COSINE vectors whose float32 squared norm underflows pass validation and give Inf/NaN scores or poison OSQ segments (finding LFV-046; [repro](../../repro/LFV-046/), [finding page](../../bugs/LFV-046.html))
 - Quantized MIP/EUCLIDEAN scores become NaN when OSQ correction terms overflow (finding LFV-064; [repro](../../repro/LFV-064/), [finding page](../../bugs/LFV-064.html))
 - Quantized MIP score of a document equal to its segment centroid is 3.0 instead of 3.5 (finding LFV-079; [repro](../../repro/LFV-079/))
-- PACKED_NIBBLE quantized vectors with an odd dimension fail once raw vectors are dropped (finding LFV-065; [repro](../../repro/LFV-065/))
+- PACKED_NIBBLE quantized vectors with an odd dimension fail once raw vectors are dropped (finding LFV-065; [repro](../../repro/LFV-065/), [finding page](../../bugs/LFV-065.html))
 
 ## Files
 

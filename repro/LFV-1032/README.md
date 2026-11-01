@@ -10,8 +10,8 @@ The MemoryIndex class javadoc shows an 'Example Usage' program that adds two fie
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
+- Expected: The 12-line example compiles and, when run, prints "it's a match".
+- Actual: javac: `SimpleAnalyzer` "cannot be applied to given types" and "no suitable constructor found for QueryParser(Version,String,Analyzer)", with assertions on and off.
 
 ## Files
 

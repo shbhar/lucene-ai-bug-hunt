@@ -2,6 +2,8 @@
 
 Finding LFV-031 · Area: store / ByteBuffersDataInput · Priority: low · Impact: crash · Novelty: new
 
+Finding page: [../../bugs/LFV-031.html](../../bugs/LFV-031.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

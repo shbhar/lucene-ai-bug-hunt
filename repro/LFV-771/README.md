@@ -2,6 +2,8 @@
 
 Finding LFV-771 · Area: core / geo (Rectangle.fromPointDistance circle bounding box, used by LatLon distance and Circle queries) · Priority: low · Impact: crash · Novelty: new
 
+Finding page: [../../bugs/LFV-771.html](../../bugs/LFV-771.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

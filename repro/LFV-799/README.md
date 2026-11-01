@@ -2,6 +2,8 @@
 
 Finding LFV-799 · Area: facet / range-on-range facet counts (LongRangeOnRangeFacetCounts and DoubleRangeOnRangeFacetCounts constructors: getEncodedRanges reads ranges[0]) · Priority: low · Impact: wrong error · Novelty: new
 
+Finding page: [../../bugs/LFV-799.html](../../bugs/LFV-799.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- Rectangle.fromPointDistance throws 'invalid longitude NaN' for some legal circles whose edge stops just short of a pole, so LatLon distance queries on them fail with IllegalArgumentException (finding LFV-771; [repro](../../repro/LFV-771/))
+- Rectangle.fromPointDistance throws 'invalid longitude NaN' for some legal circles whose edge stops just short of a pole, so LatLon distance queries on them fail with IllegalArgumentException (finding LFV-771; [repro](../../repro/LFV-771/), [finding page](../../bugs/LFV-771.html))
 
 ## Files
 

@@ -8,9 +8,9 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 - BooleanScorer loops forever on the last 4096-doc window of a segment of about 2^31 documents, and a query timeout cannot stop it (finding LFV-048; [repro](../../repro/LFV-048/), [finding page](../../bugs/LFV-048.html))
 - Bulk BinaryDocValues#binaryValues (new in 10.6) sizes its buffer in int: it fails at 2 GiB and can return wrong bytes at 4 GiB (finding LFV-003; [repro](../../repro/LFV-003/), [finding page](../../bugs/LFV-003.html))
-- SparseFixedBitSet.nextClearBit returns NO_MORE_DOCS in the last 4096-bit block (finding LFV-058; [repro](../../repro/LFV-058/))
-- RoaringDocIdSet.Builder.add(min, max) throws on the last 2^16-doc block (finding LFV-066; [repro](../../repro/LFV-066/))
-- LongHeap and TernaryLongHeap stop growing at 715,827,883 elements despite 'grows unbounded' (finding LFV-069; [repro](../../repro/LFV-069/))
+- SparseFixedBitSet.nextClearBit returns NO_MORE_DOCS in the last 4096-bit block (finding LFV-058; [repro](../../repro/LFV-058/), [finding page](../../bugs/LFV-058.html))
+- RoaringDocIdSet.Builder.add(min, max) throws on the last 2^16-doc block (finding LFV-066; [repro](../../repro/LFV-066/), [finding page](../../bugs/LFV-066.html))
+- LongHeap and TernaryLongHeap stop growing at 715,827,883 elements despite 'grows unbounded' (finding LFV-069; [repro](../../repro/LFV-069/), [finding page](../../bugs/LFV-069.html))
 
 ## Files
 

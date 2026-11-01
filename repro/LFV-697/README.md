@@ -2,6 +2,8 @@
 
 Finding LFV-697 · Area: misc / document: LazyDocument (lazy loading of stored fields, multi-valued fields) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-697.html](../../bugs/LFV-697.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

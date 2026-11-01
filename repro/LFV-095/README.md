@@ -2,11 +2,13 @@
 
 Finding LFV-095 · Area: index / IndexWriter doc-values updates · Priority: low · Impact: data corruption · Novelty: new
 
+Finding page: [../../bugs/LFV-095.html](../../bugs/LFV-095.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You use index sorting with a parent field (IndexWriterConfig#setParentField) and document blocks, and call IndexWriter#updateNumericDocValue or #updateDocValues on that parent field, for example to give a child document a parent mark or to set a parent's mark to null. You expect the call to be rejected with IllegalArgumentException, as IndexWriter rejects doc-values updates of index-sort fields and any document that contains the parent field ('is a reserved field'), or else the index to stay valid. Instead the update is accepted: a child given a mark can put the segment out of index-sort order, so CheckIndex fails ('segment has indexSort=&lt;long: "sort"&gt; but docID=1 sorts after docID=2') as soon as the update is committed, and a removed mark makes the next merge throw EOFException in MultiSorter and close the writer or, when the children have no sort value, silently moves the orphaned documents into the next block.
+You use index sorting with a parent field (IndexWriterConfig#setParentField) and document blocks, and call IndexWriter#updateNumericDocValue or #updateDocValues on that parent field, for example to give a child document a parent mark or to set a parent's mark to null. You expect the call to be rejected with IllegalArgumentException, as IndexWriter rejects doc-values updates of index-sort fields and any document that contains the parent field ('is a reserved field'), or else the index to stay valid. Instead the update is accepted: a child given a mark can put the segment out of index-sort order, so CheckIndex fails ('segment has indexSort=&lt;long: "sort"&gt; but docID=1 sorts after docID=2') as soon as the update is committed, and a removed mark makes the next merge throw EOFException in MultiSorter and close the writer when the unmarked block was the last of its segment and every document there has a sort value, and otherwise silently moves the orphaned documents into the next block.
 
 The test shows that with an index sort and `setParentField("_parent")`, `IndexWriter#updateNumericDocValue(id:child, "_parent", -1)` on a committed block [child(sort=9), parent(sort=1)] is accepted and leaves a segment out of index-sort order (`TestParentFieldDocValuesUpdate#testUpdateParentFieldOfChildKeepsIndexSorted`).
 

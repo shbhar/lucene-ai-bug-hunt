@@ -2,6 +2,8 @@
 
 Finding LFV-067 · Area: util / FST · Priority: low · Impact: crash · Novelty: new
 
+Finding page: [../../bugs/LFV-067.html](../../bugs/LFV-067.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

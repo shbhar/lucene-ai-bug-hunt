@@ -2,7 +2,9 @@
 
 Finding LFV-080 · Area: memory / MemoryIndex · Priority: low · Impact: crash · Novelty: new
 
-AI-assisted finding, reproduced on Lucene main but not yet independently re-verified, and not yet triaged by a human Lucene committer. This site files nothing upstream.
+Finding page: [../../bugs/LFV-080.html](../../bugs/LFV-080.html)
+
+AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 

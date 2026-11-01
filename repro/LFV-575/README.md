@@ -2,6 +2,8 @@
 
 Finding LFV-575 · Area: index / IndexWriter point-in-time merges (merge-on-commit, merge-on-getReader: the preparePointInTimeMerge OneMerge wrapper and the OneMerge lifecycle hooks) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-575.html](../../bugs/LFV-575.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

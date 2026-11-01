@@ -6,8 +6,8 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- DirectoryReader.open and openIfChanged with an ExecutorService never close the segment readers of tasks the executor already accepted when a later submit is rejected (or when the opening thread is interrupted while it waits), so those segments' files stay open (finding LFV-1061; [repro](../../repro/LFV-1061/))
-- DirectoryReader.openIfChanged on a reader opened with a leaf sorter leaks segment reader references when the sorter throws while the new reader is built, so closing the old reader no longer closes the shared segments and the new segment's reader is never closed (finding LFV-1059; [repro](../../repro/LFV-1059/))
+- DirectoryReader.open and openIfChanged with an ExecutorService never close the segment readers of tasks the executor already accepted when a later submit is rejected (or when the opening thread is interrupted while it waits), so those segments' files stay open (finding LFV-1061; [repro](../../repro/LFV-1061/), [finding page](../../bugs/LFV-1061.html))
+- DirectoryReader.openIfChanged on a reader opened with a leaf sorter leaks segment reader references when the sorter throws while the new reader is built, so closing the old reader no longer closes the shared segments and the new segment's reader is never closed (finding LFV-1059; [repro](../../repro/LFV-1059/), [finding page](../../bugs/LFV-1059.html))
 
 ## Files
 

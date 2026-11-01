@@ -2,6 +2,8 @@
 
 Finding LFV-029 · Area: util / automaton · Priority: low · Impact: crash · Novelty: new
 
+Finding page: [../../bugs/LFV-029.html](../../bugs/LFV-029.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

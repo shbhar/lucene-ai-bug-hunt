@@ -2,6 +2,8 @@
 
 Finding LFV-1006 · Area: analysis-common / hunspell Dictionary loading (SortingStrategy.offline, HunspellStemFilterFactory) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-1006.html](../../bugs/LFV-1006.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

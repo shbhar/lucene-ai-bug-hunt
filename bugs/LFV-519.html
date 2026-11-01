@@ -1,0 +1,418 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>WordBreakSpellChecker.suggestWordCombinations ignores maxEvaluations: the limit stops one left term, then every later one is evaluated</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.triage{margin:var(--s4) 0 0;padding:var(--s2) var(--s4);border-left:3px solid var(--info);background:var(--panel);
+max-width:var(--measure)}
+.triage p{margin:0;font-size:var(--step--1);line-height:1.5}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the finding in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All findings</a> &middot; Lucene finding &middot; LFV-519 &middot; wordbreak-combinations-maxevaluations-not-enforced</p><h1 id='top'>WordBreakSpellChecker.suggestWordCombinations ignores maxEvaluations: the limit stops one left term, then every later one is evaluated</h1><p class='tldr'><code>setMaxEvaluations(n)</code> promises at most n word combinations evaluated, but <code>suggestWordCombinations</code> skips only the rest of the left word where its count first reaches n and evaluates every later one: with a limit of 1, a 4-word query gets 3 suggestions. The #12077 fix in 9.5.0 covered only <code>suggestWordBreaks</code>.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 889</span><span class='sub'>WordBreakSpellChecker word combinations ignore maxEvaluations, causing only a few extra cheap lookups, the same expansion-limit-not-enforced class as LFV-462.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>minor</span></dd></div><div><dt>Since</dt><dd>the method's first version: LUCENE-3523 (2012), first released in 4.0.0-ALPHA<span class='sub'>introduced 2012-05-30 &middot; over 14 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>every release 4.0.0-ALPHA to 10.6.0 (133 versions), and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div class='wide'><dt>Found by</dt><dd>semi-formal: a bounded check counting term lookups over a grid of limits</dd></div></dl><p class='ai-note'>AI-assisted page: this finding was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-11-01.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All findings</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The finding in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>Lowering <code class='nw'>maxEvaluations</code> does not cap how many word joins <code>suggestWordCombinations</code> tries.</p><div class='part' id='background'><div class="hd hd-3"><h3 id='background-h'>How word combinations are suggested</h3><a class="hlink" href="#background" target="_self" aria-label="Link to this section" aria-describedby="background-h"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span><code>WordBreakSpellChecker.suggestWordCombinations</code> suggests joining adjacent query words into one word that is in the index, for example <code>ice cream</code> into <code class='nw'>icecream</code>.</span></li><li><span>For each query word (the left term) it tries joining it with the next 1 to <code class='nw'>maxChanges</code> words. Each join costs one term lookup (<code class='nw'>docFreq</code>) and can give one suggestion.</span></li><li><span><code>setMaxEvaluations(n)</code> is documented as "The maximum number of word combinations to evaluate" (default 1,000): a lower value is meant to trade suggestion quality for speed.</span></li></ol></div><figure class='visual' id='wordbreak-combinations-maxevaluations-not-enforced-short-visual'><div class='frame'><a class='still' href='../assets/LFV-519/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-519/bug.png' alt='Diagram of the bug: WordBreakSpellChecker.suggestWordCombinations on the query a b c d with maxChanges 2 and maxEvaluations 1, against an index holding ab, bc and bcd. The joins ab, abc, bc, bcd and cd are possible. The counter equals the limit after ab, so only abc is skipped; bc, bcd and cd are still looked up, 4 lookups in all, and 3 suggestions (bc, ab, bcd) come back where at most 1 is allowed. With the &gt;= check before each lookup, 1 lookup is made and ab is returned.' width='1920' height='1080'></a></div><figcaption>The minimal example join by join: query <code>a b c d</code>, <code class='nw'>maxChanges</code> 2, <code class='nw'>maxEvaluations</code> 1. The counter reaches the limit after <code class='nw'>ab</code> and only <code class='nw'>abc</code> is skipped; <code class='nw'>bc</code>, <code class='nw'>bcd</code> and <code class='nw'>cd</code> are still looked up and 3 suggestions come back, while the fix stops after 1. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><div class="hd hd-3"><h3 id='the-bug-step-by-step'>The finding, step by step</h3><a class="hlink" href="#the-bug-step-by-step" target="_self" aria-label="Link to this section" aria-describedby="the-bug-step-by-step"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span>Index one document with the terms <code class='nw'>ab</code>, <code class='nw'>bc</code> and <code class='nw'>bcd</code>. Call <code class='nw'>setMaxChanges(2)</code> and <code>setMaxEvaluations(1)</code>, then <code>suggestWordCombinations</code> for the query words <code>a b c d</code>.</span></li><li><span>You expect 1 join to be tried, so at most 1 suggestion: <code class='nw'>ab</code>, the first one.</span></li><li><span>Instead 4 of the 5 possible joins are looked up (<code class='nw'>ab</code>, <code class='nw'>bc</code>, <code class='nw'>bcd</code>, <code class='nw'>cd</code>; only <code class='nw'>abc</code> is skipped) and 3 suggestions come back: <code class='nw'>bc</code>, <code class='nw'>ab</code>, <code class='nw'>bcd</code>.</span></li><li><span>Why: one counter counts the whole call, but it is compared with <code class='nw'>==</code> after each lookup, and the <code class='nw'>break</code> leaves only the inner loop. Past the limit it never equals it again, so every later left word runs in full; a limit of 0 means no limit at all.</span></li><li><span>At scale, with the defaults (limit 1,000, <code class='nw'>maxChanges</code> 1), a 100,000-word query makes 99,999 lookups instead of 1,000. Nothing fails; the work stays linear in the query length, only the cap is lost.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Anyone who lowers <code class='nw'>maxEvaluations</code> to bound spellcheck work, directly or through a downstream setting such as Solr's word-break spellchecker, on every query with more joins than the limit. The default 1,000 hides it below about 1,000 joins. Effect: extra term lookups and possibly extra suggestions, still capped by <code class='nw'>maxSuggestions</code>; nothing fails.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>672 words</span></summary><div class='body'><p><code>WordBreakSpellChecker.suggestWordCombinations</code> suggests joining adjacent query words into one indexed word. <code>setMaxEvaluations</code> is documented as "The maximum number of word combinations to evaluate" (default 1000), and the method keeps one counter for the call, but it compares the counter with <code>== maxEvaluations</code> after each lookup and its <code class='nw'>break</code> leaves only the inner loop. So the limit skips only the rest of the one left term at which the counter first equals it; every later left term is evaluated in full, and a limit of 0 or less never matches. With the terms <code class='nw'>ab</code>, <code class='nw'>bc</code>, <code class='nw'>bcd</code> indexed, the query <code>a b c d</code>, <code>maxChanges = 2</code> and <code>maxEvaluations = 1</code>, 4 of the 5 possible joins are looked up and 3 suggestions come back instead of at most 1. The code is unchanged since the class was added (LUCENE-3523, 2012), so every lucene-suggest release from 4.0.0-ALPHA to 10.6.0 and main are affected. #12077 fixed the same symptom in 9.5.0, but only in the word-break path. The work stays bounded by the query length times <code class='nw'>maxChanges</code>; a small change (+5/-4 lines) that checks <code class='nw'>&gt;=</code> before each lookup and leaves both loops restores the cap and passes all <code class='nw'>lucene/suggest</code> tests (237 run, 7 skipped, 0 failures).</p><div class="hd hd-3"><h3 id='what-the-bug-is-the-loop'>The loop</h3><a class="hlink" href="#what-the-bug-is-the-loop" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-loop"><span aria-hidden="true">#</span></a></div><p><code>WordBreakSpellChecker.suggestWordCombinations</code> on main <code class='nw'>645d4fe14a20</code>:</p><pre><code>int thisTimeEvaluations = 0;                                            // :168  one counter for the call
+for (int i = 0; i &lt; terms.length - 1; i++) {                            // :169  left term
+  ...
+  for (int j = i + 1; j &lt; terms.length &amp;&amp; j - i &lt;= maxChanges; j++) {  // :186  right end of the join
+    ...
+    int combinedTermFreq = ir.docFreq(combinedTerm);                    // :204  one evaluation
+    ...                                                                 // :206-226 offer a suggestion
+    thisTimeEvaluations++;                                              // :228
+    if (thisTimeEvaluations == maxEvaluations) {                        // :229  &#x27;==&#x27;, not &#x27;&gt;=&#x27;
+      break;                                                            // :230  leaves only the inner loop
+    }
+  }
+}</code></pre><ul><li>The counter is declared once, outside both loops, and never reset: it counts the whole call.</li><li>It is checked after the lookup, with <code class='nw'>==</code>, and the unlabeled <code class='nw'>break</code> leaves only the inner loop. After the first match the counter is past the limit and never equal to it again, so the outer loop carries on and every later left term is evaluated in full.</li><li>Exactly the rest of the left term at which the counter first equals the limit is skipped. A limit of 0 or less never equals the counter after an increment, so nothing is skipped.</li><li>The method is otherwise bounded: the inner loop stops after <code class='nw'>maxChanges</code> right terms (<code class='nw'>:186</code>), at a <code class='nw'>SEPARATOR_TERM</code> (<code class='nw'>:187-189</code>) and when the joined text passes <code>maxCombineWordLength</code> (default 20, <code class='nw'>:194-196</code>), so a call makes at most about (terms - 1) x <code class='nw'>maxChanges</code> lookups.</li><li>The sibling path <code>generateBreakUpSuggestions</code> (word breaks) checks <code>totalEvaluations &gt;= maxEvaluations</code> before each evaluation (<code class='nw'>:269-272</code>; this check came with #12077 in 9.5.0), and also before recursing (<code class='nw'>:299</code>) and after each recursion (<code class='nw'>:324-326</code>), two checks that came with the breadth-first rewrite #12100 (9.12.0).</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-minimal-example-join-by-join'>The minimal example, join by join</h3><a class="hlink" href="#what-the-bug-is-the-minimal-example-join-by-join" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-minimal-example-join-by-join"><span aria-hidden="true">#</span></a></div><p>Index <code>{ab, bc, bcd}</code>, query <code>a b c d</code>, <code>maxChanges = 2</code>, <code>maxEvaluations = 1</code>, <code class='nw'>SUGGEST_ALWAYS</code>:</p><div class="tbl"><table><thead><tr><th>left term</th><th>join</th><th>lookup no.</th><th>in index</th><th>counter == 1?</th></tr></thead><tbody><tr><td><code class='nw'>a</code></td><td><code class='nw'>ab</code></td><td>1</td><td>yes, suggestion</td><td>yes: inner loop left, <code class='nw'>abc</code> skipped</td></tr><tr><td><code class='nw'>b</code></td><td><code class='nw'>bc</code></td><td>2</td><td>yes, suggestion</td><td>no</td></tr><tr><td><code class='nw'>b</code></td><td><code class='nw'>bcd</code></td><td>3</td><td>yes, suggestion</td><td>no</td></tr><tr><td><code class='nw'>c</code></td><td><code class='nw'>cd</code></td><td>4</td><td>no</td><td>no</td></tr></tbody></table></div><p>Result: 4 lookups and 3 suggestions, <code>[bc, ab, bcd]</code>. A cap per call allows 1; a budget per left term would allow <code class='nw'>ab</code> and <code class='nw'>bc</code> (2). With the fix: 1 lookup, <code class='nw'>[ab]</code>.</p><div class="hd hd-3"><h3 id='what-the-bug-is-larger-numbers'>Larger numbers</h3><a class="hlink" href="#what-the-bug-is-larger-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-larger-numbers"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>setup</th><th>allowed</th><th>stock</th></tr></thead><tbody><tr><td>every 2-6 letter run of <code class='nw'>abcdef</code> indexed, query <code>a b c d e f</code>, <code>maxChanges = 5</code>, <code>maxEvaluations = 1</code></td><td>1</td><td>11 of 15 joins evaluated and returned</td></tr><tr><td>the same, <code>maxEvaluations = 3</code></td><td>3</td><td>13</td></tr><tr><td>the same, <code>maxEvaluations = 0</code></td><td>0</td><td>15 (no limit at all)</td></tr><tr><td>defaults (<code>maxEvaluations = 1000</code>, <code>maxChanges = 1</code>), 100,000 one-letter words</td><td>1,000</td><td>99,999 lookups (168 ms vs 2.6 ms fixed)</td></tr></tbody></table></div></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>279 words</span></summary><div class='body'><ul><li><strong>Who.</strong> Code that calls <code>setMaxEvaluations</code> with a value small enough to bind, directly or through a downstream component. Apache Solr's <code>WordBreakSolrSpellChecker</code> maps its <code class='nw'>maxEvaluations</code> parameter onto <code>setMaxEvaluations</code> and calls <code>suggestWordCombinations</code> on every request it serves, even with <code>combineWords=false</code>; its sample config sets <code>maxChanges = 10</code> (read from its source, not run).</li><li><strong>Default vs opt-in.</strong> With the default limit of 1,000 it shows only for queries with more than 1,000 joins: more than 1,001 words at the default <code>maxChanges = 1</code>, or roughly 100 short words at <code>maxChanges = 10</code>. With a smaller limit it shows on every query with more joins than the limit, deterministically.</li><li><strong>Effect.</strong> More combined-term lookups (term-dictionary seeks) than configured and possibly more suggestions, still capped by <code class='nw'>maxSuggestions</code>; the skipped subset is irregular. No exception, no index change.</li><li><strong>Scale</strong> (a 702-term in-memory index, one host, medians of 5; the lookup counts are exact, the times indicative): defaults, 100,000 one-letter words: 99,999 lookups in 168 ms vs 1,000 in 2.6 ms fixed; <code>maxChanges = 10</code>: 999,945 lookups in 1.5 s vs 1,000 in 3.3 ms. The 100,000 per-word lookups that every mode except <code class='nw'>SUGGEST_ALWAYS</code> does first take 129 ms.</li><li><strong>Size of the problem.</strong> Without the fix the combined-term lookups grow with the query length times <code class='nw'>maxChanges</code> (at most (words - 1) x <code class='nw'>maxChanges</code>); the fix caps them at <code class='nw'>maxEvaluations</code> whatever the query length. Every mode except <code class='nw'>SUGGEST_ALWAYS</code> also looks up each query word once (<code class='nw'>:155-161</code>), so the whole call stays linear in the query length either way; the bug removes the fixed cap the caller asked for. Few deployments tune the setting, and nobody reported it in 14 years.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>One JUnit test, public API only: an index with <code class='nw'>ab</code>, <code class='nw'>bc</code> and <code class='nw'>bcd</code>, the query <code>a b c d</code>, <code class='nw'>maxChanges</code> 2 and <code class='nw'>maxEvaluations</code> 1. It asserts at most 1 suggestion; stock Lucene returns 3.</p><figure class='code'><figcaption><span class='fname'>TestWordBreakCombineMaxEvaluations.java (one test class)</span><span class='meta'>60 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.spell;
+
+import java.util.Arrays;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+public class TestWordBreakCombineMaxEvaluations extends LuceneTestCase {
+
+  public void testMaxEvaluationsLimitsCombinations() throws Exception {
+    try (Directory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter writer = new IndexWriter(dir, new IndexWriterConfig())) {
+        Document doc = new Document();
+        for (String word : new String[] {&quot;ab&quot;, &quot;bc&quot;, &quot;bcd&quot;}) {
+          doc.add(new StringField(&quot;f&quot;, word, Field.Store.NO));
+        }
+        writer.addDocument(doc);
+      }
+      try (IndexReader reader = DirectoryReader.open(dir)) {
+        Term[] terms = {
+          new Term(&quot;f&quot;, &quot;a&quot;), new Term(&quot;f&quot;, &quot;b&quot;), new Term(&quot;f&quot;, &quot;c&quot;), new Term(&quot;f&quot;, &quot;d&quot;)
+        };
+        WordBreakSpellChecker spellChecker = new WordBreakSpellChecker();
+        spellChecker.setMaxChanges(2);
+        spellChecker.setMaxEvaluations(1);
+        CombineSuggestion[] suggestions =
+            spellChecker.suggestWordCombinations(terms, 10, reader, SuggestMode.SUGGEST_ALWAYS);
+        // expected: 1 combination evaluated, so at most 1 suggestion; actual: ab, bc and bcd
+        assertTrue(
+            &quot;expected at most 1 suggestion with maxEvaluations=1, got &quot;
+                + Arrays.toString(Arrays.stream(suggestions).map(s -&gt; s.suggestion().string).toArray()),
+            suggestions.length &lt;= 1);
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cd $LUCENE &amp;&amp; ./gradlew :lucene:suggest:test --tests org.apache.lucene.search.spell.TestWordBreakCombineMaxEvaluations -Ptests.seed=DEADBEEF -Ptests.asserts=true
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>At most 1 combination evaluated, so at most 1 suggestion (<code class='nw'>ab</code>).</dd></div><div class='got'><dt>Observed</dt><dd>3 suggestions, <code>[bc, ab, bcd]</code>, from 4 combined-term lookups; with the fix, 1 lookup and <code class='nw'>[ab]</code>.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-519/'>repro/LFV-519/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>262 words</span></summary><div class='body'><p>One test class, one method, single thread, nothing random: <code class='nw'>StringField</code>, <code>ByteBuffersDirectory</code> and the default <code>IndexWriterConfig</code>. It asserts only the setter's contract: each evaluated combination yields at most one suggestion, so <code>maxEvaluations = 1</code> allows at most one. Pass <code class='nw'>-Ptests.asserts</code> explicitly, because Lucene's build otherwise picks it at random from the seed; the result is the same both ways.</p><p><strong>Formatting:</strong> <code>./gradlew tidy</code> (google-java-format) wraps the <code>Arrays.toString(...)</code> line. With that the test passes the module's format, ECJ and forbidden-apis checks.</p><p><strong>Regression test:</strong> this same test, as its own class or as a method of <code>TestWordBreakSpellChecker</code> with its own directory (that class shares a different index).</p><p><strong>Older releases:</strong> the test compiles on 10.0.0 and later (<code>CombineSuggestion</code> is a record there); on 9.x write <code>s.suggestion.string</code>.</p><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main 645d4fe14a20 (11.0.0-SNAPSHOT): fails; 10.6.0 and 10.5.2: fail; with the fix: passes</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp $REPRO/TestWordBreakCombineMaxEvaluations.java $LUCENE/lucene/suggest/src/test/org/apache/lucene/search/spell/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:suggest:test --tests org.apache.lucene.search.spell.TestWordBreakCombineMaxEvaluations -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# the same failure with -Ptests.asserts=false
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># stock main 645d4fe14a20, gradle, -Ptests.seed=DEADBEEF -Ptests.asserts=true
+TestWordBreakCombineMaxEvaluations &gt; testMaxEvaluationsLimitsCombinations FAILED
+    java.lang.AssertionError: expected at most 1 suggestion with maxEvaluations=1, got [bc, ab, bcd]
+        at __randomizedtesting.SeedInfo.seed([DEADBEEF:AAB441975C67B46F]:0)
+        ...
+        at org.apache.lucene.search.spell.TestWordBreakCombineMaxEvaluations.testMaxEvaluationsLimitsCombinations(TestWordBreakCombineMaxEvaluations.java:53)
+1 test completed, 1 failed
+
+# the same message with asserts off, and on releases 10.6.0 and 10.5.2
+
+# lookup counts on the same input (a counting reader, assertions off; evidence, not the repro; log lines, labelled stock:/fix:)
+stock: maxEvaluations=1    -&gt; combinedLookups=4 suggestions=[bc, ab, bcd]
+stock: maxEvaluations=1000 -&gt; combinedLookups=5 suggestions=[bc, ab, bcd]
+fix:   maxEvaluations=1    -&gt; combinedLookups=1 suggestions=[ab]
+fix:   maxEvaluations=1000 -&gt; combinedLookups=5 suggestions=[bc, ab, bcd]</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it looks unintended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The setter promises "The maximum number of word combinations to evaluate"; the method itself counts and checks it.</li><li>The counter is never reset, so it is no per-word budget either: that would allow 2 suggestions here, not 3.</li><li>#12077 fixed the same symptom for word breaks in 9.5.0 with <code class='nw'>&gt;=</code> checks; this method was never changed.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>225 words</span></summary><div class='body'><ul><li><strong>The contract.</strong> <code>setMaxEvaluations</code>: "The maximum number of word combinations to evaluate. Default=1000. A higher value might improve result quality. A lower value might improve performance." (<code>WordBreakSpellChecker.java:451-453</code>); <code>getMaxEvaluations</code>: "Returns the maximum number of word combinations to evaluate." (<code class='nw'>:404-405</code>). "Word combinations" names exactly what this method does.</li><li><strong>The method tries to apply it.</strong> It declares, increments and checks the counter itself (<code class='nw'>:168</code>, <code class='nw'>:228-231</code>). An <code class='nw'>==</code> test with an inner-only break can fire at most once per call and has no coherent other meaning.</li><li><strong>Not a budget per left term.</strong> The counter is never reset. With <code>maxChanges = 5</code> and <code>maxEvaluations = 1</code> on six words, such a budget allows 5 lookups; the stock code makes 11.</li><li><strong>The project treats it as a bug.</strong> #12077 (hossman, 2023) reported the same symptom for <code>generateBreakUpSuggestions()</code>; <code class='nw'>9007f746a39</code> fixed it with <code class='nw'>&gt;=</code> guards and changed only that method. <code class='nw'>CHANGES.txt:3869</code> (9.5.0): "GITHUB#12077: WordBreakSpellChecker now correctly respects maxEvaluations (hossman)".</li><li><strong>Tests.</strong> <code>TestWordBreakSpellChecker.testMaxEvaluations</code> and <code>testSmallMaxEvaluations</code> treat the limit as a hard bound for word breaks: "if maxEvaluations is respected, we can't possibly have more suggestions than that". No upstream test sets <code class='nw'>maxEvaluations</code> for combinations.</li><li><strong>History.</strong> The <code class='nw'>==</code> check and inner-only break are in the method's first version (LUCENE-3523, 2012) and were never changed; no comment, test, issue or list thread describes the current behaviour as wanted.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>105 words</span></summary><div class='body'><p>The strongest case for "intended": <code class='nw'>maxEvaluations</code> is an effort knob meant for the exponential break-up recursion; the combine loop is bounded anyway by words x <code class='nw'>maxChanges</code>; and the <code>suggestWordCombinations</code> javadoc does not mention the limit.</p><p>Why it fails: the method counts and checks the limit itself, the setter's text names word combinations, and a bound that grows with the query is not the fixed cap the setter offers (99,999 lookups instead of 1,000 with the defaults). Because the method javadoc is silent, the contract rests on the setter and the #12077 CHANGES line. What remains is an argument for low priority, not for intent.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Check &gt;= before each lookup and leave both loops (validated)</strong></p><p class='short'>Test <code>thisTimeEvaluations &gt;= maxEvaluations</code> before each combined-term lookup, as the word-break path tests before each evaluation since #12077, and leave both loops with a labeled <code class='nw'>break</code>. With it the repro passes, and so do all <code class='nw'>lucene/suggest</code> tests (237 run, 7 skipped, 0 failures).</p><pre class='snippet' tabindex='0'><code>int thisTimeEvaluations = 0;
+outer:
+for (int i = 0; i &lt; terms.length - 1; i++) {
+  ...
+    if (thisTimeEvaluations &gt;= maxEvaluations) {
+      break outer;
+    }
+    thisTimeEvaluations++;
+    Term combinedTerm = new Term(terms[0].field(), combinedTermText);
+    int combinedTermFreq = ir.docFreq(combinedTerm);
+    ...   // and remove: thisTimeEvaluations++; if (... == maxEvaluations) break;</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>3 options · 435 words</span></summary><div class='body'><p>One fix was validated through gradle in a scratch worktree of <code class='nw'>645d4fe14a20</code>; the smaller variant and a javadoc-only change are listed with their trade-offs.</p><div class="hd hd-3"><h3 id='fix-check-before-lookup'>Check &gt;= before each lookup and leave both loops (validated) <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-check-before-lookup" target="_self" aria-label="Link to this section" aria-describedby="fix-check-before-lookup"><span aria-hidden="true">#</span></a></div><p><code>WordBreakSpellChecker.suggestWordCombinations</code>, +5/-4 lines: label the outer loop, test the counter before the <code class='nw'>docFreq</code> lookup, and drop the <code class='nw'>==</code> check after it.</p><pre class='snippet' tabindex='0'><code>int thisTimeEvaluations = 0;
+outer:
+for (int i = 0; i &lt; terms.length - 1; i++) {
+  ...
+    if (thisTimeEvaluations &gt;= maxEvaluations) {
+      break outer;
+    }
+    thisTimeEvaluations++;
+    Term combinedTerm = new Term(terms[0].field(), combinedTermText);
+    int combinedTermFreq = ir.docFreq(combinedTerm);
+    ...   // and remove: thisTimeEvaluations++; if (... == maxEvaluations) break;</code></pre><p class='k'>Trade-offs</p><ul><li>At most <code class='nw'>maxEvaluations</code> combined-term lookups per call, so at most that many suggestions. A limit of 0 or less makes no combined-term lookups, as the word-break path makes no evaluations then.</li><li>Callers with a small limit get fewer combination suggestions than today, which is what the limit promises. Joins are tried left to right, so a tight limit favours those that start at earlier words; that is already true for the first left word today.</li><li>Cost: one <code class='nw'>int</code> compare per join.</li><li>Open PR #16847 changes the <code class='nw'>int</code> docFreq types in this method; the two touch nearby lines (a textual conflict only).</li></ul><p class='k'>What the checks validated</p><ul><li>Scratch worktree of <code class='nw'>645d4fe14a20</code>, gradle <code class='nw'>--no-daemon</code>, OpenJDK 25.0.3, seed DEADBEEF. Stock: the repro fails with assertions on and off.</li><li>With the fix: the repro and <code>TestWordBreakSpellChecker</code> (5 tests) pass, and all <code>:lucene:suggest:test</code> passes (32 suites, 237 tests, 7 skipped, 0 failures) with assertions on and off. <code>checkGoogleJavaFormat</code> (after <code class='nw'>tidy</code> of the test; the fix itself is clean), <code class='nw'>ecjLintMain</code>, <code class='nw'>ecjLintTest</code>, <code>forbiddenApisMain</code> and <code>forbiddenApisTest</code> pass. Other modules were not run.</li><li>Earlier: the finder's, the independent reproduction's and the intended-behaviour check's tests and the history probe (1 / 3 / 1 / 0 where 1 / 3 / 1 / 0 are allowed) pass with the same change; upstream <code>TestWordBreakSpellChecker</code> 25 runs, 0 failures.</li></ul><div class="hd hd-3"><h3 id='fix-ge-after-lookup'>Change == to &gt;= and break out of both loops, check still after the lookup <span class='n'>(not run)</span></h3><a class="hlink" href="#fix-ge-after-lookup" target="_self" aria-label="Link to this section" aria-describedby="fix-ge-after-lookup"><span aria-hidden="true">#</span></a></div><p><code>if (thisTimeEvaluations &gt;= maxEvaluations) break outer;</code> in place of the current check.</p><p class='k'>Trade-offs</p><p>Smaller diff and the same result for a limit of 1 or more, but a limit of 0 or less still makes one lookup before it stops, unlike the word-break path.</p><p class='k'>What the checks validated</p><p>Not run.</p><div class="hd hd-3"><h3 id='fix-document-only'>Document that maxEvaluations applies only to word breaks <span class='n'>(not run)</span></h3><a class="hlink" href="#fix-document-only" target="_self" aria-label="Link to this section" aria-describedby="fix-document-only"><span aria-hidden="true">#</span></a></div><p>Javadoc change only.</p><p class='k'>Trade-offs</p><p>Contradicts the setter's text and the counter the method already keeps, and leaves combinations without a fixed cap. Not recommended.</p><p class='k'>What the checks validated</p><p>Not executed (documentation only).</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Apache Solr's word-break spellchecker passes its <code class='nw'>maxEvaluations</code> parameter to <code>setMaxEvaluations</code> and calls <code>suggestWordCombinations</code> on every spellcheck request, so a limit set there is not applied to word joins either.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>An AI-assisted hunt of Lucene's spellchecker code checked <code>suggestWordCombinations</code> against the setter's bound on the stock jar: a reader that counts term lookups ran limits 0-10 with <code class='nw'>maxChanges</code> 1-4 on a 5-word query, and 30 of the 44 configurations exceeded the limit (none with the fix).</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>135 words</span></summary><div class='body'><p><strong>Method: semi-formal</strong> (a bounded check on the stock jar against a stated property).</p><ul><li>The hunt unit for the spellchecker, dictionaries and word-break code first ran an exact-reference translation check of <code>suggestWordCombinations</code> with the limit unbounded, which could not see this defect.</li><li>A separate bounded check then tested the setter's bound: a counting <code class='nw'>FilterLeafReader</code> counted the combined-term <code class='nw'>docFreq</code> lookups of <code>suggestWordCombinations</code> on a 5-word query for every <code class='nw'>maxEvaluations</code> from 0 to 10 and <code class='nw'>maxChanges</code> from 1 to 4. 30 of the 44 configurations exceeded the limit; with the fix shadowed in, none did.</li><li>A public-API JUnit test reproduced it on main, 10.5.2, 9.12.3 and 9.1.0. Independent checkers then reproduced it with their own tests, built the strongest "intended" case and rejected it, an adjudication re-ran the tests, and a history probe ran it on every release.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report (2026-10-26: 51 scripted queries over GitHub, commits, the mailing lists, the JIRA archive, downstream repositories and the web, plus 23 manual searches; re-checked 2026-11-01). Closest: #12077, the same symptom fixed only for word breaks in 9.5.0.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>2 searches</span></summary><div class='body'><p>Verdict new. #12077 (closed 2023-01-22, fixed by <code class='nw'>9007f746a39</code> in 9.5.0) has the same symptom for the same setting, but its title, body, comments, test and patch are about <code>generateBreakUpSuggestions()</code>, with a different mechanism (a counter returned from recursion) and fix site; nobody mentioned the combinations path. Other related items: #12100 (break-up search order), #4597 (LUCENE-3523, created the class), #16847 (open; changes only the docFreq types in this method), #5652 (LUCENE-4587), #7299 (LUCENE-6237). #12077's CHANGES line is worded for the whole class.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene incl. the migrated JIRA archive), downstream repositories, dev@/issues@/java-user@/commits@ lists, the web</th><td class='when'>2026-10-26</td><td>scripted prior-report search (51 queries; every source answered, #12077 at rank 1) and 23 manual searches and reads, including #12077 and #12100 with comments and patches, the LUCENE and SOLR JIRA projects, apache/solr, apache/lucenenet and the file lists of all 407 open apache/lucene PRs</td><td>no report; related: #12077, #12100, #4597, #16847, #5652, #7299</td></tr><tr><th scope='row'>GitHub issues and PRs (apache/lucene)</th><td class='when'>2026-11-01</td><td>"suggestWordCombinations", "maxEvaluations", "WordBreakSpellChecker"; the file's upstream commit list</td><td>nothing new; the last upstream commit to the file is from 2026-06-14, before the tested commit</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>In the method since its first version, LUCENE-3523 (2012, first released in 4.0.0-ALPHA), and never changed. All 133 lucene-suggest releases through 10.6.0 and main are affected. #12077 (9.5.0) fixed only the word-break path.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>6 rows</span></summary><div class='body'><p><strong>Introduced by</strong> <code class='nw'>642b882d5a5</code> "LUCENE-3523: Add WordBreakSpellChecker to suggest based on word combinations and/or breaks" (James Dyer, 2012-05-30; svn era, no PR; issue now #4597; same-day branch_4x backport <code class='nw'>99fa008a71e</code>). <code>git blame</code> of the check gives <code class='nw'>642b882d5a5</code>, and <code>git log --all -S'thisTimeEvaluations == maxEvaluations'</code> over the full history lists only these two as adding the line (its only other hit, <code class='nw'>aad44bc6e36</code>, is a 2021 branch_8x placeholder commit that removed the whole tree). Later edits of the method (<code class='nw'>927531255d4</code>, LUCENE-4587, 2012; <code class='nw'>3b67b174932</code>, LUCENE-5512, 2014, diamond operator; <code class='nw'>2cbf261032d</code>, 2021 reformatting) left the limit logic alone. #12077 (<code class='nw'>9007f746a39</code>, 2023-01-22, 9.5.0) changed only <code>generateBreakUpSuggestions</code>, so this is an incomplete-fix sibling of #12077, not a regression from it.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>645d4fe14a20</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>minimal test fails with assertions on and off: 4 lookups, 3 suggestions where 1 is allowed</td></tr><tr><th scope='row'>10.6.0, 10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>minimal test fails with the same message</td></tr><tr><th scope='row'>4.0.0-ALPHA to 10.5.2 (132 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> probe</span></td><td>a public-API probe evaluates 11, 13, 4 and 15 joins where 1, 3, 1 and 0 are allowed, on every release</td></tr><tr><th scope='row'>9.4.2 vs 9.5.0</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> #12077</span></td><td>word breaks fixed (136 suggestions on 9.4.2, 54 on 9.5.0 at a limit of 100); combinations unchanged (11 on both)</td></tr><tr><th scope='row'>3.6.2</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>no WordBreakSpellChecker (the probe does not compile)</td></tr><tr><th scope='row'>main with the fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>1 lookup, <code class='nw'>[ab]</code>; the probe gives 1, 3, 1 and 0</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>Reproduced by the finder, an independent reproducer, an intended-behaviour devil's advocate, the adjudication, the history probe, the minimal repro and this doc. Cross-model reviews (OpenAI GPT-5.6) could only read: one said real, the other a procedural, low-confidence "not real" while agreeing with the root cause.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>312 words</span></summary><div class='body'><p>Every reproduction ran on stock builds; the fix checks shadowed the patched <code>WordBreakSpellChecker</code>. The cross-model reviewers executed nothing; a separate run of the repro on main failed as claimed.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>Finder (bounded check + JUnit)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>30 of 44 configurations exceed the limit, 0 with the fix; JUnit fails on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2, 9.12.3 and 9.1.0.</td></tr><tr><th scope='row'>Cross-model review, refute lens (OpenAI GPT-5.6, reading only)</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> not real (low, procedural)</span></td><td>Could not run code; agreed with the root cause, found the inputs in contract, rated the intended argument weak. A separate run of the repro on main failed.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own test: 12 of 12 configurations exceed the limit, <code>maxEvaluations = 0</code> does 5 lookups; vacuity probe and a word-break control pass; same on 10.5.2 and 9.12.3; its own fix passes.</td></tr><tr><th scope='row'>Cross-model adversary, intended lens (OpenAI GPT-5.6, reading only)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (medium)</span></td><td>Intended argument weak; a separate run re-ran the repro for it: fails on main with <code class='nw'>-ea</code> and <code class='nw'>-da</code>, passes with the fix.</td></tr><tr><th scope='row'>Intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Variant with <code>maxChanges = 2</code> and three-letter words: 6 lookups and two three-word suggestions at a limit of 1, ruling out per-call and per-left-word readings; fix: 1 lookup.</td></tr><tr><th scope='row'>Adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high)</span></td><td>Re-ran the independent reproduction's test (4 run, 2 failed, <code class='nw'>-ea</code> and <code class='nw'>-da</code>) and the finder's test (fails).</td></tr><tr><th scope='row'>History follow-up</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> every release affected</span></td><td>Probe on all 132 releases through 10.5.2 and main; the #12077 boundary table.</td></tr><tr><th scope='row'>Repro minimization</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> verified</span></td><td>The one-test repro fails on <code class='nw'>645d4fe14a20</code> with <code class='nw'>-ea</code> and <code class='nw'>-da</code> and passes with the fix.</td></tr><tr><th scope='row'>This doc</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced, fix validated</span></td><td>Gradle runs on <code class='nw'>645d4fe14a20</code> (stock fails; with the fix the repro and all suggest tests pass: 237 run, 7 skipped, 0 failures), 10.6.0 and 10.5.2 fail, lookup counts 4 vs 1.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-519/bug.png' download='wordbreak-combinations-maxevaluations-not-enforced-bug.png' target='_self'>PNG</a> <span class='n'>384 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Finding record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,115 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Finding record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-519, snapshot of 2026-11-01</p><dl class='card'><div><dt>Registry title</dt><dd>WordBreakSpellChecker.suggestWordCombinations does not honour maxEvaluations: the counter is compared with == and the break leaves only the inner loop, so every later left term is still evaluated and a limit of 0 or less is ignored (the #12077 fix in 9.5.0 covered only suggestWordBreaks)</dd></div><div><dt>Area</dt><dd>suggest / spell (WordBreakSpellChecker word combinations)</dd></div><div><dt>Priority</dt><dd>Low, rank 889: WordBreakSpellChecker word combinations ignore maxEvaluations, causing only a few extra cheap lookups, the same expansion-limit-not-enforced class as LFV-462.</dd></div><div><dt>Impact class</dt><dd>minor</dd></div><div><dt>Impact note</dt><dd>Applications that lower maxEvaluations below the number of combinations a query produces (directly, or through a downstream word-break spellcheck component whose maxEvaluations parameter maps onto setMaxEvaluations) get more combined-term docFreq lookups, and possibly more suggestions, than the configured cap on every such query, on every release since 4.0; with the default limit of 1000 it shows only for queries of more than about 1000 terms (roughly 100 short terms with maxChanges=10); the work stays bounded by about (terms - 1) x maxChanges lookups, results stay capped by maxSuggestions, and nothing is thrown or corrupted.</dd></div><div><dt>Summary</dt><dd>You call WordBreakSpellChecker.setMaxEvaluations(n), documented as 'the maximum number of word combinations to evaluate', and then suggestWordCombinations, and you expect at most n combined-term lookups and so at most n suggestions. Instead the limit cuts off only the rest of the one left term at which the counter first equals n, and every later left term is evaluated in full: with every 2-6 letter run of 'abcdef' indexed, the query [a, b, c, d, e, f], maxChanges=5 and maxEvaluations=1, 11 of the 15 combinations are evaluated and returned, and maxEvaluations=0 evaluates all 15. Nothing is thrown and the work stays bounded by the number of terms times maxChanges; only the configured cap is not applied.</dd></div><div><dt>Introduced</dt><dd>642b882d5a50721ab88ade17b06cd9e2927745b1 (trunk, svn r1344318; same-day branch_4x backport 99fa008a71e), LUCENE-3523 'Add WordBreakSpellChecker to suggest based on word combinations and/or breaks' (now #4597, by jdyer1; svn era, no PR) [read: git blame -w -C -C -M of main lines 168, 204 and 228-231, and git log --all -S'thisTimeEvaluations == maxEvaluations', give only this commit and its backport]; the defect is in the method's first version and was never changed (927531255d4, LUCENE-4587, and the 2021 reformatting 2cbf261032d left the limit logic alone); GITHUB#12077 (9007f746a39 on main, ef8c18b43c7 on branch_9x, 9.5.0) fixed the same symptom only in generateBreakUpSuggestions, so this is an incomplete-fix sibling of #12077, not a regression from it (2012-05-30)</dd></div><div><dt>First affected version</dt><dd>4.0.0-ALPHA [exec] (the first release with WordBreakSpellChecker; first GA release 4.0.0 [exec]); 3.6.2 has no such API [exec: compile error]</dd></div><div><dt>Affected versions</dt><dd>every lucene-suggest version on Maven Central before 10.6.0 (132): 4.0.0-ALPHA, 4.0.0-BETA and all 130 releases 4.0.0 to 10.5.2, plus main ea57360912ed, fail a public-API main() probe with identical numbers (11, 13, 4 and 15 combinations evaluated where 1, 3, 1 and 0 are allowed) [exec, -ea; also -da on 4.0.0, 9.12.3, 10.5.2 and main]; 10.6.0 (released 2026-10-29) fails the one-test minimal repro on its release jars (SHA-1 checked against Maven Central, -ea, 2026-11-01) [exec]; the finder's JUnit fails on 9.1.0, 9.4.2, 9.5.0, 9.12.3, 10.0.0, 10.5.2 and main [exec]; 9.5.0 (#12077) fixed suggestWordBreaks (136 suggestions on 9.4.2, 54 on 9.5.0 at maxEvaluations=100) and left this path unchanged [exec]; not fixed upstream: the line is still on origin/main a9779ef3c19 and on the branch_10x and branch_10_6 tips [read, 2026-10-26]; unaffected: 3.x and earlier (no API) [exec on 3.6.2]</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26, all read-only: a scripted prior-report search with 51 queries over GitHub issues and PRs, commits, downstream repositories, the dev@, issues@, java-user@ and commits@ lists, the JIRA archive and the web, every source ok and the expected #12077 at rank 1; 23 manual searches and reads, among them #12077 and #12100 with their comments and patches, the LUCENE and SOLR JIRA projects, the list archives, apache/lucenenet and apache/solr, and the file lists of all 407 open apache/lucene PRs); related prior items: #12077 (closed 2023-01-22, fixed by 9007f746a39 in 9.5.0: the same symptom, maxEvaluations not respected, reported and fixed only for generateBreakUpSuggestions / suggestWordBreaks, with a different mechanism and fix site, while its CHANGES line reads 'WordBreakSpellChecker now correctly respects maxEvaluations'), #12100 (break-up BFS only), #4597 (LUCENE-3523, introduced the code), #16847 (open, changes only the docFreq types in this method, not the check), #5652 (LUCENE-4587), #7299 (LUCENE-6237)</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>645d4fe14a20</code> (2026-11-01): the minimal test fails through gradle in a scratch worktree with assertions on and off; with the recommended fix it passes, as do all <code class='nw'>lucene/suggest</code> tests (32 suites, 237 tests, 7 skipped, 0 failures) with assertions on and off and the module's format, ECJ and forbidden-apis checks. Releases 10.6.0 and 10.5.2 fail the minimal test. The hunt and its checks ran on main <code class='nw'>ea57360912ed</code>, which has the same <code class='nw'>lucene/suggest</code> code; a history probe failed on all 132 releases from 4.0.0-ALPHA to 10.5.2.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Finding record</dt><dd><ul class='paths'><li><code>a Lucene main checkout lucene/suggest/src/java/org/apache/lucene/search/spell/WordBreakSpellChecker.java:168 (int thisTimeEvaluations = 0, outside the outer loop over left terms), :169 (outer loop), :186 (inner loop, j - i &lt;= maxChanges), :194-196 (maxCombineWordLength break), :204 (ir.docFreq(combinedTerm), one evaluation), :228-231 (thisTimeEvaluations++; if (thisTimeEvaluations == maxEvaluations) break; inner loop only), :451-459 (setMaxEvaluations javadoc &#x27;The maximum number of word combinations to evaluate. Default=1000. A higher value might improve result quality. A lower value might improve performance.&#x27;)</code></li><li><code>a Lucene main checkout lucene/CHANGES.txt:3836 (&#x27;GITHUB#12077: WordBreakSpellChecker now correctly respects maxEvaluations (hossman)&#x27;)</code></li></ul></dd></div><div><dt>The finding in 30 seconds</dt><dd><ul class='paths'><li><code>a Lucene main checkout (645d4fe14a20) lucene/suggest/src/java/org/apache/lucene/search/spell/WordBreakSpellChecker.java:43-51, 148-239, 241-330, 404-411, 451-459</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>a Lucene main checkout (645d4fe14a20) lucene/suggest/src/java/org/apache/lucene/search/spell/WordBreakSpellChecker.java:34-38, 155-161, 186-196</code></li></ul></dd></div><div><dt>Why it looks unintended</dt><dd><ul class='paths'><li><code>a Lucene main checkout (645d4fe14a20) lucene/suggest/src/java/org/apache/lucene/search/spell/WordBreakSpellChecker.java:128-147, 168, 228-231, 404-411, 451-459</code></li><li><code>a Lucene main checkout (645d4fe14a20) lucene/suggest/src/test/org/apache/lucene/search/spell/TestWordBreakSpellChecker.java:91-159 (testMaxEvaluations, testSmallMaxEvaluations; comment at :117, :150), :161 (testCombiningWords), :353 (testRandom)</code></li><li><code>a Lucene main checkout (645d4fe14a20) lucene/CHANGES.txt:3869</code></li><li><code>a Lucene main checkout git show 9007f746a39 (hunks only in generateBreakUpSuggestions)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>a Lucene main checkout (645d4fe14a20) lucene/suggest/src/java/org/apache/lucene/search/spell/WordBreakSpellChecker.java:269-272, 299-303, 324-326 (word-break guards)</code></li></ul></dd></div><div><dt>Diagrams</dt><dd><ul class='paths'><li><code>a Lucene main checkout (645d4fe14a20) lucene/suggest/src/java/org/apache/lucene/search/spell/WordBreakSpellChecker.java:168-233</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestWordBreakCombineMaxEvaluations.java (one test class): <a href='../repro/LFV-519/src/org/apache/lucene/search/spell/TestWordBreakCombineMaxEvaluations.java'><code>repro/LFV-519/src/org/apache/lucene/search/spell/TestWordBreakCombineMaxEvaluations.java</code></a> (60 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>Made in parallel with this doc from the code at <code class='nw'>645d4fe14a20</code> and the executed runs on the minimal repro's input; see the diagram's own notes for what each frame shows.</p><ul class='paths'><li><a href='../assets/LFV-519/bug.png'><code>assets/LFV-519/bug.png</code></a> (384 KB)</li></ul><p class='meta built'>Built 2026-11-01 from the hunt's record of this finding and its doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-11-01. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All findings</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  var own = !base && window.top === window && /^(https?|file):$/.test(location.protocol);
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = (own ? String(location.href).split('#')[0] : base) + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

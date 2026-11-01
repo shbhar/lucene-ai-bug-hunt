@@ -2,6 +2,8 @@
 
 Finding LFV-1061 · Area: core / index reader open (StandardDirectoryReader.createSegmentReaders, executor branch behind the ExecutorService overloads of DirectoryReader.open and openIfChanged, #15428) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-1061.html](../../bugs/LFV-1061.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -41,6 +43,10 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestExecutorOpenRejectedSubmitLeak.java](TestExecutorOpenRejectedSubmitLeak.java)
 
 Formal models and scripts this finding's part of the hunt used: [../../models/never-judged-backlog-closure-low-and-not-a-bug/](../../models/never-judged-backlog-closure-low-and-not-a-bug/)
 

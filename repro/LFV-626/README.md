@@ -2,6 +2,8 @@
 
 Finding LFV-626 · Area: core / index NRT reader open from IndexWriter (StandardDirectoryReader.open(IndexWriter, ...) keep check for fully deleted segments; SoftDeletesRetentionMergePolicy as the stock trigger) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-626.html](../../bugs/LFV-626.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

@@ -7,7 +7,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 ## Findings
 
 - OfflineSorter loses a partitionsInRAM permit whenever its ExecutorService rejects a partition-sort task, so a later sort() on the same sorter waits forever even though the executor is idle (released since 6.6.0) (finding LFV-384; [repro](../../repro/LFV-384/), [finding page](../../bugs/LFV-384.html))
-- OfflineSorter.sort with an ExecutorService runs its failure cleanup before the partition-sort and merge tasks it already submitted have finished, so each task still queued or running leaves a temp file (prefix_sort_N.tmp) behind that nothing deletes (released since 6.6.0) (finding LFV-357; [repro](../../repro/LFV-357/))
+- OfflineSorter.sort with an ExecutorService runs its failure cleanup before the partition-sort and merge tasks it already submitted have finished, so each task still queued or running leaves a temp file (prefix_sort_N.tmp) behind that nothing deletes (released since 6.6.0) (finding LFV-357; [repro](../../repro/LFV-357/), [finding page](../../bugs/LFV-357.html))
 
 ## Files
 

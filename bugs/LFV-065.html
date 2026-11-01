@@ -1,0 +1,474 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>PACKED_NIBBLE quantized vectors with an odd dimension fail once raw vectors are dropped</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.triage{margin:var(--s4) 0 0;padding:var(--s2) var(--s4);border-left:3px solid var(--info);background:var(--panel);
+max-width:var(--measure)}
+.triage p{margin:0;font-size:var(--step--1);line-height:1.5}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the finding in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All findings</a> &middot; Lucene finding &middot; LFV-065 &middot; packed-nibble-odd-dimension</p><h1 id='top'>PACKED_NIBBLE quantized vectors with an odd dimension fail once raw vectors are dropped</h1><p class='tldr'>With 4-bit <code class='nw'>PACKED_NIBBLE</code> quantization and an odd dimension, dropping the full-precision vectors breaks every vector read: <code class='nw'>vectorValue()</code> and full-precision rescoring throw <code>vector dimensions differ: 3 != 2 * 2</code> for 3 dims, because 4 padded nibbles are unpacked into 3 slots. Opt-in and read-only, since 10.4.0; known from #16030, whose author fixed this line before the revert undid it.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 920</span><span class='sub'>PACKED_NIBBLE quantized vectors with an odd dimension fail once raw vectors are dropped, which no public API does, loud and contrived.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>crash</span></dd></div><div><dt>Since</dt><dd>10.4.0 (2025-11, #15415)<span class='sub'>introduced 2025-11-13</span></dd></div><div class='wide'><dt>Affected</dt><dd>10.4.0 to 10.6.0 and main; only the opt-in PACKED_NIBBLE encoding, odd dimensions, raw vectors dropped</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div class='wide'><dt>Found by</dt><dd>non-formal: code reading while modelling quantization (study report: code review + exhaustive layout check)</dd></div></dl><p class='ai-note'>AI-assisted page: this finding was first signalled by code reading or testing and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-11-01.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All findings</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The finding in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>The dequantizing read view sizes its unpack buffer as <code>new byte[dimension]</code>. For an odd dimension <code class='nw'>PACKED_NIBBLE</code> stores one padding nibble, so <code>VectorUtil.int4Unpack</code> needs <code>dimension + 1</code> slots and throws. The writer and the quantized scorer size the same buffer with the padded length; only the two dequantizing views do not.</p><div class='part' id='background'><div class="hd hd-3"><h3 id='background-h'>Background: 4-bit packing and dropped raw vectors</h3><a class="hlink" href="#background" target="_self" aria-label="Link to this section" aria-describedby="background-h"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span>A scalar-quantized vector field keeps two copies of each vector: the full-precision floats (<code class='nw'>.vec</code>) and small integer codes with a few correction values (<code class='nw'>.veq</code>). kNN search scores with the codes.</span></li><li><span><code class='nw'>PACKED_NIBBLE</code> uses 4-bit codes, two per byte. An odd dimension is rounded up: 3 codes take 4 nibbles in 2 bytes, byte 0 holding codes 0 and 2, byte 1 holding code 1 and a padding nibble.</span></li><li><span>Read-only searcher copies may delete the full-precision vectors to save disk. <code class='nw'>vectorValue()</code> then rebuilds approximate floats from the codes: the "fallback".</span></li></ol></div><figure class='visual' id='packed-nibble-odd-dimension-short-visual'><div class='frame'><a class='still' href='../assets/LFV-065/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-065/bug.png' alt='A 3-dim vector {0.1, 0.2, 0.3} is quantized to 3 four-bit codes and packed into 2 bytes: byte 0 holds codes 0 and 2, byte 1 holds code 1 and a padding nibble. With the full-precision vectors dropped, vectorValue() unpacks the 2 bytes, which needs 4 slots, into a buffer of 3, and VectorUtil.int4Unpack throws &#x27;vector dimensions differ: 3 != 2 * 2&#x27;. A 4-dim vector fills 4 slots exactly and reads back.' width='1920' height='1080'></a></div><figcaption>A 3-dim vector's 4-bit codes are stored as 4 nibbles in 2 bytes, one of them padding; the fallback reader unpacks them into a 3-slot buffer, and the unpack refuses: 3 != 2 * 2. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><div class="hd hd-3"><h3 id='the-bug-step-by-step'>The finding, step by step</h3><a class="hlink" href="#the-bug-step-by-step" target="_self" aria-label="Link to this section" aria-describedby="the-bug-step-by-step"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span>Index one document with the 3-dim vector <code>{0.1, 0.2, 0.3}</code> using <code>Lucene104ScalarQuantizedVectorsFormat(PACKED_NIBBLE)</code>. The 4-bit codes are stored two per byte, so 3 codes become 4 nibbles (one is padding) in 2 bytes.</span></li><li><span>Drop the full-precision vectors the way Lucene's own test helper <code>simulateEmptyRawVectors()</code> does; the reader's javadoc names it for read-only indexes. The quantized codes stay on disk.</span></li><li><span>You expect <code>getFloatVectorValues("v").vectorValue(0)</code> to return the dequantized vector, about <code>{0.1, 0.2, 0.3}</code>. A 4-dim vector does.</span></li><li><span>You get <code>IllegalArgumentException: vector dimensions differ: 3 != 2 * 2</code>. The reader unpacks the 2 bytes into a 3-slot buffer, but unpacking needs 2 × 2 = 4 slots.</span></li><li><span>Every vector of the field fails, and so does a search with a full-precision rescore query (<code>RescoreTopNQuery.createFullPrecisionRescorerQuery</code>); plain kNN search still works. Any odd dimension fails, up to 1023 (<code>1023 != 2 * 512</code>); with assertions off, 10.4.0 to 10.5.2 throw <code>ArrayIndexOutOfBoundsException</code> instead.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Only users of the opt-in Lucene104 scalar-quantized formats with the non-default <code class='nw'>PACKED_NIBBLE</code> encoding, an odd dimension, and full-precision vectors removed by rewriting files (an index <code class='nw'>CheckIndex</code> rejects), as for read-only searcher replicas. Then no vector of that field can be read or rescored. Loud, no wrong results, data intact; one document is enough.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>453 words</span></summary><div class='body'><p><code>Lucene104ScalarQuantizedVectorsFormat</code> and its HNSW variant can rebuild approximate float vectors from the quantized codes when a read-only index has had its full-precision vectors dropped (the fallback added by #15415 in 10.4.0). With <code>ScalarEncoding.PACKED_NIBBLE</code>, 4-bit codes are packed two per byte and an odd dimension is padded with one nibble: a 3-dim vector is 2 bytes, 4 nibbles.</p><p>The dequantizing view allocates its unpack buffer as <code>new byte[dimension]</code> (3), but <code>VectorUtil.int4Unpack</code> needs exactly twice the packed length (4), so every read of an odd-dimension field throws, and full-precision rescoring throws with it. The writer and the quantized scorer already size this buffer with the padded length, the data on disk is intact, and #16030's author fixed these lines on purpose ("it would occasionally compute the wrong size and tests would fail"); the fix was lost when #16030 was reverted.</p><div class="hd hd-3"><h3 id='what-the-bug-is-the-code-main-645d4fe14a20-offheapscalarquantizedfloatvector'>The code (main <code class='nw'>645d4fe14a20</code>, <code>OffHeapScalarQuantizedFloatVectorValues.java</code>)</h3><a class="hlink" href="#what-the-bug-is-the-code-main-645d4fe14a20-offheapscalarquantizedfloatvector" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-code-main-645d4fe14a20-offheapscalarquantizedfloatvector"><span aria-hidden="true">#</span></a></div><pre><code>int docPackedLength = encoding.getDocPackedLength(dimension);      // :91, (3 + 1) / 2 = 2 bytes
+...
+this.unpackedByteVectorValue = new byte[dimension];                 // :96, 3 slots
+...
+case PACKED_NIBBLE -&gt;                                               // :123-124
+    OffHeapScalarQuantizedVectorValues.unpackNibbles(byteValue, unpackedByteVectorValue);</code></pre><ul><li><code class='nw'>unpackNibbles</code> is <code>VectorUtil.int4Unpack</code> (<code>OffHeapScalarQuantizedVectorValues.java:191-193</code>), which throws <code>IllegalArgumentException("vector dimensions differ: " + unpacked.length + " != 2 * " + packed.length)</code> unless <code>unpacked.length == packed.length * 2</code> (<code>VectorUtil.java:313-318</code>). For odd <code class='nw'>d</code>, <code>d != 2 * ((d + 1) / 2)</code>, so every odd dimension fails and every even one is exact.</li><li>The layout: <code>PACKED_NIBBLE(1, (byte) 4, 4)</code> (<code>QuantizedByteVectorValues.java:39</code>); <code>getDiscreteDimensions</code> rounds 3 up to 4 and <code>getDocPackedLength</code> gives 2 bytes (<code class='nw'>:136-139</code>, <code class='nw'>:161-166</code>). The writer quantizes into <code>new byte[encoding.getDiscreteDimensions(dim)]</code> (<code>Lucene104ScalarQuantizedVectorsWriter.java:190</code>) and packs with <code class='nw'>packNibbles</code> (<code class='nw'>:551</code>; <code>OffHeapScalarQuantizedVectorValues.java:182-188</code>): for dim 3, byte 0 holds codes 0 and 2, byte 1 holds code 1 and the padding nibble.</li><li>The route: when the raw float vectors have size 0, the reader returns this view (<code>Lucene104ScalarQuantizedVectorsReader.java:278-297</code>), and <code>ScalarQuantizedVectorValues.vectorValue</code> delegates to it (<code class='nw'>:769-771</code>). The float16 twin has the same lines (<code>OffHeapScalarQuantizedFloat16VectorValues.java:92</code>, <code class='nw'>:135-136</code>; reader <code class='nw'>:326-344</code>; main and branch_11x only).</li><li>Everyone else pads: the writer (<code>Lucene104ScalarQuantizedVectorsWriter.java:190, 243, 431, 942</code>) and the quantized scorer (<code>Lucene104ScalarQuantizedVectorScorer.java:226-230</code>, <code>new byte[OptimizedScalarQuantizer.discretize(values.dimension(), 2)]</code> before its own <code class='nw'>unpackNibbles</code>). So indexing, kNN search and merges work for odd dimensions while raw vectors are present.</li><li>The other encodings are fine: the 1-bit and 2-bit unpackers stop at the output length (<code>OptimizedScalarQuantizer.java:460-471</code>, <code class='nw'>:527-551</code>) and 8-bit / 7-bit need no unpack (<code>OffHeapScalarQuantizedFloatVectorValues.java:129-139</code>). An end-to-end matrix of 5 encodings x dims 1..40 fails in exactly the 20 <code class='nw'>PACKED_NIBBLE</code> odd-dimension cases.</li><li>The data is fine: reading the stored codes into a padded buffer and dequantizing the first <code class='nw'>dim</code> of them works for odd dims 1..41 (worst absolute error 0.076).</li></ul></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>234 words</span></summary><div class='body'><ul><li><strong>Who.</strong> Read-only searcher copies, for example NRT segment-replication replicas, that drop the full-precision vectors to save disk (the use case behind #14792 and the open issue #13158), with the Lucene104 scalar-quantized format, <code class='nw'>PACKED_NIBBLE</code>, and an odd dimension.</li><li><strong>Opt-in.</strong> The default codec does not quantize; the Lucene104 scalar-quantized formats default to <code class='nw'>UNSIGNED_BYTE</code> (<code>Lucene104ScalarQuantizedVectorsFormat.java:144-147</code>) and are <code>@lucene.experimental</code> (<code class='nw'>:97</code>). Every odd dimension from 1 to 1023 is legal (maximum 1024, <code class='nw'>:168-170</code>), and odd dimensions index, search and read fine while raw vectors are present.</li><li><strong>Reachability.</strong> No Lucene API writes the dropped-raw state; it takes file rewriting like <code>TestLucene104ScalarQuantizedVectorsFormat.simulateEmptyRawVectors()</code> (<code class='nw'>:614-682</code>), and the result is an index that <code class='nw'>CheckIndex</code> rejects (<code>BaseKnnVectorsFormatTestCase.java:2274-2276</code>). Two upstream efforts would make it easy to create: the open PR #15630 proposes writer support for empty full-precision vector files, and #16030 added a write-side mode that drops the float vectors (<code>DATA_BLIND_WITHOUT_FLOATS</code>; on main and branch_10x 2026-09-18 to 2026-09-25, never released; its feature request #16029 is still open).</li><li><strong>Effect.</strong> Every <code class='nw'>vectorValue(ord)</code> of the field throws, and so do a search with a full-precision rescore query (<code>RescoreTopNQuery.createFullPrecisionRescorerQuery</code>) and, on main, the float16 view. Plain quantized kNN search works. Deterministic, the same with assertions on and off; no index damage, and a fixed reader reads the same files.</li><li><strong>Scale.</strong> One document; the flat and the HNSW format, dense and sparse fields, dims 1 to 1023.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>One JUnit test, deterministic: one document with a 3-dim vector in the flat <code>Lucene104ScalarQuantizedVectorsFormat(PACKED_NIBBLE)</code>, the raw vectors dropped with a private copy of Lucene's own <code>simulateEmptyRawVectors()</code> test helper, then <code class='nw'>vectorValue(0)</code>. The <code class='nw'>try/catch</code> only labels the failure.</p><figure class='code'><figcaption><span class='fname'>TestPackedNibbleOddDimensionWithoutRawVectors.java</span><span class='meta'>106 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.codecs.lucene104;
+
+import org.apache.lucene.codecs.CodecUtil;
+import org.apache.lucene.codecs.lucene95.OrdToDocDISIReaderConfiguration;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.KnnFloatVectorField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.IOContext;
+import org.apache.lucene.store.IndexInput;
+import org.apache.lucene.store.IndexOutput;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+import org.apache.lucene.util.quantization.QuantizedByteVectorValues.ScalarEncoding;
+
+public class TestPackedNibbleOddDimensionWithoutRawVectors extends LuceneTestCase {
+
+  public void testVectorValueWithOddDimension() throws Exception {
+    try (Directory dir = new ByteBuffersDirectory()) {
+      IndexWriterConfig iwc =
+          new IndexWriterConfig()
+              .setCodec(
+                  TestUtil.alwaysKnnVectorsFormat(
+                      new Lucene104ScalarQuantizedVectorsFormat(ScalarEncoding.PACKED_NIBBLE)))
+              .setUseCompoundFile(false);
+      try (IndexWriter w = new IndexWriter(dir, iwc)) {
+        Document doc = new Document();
+        doc.add(new KnnFloatVectorField(&quot;v&quot;, new float[] {0.1f, 0.2f, 0.3f}));
+        w.addDocument(doc);
+      }
+      simulateEmptyRawVectors(dir);
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        float[] v;
+        try {
+          v = getOnlyLeafReader(reader).getFloatVectorValues(&quot;v&quot;).vectorValue(0);
+        } catch (RuntimeException e) {
+          // expected: the dequantized 3-dim vector; actual: IllegalArgumentException from int4Unpack
+          throw new AssertionError(&quot;expected the dequantized 3-dim vector, got &quot; + e, e);
+        }
+        assertEquals(3, v.length);
+      }
+    }
+  }
+
+  private static void simulateEmptyRawVectors(Directory dir) throws Exception {
+    for (String file : dir.listAll()) {
+      if (file.endsWith(&quot;.vec&quot;)) {
+        byte[] header;
+        try (IndexInput in = dir.openInput(file, IOContext.DEFAULT)) {
+          header = CodecUtil.readIndexHeader(in);
+        }
+        dir.deleteFile(file);
+        try (IndexOutput out = dir.createOutput(file, IOContext.DEFAULT)) {
+          out.writeBytes(header, header.length);
+          CodecUtil.writeFooter(out);
+        }
+      } else if (file.endsWith(&quot;.vemf&quot;)) {
+        byte[] header;
+        int field, encoding, similarity, dim;
+        long offset;
+        try (IndexInput in = dir.openInput(file, IOContext.DEFAULT)) {
+          header = CodecUtil.readIndexHeader(in);
+          field = in.readInt();
+          encoding = in.readInt();
+          similarity = in.readInt();
+          offset = in.readVLong();
+          in.readVLong();
+          dim = in.readVInt();
+        }
+        dir.deleteFile(file);
+        try (IndexOutput out = dir.createOutput(file, IOContext.DEFAULT)) {
+          out.writeBytes(header, header.length);
+          out.writeInt(field);
+          out.writeInt(encoding);
+          out.writeInt(similarity);
+          out.writeVLong(offset);
+          out.writeVLong(0);
+          out.writeVInt(dim);
+          out.writeInt(0);
+          OrdToDocDISIReaderConfiguration.writeStoredMeta(16, out, null, 0, 0, null);
+          out.writeInt(-1);
+          CodecUtil.writeFooter(out);
+        }
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/TestPackedNibbleOddDimensionWithoutRawVectors.java $LUCENE/lucene/core/src/test/org/apache/lucene/codecs/lucene104/
+cd $LUCENE
+./gradlew :lucene:core:test --tests org.apache.lucene.codecs.lucene104.TestPackedNibbleOddDimensionWithoutRawVectors -Ptests.seed=DEADBEEF
+# assertions off: add -Ptests.asserts=false (same exception)
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code class='nw'>vectorValue(0)</code> returns the dequantized 3-dim vector (about <code>{0.1, 0.2, 0.3}</code>), as it does for a 4-dim vector.</dd></div><div class='got'><dt>Observed</dt><dd><code>IllegalArgumentException: vector dimensions differ: 3 != 2 * 2</code> from <code>VectorUtil.int4Unpack</code>, with assertions on and off.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-065/'>repro/LFV-065/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>415 words</span></summary><div class='body'><ul><li><strong>Smallest input.</strong> One document, dimension 3 (odd, so the 2 packed bytes hold codes in both halves plus one padding nibble; dimension 1 fails too), no compound file so the raw <code class='nw'>.vec</code>/<code class='nw'>.vemf</code> files can be rewritten, <code>ByteBuffersDirectory</code>, one thread; the same result with assertions on and off and with any seed.</li><li><strong>The drop helper</strong> is a copy of <code>TestLucene104ScalarQuantizedVectorsFormat.simulateEmptyRawVectors()</code> (<code class='nw'>:614-682</code>; block shift 16 is that class's <code>DIRECT_MONOTONIC_BLOCK_SHIFT</code>). It cuts <code class='nw'>.vec</code> to its header and footer and rewrites <code class='nw'>.vemf</code> with the same header and field metadata but a vector data length of 0 and a vector count of 0; the quantized <code class='nw'>.veq</code>/<code class='nw'>.vemq</code> stay as written. The result is an index <code class='nw'>CheckIndex</code> rejects, which upstream's own fallback tests allow for by switching <code class='nw'>CheckIndex</code> off (<code>BaseKnnVectorsFormatTestCase.java:2274-2276</code>).</li><li><strong>Control (not part of the repro):</strong> the same test with a 4-dim vector passes on main, 10.4.0 and 10.6.0.</li><li><strong>Releases.</strong> The same file fails on 10.5.0, 10.5.1, 10.5.2 and 10.6.0; on 10.4.0 only the <code class='nw'>ScalarEncoding</code> import differs (it was nested in <code>Lucene104ScalarQuantizedVectorsFormat</code>).</li><li><strong>As the regression test:</strong> this same method. Upstream it can live in <code>TestLucene104ScalarQuantizedVectorsFormat</code> and call that class's own <code>simulateEmptyRawVectors(dir)</code> (not run in that form). Let it check values too: the last line becomes <code>assertArrayEquals(new float[] {0.1f, 0.2f, 0.3f}, v, 1f / 16)</code>, since a length check alone would also pass a broken fix that returns any 3 values. That line also fails before and passes with fix A and with fix B.</li></ul><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main 645d4fe14a20 (11.0.0-SNAPSHOT); also fails on 10.4.0, 10.5.0, 10.5.1, 10.5.2 and 10.6.0</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp $REPRO/TestPackedNibbleOddDimensionWithoutRawVectors.java $LUCENE/lucene/core/src/test/org/apache/lucene/codecs/lucene104/
+cd $LUCENE
+./gradlew :lucene:core:test --tests org.apache.lucene.codecs.lucene104.TestPackedNibbleOddDimensionWithoutRawVectors -Ptests.seed=DEADBEEF
+# assertions off: add -Ptests.asserts=false (same exception)
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, main 645d4fe14a20, seed DEADBEEF, assertions on
+TestPackedNibbleOddDimensionWithoutRawVectors &gt; testVectorValueWithOddDimension FAILED
+    java.lang.AssertionError: expected the dequantized 3-dim vector, got java.lang.IllegalArgumentException: vector dimensions differ: 3 != 2 * 2
+        at __randomizedtesting.SeedInfo.seed([DEADBEEF:BF7D0792B33E1E60]:0)
+        at org.apache.lucene.codecs.lucene104.TestPackedNibbleOddDimensionWithoutRawVectors.testVectorValueWithOddDimension(TestPackedNibbleOddDimensionWithoutRawVectors.java:57)
+
+        Caused by:
+        java.lang.IllegalArgumentException: vector dimensions differ: 3 != 2 * 2
+            at org.apache.lucene.util.VectorUtil.int4Unpack(VectorUtil.java:315)
+            at org.apache.lucene.codecs.lucene104.OffHeapScalarQuantizedVectorValues.unpackNibbles(OffHeapScalarQuantizedVectorValues.java:192)
+            at org.apache.lucene.codecs.lucene104.OffHeapScalarQuantizedFloatVectorValues.vectorValue(OffHeapScalarQuantizedFloatVectorValues.java:124)
+            at org.apache.lucene.codecs.lucene104.Lucene104ScalarQuantizedVectorsReader$ScalarQuantizedVectorValues.vectorValue(Lucene104ScalarQuantizedVectorsReader.java:770)
+            at org.apache.lucene.codecs.lucene104.TestPackedNibbleOddDimensionWithoutRawVectors.testVectorValueWithOddDimension(TestPackedNibbleOddDimensionWithoutRawVectors.java:54)
+1 test completed, 1 failed
+# gradle, assertions off (-Ptests.asserts=false): the same exception
+# 10.6.0, assertions on and off: the same IllegalArgumentException
+# 10.4.0, 10.5.0, 10.5.1, 10.5.2, assertions off: ArrayIndexOutOfBoundsException: Index 3 out of bounds for length 3
+#   (at OffHeapScalarQuantizedVectorValues.unpackNibbles); assertions on: java.lang.AssertionError from unpackNibbles
+# the same test with the 4-dim vector {0.1, 0.2, 0.3, 0.4}: passes (main, 10.4.0, 10.6.0)
+# with fix A or fix B: BUILD SUCCESSFUL</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it looks unintended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The reader's javadoc promises dequantized vectors for read-only indexes whose full-precision vectors were dropped; #15476 made this a format contract.</li><li>No javadoc limits parity; Lucene104's writer and scorer handle odd <code class='nw'>PACKED_NIBBLE</code> dimensions with the padded length.</li><li>The fallback tests skip odd dims only via a <code>dim % 2</code> guard inherited from Lucene99, which rejects odd 4-bit dims.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>408 words</span></summary><div class='body'><ul><li><strong>Documented capability.</strong> <code>OffHeapScalarQuantizedFloatVectorValues.java:39-54</code>: it dequantizes stored vectors "back to float vectors with some precision loss"; "This class is used for read-only indexes where full-precision float vectors have been dropped from the index to save storage space. Full-precision vectors can be removed from an index using a method as implemented in <code>TestLucene104ScalarQuantizedVectorsFormat.simulateEmptyRawVectors()</code>."</li><li><strong>Format contract.</strong> <code>BaseKnnVectorsFormatTestCase.java:132</code> (<code>supportsFloatVectorFallback()</code>); <code class='nw'>:2187-2189</code>: formats must "properly dequantize vectors and maintain accuracy within expected error bounds even when the original raw vector file is empty or corrupted"; <code class='nw'>:2255-2260</code>: scores must not change once the raw file is emptied. These tests run for the flat format, which the repro uses; <code>TestLucene104HnswScalarQuantizedVectorsFormat</code> opts out (<code>supportsFloatVectorFallback()</code> returns false, <code class='nw'>:491-493</code>), so the HNSW route is shown by execution only (the study's tests and a dim-1023 probe). CHANGES: #15415 under 10.4.0 New Features (<code>lucene/CHANGES.txt:1378</code>), #15476 (<code class='nw'>:1527</code>), #16415 under 10.5.1 Bug Fixes (<code class='nw'>:894</code>).</li><li><strong>This encoding is in scope.</strong> The fallback has an explicit <code class='nw'>PACKED_NIBBLE</code> branch (<code>OffHeapScalarQuantizedFloatVectorValues.java:123-124</code>), and the Lucene104 fallback tests pick the encoding at random from all values (<code>TestLucene104ScalarQuantizedVectorsFormat.java:81-86</code>).</li><li><strong>Odd dimensions are in scope.</strong> No javadoc, CHANGES or MIGRATE entry limits parity, and upstream's own Lucene104 search and write/read tests draw dims from 4..64 (<code>TestLucene104ScalarQuantizedVectorsFormat.java:98</code>, <code class='nw'>:291</code>).</li><li><strong>Why tests miss it.</strong> <code>BaseKnnVectorsFormatTestCase.java:2196-2199</code>, <code class='nw'>:2266-2269</code> (<code>if (dim % 2 == 1) dim++</code>); <code>TestLucene104ScalarQuantizedVectorsFormat.java:452</code>, <code class='nw'>:529</code> (<code>dim = 2 * random().nextInt(1, 33)</code>). The guard first appeared in the Lucene99 fallback test of #14792; the Lucene99 writer rejects odd dimensions for 4 bits ("is not supported for odd vector dimensions", test copy <code>Lucene99ScalarQuantizedVectorsWriter.java:198-204</code>). #15415 copied the guard and #15476 moved it into the shared base class, which still serves Lucene99.</li><li><strong>The PR author called the old size wrong.</strong> #16030 (mccullocht, merged 2026-09-18) changed both views to <code>new byte[encoding.getDiscreteDimensions(dimension)]</code> and the <code class='nw'>deQuantize</code> loop bound to <code>dequantized.length</code>. In review, kaivalnp asked about the buffer line (2026-09-10): "I didn't get why this had to change? Is it required independently of this PR?"; mccullocht replied (2026-09-17): "This is an independent change -- it would occasionally compute the wrong size and tests would fail." #16030 was reverted on 2026-09-25 (<code class='nw'>c72bc6abf18</code>), which restored the bug. The revert commit gives no reason; in the PR discussion dweiss named flaky CI tests and merge inputs whose wrappers defeat the data-blind mode's raw-vector detection (2026-09-23), and mccullocht agreed ("Rolling back is fine"); neither concerns this buffer.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>209 words</span></summary><div class='body'><p><strong>Strongest case for "not a bug"</strong> (a cross-model reviewer, OpenAI GPT-5.6, who reproduced it and agreed on the cause): no production API drops raw vectors, only a test hook does; <code class='nw'>CheckIndex</code> "rightly rejects" such an index (<code>BaseKnnVectorsFormatTestCase.java:2275</code>); the class is <code class='nw'>@lucene.internal</code>, the format <code>@lucene.experimental</code>; and the fallback tests deliberately use even dimensions.</p><p><strong>Why it fails:</strong> the committers designed the fallback knowing this. msokolov, reviewing #14792: "it provides the ability to read an index that we don't actually provide any way to create!", and they asked for the usage note that became the class javadoc ("full precision vectors can be removed from an index using a method like shown in the tests ... should be treated as a read-only index"). benwtrent on #14792: "When the <code class='nw'>vec</code> file isn't present, the format should still return a <code>FloatVectorValues</code>, and when folks call <code>float[] getVector(int ord)</code>, they get the de-quantized representation of the vector." mikemccand backed #15476 as "the test infra to confirm future KNN Codecs on 10.x also preserve this capability". Every upstream fallback test turns <code class='nw'>CheckIndex</code> off and still requires correct reads; the failure comes through public <code>LeafReader#getFloatVectorValues</code> and <code class='nw'>RescoreTopNQuery</code>; and the even-dimension guard comes from Lucene99's write-side restriction, not from a Lucene104 limit.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>A. Pad the buffer, dequantize only the real dimensions (recommended; #16030's lines)</strong></p><p class='short'>Size the unpack buffer with the padded length, <code>new byte[encoding.getDiscreteDimensions(dimension)]</code>, in both dequantizing views, and let <code>OptimizedScalarQuantizer.deQuantize</code> loop over the output length: #16030's lines (its author's "independent change"), lost in its revert. Validated with gradle: the test fails before and passes after; the lucene104 and quantization suites pass (199 tests, 0 failures).</p><pre class='snippet' tabindex='0'><code>// OffHeapScalarQuantizedFloatVectorValues.java:96 and OffHeapScalarQuantizedFloat16VectorValues.java:92
+-    this.unpackedByteVectorValue = new byte[dimension];
++    this.unpackedByteVectorValue = new byte[encoding.getDiscreteDimensions(dimension)];
+
+// OptimizedScalarQuantizer.deQuantize, float[] and short[] overloads (:262, :292)
+-    for (int h = 0; h &lt; quantized.length; h++) {
++    // The quantized input may hold rounded-up dimensions for packed encodings; the output length
++    // defines how many are real.
++    for (int h = 0; h &lt; dequantized.length; h++) {</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>2 options · 595 words</span></summary><div class='body'><p>Two validated options, both applied in a scratch worktree of main <code class='nw'>645d4fe14a20</code> and run with gradle; both also make the study's 5-encoding x 40-dimension matrix read back every vector. Not recommended: rejecting odd dimensions for <code class='nw'>PACKED_NIBBLE</code> at write time (breaks a configuration that works with raw vectors present; existing segments still fail), or only enlarging the buffer (moves the failure into <code class='nw'>deQuantize</code>, which would index <code class='nw'>dequantized[3]</code> and <code class='nw'>centroid[3]</code> of length 3). Test gap: the fallback tests could draw odd dimensions for the Lucene104 formats; the <code>dim % 2</code> guard is needed only by Lucene99.</p><div class="hd hd-3"><h3 id='fix-pad-buffer'>A. Pad the buffer, dequantize only the real dimensions (recommended; #16030's lines) <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-pad-buffer" target="_self" aria-label="Link to this section" aria-describedby="fix-pad-buffer"><span aria-hidden="true">#</span></a></div><p>Allocate the unpack buffer with the padded length in both views, and loop <code class='nw'>deQuantize</code> over the output length. These are the lines of #16030 by mccullocht (the <code class='nw'>deQuantize</code> comment is theirs; the comment on the buffer line is not from #16030), without that PR's unrelated COSINE assertion changes, and the "wrong size" diagnosis is theirs too.</p><pre class='snippet' tabindex='0'><code>// OffHeapScalarQuantizedFloatVectorValues.java:96 and OffHeapScalarQuantizedFloat16VectorValues.java:92
+-    this.unpackedByteVectorValue = new byte[dimension];
++    this.unpackedByteVectorValue = new byte[encoding.getDiscreteDimensions(dimension)];
+
+// OptimizedScalarQuantizer.deQuantize, float[] and short[] overloads (:262, :292)
+-    for (int h = 0; h &lt; quantized.length; h++) {
++    // The quantized input may hold rounded-up dimensions for packed encodings; the output length
++    // defines how many are real.
++    for (int h = 0; h &lt; dequantized.length; h++) {</code></pre><p class='k'>Trade-offs</p><ul><li>Four changed lines plus comments; no extra copy; matches the writer and the scorer.</li><li>Changes the loop bound of a public static helper. Lucene's own callers pass equal lengths; an outside caller passing an output longer than its input would now get an <code>ArrayIndexOutOfBoundsException</code> instead of a partly filled array.</li><li>The 1-bit and 2-bit encodings also get the padded buffer; their unpackers fill it from the padded stored bytes and only the first <code class='nw'>dimension</code> codes are read (the matrix check below covers them).</li></ul><p class='k'>What the checks validated</p><ul><li>Gradle, scratch worktree of <code class='nw'>645d4fe14a20</code>, seed DEADBEEF: the minimal test fails before the change and passes after it, with assertions on and off.</li><li>Seed DEADBEEF: <code>TestLucene104ScalarQuantizedVectorsFormat</code> (65 tests, 1 skipped), <code>TestLucene104HnswScalarQuantizedVectorsFormat</code> (64, 3 skipped), <code>TestOptimizedScalarQuantizer</code> (7): 0 failures.</li><li>Seed 5EED1234: every test class in <code>org.apache.lucene.codecs.lucene104.*</code> and <code>org.apache.lucene.util.quantization.*</code>: 199 tests, 6 skipped, 0 failures.</li><li>Standalone, the three patched files shadowed in: the study's 5 dropped-raw tests pass (float32 read, full-precision rescore, the float16 twin, two controls; 3 of them fail without the fix), and its matrix of 5 encodings x dims 1..40 reads back all 200 cases.</li><li>Not run: the whole <code>:lucene:core:test</code>, <code class='nw'>check</code>, or the backward-codecs suites.</li></ul><div class="hd hd-3"><h3 id='fix-padded-scratch'>B. Unpack into a separate padded scratch and copy the real codes <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-padded-scratch" target="_self" aria-label="Link to this section" aria-describedby="fix-padded-scratch"><span aria-hidden="true">#</span></a></div><p>Keep <code>unpackedByteVectorValue = new byte[dimension]</code> and add a <code class='nw'>PACKED_NIBBLE</code>-only padded scratch in both views; <code class='nw'>deQuantize</code> stays as it is. This is the study verifier's fix sketch, with the per-call allocation hoisted into a field.</p><pre class='snippet' tabindex='0'><code>// in both views
+// PACKED_NIBBLE only: int4Unpack also writes the padding nibble of an odd dimension
+private final byte[] paddedNibbles;
+...
+this.paddedNibbles =
+    encoding == ScalarEncoding.PACKED_NIBBLE
+        ? new byte[encoding.getDiscreteDimensions(dimension)]
+        : null;
+...
+case PACKED_NIBBLE -&gt; {
+  OffHeapScalarQuantizedVectorValues.unpackNibbles(byteValue, paddedNibbles);
+  System.arraycopy(paddedNibbles, 0, unpackedByteVectorValue, 0, dimension);
+}</code></pre><p class='k'>Trade-offs</p><ul><li>Touches only the two package-private views; no public method changes behaviour.</li><li>One extra copy of <code class='nw'>dimension</code> bytes per read, only on the <code class='nw'>PACKED_NIBBLE</code> fallback path, and one more small array per view.</li></ul><p class='k'>What the checks validated</p><ul><li>Gradle, seed DEADBEEF: the minimal test, <code>TestLucene104ScalarQuantizedVectorsFormat</code> and <code>TestLucene104HnswScalarQuantizedVectorsFormat</code>: 130 tests, 4 skipped, 0 failures.</li><li>Standalone: the study's 5 dropped-raw tests pass and its 200-case matrix reads back every vector.</li></ul></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Relevant to downstream products that strip full-precision vectors from read-only replicas and use <code class='nw'>PACKED_NIBBLE</code> with odd dimensions: their vector reads and full-precision rescoring fail with an exception; no data is damaged.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Non-formal. While modelling quantization, a study AI tool read the dequantizing views and saw the buffer size; upstream tests forcing even dimensions pointed at it. An independent verifier then built all 5 encodings x dims 1..40 (200 indexes), dropped the raw vectors and read every vector back: exactly the 20 <code class='nw'>PACKED_NIBBLE</code> odd-dimension cases fail.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>126 words</span></summary><div class='body'><ul><li>The study's quantization unit found it by code reading while modelling; its report lists "code review + exhaustive layout check", and its own notes credit the even-dimension test guard as the pointer. No solver step produced it.</li><li>An independent verifier wrote its own drop helper and 7 tests on the HNSW format: dim 3 fails for <code class='nw'>vectorValue()</code> and for a search with a <code>RescoreTopNQuery.createFullPrecisionRescorerQuery</code> query, the float16 twin fails, the dim 4 control and plain kNN pass, the 200-index matrix isolates <code class='nw'>PACKED_NIBBLE</code> x odd dims, and the stored codes decode correctly with a padded buffer (odd dims 1..41).</li><li>The hunt then minimised it to the one-method test, re-ran it on main and on every release with the code, and tie-broke a cross-model review (section "Independent checks").</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>Known: on #16030 the PR author, mccullocht, answered a review question from kaivalnp about this line: "This is an independent change -- it would occasionally compute the wrong size and tests would fail." The fix was lost when #16030 was reverted; nothing tracks it since. No other report found (2026-10-22, 2026-11-01).</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p><strong>The prior report.</strong> A public review thread on #16030, anchored on <code>OffHeapScalarQuantizedFloatVectorValues.java:96</code> (the hunk that replaces <code>new byte[dimension]</code> with <code>new byte[encoding.getDiscreteDimensions(dimension)]</code>): kaivalnp asked (2026-09-10) "I didn't get why this had to change? Is it required independently of this PR?", and mccullocht replied (2026-09-17) "This is an independent change -- it would occasionally compute the wrong size and tests would fail." It names the defect and the fix but not the trigger or the symptom (odd <code class='nw'>PACKED_NIBBLE</code> dimensions, raw vectors dropped, every read throws). #16030 was reverted on 2026-09-25, which restored the line; no issue or PR has tracked it since. The earlier searches read #16030's description and conversation but not its inline review comments; the independent fact check found the thread.</p><p>Closest otherwise, none this bug: #15576 / #15578 (a sibling fallback bug for the DIBIT encoding, fixed in its discretization, not the buffer); #15415 (introduced the code; its test forces even dims); #15476 and #16415 (same state, even dims); #16631 (vectorized <code class='nw'>int4Unpack</code>, which turned the error into an <code>IllegalArgumentException</code>); #16473 (added the float16 twin); #13872 / #13321 (2024: the Lucene99 4-bit format rejects odd dims by design, padding was suggested); #15630 (open: writer support for empty full-precision files); a downstream project's test-only change forcing even dims for its own 4-bit codec with raw vectors present (different codec and symptom).</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues and PRs (apache/lucene, incl. migrated JIRA)</th><td class='when'>2026-10-22 and 2026-11-01</td><td>17 study queries; 50 issue/PR searches (class and method names, the error message, odd/odd-sized/4-bit/dropped raw phrasings, a sweep since 2026-10-15); the changed files of all 409 open PRs; 30+ related threads read in full</td><td>#16030's review thread on the buggy line (the PR author calls the old size wrong); no other report</td></tr><tr><th scope='row'>Downstream projects</th><td class='when'>2026-11-01</td><td>7 queries over four downstream search projects</td><td>one unrelated test-only change in another codec</td></tr><tr><th scope='row'>Mailing lists (dev@, java-user@, issues@, commits@, builds@)</th><td class='when'>2026-11-01</td><td>20 scripted queries and 30 manual queries</td><td>no report</td></tr><tr><th scope='row'>JIRA archive and web</th><td class='when'>2026-11-01</td><td>4 JIRA queries (0 results), 6 web queries</td><td>nothing relevant</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced by #15415 (<code class='nw'>ba455f2bae1</code>, 2025-11-13), which added the dequantizing fallback in 10.4.0. Fails on 10.4.0, 10.5.0, 10.5.1, 10.5.2, 10.6.0 and main; 10.3.2 has no lucene104 codec. #16631 turned the error into an <code>IllegalArgumentException</code>; #16030 fixed it on purpose for a week before its revert. Not fixed upstream.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>6 rows</span></summary><div class='body'><ul><li><strong>Introduced:</strong> <code class='nw'>ba455f2bae1</code> "Add fallback support to Lucene104ScalarQuantizedVectorsFormat getFloatVectorValues when there are no full-precision vectors present (#15415)" (2025-11-13), shipped through its branch_10x copy <code class='nw'>eb0173245c8</code>, which is in exactly the tags 10.4.0, 10.5.0, 10.5.1, 10.5.2 and 10.6.0. The commit created the view with <code>new byte[dimension]</code> and the <code class='nw'>PACKED_NIBBLE</code> unpack.</li><li><strong>Error form:</strong> before #16631 (2026-09-09) the unpack was a plain loop: <code class='nw'>AssertionError</code> with assertions on, <code>ArrayIndexOutOfBoundsException</code> with them off. Since then <code>VectorUtil.int4Unpack</code> checks lengths and throws <code>IllegalArgumentException</code>.</li><li><strong>Float16 twin:</strong> added by #16473 (<code class='nw'>50c1e6acb7f</code>, 2026-08-26) with the same allocation; on main and branch_11x, not in 10.6.0.</li><li><strong>A week with the fix:</strong> #16030 (<code class='nw'>cab6cfcb604</code>, 2026-09-18) padded the buffer in both views; the revert <code class='nw'>c72bc6abf18</code> (2026-09-25) restored the bug. 10.6.0 contains both.</li><li><strong>Upstream:</strong> no commit after <code class='nw'>645d4fe14a20</code> touches the two views, <code>OffHeapScalarQuantizedVectorValues</code> or <code class='nw'>int4Unpack</code> (upstream main checked 2026-11-01), and no open PR touches the two views.</li></ul><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>645d4fe14a20</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>minimal test fails with assertions on and off (gradle and standalone); passes with fix A or B</td></tr><tr><th scope='row'>10.6.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>fails with assertions on and off: IllegalArgumentException</td></tr><tr><th scope='row'>10.5.0, 10.5.1, 10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>fail: ArrayIndexOutOfBoundsException (assertions off), AssertionError (on)</td></tr><tr><th scope='row'>10.4.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> first release</span></td><td>fails like 10.5.x (import-adjusted copy of the test)</td></tr><tr><th scope='row'>10.3.2</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>no codecs/lucene104 package: the test does not compile</td></tr><tr><th scope='row'>4-dim vector, same steps</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>passes on main, 10.4.0 and 10.6.0</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent study verifier, the current-main reproducer, a tie-break and this doc's gradle runs call it real. A cross-model reviewer (OpenAI GPT-5.6) reproduced it and agreed on the cause but voted not real because no Lucene API creates the dropped-raw state; the tie-break settled that from the PR history.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>271 words</span></summary><div class='body'><p>Gap: the cross-model reviewer did not see the upstream PR discussions the tie-break relies on, and it was not re-run after the tie-break.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>study verifier</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own drop helper and 7 tests on the HNSW format; 3 fail on main (float32 read, rescore, float16); the matrix isolates PACKED_NIBBLE x odd dims.</td></tr><tr><th scope='row'>reverify on 645d4fe14a20</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> still reproduces</span></td><td>Study tests, 7 run, 3 failed, assertions on and off.</td></tr><tr><th scope='row'>minimal repro</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> verified</span></td><td>Fails on main with assertions on and off and two seeds; even-dim control passes; fix sketch passes.</td></tr><tr><th scope='row'>current-main verification</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Main and 10.5.2 fail with assertions on and off; the fix sketch passes.</td></tr><tr><th scope='row'>cross-model review, refute lens</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> not real (contract), high</span></td><td>OpenAI GPT-5.6: reproduced, root cause agreed; judged the dropped-raw state out of contract.</td></tr><tr><th scope='row'>Second adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>PR history settles the contract; 10.4.0, 10.5.2, 10.6.0 run; own probe: dim 1023 fails, dim 1024 passes.</td></tr><tr><th scope='row'>doc gradle runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> fails before, passes with A and B</span></td><td>Scratch worktree of 645d4fe14a20. Fix A: the lucene104 and quantization packages pass (199 tests). Fix B: the minimal test and the two Lucene104 scalar-quantized format test classes pass (130 tests).</td></tr><tr><th scope='row'>independent fact check</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real; a prior report found</span></td><td>Re-ran the repro (gradle and standalone, assertions on and off, three seeds), fix A and fix B; found the #16030 review thread (see Prior reports).</td></tr><tr><th scope='row'>cross-model fact check</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> mechanism agreed; 2 wording errors</span></td><td>OpenAI GPT-5.6: agreed on the mechanism and the runs; its corrections (the rescore factory only builds the query; the <code class='nw'>.vemf</code> file is rewritten, not emptied) are applied.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-065/bug.png' download='packed-nibble-odd-dimension-bug.png' target='_self'>PNG</a> <span class='n'>447 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Finding record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>507 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Finding record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-065, snapshot of 2026-11-01</p><dl class='card'><div><dt>Registry title</dt><dd>PACKED_NIBBLE quantized vectors with an odd dimension fail once raw vectors are dropped</dd></div><div><dt>Area</dt><dd>codecs / vectors</dd></div><div><dt>Priority</dt><dd>Low, rank 920: PACKED_NIBBLE quantized vectors with an odd dimension fail once raw vectors are dropped, which no public API does, loud and contrived.</dd></div><div><dt>Impact class</dt><dd>crash</dd></div><div><dt>Impact note</dt><dd>Users of the opt-in PACKED_NIBBLE encoding with an odd dimension who drop raw vectors (e.g. searcher replicas); released since 10.4.0.</dd></div><div><dt>Summary</dt><dd>You use PACKED_NIBBLE scalar quantization with an odd vector dimension and drop the raw vectors. You expect vectorValue() and full-precision rescoring to work from the quantized data. Instead every vectorValue() call and every rescore throws (IllegalArgumentException on 10.6.0 and main; on 10.4.0 to 10.5.2 ArrayIndexOutOfBoundsException with assertions off).</dd></div><div><dt>Introduced</dt><dd>#15415 (ba455f2bae1) (2025-11-13)</dd></div><div><dt>First affected version</dt><dd>10.4.0 [exec]</dd></div><div><dt>Affected versions</dt><dd>10.4.0, 10.5.0, 10.5.1, 10.5.2 and 10.6.0 [exec, -ea and -da]; main 645d4fe14a20 [exec 2026-10-29 and 2026-11-01, -ea and -da]; 10.3.2 and older not affected (no lucene104 codec) [exec 10.3.2]; branch_10x 657014b3c57 and branch_10_6 4ae946e5a9b: OffHeapScalarQuantizedFloatVectorValues.java identical to 10.5.2 [read]</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed in the earlier formal verification study by independent AI checks and a rerun on Lucene main; also a cross-model review that disputed it (the study&#x27;s other checks rated it real); not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>non-formal: code reading; also reached by exhaustive check</dd></div><div><dt>Upstream and prior reports</dt><dd>known: #16030 review thread on OffHeapScalarQuantizedFloatVectorValues.java:96 (kaivalnp asked 2026-09-10 why the buffer line changed; mccullocht, the PR author, 2026-09-17: 'This is an independent change -- it would occasionally compute the wrong size and tests would fail'); the fix was lost in the revert c72bc6abf18 (2026-09-25); no issue or PR has tracked it since; no other report found (searches 2026-10-22 and 2026-11-01)</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>645d4fe14a20</code> (2026-10-28): the minimal test through gradle with assertions on and off, before and after each fix, in a scratch worktree (2026-11-01), and standalone (2026-10-29 and 2026-11-01); releases 10.4.0, 10.5.0, 10.5.1, 10.5.2 and 10.6.0 standalone with assertions on and off; 10.3.2 has no lucene104 codec.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>The finding in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/codecs/lucene104/OffHeapScalarQuantizedFloatVectorValues.java:91, :96, :122-124, :129-139 (at 645d4fe14a20)</code></li><li><code>lucene/core/src/java/org/apache/lucene/codecs/lucene104/OffHeapScalarQuantizedVectorValues.java:182-188, :191-193 (at 645d4fe14a20)</code></li><li><code>lucene/core/src/java/org/apache/lucene/util/VectorUtil.java:313-318 (at 645d4fe14a20)</code></li><li><code>lucene/core/src/java/org/apache/lucene/util/quantization/QuantizedByteVectorValues.java:39, :136-139, :161-166 (at 645d4fe14a20)</code></li><li><code>lucene/core/src/java/org/apache/lucene/codecs/lucene104/Lucene104ScalarQuantizedVectorsReader.java:278-297, :326-344, :769-771 (at 645d4fe14a20)</code></li><li><code>lucene/core/src/java/org/apache/lucene/codecs/lucene104/OffHeapScalarQuantizedFloat16VectorValues.java:92, :135-136 (at 645d4fe14a20)</code></li><li><code>lucene/core/src/java/org/apache/lucene/codecs/lucene104/Lucene104ScalarQuantizedVectorsWriter.java:190, :243, :431, :551, :942; lucene/core/src/java/org/apache/lucene/codecs/lucene104/Lucene104ScalarQuantizedVectorScorer.java:226-230 (at 645d4fe14a20)</code></li><li><code>lucene/core/src/java/org/apache/lucene/util/quantization/OptimizedScalarQuantizer.java:460-471, :527-551 (at 645d4fe14a20)</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/codecs/lucene104/Lucene104ScalarQuantizedVectorsFormat.java:97, :144-147, :168-170 (at 645d4fe14a20)</code></li><li><code>lucene/core/src/test/org/apache/lucene/codecs/lucene104/TestLucene104ScalarQuantizedVectorsFormat.java:614-682 (at 645d4fe14a20)</code></li><li><code>lucene/test-framework/src/java/org/apache/lucene/tests/index/BaseKnnVectorsFormatTestCase.java:2274-2276 (at 645d4fe14a20)</code></li></ul></dd></div><div><dt>Minimal repro</dt><dd><ul class='paths'><li><code>lucene/core/src/test/org/apache/lucene/codecs/lucene104/TestLucene104ScalarQuantizedVectorsFormat.java:614-682 (at 645d4fe14a20)</code></li></ul></dd></div><div><dt>Why it looks unintended</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/codecs/lucene104/OffHeapScalarQuantizedFloatVectorValues.java:39-54, :123-124 (at 645d4fe14a20)</code></li><li><code>lucene/test-framework/src/java/org/apache/lucene/tests/index/BaseKnnVectorsFormatTestCase.java:132, :2187-2189, :2196-2199, :2255-2260, :2266-2269, :2275 (at 645d4fe14a20)</code></li><li><code>lucene/core/src/test/org/apache/lucene/codecs/lucene104/TestLucene104ScalarQuantizedVectorsFormat.java:81-86, :98, :291, :452, :529 (at 645d4fe14a20)</code></li><li><code>lucene/CHANGES.txt:894, :1378, :1527 (at 645d4fe14a20)</code></li><li><code>lucene/backward-codecs/src/test/org/apache/lucene/backward_codecs/lucene99/Lucene99ScalarQuantizedVectorsWriter.java:198-204 (at 645d4fe14a20)</code></li><li><code>lucene/core/src/test/org/apache/lucene/codecs/lucene104/TestLucene104HnswScalarQuantizedVectorsFormat.java:491-493 (at 645d4fe14a20)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/util/quantization/OptimizedScalarQuantizer.java:253-266, :283-297 (at 645d4fe14a20)</code></li></ul></dd></div><div><dt>Diagrams</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/codecs/lucene104/OffHeapScalarQuantizedFloatVectorValues.java:91, :96, :123-124; lucene/core/src/java/org/apache/lucene/util/VectorUtil.java:313-318; lucene/core/src/java/org/apache/lucene/codecs/lucene104/OffHeapScalarQuantizedVectorValues.java:182-188 (at 645d4fe14a20)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestPackedNibbleOddDimensionWithoutRawVectors.java: <a href='../repro/LFV-065/src/org/apache/lucene/codecs/lucene104/TestPackedNibbleOddDimensionWithoutRawVectors.java'><code>repro/LFV-065/src/org/apache/lucene/codecs/lucene104/TestPackedNibbleOddDimensionWithoutRawVectors.java</code></a> (106 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><ul class='paths'><li><a href='../assets/LFV-065/bug.png'><code>assets/LFV-065/bug.png</code></a> (447 KB)</li></ul><p class='meta built'>Built 2026-11-01 from the hunt's record of this finding and its doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-11-01. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All findings</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  var own = !base && window.top === window && /^(https?|file):$/.test(location.protocol);
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = (own ? String(location.href).split('#')[0] : base) + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

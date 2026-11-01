@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- A failed IndexRearranger.execute() throws without waiting for its other tasks, and closes the input reader and the IndexWriter while those tasks still use them (finding LFV-1011; [repro](../../repro/LFV-1011/))
+- A failed IndexRearranger.execute() throws without waiting for its other tasks, and closes the input reader and the IndexWriter while those tasks still use them (finding LFV-1011; [repro](../../repro/LFV-1011/), [finding page](../../bugs/LFV-1011.html))
 
 ## Files
 

@@ -2,6 +2,8 @@
 
 Finding LFV-446 · Area: index / IndexWriter merge-reader acquisition (ReadersAndUpdates.getReaderForMerge) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-446.html](../../bugs/LFV-446.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

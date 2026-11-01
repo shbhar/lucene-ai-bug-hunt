@@ -2,6 +2,8 @@
 
 Finding LFV-219 · Area: geo / XY shapes (XYPolygon winding order, Tessellator.tessellate(XYPolygon), XYShape.createIndexableFields and createDocValueField) · Priority: low · Impact: crash · Novelty: new
 
+Finding page: [../../bugs/LFV-219.html](../../bugs/LFV-219.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

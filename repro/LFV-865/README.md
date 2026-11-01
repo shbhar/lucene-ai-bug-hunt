@@ -2,6 +2,8 @@
 
 Finding LFV-865 · Area: core / analysis: AutomatonToTokenStream (automaton to token-graph conversion) · Priority: low · Impact: crash · Novelty: new
 
+Finding page: [../../bugs/LFV-865.html](../../bugs/LFV-865.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

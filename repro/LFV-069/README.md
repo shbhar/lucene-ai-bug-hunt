@@ -2,16 +2,18 @@
 
 Finding LFV-069 · Area: util / heaps · Priority: low · Impact: crash · Novelty: new
 
+Finding page: [../../bugs/LFV-069.html](../../bugs/LFV-069.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You push more than 715,827,883 elements into a growable LongHeap or TernaryLongHeap. You expect the heap to keep growing, as documented. Instead (size*3+1)/2 wraps, push throws and leaves the heap corrupt; TernaryLongHeap.downHeap has a related index overflow at the same size.
+You push more than 715,827,882 elements into a growable LongHeap or TernaryLongHeap. You expect the heap to keep growing, as documented. Instead (size*3+1)/2 wraps, push throws and leaves the heap corrupt; TernaryLongHeap.downHeap has a related index overflow at the same size.
 
 ## Expected vs actual
 
-- Expected: You expect the heap to keep growing, as documented.
-- Actual: (size*3+1)/2 wraps, push throws and leaves the heap corrupt; TernaryLongHeap.downHeap has a related index overflow at the same size.
+- Expected: `push(1)` grows the array (to 1,207,959,553 slots) and `size()` is 715,827,883, or `OutOfMemoryError` if the heap is too small.
+- Actual: `AssertionError: size must be positive (got -1073741823): likely integer overflow?` from `ArrayUtil.grow` with assertions on; `ArrayIndexOutOfBoundsException: Index 715827883 out of bounds for length 715827883` with them off.
 
 ## Files
 
@@ -42,6 +44,10 @@ java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=A
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestLongHeapGrowthOverflow.java](TestLongHeapGrowthOverflow.java)
 
 Formal models and scripts this finding's part of the hunt used: [../../models/study-overflow-at-scale/](../../models/study-overflow-at-scale/)
 

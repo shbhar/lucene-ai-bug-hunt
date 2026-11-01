@@ -8,8 +8,8 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 - FSTMetadata.save always writes the current version, so re-saving a pre-9.0 BYTE2 FST breaks its lookups (finding LFV-052; [repro](../../repro/LFV-052/), [finding page](../../bugs/LFV-052.html))
 - FSTCompiler silently writes a corrupt FST when a fixed-length-arc node would expand to 2^31 bytes or more (finding LFV-007; [repro](../../repro/LFV-007/), [finding page](../../bugs/LFV-007.html))
-- Util.shortestPaths with topN=0 throws NoSuchElementException (finding LFV-070; [repro](../../repro/LFV-070/))
-- FSTCompiler throws ArrayIndexOutOfBoundsException on BYTE4 nodes whose labels span 2^31-8 or more (finding LFV-067; [repro](../../repro/LFV-067/))
+- Util.shortestPaths with topN=0 throws NoSuchElementException (finding LFV-070; [repro](../../repro/LFV-070/), [finding page](../../bugs/LFV-070.html))
+- FSTCompiler throws ArrayIndexOutOfBoundsException on BYTE4 nodes whose labels span 2^31-8 or more (finding LFV-067; [repro](../../repro/LFV-067/), [finding page](../../bugs/LFV-067.html))
 
 ## Files
 

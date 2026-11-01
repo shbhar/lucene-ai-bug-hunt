@@ -8,7 +8,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 - TopDocs.merge(start, topN, ...) returns a page of null ScoreDocs, with no error, when start + topN overflows int (for example start = 1 and topN = Integer.MAX_VALUE meaning 'no limit') (finding LFV-262; [repro](../../repro/LFV-262/), [finding page](../../bugs/LFV-262.html))
 - TopDocs.merge with a custom tie breaker fails an assertion (only with -ea) when the tie breaker returns 0 for tied hits from two different shards at the same rank (finding LFV-267; [repro](../../repro/LFV-267/))
-- PriorityQueue.downHeap computes the child index i &lt;&lt; 1 in int, so a queue holding 2^30 or more elements throws ArrayIndexOutOfBoundsException from updateTop, pop or insertWithOverflow and is left with one element lost and another duplicated (finding LFV-294; [repro](../../repro/LFV-294/))
+- PriorityQueue.downHeap computes the child index i &lt;&lt; 1 in int, so a queue holding 2^30 or more elements can throw ArrayIndexOutOfBoundsException (when a sift-down reaches node 2^30) from updateTop, pop or insertWithOverflow and is left with one element lost and another duplicated (finding LFV-294; [repro](../../repro/LFV-294/), [finding page](../../bugs/LFV-294.html))
 
 ## Files
 

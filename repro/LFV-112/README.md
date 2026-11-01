@@ -2,6 +2,8 @@
 
 Finding LFV-112 · Area: index / SortingCodecReader re-sort (index sorting with document blocks) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-112.html](../../bugs/LFV-112.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

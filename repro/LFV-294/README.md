@@ -1,6 +1,8 @@
-# PriorityQueue.downHeap computes the child index i &lt;&lt; 1 in int, so a queue holding 2^30 or more elements throws ArrayIndexOutOfBoundsException from updateTop, pop or insertWithOverflow and is left with one element lost and another duplicated
+# PriorityQueue.downHeap computes the child index i &lt;&lt; 1 in int, so a queue holding 2^30 or more elements can throw ArrayIndexOutOfBoundsException (when a sift-down reaches node 2^30) from updateTop, pop or insertWithOverflow and is left with one element lost and another duplicated
 
 Finding LFV-294 · Area: util / PriorityQueue (sift-down; base class of HitQueue and FieldValueHitQueue) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-294.html](../../bugs/LFV-294.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -10,8 +12,8 @@ You fill a Lucene PriorityQueue with 2^30 + 1 elements, a size its constructor a
 
 ## Expected vs actual
 
-- Expected: You expect the usual log(size) sift-down and the new least element back.
-- Actual: When the sift-down reaches node 2^30, the child index i &lt;&lt; 1 wraps to Integer.MIN_VALUE, the negative index -2147483647 passes the 'k &lt;= size' check, and the call throws ArrayIndexOutOfBoundsException after children were already moved up, so the queue has lost the element being sifted and holds a second copy of another.
+- Expected: `updateTop(1)` returns 0: the 1 sinks to a leaf in 30 steps and the queue keeps its 2^30 elements.
+- Actual: `ArrayIndexOutOfBoundsException: Index -2147483647 out of bounds for length 1073741825` at `PriorityQueue.downHeap(PriorityQueue.java:357)`, with assertions on and off.
 
 ## Files
 
@@ -47,6 +49,10 @@ java -ea -esa -Xmx7g --add-modules jdk.incubator.vector --enable-native-access=A
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestPriorityQueueTwoToThe30Elements.java](TestPriorityQueueTwoToThe30Elements.java)
 
 Formal models and scripts this finding's part of the hunt used: [../../models/priorityqueue-topdocs-merge/](../../models/priorityqueue-topdocs-merge/)
 

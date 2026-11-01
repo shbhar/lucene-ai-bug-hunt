@@ -2,6 +2,8 @@
 
 Finding LFV-733 · Area: queries / spans: SpanMultiTermQueryWrapper top-N rewrite methods vs the core IndexSearcher clause limit · Priority: low · Impact: crash · Novelty: new
 
+Finding page: [../../bugs/LFV-733.html](../../bugs/LFV-733.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

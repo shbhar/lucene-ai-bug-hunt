@@ -2,11 +2,13 @@
 
 Finding LFV-993 · Area: core / search: field-sorted top-N collection (FieldValueHitQueue, TopFieldCollectorManager) · Priority: low · Impact: wrong error · Novelty: new
 
+Finding page: [../../bugs/LFV-993.html](../../bugs/LFV-993.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You call new TopFieldCollectorManager(sort, Integer.MAX_VALUE, null, 1).newCollector() with any sort (a long field, a string field, Sort.RELEVANCE), directly or through SortRescorer.rescore(searcher, topDocs, Integer.MAX_VALUE), and expect the IllegalArgumentException 'maxSize must be &gt;= 0 and &lt; 2147483631' that Lucene 4.7.0 to 10.5.2 and the 10.6 RC throw, and that main's score-ordered TopScoreDocCollectorManager still throws. On main you get OutOfMemoryError 'Requested array size exceeds VM limit' instead ('Java heap space' at 2147483631 with a 1 GB heap). Since #14873, FieldValueHitQueue.create builds the sort comparators, each of which pre-allocates a numHits-sized array, before it calls the PriorityQueue constructor, whose size check exists to prevent exactly this confusing OutOfMemoryError (SOLR-5661).
+You call new TopFieldCollectorManager(sort, Integer.MAX_VALUE, null, 1).newCollector() with any built-in sort (a long field, a string field, Sort.RELEVANCE), directly or through SortRescorer.rescore(searcher, topDocs, Integer.MAX_VALUE), and expect the IllegalArgumentException 'maxSize must be &gt;= 0 and &lt; 2147483631' that Lucene 7.5.0 to 10.6.0 throw (main's score-ordered TopScoreDocCollectorManager still throws an IllegalArgumentException, with its own message). On main you get OutOfMemoryError 'Requested array size exceeds VM limit' instead ('Java heap space' at 2147483631 with a 1 GB heap). Since #14873, FieldValueHitQueue.create builds the sort comparators, each of which pre-allocates a numHits-sized array, before it calls the PriorityQueue constructor, whose size check exists to prevent exactly this confusing OutOfMemoryError (SOLR-5661).
 
 The test shows that on main `new TopFieldCollectorManager(sort, Integer.MAX_VALUE, null, 1).newCollector()` with a LONG sort allocates the numHits-sized comparator in `FieldValueHitQueue.create` before PriorityQueue's size check runs (regression from #14873).
 

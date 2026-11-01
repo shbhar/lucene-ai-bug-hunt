@@ -10,8 +10,8 @@ The LeafCollector class javadoc explains that collect() receives segment-relativ
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
+- Expected: The example compiles, as it did on 5.0.0 and as the corrected example does on main.
+- Actual: javac reports 2 errors: `<anonymous Example$1>` does not override abstract method `scoreMode()` in `Collector`, and `<anonymous Example$1$1>` does not override abstract method `setScorer(Scorable)` in `LeafCollector`; the same with assertions off.
 
 ## Files
 

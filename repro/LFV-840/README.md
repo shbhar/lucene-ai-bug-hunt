@@ -2,6 +2,8 @@
 
 Finding LFV-840 · Area: index / deletion policies (PersistentSnapshotDeletionPolicy save-file failure handling) · Priority: low · Impact: wrong error · Novelty: new
 
+Finding page: [../../bugs/LFV-840.html](../../bugs/LFV-840.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

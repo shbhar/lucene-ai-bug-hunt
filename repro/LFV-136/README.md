@@ -2,6 +2,8 @@
 
 Finding LFV-136 · Area: index / MultiDocValues merged numeric, binary and norms doc-values views (also the merged reader passed to MergePolicy.OneMerge#reorder) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-136.html](../../bugs/LFV-136.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

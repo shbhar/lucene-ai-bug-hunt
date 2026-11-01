@@ -2,6 +2,8 @@
 
 Finding LFV-462 · Area: queries / intervals (MultiTermIntervalsSource behind Intervals.prefix, wildcard, regexp, range, fuzzyTerm and multiterm; Weight#matches / IntervalsSource#matches) · Priority: low · Impact: wrong error · Novelty: new
 
+Finding page: [../../bugs/LFV-462.html](../../bugs/LFV-462.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

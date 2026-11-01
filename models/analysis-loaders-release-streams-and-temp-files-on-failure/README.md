@@ -6,8 +6,8 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- A hunspell Dictionary load that fails with the offline sorting of the Dictionary(Directory, ...) constructors leaves its temp IndexOutput open (regression since 9.9.0, #12834): through HunspellStemFilterFactory every failed inform() keeps a file descriptor on the deleted temp file until GC, and with a caller-supplied tempDir the temp file also stays behind (finding LFV-1006; [repro](../../repro/LFV-1006/))
-- ICUTokenizerFactory leaves a custom per-script rule file (rulefiles) open when reading or decoding it fails: parseRules closes its reader only after a successful read loop, so a rule file that is not valid UTF-8, or an I/O error while reading it, leaves the stream the ResourceLoader opened unclosed until garbage collection (every release since 4.1.0) (finding LFV-1010; [repro](../../repro/LFV-1010/))
+- A hunspell Dictionary load that fails with the offline sorting of the Dictionary(Directory, ...) constructors leaves its temp IndexOutput open (regression since 9.9.0, #12834): through HunspellStemFilterFactory every failed inform() keeps a file descriptor on the deleted temp file until GC, and with a caller-supplied tempDir the temp file also stays behind (finding LFV-1006; [repro](../../repro/LFV-1006/), [finding page](../../bugs/LFV-1006.html))
+- ICUTokenizerFactory leaves a custom per-script rule file (rulefiles) open when reading or decoding it fails: parseRules closes its reader only after a successful read loop, so a rule file that is not valid UTF-8, or an I/O error while reading it, leaves the stream the ResourceLoader opened unclosed until garbage collection (every release since 4.1.0) (finding LFV-1010; [repro](../../repro/LFV-1010/), [finding page](../../bugs/LFV-1010.html))
 
 ## Files
 

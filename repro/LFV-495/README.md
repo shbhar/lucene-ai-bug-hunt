@@ -2,6 +2,8 @@
 
 Finding LFV-495 · Area: core / index reader reopen (FilterDirectoryReader.wrapDirectoryReader on every doOpenIfChanged path; SoftDeletesDirectoryReaderWrapper as the stock trigger) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-495.html](../../bugs/LFV-495.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

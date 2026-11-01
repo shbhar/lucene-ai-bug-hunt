@@ -10,8 +10,8 @@ The org.apache.lucene.util.fst package overview shows five usage examples (build
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
+- Expected: The three examples compile: javac reports no errors.
+- Actual: 6 javac errors: the FSTCompiler constructor cannot be applied, getByOutput is not found, and input/output have private access in Util.Result (4 times).
 
 ## Files
 

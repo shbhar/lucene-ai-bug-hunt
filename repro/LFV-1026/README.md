@@ -10,8 +10,8 @@ The javadoc of BulkScorer#score(LeafCollector, Bits, int, int) explains the wind
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
+- Expected: The example from the `BulkScorer#score` javadoc compiles against the current API.
+- Actual: javac: `cannot find symbol: method advance(int)` and `cannot find symbol: method nextDoc()` on `variable scorer of type Scorer`.
 
 ## Files
 

@@ -2,11 +2,13 @@
 
 Finding LFV-058 · Area: util / bitsets · Priority: low · Impact: silent wrong results · Novelty: new
 
+Finding page: [../../bugs/LFV-058.html](../../bugs/LFV-058.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You call nextClearBit on a SparseFixedBitSet longer than 2^31-4096 bits at a position in its last 4096-bit block. You expect the next clear bit. Instead blockBase + 4096 wraps, it returns NO_MORE_DOCS, and BitSetIterator.docIDRunEnd then claims absent documents (DenseConjunctionBulkScorer collected 3,966 docs instead of 1 in the repro).
+You call nextClearBit on a SparseFixedBitSet longer than 2^31-4096 bits at a position in its last 4096-bit block. You expect the next clear bit. Instead blockBase + 4096 wraps, it returns NO_MORE_DOCS, and BitSetIterator.docIDRunEnd then claims absent documents.
 
 The test shows that `SparseFixedBitSet.nextClearBit` returns NO_MORE_DOCS for a position in the last 4096-bit block of a set longer than 2^31-4096 bits, because `blockBase + 4096` overflows to Integer.MIN_VALUE.
 

@@ -2,6 +2,8 @@
 
 Finding LFV-392 · Area: util / BytesRefArray (iterator(Comparator) with a null comparator) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-392.html](../../bugs/LFV-392.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

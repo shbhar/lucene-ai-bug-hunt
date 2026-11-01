@@ -2,6 +2,8 @@
 
 Finding LFV-555 · Area: facet / taxonomy writer: DirectoryTaxonomyWriter.close() (failure cleanup) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-555.html](../../bugs/LFV-555.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

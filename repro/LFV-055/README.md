@@ -2,11 +2,13 @@
 
 Finding LFV-055 · Area: util / automaton · Priority: low · Impact: crash · Novelty: new
 
+Finding page: [../../bugs/LFV-055.html](../../bugs/LFV-055.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You compile an NFA that has a reachable dead state into a CompiledAutomaton and intersect it through a non-block-tree consumer such as DOC_VALUES_REWRITE, SortedSetDocValues.intersect or MemoryIndex. You expect the matching terms, which the block-tree path returns. Instead AutomatonTermsEnum throws ArrayIndexOutOfBoundsException.
+You compile an NFA that has a reachable dead end (a dead state with no transitions) on the term walk into a CompiledAutomaton and intersect it through a non-block-tree consumer such as DOC_VALUES_REWRITE, SortedSetDocValues.intersect or MemoryIndex. You expect the matching terms, which the block-tree path returns. Instead AutomatonTermsEnum throws ArrayIndexOutOfBoundsException.
 
 The test shows that an AutomatonQuery with DOC_VALUES_REWRITE over a 4-state NFA with a reachable dead state (language {b, bc}) crashes in AutomatonTermsEnum on a one-document index.
 

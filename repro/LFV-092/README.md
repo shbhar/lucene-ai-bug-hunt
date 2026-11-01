@@ -2,11 +2,13 @@
 
 Finding LFV-092 · Area: queries / function vector sources · Priority: low · Impact: wrong error · Novelty: new
 
+Finding page: [../../bugs/LFV-092.html](../../bugs/LFV-092.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a ConstKnnFloat16ValueSource from a float16 query vector that contains an infinity or NaN half and score it against a KnnFloat16VectorField with a FunctionQuery over Float16VectorSimilarityFunction. You expect the constructor to throw IllegalArgumentException, as its float32 twin ConstKnnFloatValueSource does (VectorUtil.checkFinite) and as KnnFloat16VectorQuery and KnnFloat16VectorField do for the same halves (VectorUtil.checkFiniteFloat16). Instead the constructor only null-checks the array, so with -ea scoring later fails with a bare AssertionError inside VectorUtil (EUCLIDEAN, DOT_PRODUCT, MAXIMUM_INNER_PRODUCT; COSINE silently scores 0), and with -da documents score 0 through FunctionQuery's intended NaN/negative clamp or, for DOT_PRODUCT and MAXIMUM_INNER_PRODUCT with an infinite component, +Infinity.
+You build a ConstKnnFloat16ValueSource from a float16 query vector that contains an infinity or NaN half and score it against a KnnFloat16VectorField with a FunctionQuery over Float16VectorSimilarityFunction. You expect the constructor to throw IllegalArgumentException, as its float32 twin ConstKnnFloatValueSource does (VectorUtil.checkFinite) and as KnnFloat16VectorQuery and KnnFloat16VectorField do for the same halves (VectorUtil.checkFiniteFloat16). Instead the constructor only null-checks the array, so with -ea scoring later fails with an AssertionError inside VectorUtil (no message for EUCLIDEAN; 'not finite: ... from &lt;raw shorts&gt;' for DOT_PRODUCT and MAXIMUM_INNER_PRODUCT; COSINE silently scores 0), and with -da documents score 0 through FunctionQuery's intended NaN/negative clamp or, for DOT_PRODUCT and MAXIMUM_INNER_PRODUCT with an infinite component, +Infinity.
 
 The test shows that `new ConstKnnFloat16ValueSource(new short[] {Float.floatToFloat16(Float.NaN)})` accepts a non-finite float16 query vector (`TestConstKnnFloat16ValueSourceNonFinite#testNaNQueryVectorIsRejected`), while its float32 twin `ConstKnnFloatValueSource` and `KnnFloat16VectorQuery`/`KnnFloat16VectorField` reject such vectors.
 

@@ -2,6 +2,8 @@
 
 Finding LFV-742 · Area: spatial3d / geom path distances (GeoStandardPath and GeoDegeneratePath PathSegment foot selection; Geo3DDocValuesField.newPathSort) · Priority: low · Impact: crash · Novelty: new
 
+Finding page: [../../bugs/LFV-742.html](../../bugs/LFV-742.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

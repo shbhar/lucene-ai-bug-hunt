@@ -2,6 +2,8 @@
 
 Finding LFV-357 · Area: util / OfflineSorter concurrent sort (temp-file cleanup on failure) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-357.html](../../bugs/LFV-357.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

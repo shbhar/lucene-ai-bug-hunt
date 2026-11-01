@@ -10,8 +10,8 @@ The compound package overview shows how to split German and Swedish compound wor
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
+- Expected: The three examples compile, and Draht and schere get the table's offsets 0-5 and 5-11.
+- Actual: 5 javac errors (getHyphenationTree(Reader) twice, WhitespaceTokenizer(StringReader) three times), and Draht ends at 11: endOffset expected:&lt;5&gt; but was:&lt;11&gt;.
 
 ## Files
 

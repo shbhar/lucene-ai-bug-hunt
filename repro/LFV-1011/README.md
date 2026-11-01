@@ -2,6 +2,8 @@
 
 Finding LFV-1011 · Area: misc / index tools (IndexRearranger.execute failure path: the await loops of createRearrangedIndex and applyDeletes inside the try-with-resources) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-1011.html](../../bugs/LFV-1011.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

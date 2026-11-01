@@ -10,8 +10,8 @@ The TemporalMergePolicy class javadoc shows, under 'Configuration:', how to buil
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
+- Expected: The copied example compiles.
+- Actual: One javac error, `cannot find symbol: method setBaseTimeSeconds(int), location: class TemporalMergePolicy`, with assertions on and off, on main and on the 10.6.0 jars.
 
 ## Files
 

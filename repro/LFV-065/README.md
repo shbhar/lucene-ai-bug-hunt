@@ -1,12 +1,14 @@
 # PACKED_NIBBLE quantized vectors with an odd dimension fail once raw vectors are dropped
 
-Finding LFV-065 · Area: codecs / vectors · Priority: low · Impact: crash · Novelty: new
+Finding LFV-065 · Area: codecs / vectors · Priority: low · Impact: crash · Novelty: known upstream
+
+Finding page: [../../bugs/LFV-065.html](../../bugs/LFV-065.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You use PACKED_NIBBLE scalar quantization with an odd vector dimension and drop the raw vectors. You expect vectorValue() and full-precision rescoring to work from the quantized data. Instead every vectorValue() call and every rescore throws (ArrayIndexOutOfBoundsException on 10.5.2).
+You use PACKED_NIBBLE scalar quantization with an odd vector dimension and drop the raw vectors. You expect vectorValue() and full-precision rescoring to work from the quantized data. Instead every vectorValue() call and every rescore throws (IllegalArgumentException on 10.6.0 and main; on 10.4.0 to 10.5.2 ArrayIndexOutOfBoundsException with assertions off).
 
 The test shows that with Lucene104ScalarQuantizedVectorsFormat(PACKED_NIBBLE), a 3-dim float vector cannot be read back from the quantized data once the raw vectors are dropped (upstream's simulateEmptyRawVectors file rewrite).
 

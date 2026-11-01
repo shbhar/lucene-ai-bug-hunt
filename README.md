@@ -1,15 +1,15 @@
 # AI-assisted bug hunt in Apache Lucene
 
-A dated snapshot (2026-11-01) of AI-assisted work: findings in [Apache Lucene](https://github.com/apache/lucene). Every finding the hunt made and confirmed went through AI-run checks: an independent repro and a prior-report search. This is an independent list: per the Apache Lucene project’s AI policy, nothing here is filed in Lucene unless a person files it by hand.
+A dated snapshot (2026-11-01) of AI-assisted work: findings in [Apache Lucene](https://github.com/apache/lucene). Every finding the hunt made and confirmed went through AI-run checks: a prior-report search. This is an independent list: per the Apache Lucene project’s AI policy, nothing here is filed in Lucene unless a person files it by hand.
 
 Browse the table: open `index.html` (published with GitHub Pages).
 
 ## What is in this snapshot
 
-- 1035 registered findings: 775 new, for which the automated prior-report search found no earlier report (a keyword search; private reports are not visible), and 260 already known upstream (others reported or discussed the same behaviour; tracked, but not counted as new).
+- 1035 registered findings: 774 new, for which the automated prior-report search found no earlier report (a keyword search; private reports are not visible), and 261 already known upstream (others reported or discussed the same behaviour; tracked, but not counted as new).
 - 2 of them are withheld pending security review: they appear in the table and in every count, but only with their id, module, priority tier, novelty (new or known upstream) and the line "Details withheld pending security review".
 - Priority tiers: 9 high, 226 medium, 793 low, 7 not yet ranked.
-- 654 public finding pages (`bugs/`), 1033 repro directories (`repro/`) and 140 units of formal models and scripts (`models/`).
+- 703 public finding pages (`bugs/`), 1033 repro directories (`repro/`) and 140 units of formal models and scripts (`models/`).
 - The full table as data: `data/bugs.csv` and `data/bugs.json`.
 
 ## Share a filtered view
@@ -18,7 +18,7 @@ The table keeps its filters, search and sort in the page address, so a link open
 
 ## How the findings were found
 
-The hunt used AI models (Anthropic Claude Opus and OpenAI GPT-5.6) with formal methods (TLA+/TLC model checking, Alloy, Z3/cvc5 SMT solving, Dafny proofs and bounded model checking) alongside fuzzing, model-based, property-based and differential testing, and static analysis. Of the 773 new findings the hunt made that are shown in full, a formal tool's own output gave the first signal for 45; a semi-formal check (a check of the real jar against exact semantics over a bounded input space, exhaustive or for some harnesses randomly sampled, or a hypothesis formed while modelling that a tool then witnessed) for 423; code reading or other testing for 278; and a testing baseline for 27. Every finding ends in a minimal executable test that fails while the reported behaviour is present (on Lucene main, or on the release branch for a finding only a release branch has).
+The hunt used AI models (Anthropic Claude Opus and OpenAI GPT-5.6) with formal methods (TLA+/TLC model checking, Alloy, Z3/cvc5 SMT solving, Dafny proofs and bounded model checking) alongside fuzzing, model-based, property-based and differential testing, and static analysis. Of the 772 new findings the hunt made that are shown in full, a formal tool's own output gave the first signal for 45; a semi-formal check (a check of the real jar against exact semantics over a bounded input space, exhaustive or for some harnesses randomly sampled, or a hypothesis formed while modelling that a tool then witnessed) for 423; code reading or other testing for 277; and a testing baseline for 27. Every finding ends in a minimal executable test that fails while the reported behaviour is present (on Lucene main, or on the release branch for a finding only a release branch has).
 
 ## Lucene version
 

@@ -2,11 +2,13 @@
 
 Finding LFV-070 · Area: util / FST · Priority: low · Impact: crash · Novelty: new
 
+Finding page: [../../bugs/LFV-070.html](../../bugs/LFV-070.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You ask Util.shortestPaths for the top 0 paths, directly or through FreeTextSuggester.lookup(key, 0). You expect an empty result. Instead it throws NoSuchElementException; WFSTCompletionLookup.lookup(.., 0) with assertions off returns one result.
+You ask Util.shortestPaths for the top 0 paths, directly or through FreeTextSuggester.lookup(key, 0). You expect an empty result. Instead it throws NoSuchElementException; with assertions off, WFSTCompletionLookup.lookup(prefix, false, 0) throws the same for a prefix that is not itself a key (for an exact key it returns one result, an older, separate quirk).
 
 The test shows that Util.shortestPaths with topN=0 on a 1-key FST throws instead of returning no paths.
 

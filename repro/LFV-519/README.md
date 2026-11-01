@@ -2,6 +2,8 @@
 
 Finding LFV-519 · Area: suggest / spell (WordBreakSpellChecker word combinations) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-519.html](../../bugs/LFV-519.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
