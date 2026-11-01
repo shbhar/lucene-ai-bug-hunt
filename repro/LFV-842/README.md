@@ -1,17 +1,17 @@
 # If the IndexWriter InfoStream throws inside registerMerge, the merge stays queued but its segments are not marked as merging, so the next merge selection picks the same segments again and, with assertions disabled, forceMerge commits duplicated documents (every release since 3.2.0)
 
-Bug LFV-842 · Area: index / IndexWriter merge registration (registerMerge, pendingMerges, mergingSegments) · Priority: medium · Impact: data corruption · Novelty: known upstream
+Finding LFV-842 · Area: index / IndexWriter merge registration (registerMerge, pendingMerges, mergingSegments) · Priority: medium · Impact: data corruption · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You enable IndexWriter's InfoStream, and the logging call throws once (an exception from the logging backend, or an OutOfMemoryError) while forceMergeDeletes registers its merge; forceMergeDeletes rethrows and the writer stays open, so you expect the index to stay as it was: a following forceMerge(1) and commit should leave the same 10 live documents. But registerMerge had already queued the merge and had not yet marked its segments as merging, so forceMerge(1) selects the same segments again, both merges run, and with -da the committed index holds 16 live documents with id:1 twice. With -ea the next merge fails 'assert merge.registerDone' in IndexWriter._mergeInit instead.
+You enable IndexWriter's InfoStream, and the logging call throws once (an exception from the logging backend, or an OutOfMemoryError) while forceMergeDeletes() registers its merge; forceMergeDeletes rethrows and the writer stays open, so you expect the index to stay as it was: a following forceMerge(1) and commit should leave the same 10 live documents. But registerMerge had already queued the merge and had not yet marked its segments as merging, so forceMerge(1) selects the same segments again, both merges run, and with -da the committed index holds 16 live documents with id:1 twice. With -ea the next merge fails 'assert merge.registerDone' in IndexWriter._mergeInit instead.
 
 ## Expected vs actual
 
 - Expected: You expect the index to stay as it was: a following forceMerge(1) and commit should leave the same 10 live documents.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -21,7 +21,7 @@ You enable IndexWriter's InfoStream, and the logging call throws once (an except
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

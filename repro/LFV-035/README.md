@@ -1,6 +1,8 @@
 # DoubleValuesSource and LongValuesSource sort fields never equal identical ones
 
-Bug LFV-035 · Area: search / sorting · Priority: low · Impact: minor · Novelty: new
+Finding LFV-035 · Area: search / sorting · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-035.html](../../bugs/LFV-035.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected, per the `SortField#equals` javadoc: equal sort fields. Actual: `assert
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 2 test(s) run, 2 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

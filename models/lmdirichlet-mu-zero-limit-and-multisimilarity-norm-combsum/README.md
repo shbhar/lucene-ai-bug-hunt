@@ -4,9 +4,9 @@ Tools: Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- LMDirichletSimilarity accepts mu = 0, but then every document scores 0: log(1 + tf/(mu*P)) + log(mu/(dl+mu)) becomes +Infinity + -Infinity = NaN, and the 'score &gt; 0' clamp turns NaN into 0 (bug LFV-902; [repro](../../repro/LFV-902/))
+- LMDirichletSimilarity accepts mu = 0, but then every document scores 0: log(1 + tf/(mu*P)) + log(mu/(dl+mu)) becomes +Infinity + -Infinity = NaN, and the 'score &gt; 0' clamp turns NaN into 0 (finding LFV-902; [repro](../../repro/LFV-902/), [finding page](../../bugs/LFV-902.html))
 
 ## Files
 

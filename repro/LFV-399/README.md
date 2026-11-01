@@ -1,12 +1,14 @@
 # AnalyzingSuggester and FuzzySuggester check a payload-enabled surface form for the reserved byte U+001F in bytes[0, length) of the backing array instead of in the BytesRef slice [offset, offset + length), so a valid slice is rejected with IllegalArgumentException and a slice that contains U+001F is accepted and later mis-split
 
-Bug LFV-399 · Area: suggest / analyzing suggester (AnalyzingSuggester.build payload check, inherited by FuzzySuggester) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-399 · Area: suggest / analyzing suggester (AnalyzingSuggester.build payload check, inherited by FuzzySuggester) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-399.html](../../bugs/LFV-399.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build an AnalyzingSuggester or FuzzySuggester with payloads from your own InputIterator whose surface forms are BytesRef slices of a larger byte array, for example "ab" at offset 1 of {0x1F, 'a', 'b'}, and expect it to behave exactly as for compact copies of the same bytes. Instead build looks for the reserved separator U+001F in bytes[0, length) of the backing array, ignoring the slice's offset, while two lines later it writes the real slice: the valid slice "ab" is rejected with IllegalArgumentException 'surface form cannot contain unit separator character U+001F', and "a&lt;U+001F&gt;b" at offset 3 of {'x','x','x','a',0x1F,'b'}, whose compact copy is rejected, is accepted. The accepted entry is then split at the wrong place: without EXACT_FIRST, lookup("a") returns key "a" with payload "b&lt;U+001F&gt;p" instead of payload "p"; with the default EXACT_FIRST it returns nothing for that entry with -da and throws AssertionError with -ea.
+You build an AnalyzingSuggester or FuzzySuggester with payloads from your own InputIterator whose surface forms are BytesRef slices of a larger byte array, for example "ab" at offset 1 of {0x1F, 'a', 'b'}, and expect it to behave exactly as for compact copies of the same bytes. Instead build() looks for the reserved separator U+001F in bytes[0, length) of the backing array, ignoring the slice's offset, while two lines later it writes the real slice: the valid slice "ab" is rejected with IllegalArgumentException 'surface form cannot contain unit separator character U+001F', and "a&lt;U+001F&gt;b" at offset 3 of {'x','x','x','a',0x1F,'b'}, whose compact copy is rejected, is accepted. The accepted entry is then split at the wrong place: without EXACT_FIRST, lookup("a") returns key "a" with payload "b&lt;U+001F&gt;p" instead of payload "p"; with the default EXACT_FIRST it returns nothing for that entry with -da and throws AssertionError with -ea.
 
 The test shows that on main AnalyzingSuggester with payloads rejects the surface form "ab" given as `new BytesRef(new byte[] {0x1F, 'a', 'b'}, 1, 2)`, because the U+001F check reads `bytes[0, length)` and ignores `offset`.
 
@@ -22,7 +24,7 @@ Expected: the build accepts "ab" and `lookup("a")` returns it. Actual: `build` t
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

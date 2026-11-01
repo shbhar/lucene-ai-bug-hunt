@@ -4,9 +4,9 @@ Tools: Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- HNSW merge computes a graph's deleted percentage in int, so a graph with more than 21,474,836 deleted vectors (41-100% deleted) passes the 40% DELETE_PCT_THRESHOLD and is reused as the merge base; in 10.4.0-10.5.2, the 10.6.0 RC1 and branch_10x the opt-in concurrent merger then throws ArrayIndexOutOfBoundsException for an all-deleted base (main since #16794, 11.0 only, rebuilds the graph instead) (bug LFV-160; [repro](../../repro/LFV-160/))
+- HNSW merge computes a graph's deleted percentage in int, so a graph with more than 21,474,836 deleted vectors (41-100% deleted) passes the 40% DELETE_PCT_THRESHOLD and is reused as the merge base; in 10.4.0-10.6.0 and branch_10x the opt-in concurrent merger then throws ArrayIndexOutOfBoundsException for an all-deleted base (main since #16794, 11.0 only, rebuilds the graph instead) (finding LFV-160; [repro](../../repro/LFV-160/), [finding page](../../bugs/LFV-160.html))
 
 ## Files
 

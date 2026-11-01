@@ -1,12 +1,12 @@
-# After a read hits EOF on a multi-chunk MMapDirectory input, seek past EOF succeeds and later reads return bytes from the wrong offset
+# After a read hits EOF on a multi-chunk MMapDirectory input, seek() past EOF succeeds and later reads return bytes from the wrong offset
 
-Bug LFV-130 · Area: store / MMapDirectory (MemorySegmentIndexInput sequential reads and seek) · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-130 · Area: store / MMapDirectory (MemorySegmentIndexInput sequential reads and seek) · Priority: low · Impact: wrong error · Novelty: new
 
 AI-assisted finding, confirmed by automated checks. Maintainer triage: Won't fix, triaged by Uwe Schindler (Lucene PMC) on 2026-10-29 (https://github.com/apache/lucene/issues/16937#issuecomment-6508981328). Uwe Schindler explained that once a read or seek throws an IOException (EOFException included), an IndexInput's state is undetermined and it should no longer be used, so the later seek and read are not a bug; Uwe opened #16951 to document this in IndexInput (and may still make it always throw EOFException if that is cheap). Uwe's comment names LFV-140 but links and describes this bug. This site files nothing upstream.
 
 ## What it shows
 
-You open a file that spans more than one mmap chunk with MMapDirectory (in the repro, a 40-byte file with 16-byte chunks), read until a read throws EOFException, and then seek the same input past the end, which IndexInput#seek says must throw EOFException. Instead seek(50) succeeds, getFilePointer returns 50 and readByte returns 34, the byte at offset 34, because the two EOF branches leave the cached chunk index one past the last chunk and seek then checks the target against the wrong chunk. Every target in the window that mirrors the last chunk one chunk further on (48 to 56 here) is accepted this way, and a later clone of the input throws java.lang.AssertionError for the same reason.
+You open a file that spans more than one mmap chunk with MMapDirectory (in the repro, a 40-byte file with 16-byte chunks), read until a read throws EOFException, and then seek the same input past the end, which IndexInput#seek says must throw EOFException. Instead seek(50) succeeds, getFilePointer() returns 50 and readByte() returns 34, the byte at offset 34, because the two EOF branches leave the cached chunk index one past the last chunk and seek() then checks the target against the wrong chunk. Every target in the window that mirrors the last chunk one chunk further on (48 to 56 here) is accepted this way, and a later clone() of the input throws java.lang.AssertionError for the same reason.
 
 The test shows that on a multi-chunk MMapDirectory input (40-byte file, 16-byte chunks), after readByte() hits EOF, seek(50) past EOF succeeds and the next read returns a byte from one chunk earlier.
 
@@ -22,7 +22,7 @@ Expected: `seek(50)` throws EOFException (IndexInput#seek). Actual: `expected EO
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

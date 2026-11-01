@@ -1,14 +1,14 @@
 # SecondPassGroupingCollector and GroupReducer never call LeafCollector#finish on the per-group leaf collectors, so a custom GroupReducer whose collector does its per-segment work in finish (for example a stock FacetsCollector per group) silently sees no documents
 
-Bug LFV-880 · Area: grouping / GroupReducer and SecondPassGroupingCollector (second-pass per-group collectors) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-880 · Area: grouping / GroupReducer and SecondPassGroupingCollector (second-pass per-group collectors) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-880.html](../../bugs/LFV-880.html)
+Finding page: [../../bugs/LFV-880.html](../../bugs/LFV-880.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You write a GroupReducer that gives each group its own FacetsCollector (or any collector that compiles a segment's results in LeafCollector#finish), run it through SecondPassGroupingCollector, and expect each group's collector to see the documents of its group, as GroupReducer's javadoc says and as a plain IndexSearcher search would give. Instead every group's FacetsCollector reports no documents, with no error: GroupReducer.setNextReader replaces each group's leaf collector on every segment without calling finish on the previous one, GroupReducer has no finish hook, and SecondPassGroupingCollector does not override finish, so IndexSearcher's per-leaf finish reaches only the outer collector. In the repro 5 documents in 2 segments are routed to groups a (3) and b (2), yet both groups report 0 hits; with assertions enabled FacetsCollector throws AssertionError on the second segment instead.
+You write a GroupReducer that gives each group its own FacetsCollector (or any collector that compiles a segment's results in LeafCollector#finish), run it through SecondPassGroupingCollector, and expect each group's collector to see the documents of its group, as GroupReducer's javadoc says and as a plain IndexSearcher search would give. Instead every group's FacetsCollector reports no documents, with no error: GroupReducer.setNextReader replaces each group's leaf collector on every segment without calling finish() on the previous one, GroupReducer has no finish hook, and SecondPassGroupingCollector does not override finish(), so IndexSearcher's per-leaf finish() reaches only the outer collector. In the repro 5 documents in 2 segments are routed to groups a (3) and b (2), yet both groups report 0 hits; with assertions enabled FacetsCollector throws AssertionError on the second segment instead.
 
 The test shows that a custom GroupReducer whose per-group collector is a stock FacetsCollector sees no hits, because SecondPassGroupingCollector/GroupReducer never call LeafCollector#finish on the per-group leaf collectors.
 
@@ -23,7 +23,7 @@ Expected: group "a"'s FacetsCollector reports 1 hit (1 doc, 1 segment, 1 group).
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

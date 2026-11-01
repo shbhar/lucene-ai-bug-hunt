@@ -1,17 +1,17 @@
-# Exact PhraseQuery/MultiPhraseQuery: when the first query term occurs twice at one document position, the phrase freq exceeds the maxFreq/impacts bound, so Scorer#getMaxScore is below score and TOP_SCORES search drops the best hit
+# Exact PhraseQuery/MultiPhraseQuery: when the first query term occurs twice at one document position, the phrase freq exceeds the maxFreq()/impacts bound, so Scorer#getMaxScore is below score() and TOP_SCORES search drops the best hit
 
-Bug LFV-195 · Area: search / phrase queries (ExactPhraseMatcher maxFreq and merged impacts, PhraseScorer TOP_SCORES pruning) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-195 · Area: search / phrase queries (ExactPhraseMatcher maxFreq and merged impacts, PhraseScorer TOP_SCORES pruning) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index text with an analyzer that can put the first word of a phrase twice at one position (for example KeywordRepeatFilter plus a stemmer, or index-time synonyms queried through QueryBuilder) and run an exact phrase search with IndexSearcher#search(q, n); you expect the same top hits as scoring every match. ExactPhraseMatcher counts such a phrase occurrence once per copy of the first word, so the document's phrase freq is 2, but the bound it reports for skipping work (maxFreq and the block impacts behind getMaxScore) is the smallest term freq, 1. Once more than 1000 hits are counted the searcher skips documents whose real score is competitive: in the repro search(q, 1) returns doc 0 although exhaustive scoring ranks doc 1100 first, with no error.
+You index text with an analyzer that can put the first word of a phrase twice at one position (for example KeywordRepeatFilter plus a stemmer, or index-time synonyms queried through QueryBuilder) and run an exact phrase search with IndexSearcher#search(q, n); you expect the same top hits as scoring every match. ExactPhraseMatcher counts such a phrase occurrence once per copy of the first word, so the document's phrase freq is 2, but the bound it reports for skipping work (maxFreq() and the block impacts behind getMaxScore) is the smallest term freq, 1. Once more than 1000 hits are counted the searcher skips documents whose real score is competitive: in the repro search(q, 1) returns doc 0 although exhaustive scoring ranks doc 1100 first, with no error.
 
 ## Expected vs actual
 
 - Expected: You expect the same top hits as scoring every match.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -21,7 +21,7 @@ You index text with an analyzer that can put the first word of a phrase twice at
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,12 +1,14 @@
-# CheckIndex with more than one thread (the default checkIndex on a multi-core machine, or checkIndex(onlySegments, executor)) throws NullPointerException when the checking thread is interrupted while it waits for a segment result: the InterruptedException handler logs the interrupt and then processes the still-null segment status
+# CheckIndex with more than one thread (the default checkIndex() on a multi-core machine, or checkIndex(onlySegments, executor)) throws NullPointerException when the checking thread is interrupted while it waits for a segment result: the InterruptedException handler logs the interrupt and then processes the still-null segment status
 
-Bug LFV-631 · Area: index / CheckIndex concurrent segment check · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-631 · Area: index / CheckIndex concurrent segment check · Priority: low · Impact: wrong error · Novelty: new
+
+Finding page: [../../bugs/LFV-631.html](../../bugs/LFV-631.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You run CheckIndex with more than one thread (the default checkIndex on a multi-core machine, or checkIndex(onlySegments, executor)) and your application interrupts the checking thread while it waits for a segment's result, for example to cancel the check. You expect either the outcome the code's own handler is written for (it logs 'ERROR: Interrupted exception occurred when getting segment check result for segment...' and goes on) or an interrupt-type exception such as ThreadInterruptedException, the convention IndexWriter documents. Instead the handler logs and then passes the still-null segment status to processSegmentInfoStatusResult, which throws NullPointerException ('Cannot read field "error" because "segmentInfoStatus" is null'), with the interrupt flag cleared and, on a caller-owned pool, the remaining segment checks still running.
+You run CheckIndex with more than one thread (the default checkIndex() on a multi-core machine, or checkIndex(onlySegments, executor)) and your application interrupts the checking thread while it waits for a segment's result, for example to cancel the check. You expect either the outcome the code's own handler is written for (it logs 'ERROR: Interrupted exception occurred when getting segment check result for segment ...' and goes on) or an interrupt-type exception such as ThreadInterruptedException, the convention IndexWriter documents. Instead the handler logs and then passes the still-null segment status to processSegmentInfoStatusResult, which throws NullPointerException ('Cannot read field "error" because "segmentInfoStatus" is null'), with the interrupt flag cleared and, on a caller-owned pool, the remaining segment checks still running.
 
 The test shows that `CheckIndex.checkIndex(onlySegments, executor)` throws NullPointerException when the calling thread is interrupted while a segment check is still pending: the `InterruptedException` handler logs and then processes the null segment status.
 
@@ -22,7 +24,7 @@ Expected a `Status` or `ThreadInterruptedException`; actual: `NullPointerExcepti
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

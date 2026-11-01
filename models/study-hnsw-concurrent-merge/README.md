@@ -4,11 +4,11 @@ Tools: TLA+/TLC, Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- HNSW merge-time graph reuse can leave the entry node with no neighbours, dropping kNN recall to zero (bug LFV-005; [repro](../../repro/LFV-005/), [bug page](../../bugs/LFV-005.html))
-- Concurrent HNSW build retries a lost entry-node promotion with the wrong query vector (bug LFV-061; [repro](../../repro/LFV-061/))
-- HNSW addConnections descends from the worst upper-level candidate instead of the best (bug LFV-068; [repro](../../repro/LFV-068/))
+- HNSW merge-time graph reuse can leave the entry node with no neighbours, dropping kNN recall to zero (finding LFV-005; [repro](../../repro/LFV-005/), [finding page](../../bugs/LFV-005.html))
+- Concurrent HNSW build retries a lost entry-node promotion with the wrong query vector (finding LFV-061; [repro](../../repro/LFV-061/), [finding page](../../bugs/LFV-061.html))
+- HNSW addConnections descends from the worst upper-level candidate instead of the best (finding LFV-068; [repro](../../repro/LFV-068/), [finding page](../../bugs/LFV-068.html))
 
 ## Files
 
@@ -51,5 +51,5 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## How to run
 
-- TLA+ with TLC: `java -cp tla2tools.jar tlc2.TLC -config <Model>.cfg <Model>.tla` (a counterexample trace is the bug when the model encodes the current code).
+- TLA+ with TLC: `java -cp tla2tools.jar tlc2.TLC -config <Model>.cfg <Model>.tla` (a counterexample trace is the finding when the model encodes the current code).
 - Python: `python3 <file>.py`; scripts that import `z3` need the `z3-solver` package.

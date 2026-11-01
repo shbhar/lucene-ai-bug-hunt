@@ -1,17 +1,17 @@
 # SpellChecker.indexDictionary de-duplicates against its cached searcher instead of the index its new IndexWriter writes, so a rebuild with OpenMode.CREATE silently drops every word of the new dictionary that the old spell index already had (and after a failed searcher reopen, later calls drop words or index them twice)
 
-Bug LFV-647 · Area: suggest / spell: SpellChecker.indexDictionary de-duplication (cached searcher vs. the new IndexWriter's index; clearIndex, swapSearcher) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-647 · Area: suggest / spell: SpellChecker.indexDictionary de-duplication (cached searcher vs. the new IndexWriter's index; clearIndex, swapSearcher) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a spell index with SpellChecker.indexDictionary from the words {apple, banana}, then rebuild it from {apple, cherry}, passing an IndexWriterConfig with OpenMode.CREATE, which is documented as 'Creates a new index or overwrites an existing one'. You expect the spell index to hold apple and cherry. Instead it holds only cherry: the new writer starts from an empty index, but indexDictionary skips every word that its cached searcher of the old index still contains, so apple is silently dropped; the same stale check makes a call after a failed searcher reopen drop words (after clearIndex) or index them twice (on a retry).
+You build a spell index with SpellChecker.indexDictionary from the words {apple, banana}, then rebuild it from {apple, cherry}, passing an IndexWriterConfig with OpenMode.CREATE, which is documented as 'Creates a new index or overwrites an existing one'. You expect the spell index to hold apple and cherry. Instead it holds only cherry: the new writer starts from an empty index, but indexDictionary skips every word that its cached searcher of the old index still contains, so apple is silently dropped; the same stale check makes a call after a failed searcher reopen drop words (after clearIndex()) or index them twice (on a retry).
 
 ## Expected vs actual
 
 - Expected: You expect the spell index to hold apple and cherry.
-- Actual: It holds only cherry: the new writer starts from an empty index, but indexDictionary skips every word that its cached searcher of the old index still contains, so apple is silently dropped; the same stale check makes a call after a failed searcher reopen drop words (after clearIndex) or index them twice (on a retry).
+- Actual: It holds only cherry: the new writer starts from an empty index, but indexDictionary skips every word that its cached searcher of the old index still contains, so apple is silently dropped; the same stale check makes a call after a failed searcher reopen drop words (after clearIndex()) or index them twice (on a retry).
 
 ## Files
 
@@ -20,7 +20,7 @@ You build a spell index with SpellChecker.indexDictionary from the words {apple,
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,8 +1,8 @@
 # TeluguNormalizer composes ఒ + ౌ (U+0C12 LETTER O + U+0C4C VOWEL SIGN AU) into AU (U+0C14) but never applies its own AU -&gt; OO fold to the result, so in a chain without IndicNormalizationFilter in front the two spellings of AU normalize to different terms
 
-Bug LFV-669 · Area: analysis-common / Telugu normalizer (TeluguNormalizer.normalize; TeluguNormalizationFilter and the 'teluguNormalization' factory) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-669 · Area: analysis-common / Telugu normalizer (TeluguNormalizer.normalize; TeluguNormalizationFilter and the 'teluguNormalization' factory) · Priority: low · Impact: minor · Novelty: new
 
-Bug page: [../../bugs/LFV-669.html](../../bugs/LFV-669.html)
+Finding page: [../../bugs/LFV-669.html](../../bugs/LFV-669.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected `ఒౌషధం` to normalize to `ఓషధం` (OO), as precomposed `
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,14 +1,14 @@
 # StandardQueryParser with setMultiFields normalizes field-less prefix and wildcard terms with field null, before the multi-field expansion, so per-field analyzers are ignored for them (and a PerFieldAnalyzerWrapper over Map.of throws NullPointerException)
 
-Bug LFV-560 · Area: queryparser / flexible StandardQueryParser (processor pipeline order: WildcardQueryNodeProcessor runs before MultiFieldQueryNodeProcessor) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-560 · Area: queryparser / flexible StandardQueryParser (processor pipeline order: WildcardQueryNodeProcessor runs before MultiFieldQueryNodeProcessor) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-560.html](../../bugs/LFV-560.html)
+Finding page: [../../bugs/LFV-560.html](../../bugs/LFV-560.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You give StandardQueryParser a PerFieldAnalyzerWrapper (WhitespaceAnalyzer by default, StandardAnalyzer for 'title'), call setMultiFields({title}) and parse 'Luc*' with no field, expecting what the javadoc promises: the clause expanded over the multi fields, i.e. the same query as 'title:Luc*', which becomes title:luc* and finds the document titled 'Lucene'. Instead the pipeline normalizes the prefix in WildcardQueryNodeProcessor before MultiFieldQueryNodeProcessor has set the field, so Analyzer#normalize is called with field null (the wrapper's default analyzer), the query becomes title:Luc* and finds nothing, while plain, fuzzy, regexp and range clauses in the same setup are normalized with the expanded field. If the per-field map is a Map.of, the null lookup makes parse throw NullPointerException for every field-less prefix or wildcard clause.
+You give StandardQueryParser a PerFieldAnalyzerWrapper (WhitespaceAnalyzer by default, StandardAnalyzer for 'title'), call setMultiFields({title}) and parse 'Luc*' with no field, expecting what the javadoc promises: the clause expanded over the multi fields, i.e. the same query as 'title:Luc*', which becomes title:luc* and finds the document titled 'Lucene'. Instead the pipeline normalizes the prefix in WildcardQueryNodeProcessor before MultiFieldQueryNodeProcessor has set the field, so Analyzer#normalize is called with field null (the wrapper's default analyzer), the query becomes title:Luc* and finds nothing, while plain, fuzzy, regexp and range clauses in the same setup are normalized with the expanded field. If the per-field map is a Map.of, the null lookup makes parse() throw NullPointerException for every field-less prefix or wildcard clause.
 
 The test shows that `StandardQueryParser` with `setMultiFields({title})` normalizes the field-less prefix `Luc*` with field null (the wrapper's default analyzer) instead of the analyzer of `title`, the field it expands to.
 
@@ -24,7 +24,7 @@ Expected: `parse("Luc*", null)` equals `parse("title:Luc*", null)`, i.e. `title:
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

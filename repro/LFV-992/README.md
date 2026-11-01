@@ -1,6 +1,6 @@
 # analysis-icu overview page: the ICUTokenizer example and the three collation examples (Farsi range, Danish sort, Turkish case) call APIs removed between Lucene 4.0 and 10.0, and on main the Serbian transliteration example is not valid Java (documentation defect)
 
-Bug LFV-992 · Area: analysis-icu / module overview documentation (overview.html 'Example Usages') · Priority: low · Impact: minor · Novelty: new
+Finding LFV-992 · Area: analysis-icu / module overview documentation (overview.html 'Example Usages') · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ Expected: every example compiles. Actual: 16 error lines, overview.html:75, 121,
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -51,7 +51,7 @@ The module(s) analysis-icu, facet also need their third-party runtime jars; `./g
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/javadoc-package-and-overview-examples-call-removed-apis-siblings-of-16904/](../../models/javadoc-package-and-overview-examples-call-removed-apis-siblings-of-16904/)
+Formal models and scripts this finding's part of the hunt used: [../../models/javadoc-package-and-overview-examples-call-removed-apis-siblings-of-16904/](../../models/javadoc-package-and-overview-examples-call-removed-apis-siblings-of-16904/)
 
 ## Feedback
 

@@ -1,14 +1,14 @@
-# Sequential DrillSideways skips the two-phase matches check of the second-cheapest drill-down dimension on segments without deletions, so documents that fail that dimension but are in its approximation are returned as drill-down hits and counted in the facets (released since 5.3.0)
+# Sequential DrillSideways skips the two-phase matches() check of the second-cheapest drill-down dimension on segments without deletions, so documents that fail that dimension but are in its approximation are returned as drill-down hits and counted in the facets (released since 5.3.0)
 
-Bug LFV-358 · Area: facet / DrillSideways (sequential DrillSidewaysScorer, drill-down-advance strategy, two-phase drill-down dimensions) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-358 · Area: facet / DrillSideways (sequential DrillSidewaysScorer, drill-down-advance strategy, two-phase drill-down dimensions) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-358.html](../../bugs/LFV-358.html)
+Finding page: [../../bugs/LFV-358.html](../../bugs/LFV-358.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You run DrillSideways without an executor on a DrillDownQuery with two or more dimensions, one of which is a two-phase query such as a distance or range drill-down with a fast-match query or a PhraseQuery, and expect the hits to match every dimension and each dimension's sideways counts to cover the documents that match all the other dimensions. Instead, on a segment with no deleted documents, when that dimension is the second-cheapest by approximation cost and the base query is broad, DrillSidewaysScorer never calls its TwoPhaseIterator#matches, because the condition 'acceptDocs == null || acceptDocs.get(docID) &amp;&amp; (dc.twoPhase == null || dc.twoPhase.matches)' parses as 'acceptDocs == null || (get &amp;&amp; matches)'. So every document in that dimension's approximation (inside the bounding box but outside the radius, the phrase words in another order) is treated as matching it, returned as a hit and counted in the facets, while concurrent DrillSideways and plain boolean queries on the same searcher give the correct sets.
+You run DrillSideways without an executor on a DrillDownQuery with two or more dimensions, one of which is a two-phase query such as a distance or range drill-down with a fast-match query or a PhraseQuery, and expect the hits to match every dimension and each dimension's sideways counts to cover the documents that match all the other dimensions. Instead, on a segment with no deleted documents, when that dimension is the second-cheapest by approximation cost and the base query is broad, DrillSidewaysScorer never calls its TwoPhaseIterator#matches(), because the condition 'acceptDocs == null || acceptDocs.get(docID) &amp;&amp; (dc.twoPhase == null || dc.twoPhase.matches())' parses as 'acceptDocs == null || (get &amp;&amp; matches)'. So every document in that dimension's approximation (inside the bounding box but outside the radius, the phrase words in another order) is treated as matching it, returned as a hit and counted in the facets, while concurrent DrillSideways and plain boolean queries on the same searcher give the correct sets.
 
 The test shows that sequential DrillSideways (no executor) on a deletion-free segment never calls the two-phase `matches()` of the second-cheapest drill-down dimension (here a PhraseQuery) in the drill-down-advance strategy, so a doc that is only in the phrase approximation is returned as a hit.
 
@@ -24,7 +24,7 @@ Expected: drill-down hits [0] (only doc 0 has a:1 and the phrase "x y"). Actual:
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

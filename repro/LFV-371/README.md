@@ -1,8 +1,8 @@
 # S2PrefixTree: a Contains query whose shape is a point P misses a document indexed with that same point P when P lies on an S2 cell edge (the equator, an S2 face edge, (0,0)), because the query side follows every child cell that touches P while indexing puts P in one cell per level
 
-Bug LFV-371 · Area: spatial-extras / prefix trees (S2PrefixTree and S2PrefixTreeCell under RecursivePrefixTreeStrategy; Contains through ContainsPrefixTreeQuery) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-371 · Area: spatial-extras / prefix trees (S2PrefixTree and S2PrefixTreeCell under RecursivePrefixTreeStrategy; Contains through ContainsPrefixTreeQuery) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-371.html](../../bugs/LFV-371.html)
+Finding page: [../../bugs/LFV-371.html](../../bugs/LFV-371.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: 1 hit (Contains is OGC Covers, and `Contains.evaluate(p, p)` is true);
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

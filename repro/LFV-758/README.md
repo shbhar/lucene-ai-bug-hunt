@@ -1,12 +1,12 @@
 # kNN and vector-similarity query constructors keep the caller's query-vector array instead of copying it, so a caller that refills that buffer before the query runs silently changes which documents the query matches and what it is equal to
 
-Bug LFV-758 · Area: search / vector queries (KnnFloat/Byte/Float16VectorQuery, Float/Byte/Float16VectorSimilarityQuery; join DiversifyingChildren*KnnVectorQuery) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-758 · Area: search / vector queries (KnnFloat/Byte/Float16VectorQuery, Float/Byte/Float16VectorSimilarityQuery; join DiversifyingChildren*KnnVectorQuery) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You decode a query embedding into a scratch float, build new KnnFloatVectorQuery(field, scratch, k), decode the next embedding into the same array, build a second query and OR the two; you expect each query to search the vector it was built from, as TermQuery does when built from a reused BytesRef. Instead both queries now search the second vector and compare equal, so the OR returns 1 hit instead of 2 (the neighbour of the first vector is lost); the same holds for KnnByteVectorQuery, KnnFloat16VectorQuery, the three vector-similarity queries and the join DiversifyingChildren*KnnVectorQuery classes. The constructors store the caller's array itself (VectorUtil.checkFinite returns its argument) and search, equals and hashCode all read it, although getTargetCopy returns a copy precisely so that callers cannot reach that array.
+You decode a query embedding into a scratch float[], build new KnnFloatVectorQuery(field, scratch, k), decode the next embedding into the same array, build a second query and OR the two; you expect each query to search the vector it was built from, as TermQuery does when built from a reused BytesRef. Instead both queries now search the second vector and compare equal, so the OR returns 1 hit instead of 2 (the neighbour of the first vector is lost); the same holds for KnnByteVectorQuery, KnnFloat16VectorQuery, the three vector-similarity queries and the join DiversifyingChildren*KnnVectorQuery classes. The constructors store the caller's array itself (VectorUtil.checkFinite returns its argument) and search, equals and hashCode all read it, although getTargetCopy() returns a copy precisely so that callers cannot reach that array.
 
 ## Expected vs actual
 
@@ -21,7 +21,7 @@ You decode a query embedding into a scratch float, build new KnnFloatVectorQuery
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

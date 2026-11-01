@@ -4,10 +4,10 @@ Tools: Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- Flexible query parser: QueryNode#toQueryString prints field names without escaping, so nodes for escaped field names such as 'my field' or 'a:b' print strings that parse to a different query or do not parse (bug LFV-356; [repro](../../repro/LFV-356/))
-- Flexible query parser: EscapeQuerySyntaxImpl does not escape '@' after the first character of a term or a term that is exactly &amp;&amp; or ||, so QueryNode#toQueryString output for such terms does not parse (bug LFV-398; [repro](../../repro/LFV-398/))
+- Flexible query parser: QueryNode#toQueryString prints field names without escaping, so nodes for escaped field names such as 'my field' or 'a:b' print strings that parse to a different query or do not parse (finding LFV-356; [repro](../../repro/LFV-356/), [finding page](../../bugs/LFV-356.html))
+- Flexible query parser: EscapeQuerySyntaxImpl does not escape '@' after the first character of a term or a term that is exactly &amp;&amp; or ||, so QueryNode#toQueryString output for such terms does not parse (finding LFV-398; [repro](../../repro/LFV-398/), [finding page](../../bugs/LFV-398.html))
 
 ## Files
 

@@ -1,8 +1,8 @@
 # The phrase matchers add a document position and a query position offset in int: with an offset near 2^31 an exact PhraseQuery or MultiPhraseQuery loops forever inside one document (IndexSearcher#setTimeout does not stop it) and a sloppy one returns false hits
 
-Bug LFV-196 · Area: search / phrase matching (ExactPhraseMatcher, SloppyPhraseMatcher and PhrasePositions position arithmetic; PhraseQuery.Builder and MultiPhraseQuery.Builder accept the positions) · Priority: low · Impact: hang · Novelty: new
+Finding LFV-196 · Area: search / phrase matching (ExactPhraseMatcher, SloppyPhraseMatcher and PhrasePositions position arithmetic; PhraseQuery.Builder and MultiPhraseQuery.Builder accept the positions) · Priority: low · Impact: hang · Novelty: new
 
-Bug page: [../../bugs/LFV-196.html](../../bugs/LFV-196.html)
+Finding page: [../../bugs/LFV-196.html](../../bugs/LFV-196.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: `count(q) == 0`, returned within the 5 s `@Timeout`; actual: `Test tim
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 2 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

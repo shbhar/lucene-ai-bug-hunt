@@ -1,6 +1,6 @@
 # Classic QueryParser.parse (and its MultiFieldQueryParser, ComplexPhraseQueryParser and ExtendableQueryParser subclasses) throws StackOverflowError instead of the documented ParseException on deeply nested groups (about 2,650-3,700 levels, 5-7 KB of query text, on a 1 MB thread stack)
 
-Bug LFV-926 · Area: queryparser / classic (generated JavaCC parser QueryParser.jj and QueryParserBase.parse) · Priority: low · Impact: wrong error · Novelty: known upstream
+Finding LFV-926 · Area: queryparser / classic (generated JavaCC parser QueryParser.jj and QueryParserBase.parse) · Priority: low · Impact: wrong error · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You parse a valid query with many nested groups, for example "(".repeat(d) + "a"
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

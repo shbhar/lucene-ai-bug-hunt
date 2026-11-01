@@ -1,6 +1,6 @@
 # A sloppy PhraseQuery or MultiPhraseQuery with two entries at one position that a third entry pulls into the same repetition group misses documents its exact (slop 0) form matches, and for MultiPhraseQuery one unchanged query matches on some evaluations and misses on others, because SloppyPhraseMatcher checks its 'same offset is not a repetition' rule only pairwise and breaks equal-offset ties in HashSet order
 
-Bug LFV-193 · Area: search / phrase queries (SloppyPhraseMatcher repetition groups: gatherRptGroups same-offset exclusion, collide, advanceRepeatGroups, sortRptGroups tie order) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-193 · Area: search / phrase queries (SloppyPhraseMatcher repetition groups: gatherRptGroups same-offset exclusion, collide, advanceRepeatGroups, sortRptGroups tie order) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -11,7 +11,7 @@ You build a sloppy phrase query by hand with two entries at the same position, f
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -21,7 +21,7 @@ You build a sloppy phrase query by hand with two entries at the same position, f
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

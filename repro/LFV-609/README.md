@@ -1,6 +1,8 @@
 # matchhighlight PassageFormatter closes crossing markers in opening order instead of innermost first, so per-marker end strings come out mis-nested (e.g. '&lt;a&gt;one &lt;b&gt;two&lt;/a&gt;&lt;/b&gt;&lt;b&gt; three&lt;/b&gt;' instead of '&lt;a&gt;one &lt;b&gt;two&lt;/b&gt;&lt;/a&gt;&lt;b&gt; three&lt;/b&gt;')
 
-Bug LFV-609 · Area: highlighter / matchhighlight: PassageFormatter multi-marker formatting (crossing markers with per-marker end strings; also end to end through MatchHighlighter, FieldValueHighlighters.highlighted and MatchHighlighter.QueryOffsetRange) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-609 · Area: highlighter / matchhighlight: PassageFormatter multi-marker formatting (crossing markers with per-marker end strings; also end to end through MatchHighlighter, FieldValueHighlighters.highlighted and MatchHighlighter.QueryOffsetRange) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-609.html](../../bugs/LFV-609.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ For 'foo bar baz' with [0,7) as &lt;a&gt; and [4,11) as &lt;b&gt;: expected `<a>
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

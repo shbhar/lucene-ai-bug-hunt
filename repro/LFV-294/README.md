@@ -1,6 +1,6 @@
 # PriorityQueue.downHeap computes the child index i &lt;&lt; 1 in int, so a queue holding 2^30 or more elements throws ArrayIndexOutOfBoundsException from updateTop, pop or insertWithOverflow and is left with one element lost and another duplicated
 
-Bug LFV-294 · Area: util / PriorityQueue (sift-down; base class of HitQueue and FieldValueHitQueue) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-294 · Area: util / PriorityQueue (sift-down; base class of HitQueue and FieldValueHitQueue) · Priority: low · Impact: crash · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ You fill a Lucene PriorityQueue with 2^30 + 1 elements, a size its constructor a
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -48,7 +48,7 @@ java -ea -esa -Xmx7g --add-modules jdk.incubator.vector --enable-native-access=A
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/priorityqueue-topdocs-merge/](../../models/priorityqueue-topdocs-merge/)
+Formal models and scripts this finding's part of the hunt used: [../../models/priorityqueue-topdocs-merge/](../../models/priorityqueue-topdocs-merge/)
 
 ## Feedback
 

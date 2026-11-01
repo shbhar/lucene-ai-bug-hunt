@@ -1,6 +1,6 @@
 # BloomFilteringPostingsFormat's default filter silently stops filtering for segments of 226,279,579 docs or more: FuzzySet.createOptimalSet computes 2 * setSize in int, which wraps negative and yields a 64-bit filter with zero hash functions that answers MAYBE for every key (released since 9.6.0)
 
-Bug LFV-362 · Area: codecs / bloom (BloomFilteringPostingsFormat, DefaultBloomFilterFactory, FuzzySet sizing) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-362 · Area: codecs / bloom (BloomFilteringPostingsFormat, DefaultBloomFilterFactory, FuzzySet sizing) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -11,7 +11,7 @@ You index a primary key into a field that uses BloomFilteringPostingsFormat with
 ## Expected vs actual
 
 - Expected: You expect lookups of absent keys to be rejected quickly in every segment.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -23,7 +23,7 @@ You index a primary key into a field that uses BloomFilteringPostingsFormat with
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

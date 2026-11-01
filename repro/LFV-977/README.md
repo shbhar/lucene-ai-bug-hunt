@@ -1,14 +1,14 @@
-# ReindexingEnrichedDirectoryTaxonomyWriter.reindexWithNewOrdinalData is not failure-atomic: when the ordinal-data appender throws part-way, the taxonomy has already been deleted and only partly re-added, and a following close commits it, so main-index ordinals lose their labels or are handed to other categories
+# ReindexingEnrichedDirectoryTaxonomyWriter.reindexWithNewOrdinalData is not failure-atomic: when the ordinal-data appender throws part-way, the taxonomy has already been deleted and only partly re-added, and a following close() commits it, so main-index ordinals lose their labels or are handed to other categories
 
-Bug LFV-977 · Area: facet / taxonomy (ReindexingEnrichedDirectoryTaxonomyWriter.reindexWithNewOrdinalData) · Priority: low · Impact: data corruption · Novelty: new
+Finding LFV-977 · Area: facet / taxonomy (ReindexingEnrichedDirectoryTaxonomyWriter.reindexWithNewOrdinalData) · Priority: low · Impact: data corruption · Novelty: new
 
-Bug page: [../../bugs/LFV-977.html](../../bugs/LFV-977.html)
+Finding page: [../../bugs/LFV-977.html](../../bugs/LFV-977.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You call reindexWithNewOrdinalData on a ReindexingEnrichedDirectoryTaxonomyWriter with a new ordinal-data appender, the appender throws for one category (in the repro an IllegalStateException on d/b; an appender that reads the last label component throws on the root category, which reaches the appender only during a reindex), and the application then closes the writer as usual. You expect the method's promise 'The ordinals themselves will be preserved, so the caller does not need to update references to them in the main index' to hold, or at least the last committed taxonomy to survive the failed call. Instead the method has already deleted the whole taxonomy and re-added only the categories before the failing one, and close commits that: the taxonomy shrinks from 5 to 3 categories, d/b and d/c resolve to -1 while main-index documents still carry their ordinals 3 and 4, and if the writer is kept in use new categories take those ordinals, so facet counts a=2 b=1 w=1 z=1 come out as w=3 z=2 with no error (other layouts make FastTaxonomyFacetCounts throw ArrayIndexOutOfBoundsException).
+You call reindexWithNewOrdinalData on a ReindexingEnrichedDirectoryTaxonomyWriter with a new ordinal-data appender, the appender throws for one category (in the repro an IllegalStateException on d/b; an appender that reads the last label component throws on the root category, which reaches the appender only during a reindex), and the application then closes the writer as usual. You expect the method's promise 'The ordinals themselves will be preserved, so the caller does not need to update references to them in the main index' to hold, or at least the last committed taxonomy to survive the failed call. Instead the method has already deleted the whole taxonomy and re-added only the categories before the failing one, and close() commits that: the taxonomy shrinks from 5 to 3 categories, d/b and d/c resolve to -1 while main-index documents still carry their ordinals 3 and 4, and if the writer is kept in use new categories take those ordinals, so facet counts a=2 b=1 w=1 z=1 come out as w=3 z=2 with no error (other layouts make FastTaxonomyFacetCounts throw ArrayIndexOutOfBoundsException).
 
 The test shows that ReindexingEnrichedDirectoryTaxonomyWriter.reindexWithNewOrdinalData deletes the taxonomy before re-adding it, so when the ordinal-data appender throws part-way, a following close() commits a half-rebuilt taxonomy and a main-index ordinal loses its label.
 
@@ -24,7 +24,7 @@ Expected: after the failed reindex and close(), d/a still has ordinal 2 (method 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

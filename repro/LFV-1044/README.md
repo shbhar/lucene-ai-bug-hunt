@@ -1,8 +1,8 @@
-# Since #16669 (10.6.0 RC1 and main), ReqExclBulkScorer no longer skips long runs of excluded doc IDs: for +R -X it scores the required clause in every 4096-doc window, even windows X fully excludes, so R's iterator steps through all of its matches inside X's runs (10,001 moves for 1,000 hits in a 10,000-doc segment, where 10.0.0-10.5.2 need 1,001; performance regression, results correct)
+# Since #16669 (10.6.0 and main), ReqExclBulkScorer no longer skips long runs of excluded doc IDs: for +R -X it scores the required clause in every 4096-doc window, even windows X fully excludes, so R's iterator steps through all of its matches inside X's runs (10,001 moves for 1,000 hits in a 10,000-doc segment, where 10.0.0-10.5.2 need 1,001; performance regression, results correct)
 
-Bug LFV-1044 · Area: search / BooleanQuery MUST_NOT bulk scoring (ReqExclBulkScorer) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-1044 · Area: search / BooleanQuery MUST_NOT bulk scoring (ReqExclBulkScorer) · Priority: low · Impact: minor · Novelty: new
 
-Bug page: [../../bugs/LFV-1044.html](../../bugs/LFV-1044.html)
+Finding page: [../../bugs/LFV-1044.html](../../bugs/LFV-1044.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ You search +R -grp:old, where R matches every document and grp:old matches one r
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,11 +44,11 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-## Files shown on the bug page
+## Files shown on the finding page
 
 - [TestReqExclSkipsExcludedRun.java](TestReqExclSkipsExcludedRun.java)
 
-Formal models and scripts this bug's part of the hunt used: [../../models/reqexcl-bulkscorer-excluded-run-skip-16669/](../../models/reqexcl-bulkscorer-excluded-run-skip-16669/)
+Formal models and scripts this finding's part of the hunt used: [../../models/reqexcl-bulkscorer-excluded-run-skip-16669/](../../models/reqexcl-bulkscorer-excluded-run-skip-16669/)
 
 ## Feedback
 

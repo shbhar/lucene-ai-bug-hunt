@@ -1,10 +1,10 @@
 # Formal models and scripts
 
-AI-assisted findings, confirmed by automated checks; apart from the bugs whose page names a maintainer triage, not yet triaged by a human Lucene committer; this site files nothing upstream.
+AI-assisted findings, confirmed by automated checks; apart from the findings whose page names a maintainer triage, not yet triaged by a human Lucene committer; this site files nothing upstream.
 
-The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT queries, exhaustive checkers, scanners) of the parts of the hunt that found a public bug. A unit lists the bugs its files were used for; that a unit holds a model does not mean the model gave the first signal (each bug's record names its first finder).
+The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT queries, exhaustive checkers, scanners) of the parts of the hunt that made a public finding. A unit lists the findings its files were used for; that a unit holds a model does not mean the model gave the first signal (each finding's record names its first finder).
 
-| Unit | Tools | Bugs found |
+| Unit | Tools | Findings |
 |---|---|---|
 | [analysis-benchmark-backward-codecs-javadoc-examples-compile-on-main](analysis-benchmark-backward-codecs-javadoc-examples-compile-on-main/) | Python | LFV-1041, LFV-1040 |
 | [analysis-factory-javadoc-examples-and-resource-files-build-as-documented](analysis-factory-javadoc-examples-and-resource-files-build-as-documented/) | Python | LFV-931 |
@@ -69,6 +69,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [indri-query-family-composite-score-boost-visitor-explain-laws](indri-query-family-composite-score-boost-visitor-explain-laws/) | Python | LFV-874, LFV-872, LFV-871, LFV-875 |
 | [iw-blocking-calls-watchdog-failure-visibility](iw-blocking-calls-watchdog-failure-visibility/) | TLA+/TLC | LFV-648 |
 | [iw-forcemerge-wait-protocol-tla](iw-forcemerge-wait-protocol-tla/) | TLA+/TLC | LFV-590, LFV-587, LFV-586, LFV-592 |
+| [iw-from-reader-commit-leaf-sorted-reader-pairs-wrong-segments](iw-from-reader-commit-leaf-sorted-reader-pairs-wrong-segments/) | Python | LFV-1062 |
 | [iw-hasuncommittedchanges-read-order-race](iw-hasuncommittedchanges-read-order-race/) | TLA+/TLC | LFV-1060 |
 | [japanese-completion-fifo](japanese-completion-fifo/) | Python | LFV-346 |
 | [javadoc-package-and-overview-examples-call-removed-apis-siblings-of-16904](javadoc-package-and-overview-examples-call-removed-apis-siblings-of-16904/) | Python | LFV-989, LFV-992, LFV-987, LFV-984, LFV-988, LFV-980 |
@@ -122,7 +123,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [store-cross-impl-differential](store-cross-impl-differential/) | Python | LFV-492 |
 | [storedfields-compressing](storedfields-compressing/) | Python | LFV-172, LFV-186, LFV-163 |
 | [study-automaton-verification](study-automaton-verification/) | TLA+/TLC, Dafny | LFV-049, LFV-055, LFV-057, LFV-062 |
-| [study-bkd-points-proof](study-bkd-points-proof/) | Dafny, Python | LFV-006, LFV-078, LFV-050, LFV-059, LFV-051 |
+| [study-bkd-points-proof](study-bkd-points-proof/) | Dafny, Python | LFV-006, LFV-050, LFV-059 |
 | [study-fst-verification](study-fst-verification/) | Alloy, Dafny, Python | LFV-052, LFV-007, LFV-070, LFV-067 |
 | [study-hnsw-concurrent-merge](study-hnsw-concurrent-merge/) | TLA+/TLC, Python | LFV-005, LFV-061, LFV-068 |
 | [study-overflow-at-scale](study-overflow-at-scale/) | SMT-LIB (Z3/cvc5), Python | LFV-048, LFV-003, LFV-058, LFV-066, LFV-069 |

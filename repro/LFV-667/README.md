@@ -1,8 +1,8 @@
 # BengaliNormalizer's khio rule tests U+09BF (vowel sign I) instead of U+09B7 (SSA), so the common conjunct ক্ষ (KA+HASANTA+SSA) is never folded to KHA / KA+KHA as the rule comment and the cited paper say, and the malformed KA+HASANTA+VOWEL SIGN I is folded instead
 
-Bug LFV-667 · Area: analysis-common / Bengali normalizer (BengaliNormalizer.normalize; BengaliNormalizationFilter, BengaliAnalyzer and the 'bengaliNormalization' factory) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-667 · Area: analysis-common / Bengali normalizer (BengaliNormalizer.normalize; BengaliNormalizationFilter, BengaliAnalyzer and the 'bengaliNormalization' factory) · Priority: low · Impact: minor · Novelty: new
 
-Bug page: [../../bugs/LFV-667.html](../../bugs/LFV-667.html)
+Finding page: [../../bugs/LFV-667.html](../../bugs/LFV-667.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: ক্ষমা (U+0995 U+09CD U+09B7 U+09AE U+09BE) normalizes to খ
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

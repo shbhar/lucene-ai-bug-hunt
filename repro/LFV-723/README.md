@@ -1,17 +1,17 @@
 # Taxonomy facets never roll up a single-valued hierarchical dimension whose config comes from an overridden FacetsConfig#getDefaultDimConfig, so its dimension and non-leaf counts are 0 and getTopChildren returns null or partial results
 
-Bug LFV-723 · Area: facet / taxonomy facets (TaxonomyFacets#rollup dimension enumeration vs the overridable FacetsConfig default dimension config; FastTaxonomyFacetCounts, TaxonomyFacetFloatAssociations) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-723 · Area: facet / taxonomy facets (TaxonomyFacets#rollup dimension enumeration vs the overridable FacetsConfig default dimension config; FastTaxonomyFacetCounts, TaxonomyFacetFloatAssociations) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You subclass FacetsConfig so that every dimension without an explicit entry is hierarchical (override getDefaultDimConfig to return a DimConfig with hierarchical = true, as TestFacetsConfig#testCustomDefault does), index three documents Publish Date/2010/10/15, Publish Date/2010/10/20 and Publish Date/2012/1/1, count them with FastTaxonomyFacetCounts, and expect what an explicit setHierarchical("Publish Date", true) gives: value=3, 2010 (2), 2012 (1). FacetsConfig.build follows the default and indexes only the leaf ordinals, relying on the search-time roll-up, but TaxonomyFacets.rollup loops over config.getDimConfigs, which lists only explicitly configured dimensions, so the roll-up never runs. getTopChildren(10, "Publish Date") returns null and getSpecificValue("Publish Date") and getSpecificValue("Publish Date", "2010") return 0, while a DrillDownQuery on Publish Date/2010 still matches 2 documents.
+You subclass FacetsConfig so that every dimension without an explicit entry is hierarchical (override getDefaultDimConfig to return a DimConfig with hierarchical = true, as TestFacetsConfig#testCustomDefault does), index three documents Publish Date/2010/10/15, Publish Date/2010/10/20 and Publish Date/2012/1/1, count them with FastTaxonomyFacetCounts, and expect what an explicit setHierarchical("Publish Date", true) gives: value=3, 2010 (2), 2012 (1). FacetsConfig.build follows the default and indexes only the leaf ordinals, relying on the search-time roll-up, but TaxonomyFacets.rollup() loops over config.getDimConfigs(), which lists only explicitly configured dimensions, so the roll-up never runs. getTopChildren(10, "Publish Date") returns null and getSpecificValue("Publish Date") and getSpecificValue("Publish Date", "2010") return 0, while a DrillDownQuery on Publish Date/2010 still matches 2 documents.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -20,7 +20,7 @@ You subclass FacetsConfig so that every dimension without an explicit entry is h
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

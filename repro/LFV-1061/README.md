@@ -1,6 +1,6 @@
 # DirectoryReader.open and openIfChanged with an ExecutorService never close the segment readers of tasks the executor already accepted when a later submit is rejected (or when the opening thread is interrupted while it waits), so those segments' files stay open
 
-Bug LFV-1061 · Area: core / index reader open (StandardDirectoryReader.createSegmentReaders, executor branch behind the ExecutorService overloads of DirectoryReader.open and openIfChanged, #15428) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-1061 · Area: core / index reader open (StandardDirectoryReader.createSegmentReaders, executor branch behind the ExecutorService overloads of DirectoryReader.open and openIfChanged, #15428) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -10,8 +10,8 @@ You call DirectoryReader.open(directory, executor), or openIfChanged with an exe
 
 ## Expected vs actual
 
-- Expected: You expect the RejectedExecutionException and nothing left behind, as the method's own cleanup comment intends, as the sequential path does and as upstream's rejecting-executor test requires.
-- Actual: The exception leaves the submit loop before any future is collected, so the reader the accepted task built is never decRef'd: on a two-segment index, MockDirectoryWrapper then refuses to close because the files of the accepted segment are still open.
+- Expected: `open` throws `RejectedExecutionException` and the directory then closes with no file left open.
+- Actual: `MockDirectoryWrapper: cannot close: there are still 2 open files: {_1.fdx=1, _1.fdt=1}`, the files of the accepted segment `_1`; assertions on and off.
 
 ## Files
 
@@ -20,7 +20,7 @@ You call DirectoryReader.open(directory, executor), or openIfChanged with an exe
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -42,7 +42,7 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/never-judged-backlog-closure-low-and-not-a-bug/](../../models/never-judged-backlog-closure-low-and-not-a-bug/)
+Formal models and scripts this finding's part of the hunt used: [../../models/never-judged-backlog-closure-low-and-not-a-bug/](../../models/never-judged-backlog-closure-low-and-not-a-bug/)
 
 ## Feedback
 

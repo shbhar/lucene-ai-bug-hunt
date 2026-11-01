@@ -1,8 +1,8 @@
 # JapaneseTokenizer and KoreanTokenizer cut an unknown word at the 1024-char cap (MAX_UNKNOWN_WORD_LENGTH) even in the middle of a surrogate pair, so a supplementary character (an emoji, a CJK Extension B ideograph) at char 1023 of a long same-class run is emitted as two unpaired surrogate halves and indexed as U+FFFD
 
-Bug LFV-459 · Area: analysis / kuromoji and nori Viterbi unknown-word length cap (JapaneseTokenizer and the 'japanese' factory; KoreanTokenizer, KoreanAnalyzer and the 'korean' factory) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-459 · Area: analysis / kuromoji and nori Viterbi unknown-word length cap (JapaneseTokenizer and the 'japanese' factory; KoreanTokenizer, KoreanAnalyzer and the 'korean' factory) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-459.html](../../bugs/LFV-459.html)
+Finding page: [../../bugs/LFV-459.html](../../bugs/LFV-459.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected every term to be valid UTF-16; actual `term of length 1024 is not valid
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 2 test(s) run, 2 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

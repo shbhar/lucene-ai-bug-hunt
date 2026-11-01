@@ -1,17 +1,17 @@
-# With NoMergeScheduler and a merge policy that selects merges (for example the default TieredMergePolicy), IndexWriter.close (default commit-on-close), forceMerge(1) and a blocking forceMergeDeletes never return: IndexWriter registers the policy's merges as pending, NoMergeScheduler never runs or removes them, and all three calls wait until no merge is pending
+# With NoMergeScheduler and a merge policy that selects merges (for example the default TieredMergePolicy), IndexWriter.close() (default commit-on-close), forceMerge(1) and a blocking forceMergeDeletes() never return: IndexWriter registers the policy's merges as pending, NoMergeScheduler never runs or removes them, and all three calls wait until no merge is pending
 
-Bug LFV-587 · Area: index / IndexWriter merge waiting (close/shutdown waitForMerges, forceMerge, forceMergeDeletes) with NoMergeScheduler · Priority: low · Impact: hang · Novelty: known upstream
+Finding LFV-587 · Area: index / IndexWriter merge waiting (close/shutdown waitForMerges, forceMerge, forceMergeDeletes) with NoMergeScheduler · Priority: low · Impact: hang · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You configure an IndexWriter with NoMergeScheduler, keep the default merge policy, index normally (for example 15 one-document commits) and then call close, forceMerge(1) or forceMergeDeletes. You expect close to commit and return without merging, since the NoMergeScheduler javadoc says it prevents merges 'regardless of the MergePolicy used', and the forced merges to return or fail. Instead each call waits forever: IndexWriter keeps registering the policy's merges as pending, NoMergeScheduler never takes them, and the calls re-check once a second in doWait until no merge is pending, which never happens.
+You configure an IndexWriter with NoMergeScheduler, keep the default merge policy, index normally (for example 15 one-document commits) and then call close(), forceMerge(1) or forceMergeDeletes(). You expect close() to commit and return without merging, since the NoMergeScheduler javadoc says it prevents merges 'regardless of the MergePolicy used', and the forced merges to return or fail. Instead each call waits forever: IndexWriter keeps registering the policy's merges as pending, NoMergeScheduler never takes them, and the calls re-check once a second in doWait() until no merge is pending, which never happens.
 
 ## Expected vs actual
 
-- Expected: You expect close to commit and return without merging, since the NoMergeScheduler javadoc says it prevents merges 'regardless of the MergePolicy used', and the forced merges to return or fail.
-- Actual: Each call waits forever: IndexWriter keeps registering the policy's merges as pending, NoMergeScheduler never takes them, and the calls re-check once a second in doWait until no merge is pending, which never happens.
+- Expected: You expect close() to commit and return without merging, since the NoMergeScheduler javadoc says it prevents merges 'regardless of the MergePolicy used', and the forced merges to return or fail.
+- Actual: Each call waits forever: IndexWriter keeps registering the policy's merges as pending, NoMergeScheduler never takes them, and the calls re-check once a second in doWait() until no merge is pending, which never happens.
 
 ## Files
 
@@ -21,7 +21,7 @@ You configure an IndexWriter with NoMergeScheduler, keep the default merge polic
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -47,7 +47,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/iw-forcemerge-wait-protocol-tla/](../../models/iw-forcemerge-wait-protocol-tla/)
+Formal models and scripts this finding's part of the hunt used: [../../models/iw-forcemerge-wait-protocol-tla/](../../models/iw-forcemerge-wait-protocol-tla/)
 
 ## Feedback
 

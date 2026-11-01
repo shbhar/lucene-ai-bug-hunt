@@ -1,17 +1,19 @@
 # On main (11.0), the BpVectorReorderer command line cannot reorder an index created by Lucene 9.x or 10.x, or one with a soft-deletes field: it rewrites the index through a default IndexWriterConfig (created major 11, no soft-deletes field), so the first addIndexes throws IllegalArgumentException
 
-Bug LFV-1023 · Area: misc / vector BP reordering (BpVectorReorderer command line: in-place rewrite through IndexWriter.addIndexes) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-1023 · Area: misc / vector BP reordering (BpVectorReorderer command line: in-place rewrite through IndexWriter.addIndexes) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-1023.html](../../bugs/LFV-1023.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You run BpVectorReorderer.main(path, field) on an index written by Lucene 10.x or 9.x, or on any index that has a soft-deletes field, and expect it to reorder the vectors in place: its javadoc takes 'a path containing an index to reorder', and on main indexes created with 9.x and 10.x 'remain fully supported (open and write)'. Instead reorderIndexDirectory opens a new IndexWriter with new IndexWriterConfig and OpenMode.CREATE, which records created major 11 and no soft-deletes field, so the first addIndexes(SortingCodecReader.wrap(leaf,...)) throws IllegalArgumentException 'Cannot merge a segment that has been created with major version 10 into this index which has been created by major version 11' (or 'soft-deletes field is not configured in IWC'). The javadoc of IndexWriterConfig.setIndexCreatedVersionMajor names exactly this addIndexes restriction and its remedy (use the source's created major), which the tool does not apply.
+You run BpVectorReorderer.main(path, field) on an index written by Lucene 10.x or 9.x, or on any index that has a soft-deletes field, and expect it to reorder the vectors in place: its javadoc takes 'a path containing an index to reorder', and on main indexes created with 9.x and 10.x 'remain fully supported (open and write)'. Instead reorderIndexDirectory opens a new IndexWriter with new IndexWriterConfig() and OpenMode.CREATE, which records created major 11 and no soft-deletes field, so the first addIndexes(SortingCodecReader.wrap(leaf, ...)) throws IllegalArgumentException 'Cannot merge a segment that has been created with major version 10 into this index which has been created by major version 11' (or 'soft-deletes field is not configured in IWC'). The javadoc of IndexWriterConfig.setIndexCreatedVersionMajor names exactly this addIndexes restriction and its remedy (use the source's created major), which the tool does not apply.
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: reorderIndexDirectory opens a new IndexWriter with new IndexWriterConfig and OpenMode.CREATE, which records created major 11 and no soft-deletes field, so the first addIndexes(SortingCodecReader.wrap(leaf,...)) throws IllegalArgumentException 'Cannot merge a segment that has been created with major version 10 into this index which has been created by major version 11' (or 'soft-deletes field is not configured in IWC').
+- Expected: The index is reordered and still holds its 1 document.
+- Actual: `main()` throws `IllegalArgumentException: Cannot merge a segment that has been created with major version 10 into this index which has been created by major version 11`.
 
 ## Files
 
@@ -20,7 +22,7 @@ You run BpVectorReorderer.main(path, field) on an index written by Lucene 10.x o
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -42,6 +44,10 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestBpVectorReorderEarlierMajorIndex.java](TestBpVectorReorderEarlierMajorIndex.java)
 
 ## Feedback
 

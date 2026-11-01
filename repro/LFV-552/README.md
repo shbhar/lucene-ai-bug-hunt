@@ -1,6 +1,6 @@
 # A read-only Monitor's background refresh stops for good after one run throws an unchecked exception, and no error is reported
 
-Bug LFV-552 · Area: monitor / read-only query index (ReadonlyQueryIndex background refresh) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-552 · Area: monitor / read-only query index (ReadonlyQueryIndex background refresh) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You open a read-only Monitor over a query index that a writable Monitor updates,
 ## Run it
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

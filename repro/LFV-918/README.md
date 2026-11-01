@@ -1,6 +1,6 @@
 # RussianAnalyzer does not remove its default stop words when they are written with ё (её, ещё, всё, неё, чём): its StopFilter runs before the stemmer folds ё to е, although the bundled stop list says ё is translated to е
 
-Bug LFV-918 · Area: analysis-common / Russian analyzer default stop words (RussianAnalyzer, snowball/russian_stop.txt; interaction with the Snowball RussianStemmer's ё-to-е fold) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-918 · Area: analysis-common / Russian analyzer default stop words (RussianAnalyzer, snowball/russian_stop.txt; interaction with the Snowball RussianStemmer's ё-to-е fold) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -11,7 +11,7 @@ You analyze Russian text with the stock RussianAnalyzer. Its default stop list, 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -20,7 +20,7 @@ You analyze Russian text with the stock RussianAnalyzer. Its default stop list, 
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -4,11 +4,11 @@ Tools: TLA+/TLC.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- DirectoryTaxonomyWriter gives an existing category a second ordinal after an addCategory call fails with an IOException while the writer opens its near-real-time reader, because the cache stays marked complete or the reader stays stale (bug LFV-521; [repro](../../repro/LFV-521/), [bug page](../../bugs/LFV-521.html))
-- DirectoryTaxonomyWriter gives every later category a wrong ordinal after IndexWriter rejects one enriched ordinal document: the rejected document keeps its docID but the writer's ordinal counter does not advance (bug LFV-520; [repro](../../repro/LFV-520/), [bug page](../../bugs/LFV-520.html))
-- DirectoryTaxonomyWriter counts a new ordinal in getSize before it stores that ordinal's parent, so a concurrent getParent(getSize - 1) returns 0 (the root) instead of the real parent, or throws ArrayIndexOutOfBoundsException (bug LFV-512; [repro](../../repro/LFV-512/))
+- DirectoryTaxonomyWriter gives an existing category a second ordinal after an addCategory call fails with an IOException while the writer opens its near-real-time reader, because the cache stays marked complete or the reader stays stale (finding LFV-521; [repro](../../repro/LFV-521/), [finding page](../../bugs/LFV-521.html))
+- DirectoryTaxonomyWriter gives every later category a wrong ordinal after IndexWriter rejects one enriched ordinal document: the rejected document keeps its docID but the writer's ordinal counter does not advance (finding LFV-520; [repro](../../repro/LFV-520/), [finding page](../../bugs/LFV-520.html))
+- DirectoryTaxonomyWriter counts a new ordinal in getSize() before it stores that ordinal's parent, so a concurrent getParent(getSize() - 1) returns 0 (the root) instead of the real parent, or throws ArrayIndexOutOfBoundsException (finding LFV-512; [repro](../../repro/LFV-512/))
 
 ## Files
 
@@ -24,4 +24,4 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## How to run
 
-- TLA+ with TLC: `java -cp tla2tools.jar tlc2.TLC -config <Model>.cfg <Model>.tla` (a counterexample trace is the bug when the model encodes the current code).
+- TLA+ with TLC: `java -cp tla2tools.jar tlc2.TLC -config <Model>.cfg <Model>.tla` (a counterexample trace is the finding when the model encodes the current code).

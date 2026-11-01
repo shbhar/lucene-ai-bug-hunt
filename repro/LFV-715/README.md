@@ -1,12 +1,14 @@
 # ComplexPhraseQueryParser skips its same-field check for prefix and regular-expression clauses: "jo* id:2*" parses and then fails at search time with IllegalArgumentException, and name:"id:2*" searches field id
 
-Bug LFV-715 · Area: queryparser / complexPhrase: ComplexPhraseQueryParser (pass-2 same-field check for clauses nested in a phrase) · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-715 · Area: queryparser / complexPhrase: ComplexPhraseQueryParser (pass-2 same-field check for clauses nested in a phrase) · Priority: low · Impact: wrong error · Novelty: new
+
+Finding page: [../../bugs/LFV-715.html](../../bugs/LFV-715.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You parse a quoted phrase such as "jo* id:2*" or "jo* id:/2/" with ComplexPhraseQueryParser on the default field name; its class javadoc says the second pass checks that all embedded clauses refer to the same field, and it rejects "jo* id:2", "jo* id:2?", "jo* id:2~1" and "jo* id:[1 TO 2]" at parse time, so you expect a parse error. Instead parse succeeds, because the check is wired into newTermQuery, getWildcardQuery, getRangeQuery and getFuzzyQuery but the class never overrides getPrefixQuery or getRegexpQuery, and the search then throws IllegalArgumentException 'Clauses must have same field.'. A one-clause phrase such as name:"id:2*" also parses, and because rewrite returns a lone multi-term query unchanged, it searches field id and returns the document whose id is 2.
+You parse a quoted phrase such as "jo* id:2*" or "jo* id:/2/" with ComplexPhraseQueryParser on the default field name; its class javadoc says the second pass checks that all embedded clauses refer to the same field, and it rejects "jo* id:2", "jo* id:2?", "jo* id:2~1" and "jo* id:[1 TO 2]" at parse time, so you expect a parse error. Instead parse() succeeds, because the check is wired into newTermQuery, getWildcardQuery, getRangeQuery and getFuzzyQuery but the class never overrides getPrefixQuery or getRegexpQuery, and the search then throws IllegalArgumentException 'Clauses must have same field.'. A one-clause phrase such as name:"id:2*" also parses, and because rewrite returns a lone multi-term query unchanged, it searches field id and returns the document whose id is 2.
 
 The test shows that ComplexPhraseQueryParser skips its same-field check for a prefix clause nested in a phrase, so parse("\"jo* id:2*\"") on default field name is accepted.
 
@@ -22,7 +24,7 @@ Expected: ParseException ("Cannot have clause for field \"id\" nested in phrase 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

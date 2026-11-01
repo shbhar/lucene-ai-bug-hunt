@@ -1,17 +1,17 @@
-# MutableValueFloat and MutableValueDouble equals compare with ==, so a NaN value is not equal to itself and grouping by a float or double function puts NaN documents into empty groups (released versions) or throws IllegalArgumentException (main)
+# MutableValueFloat and MutableValueDouble equals() compare with ==, so a NaN value is not equal to itself and grouping by a float or double function puts NaN documents into empty groups (4.0.0 to 10.5.2) or throws IllegalArgumentException (main and, by reading, 10.6.0)
 
-Bug LFV-427 · Area: grouping / function grouping (core util.mutable: MutableValueFloat and MutableValueDouble equality) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-427 · Area: grouping / function grouping (core util.mutable: MutableValueFloat and MutableValueDouble equality) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You group search hits by a float or double function, for example new DoubleFieldSource("v") or a 0/0 division, and some documents have the value NaN; you expect them to form one NaN group, because MutableValueDouble's own hashCode (doubleToLongBits) and compareTo (Double.compare) treat every NaN as one value. Instead equalsSameType compares with ==, under which NaN is not even equal to itself, so on released versions every NaN document becomes its own group, each such group comes back with 0 documents and the NaN documents drop out of the grouped hit count. On main the same search fails with IllegalArgumentException 'group values differ across shards', because the result merge compares the NaN group value with itself.
+You group search hits by a float or double function, for example new DoubleFieldSource("v") or a 0/0 division, and some documents have the value NaN; you expect them to form one NaN group, because MutableValueDouble's own hashCode (doubleToLongBits) and compareTo (Double.compare) treat every NaN as one value. Instead equalsSameType compares with ==, under which NaN is not even equal to itself, so on releases up to 10.5.2 every NaN document becomes its own group, each such group comes back with 0 documents and the NaN documents drop out of the grouped hit count. On main and, by reading, 10.6.0 the same search fails with IllegalArgumentException 'group values differ across shards', because the result merge compares the NaN group value with itself.
 
 ## Expected vs actual
 
 - Expected: You expect them to form one NaN group, because MutableValueDouble's own hashCode (doubleToLongBits) and compareTo (Double.compare) treat every NaN as one value.
-- Actual: equalsSameType compares with ==, under which NaN is not even equal to itself, so on released versions every NaN document becomes its own group, each such group comes back with 0 documents and the NaN documents drop out of the grouped hit count.
+- Actual: equalsSameType compares with ==, under which NaN is not even equal to itself, so on releases up to 10.5.2 every NaN document becomes its own group, each such group comes back with 0 documents and the NaN documents drop out of the grouped hit count.
 
 ## Files
 
@@ -21,7 +21,7 @@ You group search hits by a float or double function, for example new DoubleField
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -45,7 +45,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/twin-family-static-diff/](../../models/twin-family-static-diff/)
+Formal models and scripts this finding's part of the hunt used: [../../models/twin-family-static-diff/](../../models/twin-family-static-diff/)
 
 ## Feedback
 

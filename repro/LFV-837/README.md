@@ -1,17 +1,17 @@
 # IndexWriter buffers the first doc-values update of each field twice in every buffered-updates packet (BufferedUpdates adds again the update that FieldUpdatesBuffer's constructor already recorded), so that update is RAM-accounted twice and, except on the all-same-value numeric path, applied twice to every matching document (since 7.7.0, LUCENE-8590)
 
-Bug LFV-837 · Area: index / buffered doc-values updates (BufferedUpdates, FieldUpdatesBuffer, FrozenBufferedUpdates) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-837 · Area: index / buffered doc-values updates (BufferedUpdates, FieldUpdatesBuffer, FrozenBufferedUpdates) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You update a doc-values field through IndexWriter (for example updateBinaryDocValue with a 1 MiB value) and expect each update to be buffered once, as every later update of the same field is. Instead BufferedUpdates creates the field's FieldUpdatesBuffer with the update, whose constructor already records it as entry 0, and then adds the same update again, so the first 1 MiB update adds 2,162,956 bytes to ramBytesUsed while each later one adds 1,048,576, and IndexWriter's InfoStream reports '1 field updates; 20 new updates' for one binary update matching 10 documents. Final values stay correct because the duplicate is identical and adjacent; Lucene 7.6.0 buffered the update once, and the double insert arrived with LUCENE-8590 in 7.7.0.
+You update a doc-values field through IndexWriter (for example updateBinaryDocValue with a 1 MiB value) and expect each update to be buffered once, as every later update of the same field is. Instead BufferedUpdates creates the field's FieldUpdatesBuffer with the update, whose constructor already records it as entry 0, and then adds the same update again, so the first 1 MiB update adds 2,162,956 bytes to ramBytesUsed() while each later one adds 1,048,576, and IndexWriter's InfoStream reports '1 field updates; 20 new updates' for one binary update matching 10 documents. Final values stay correct because the duplicate is identical and adjacent; Lucene 7.6.0 buffered the update once, and the double insert arrived with LUCENE-8590 in 7.7.0.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: BufferedUpdates creates the field's FieldUpdatesBuffer with the update, whose constructor already records it as entry 0, and then adds the same update again, so the first 1 MiB update adds 2,162,956 bytes to ramBytesUsed while each later one adds 1,048,576, and IndexWriter's InfoStream reports '1 field updates; 20 new updates' for one binary update matching 10 documents.
+- Actual: BufferedUpdates creates the field's FieldUpdatesBuffer with the update, whose constructor already records it as entry 0, and then adds the same update again, so the first 1 MiB update adds 2,162,956 bytes to ramBytesUsed() while each later one adds 1,048,576, and IndexWriter's InfoStream reports '1 field updates; 20 new updates' for one binary update matching 10 documents.
 
 ## Files
 
@@ -21,7 +21,7 @@ You update a doc-values field through IndexWriter (for example updateBinaryDocVa
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

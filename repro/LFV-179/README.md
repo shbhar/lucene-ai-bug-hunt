@@ -1,17 +1,17 @@
-# FilterMergePolicy.getSizeUnit returns BYTES instead of the wrapped policy's unit, so a wrapped LogDocMergePolicy makes compound-file decisions against the byte threshold and forceMerge(1) rewrites an already merged segment every time
+# FilterMergePolicy.getSizeUnit() returns BYTES instead of the wrapped policy's unit, so a wrapped LogDocMergePolicy makes compound-file decisions against the byte threshold and forceMerge(1) rewrites an already merged segment every time
 
-Bug LFV-179 · Area: index / merge policies (FilterMergePolicy size unit, compound-file threshold) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-179 · Area: index / merge policies (FilterMergePolicy size unit, compound-file threshold) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You wrap a LogDocMergePolicy in a FilterMergePolicy (or in SoftDeletesRetentionMergePolicy, UpgradeIndexMergePolicy or OneMergeWrappingMergePolicy) and expect the wrapper to make the same compound-file choices as the policy it wraps, as it did in 10.x. Instead, on main FilterMergePolicy.size still returns the wrapped policy's document count while getSizeUnit says BYTES, so the compound-file check compares a document count with the 64 MiB byte threshold: forceMerge(1) of 70,000 small documents writes a compound segment where the plain policy writes a non-compound one, and every later forceMerge(1) rewrites that already merged segment again (3 of 3 calls).
+You wrap a LogDocMergePolicy in a FilterMergePolicy (or in SoftDeletesRetentionMergePolicy, UpgradeIndexMergePolicy or OneMergeWrappingMergePolicy) and expect the wrapper to make the same compound-file choices as the policy it wraps, as it did in 10.x. Instead, on main FilterMergePolicy.size() still returns the wrapped policy's document count while getSizeUnit() says BYTES, so the compound-file check compares a document count with the 64 MiB byte threshold: forceMerge(1) of 70,000 small documents writes a compound segment where the plain policy writes a non-compound one, and every later forceMerge(1) rewrites that already merged segment again (3 of 3 calls).
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: On main FilterMergePolicy.size still returns the wrapped policy's document count while getSizeUnit says BYTES, so the compound-file check compares a document count with the 64 MiB byte threshold: forceMerge(1) of 70,000 small documents writes a compound segment where the plain policy writes a non-compound one, and every later forceMerge(1) rewrites that already merged segment again (3 of 3 calls).
+- Actual: On main FilterMergePolicy.size() still returns the wrapped policy's document count while getSizeUnit() says BYTES, so the compound-file check compares a document count with the 64 MiB byte threshold: forceMerge(1) of 70,000 small documents writes a compound segment where the plain policy writes a non-compound one, and every later forceMerge(1) rewrites that already merged segment again (3 of 3 calls).
 
 ## Files
 
@@ -22,7 +22,7 @@ You wrap a LogDocMergePolicy in a FilterMergePolicy (or in SoftDeletesRetentionM
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

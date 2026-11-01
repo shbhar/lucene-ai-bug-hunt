@@ -1,6 +1,6 @@
 # SmartChineseAnalyzer and ThaiTokenizer lose a supplementary character (an emoji, a CJK Extension B ideograph) that straddles their 1024-char buffer in text with no line break, because SegmentingTokenizerBase.refill cuts the surrogate pair in half: smartcn indexes two U+FFFD halves and ThaiTokenizer drops the character
 
-Bug LFV-233 · Area: analysis / SegmentingTokenizerBase buffer refill (smartcn HMMChineseTokenizer and SmartChineseAnalyzer; ThaiTokenizer and ThaiAnalyzer) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-233 · Area: analysis / SegmentingTokenizerBase buffer refill (smartcn HMMChineseTokenizer and SmartChineseAnalyzer; ThaiTokenizer and ThaiAnalyzer) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You index a Chinese paragraph of more than 1024 chars with no line break through
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

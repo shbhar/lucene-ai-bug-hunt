@@ -1,6 +1,8 @@
 # Byte DOT_PRODUCT scores (VectorUtil.dotProductScore and the two Panama byte scorers) compute len * 2^15 in int, so from 65,536 dimensions every score is mirrored around 0.5 (closer vectors score lower) and at 131,072 dimensions scores become +/-Infinity or NaN
 
-Bug LFV-143 · Area: util / VectorUtil byte DOT_PRODUCT score x internal/vectorization / Panama MemorySegment byte scorers · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-143 · Area: util / VectorUtil byte DOT_PRODUCT score x internal/vectorization / Panama MemorySegment byte scorers · Priority: low · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-143.html](../../bugs/LFV-143.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected same &gt; opposite (0.5000305 vs 0.49996948); actual same=0.49996948, o
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

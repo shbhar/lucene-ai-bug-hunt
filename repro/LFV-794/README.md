@@ -1,8 +1,8 @@
 # Tessellator flags a hole bridge that lies inside a longer outer-ring edge as an internal edge, so LatLonShape and XYShape CONTAINS queries match boxes that stick out of a valid polygon whose two holes touch the same outer edge
 
-Bug LFV-794 · Area: geo / Tessellator hole-bridge edge flags (LatLonShape and XYShape CONTAINS queries) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-794 · Area: geo / Tessellator hole-bridge edge flags (LatLonShape and XYShape CONTAINS queries) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-794.html](../../bugs/LFV-794.html)
+Finding page: [../../bugs/LFV-794.html](../../bugs/LFV-794.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected 0 hits for the CONTAINS box x [3,4], y [-0.5,0.3], which sticks out bel
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

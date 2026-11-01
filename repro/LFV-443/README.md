@@ -1,17 +1,17 @@
-# LogOddsFusionQuery with logit bounds but no weights normalizes every clause's logit with the first clause's bounds, so scores disagree with explain and can exceed getMaxScore
+# LogOddsFusionQuery with logit bounds but no weights normalizes every clause's logit with the first clause's bounds, so scores disagree with explain() and can exceed getMaxScore()
 
-Bug LFV-443 · Area: search / score fusion (LogOddsFusionQuery: LogOddsFusionScorer#score with per-signal logit bounds and null weights) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-443 · Area: search / score fusion (LogOddsFusionQuery: LogOddsFusionScorer#score with per-signal logit bounds and null weights) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You combine two probability clauses with LogOddsFusionQuery(clauses, 0.5f, null, logitMin, logitMax), giving each clause its own logit bounds and no weights (null means uniform weighting). You expect each clause's logit to be normalized with its own bounds, as the constructor javadoc ('per-signal' bounds), explain and getMaxScore all do. Instead score normalizes every clause with the first clause's bounds: in the repro a document that matches only the second clause (p = 0.6, bounds [-1, 1]) scores 0.50071675 while explain reports the documented 0.6217322, and with the bounds the other way round a document that matches both clauses scores 0.76923805, above the scorer's own getMaxScore of 0.6703954.
+You combine two probability clauses with LogOddsFusionQuery(clauses, 0.5f, null, logitMin, logitMax), giving each clause its own logit bounds and no weights (null means uniform weighting). You expect each clause's logit to be normalized with its own bounds, as the constructor javadoc ('per-signal' bounds), explain() and getMaxScore() all do. Instead score() normalizes every clause with the first clause's bounds: in the repro a document that matches only the second clause (p = 0.6, bounds [-1, 1]) scores 0.50071675 while explain() reports the documented 0.6217322, and with the bounds the other way round a document that matches both clauses scores 0.76923805, above the scorer's own getMaxScore() of 0.6703954.
 
 ## Expected vs actual
 
-- Expected: You expect each clause's logit to be normalized with its own bounds, as the constructor javadoc ('per-signal' bounds), explain and getMaxScore all do.
-- Actual: score normalizes every clause with the first clause's bounds: in the repro a document that matches only the second clause (p = 0.6, bounds [-1, 1]) scores 0.50071675 while explain reports the documented 0.6217322, and with the bounds the other way round a document that matches both clauses scores 0.76923805, above the scorer's own getMaxScore of 0.6703954.
+- Expected: You expect each clause's logit to be normalized with its own bounds, as the constructor javadoc ('per-signal' bounds), explain() and getMaxScore() all do.
+- Actual: score() normalizes every clause with the first clause's bounds: in the repro a document that matches only the second clause (p = 0.6, bounds [-1, 1]) scores 0.50071675 while explain() reports the documented 0.6217322, and with the bounds the other way round a document that matches both clauses scores 0.76923805, above the scorer's own getMaxScore() of 0.6703954.
 
 ## Files
 
@@ -21,7 +21,7 @@ You combine two probability clauses with LogOddsFusionQuery(clauses, 0.5f, null,
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

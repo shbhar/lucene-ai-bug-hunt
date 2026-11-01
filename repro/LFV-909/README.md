@@ -1,14 +1,14 @@
 # SpanContainingQuery and SpanWithinQuery miss documents and spans when the little query's spans end out of order (for example a SpanOrQuery of a longer near clause and a shorter clause that can occur inside it): their single forward pass tests only the current little span (containing) or never goes back to a big span it skipped (within), so a later, shorter little span inside a big span is never tried
 
-Bug LFV-909 · Area: queries / span queries (per-document lockstep of the ContainSpans subclasses in SpanContainingQuery and SpanWithinQuery) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-909 · Area: queries / span queries (per-document lockstep of the ContainSpans subclasses in SpanContainingQuery and SpanWithinQuery) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-909.html](../../bugs/LFV-909.html)
+Finding page: [../../bugs/LFV-909.html](../../bugs/LFV-909.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index 'a b a' and search with SpanContainingQuery(big = SpanNear([a, b], slop 0), little = SpanOr(SpanNear([a, a], slop 5), b)): the big span 'a b' at [0,2) contains the little span 'b' at [1,2), so you expect a hit, and SpanWithinQuery with the same pair should match too. Instead both return nothing, because the little spans arrive sorted by start as [0,3) and then [1,2) (their ends go down, which the Spans contract allows), and each query's single forward pass gives up after testing only the longer little span [0,3): containing moves on to the next big span, within moves the big iterator past [0,2) and never comes back. The same happens in a sentence-scoped search for '(apple NEAR/5 pie) OR cake' on 'bos apple cake eos bos pie eos' (the 'cake' sentence is missed only because 'apple... pie' crosses into the next sentence), so adding a word to a document or an OR alternative to the query can remove a hit; nothing extra is ever returned.
+You index 'a b a' and search with SpanContainingQuery(big = SpanNear([a, b], slop 0), little = SpanOr(SpanNear([a, a], slop 5), b)): the big span 'a b' at [0,2) contains the little span 'b' at [1,2), so you expect a hit, and SpanWithinQuery with the same pair should match too. Instead both return nothing, because the little spans arrive sorted by start as [0,3) and then [1,2) (their ends go down, which the Spans contract allows), and each query's single forward pass gives up after testing only the longer little span [0,3): containing moves on to the next big span, within moves the big iterator past [0,2) and never comes back. The same happens in a sentence-scoped search for '(apple NEAR/5 pie) OR cake' on 'bos apple cake eos bos pie eos' (the 'cake' sentence is missed only because 'apple ... pie' crosses into the next sentence), so adding a word to a document or an OR alternative to the query can remove a hit; nothing extra is ever returned.
 
 The test shows that SpanContainingQuery and SpanWithinQuery miss a match when the little query's spans end out of order: on 'a b a', little = spanOr(spanNear([a, a], 5), b) yields [0,3) then [1,2), and the shorter [1,2) inside big spanNear([a, b], 0) = [0,2) is never tested.
 
@@ -24,7 +24,7 @@ Expected both queries to match the document (`containing=1 within=1`); actual: n
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -47,7 +47,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/span-containing-within-lockstep-misses-nested-little-spans/](../../models/span-containing-within-lockstep-misses-nested-little-spans/)
+Formal models and scripts this finding's part of the hunt used: [../../models/span-containing-within-lockstep-misses-nested-little-spans/](../../models/span-containing-within-lockstep-misses-nested-little-spans/)
 
 ## Feedback
 

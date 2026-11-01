@@ -1,6 +1,6 @@
 # OrdinalMappingLeafReader's class javadoc example for re-mapping facet ordinals during an index merge does not compile on any release since 5.0.0: it uses IndexWriterConfig(Version, Analyzer) and addIndexes(IndexReader...), both removed in 5.0.0, a 2-argument constructor the class never had, and a static-style call to the instance method addTaxonomy (documentation defect)
 
-Bug LFV-1033 · Area: facet / taxonomy merge (OrdinalMappingLeafReader class javadoc example) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-1033 · Area: facet / taxonomy merge (OrdinalMappingLeafReader class javadoc example) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -11,7 +11,7 @@ The OrdinalMappingLeafReader javadoc says 'For re-mapping the ordinals during in
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -20,7 +20,7 @@ The OrdinalMappingLeafReader javadoc says 'For re-mapping the ordinals during in
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

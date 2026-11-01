@@ -1,12 +1,14 @@
 # IndexWriter.updateDocuments / softUpdateDocuments with an empty block leave about 33 KB of phantom RAM accounting at every refresh or commit that drops the empty per-thread writer, so ramBytesUsed grows without bound and, once it passes the RAM buffer, every later document is flushed into its own segment
 
-Bug LFV-453 · Area: index / IndexWriter flush-control RAM accounting (DocumentsWriterFlushControl.markForFullFlush drops a 0-document DocumentsWriterPerThread; reached through updateDocuments and softUpdateDocuments with an empty block) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-453 · Area: index / IndexWriter flush-control RAM accounting (DocumentsWriterFlushControl.markForFullFlush drops a 0-document DocumentsWriterPerThread; reached through updateDocuments and softUpdateDocuments with an empty block) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-453.html](../../bugs/LFV-453.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You call IndexWriter.updateDocuments(term, List.of), or softUpdateDocuments(term, List.of, softField), to delete a key's documents and add nothing, then refresh or commit; you expect the delete to apply and nothing to stay buffered, so ramBytesUsed returns to 0 as it does after deleteDocuments(term) or addDocuments(List.of). Instead the call took a per-thread writer and charged its delete buffer (about 33 KB) to the flush control, and the next full flush throws that 0-document writer away without taking the charge back, so ramBytesUsed climbs by about 33 KB per round and never comes down (20 rounds with a default config: 660,800 B). Once the phantom total passes the RAM buffer (about 510 rounds at the default 16 MB) the writer flushes after every document, so 200 small documents become 200 segments; with assertions enabled the writer closes itself with an AssertionError instead.
+You call IndexWriter.updateDocuments(term, List.of()), or softUpdateDocuments(term, List.of(), softField), to delete a key's documents and add nothing, then refresh or commit; you expect the delete to apply and nothing to stay buffered, so ramBytesUsed() returns to 0 as it does after deleteDocuments(term) or addDocuments(List.of()). Instead the call took a per-thread writer and charged its delete buffer (about 33 KB) to the flush control, and the next full flush throws that 0-document writer away without taking the charge back, so ramBytesUsed() climbs by about 33 KB per round and never comes down (20 rounds with a default config: 660,800 B). Once the phantom total passes the RAM buffer (about 510 rounds at the default 16 MB) the writer flushes after every document, so 200 small documents become 200 segments; with assertions enabled the writer closes itself with an AssertionError instead.
 
 The test shows that `IndexWriter.updateDocuments(term, List.of())` (an empty block) followed by one NRT reopen leaves RAM charged to the writer although nothing is buffered.
 
@@ -22,7 +24,7 @@ Expected `ramBytesUsed()` 0 after the refresh (as after `deleteDocuments(term)`)
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

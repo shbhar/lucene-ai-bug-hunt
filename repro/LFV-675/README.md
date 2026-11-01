@@ -1,14 +1,14 @@
 # Geo3dRectangleShape.reset(minX, maxX, minY, maxY) replaces the wrapped spatial3d box but keeps the old minX/maxX/minY/maxY, so with the Geo3d spatial context BBoxStrategy shape values report a stale box for every document and BBoxStrategy overlap-ratio relevance scores are wrong
 
-Bug LFV-675 · Area: spatial-extras / spatial4j bridge to spatial3d (Geo3dRectangleShape.reset), read by BBoxStrategy's value sources (BBoxValueSource: makeShapeValueSource, makeOverlapRatioValueSource) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-675 · Area: spatial-extras / spatial4j bridge to spatial3d (Geo3dRectangleShape.reset), read by BBoxStrategy's value sources (BBoxValueSource: makeShapeValueSource, makeOverlapRatioValueSource) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-675.html](../../bugs/LFV-675.html)
+Finding page: [../../bugs/LFV-675.html](../../bugs/LFV-675.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You use the Geo3d spatial context (Geo3dSpatialContextFactory) with BBoxStrategy and read each document's box with makeShapeValueSource or rank by makeOverlapRatioValueSource(queryBox,...), or you call reset(10, 20, 30, 40) on a Geo3d rectangle yourself. You expect reset to replace the whole rectangle (the spatial4j Rectangle.reset javadoc: 'Resets the state of this shape given the arguments'; spatial4j's own RectangleImpl.reset assigns all four bounds), so getMinX..getMaxY return 10, 20, 30, 40, the shape values return each document's indexed box, and a document box equal to the query scores 1.0, as it does with the default SpatialContext.GEO. Instead Geo3dRectangleShape.reset rebuilds only the wrapped GeoBBox and clears the center and bounding-box caches, never assigning the four fields that getMinX..getMaxY, getWidth, getHeight and getCrossesDateLine read: the rectangle equals rect(10, 20, 30, 40) but reports its previous bounds, BBoxValueSource (which creates one rect(0, 0, 0, 0) per segment and resets it for each document) reports (0, 0, 0, 0) for every document, and the self-overlap score is 0.0.
+You use the Geo3d spatial context (Geo3dSpatialContextFactory) with BBoxStrategy and read each document's box with makeShapeValueSource() or rank by makeOverlapRatioValueSource(queryBox, ...), or you call reset(10, 20, 30, 40) on a Geo3d rectangle yourself. You expect reset to replace the whole rectangle (the spatial4j Rectangle.reset javadoc: 'Resets the state of this shape given the arguments'; spatial4j's own RectangleImpl.reset assigns all four bounds), so getMinX()..getMaxY() return 10, 20, 30, 40, the shape values return each document's indexed box, and a document box equal to the query scores 1.0, as it does with the default SpatialContext.GEO. Instead Geo3dRectangleShape.reset rebuilds only the wrapped GeoBBox and clears the center and bounding-box caches, never assigning the four fields that getMinX()..getMaxY(), getWidth(), getHeight() and getCrossesDateLine() read: the rectangle equals rect(10, 20, 30, 40) but reports its previous bounds, BBoxValueSource (which creates one rect(0, 0, 0, 0) per segment and resets it for each document) reports (0, 0, 0, 0) for every document, and the self-overlap score is 0.0.
 
 The test shows that in the Geo3d spatial context, `Rectangle.reset(minX, maxX, minY, maxY)` does not update the bounds that `getMinX()`..`getMaxY()` return.
 
@@ -24,7 +24,7 @@ Expected `rect(-50, -40, -30, -20).reset(10, 20, 30, 40).getMinX() == 10`; actua
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

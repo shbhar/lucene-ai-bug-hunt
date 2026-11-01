@@ -1,8 +1,8 @@
 # RandomSamplingFacetsCollector.amortizeFacetCounts caps each amortized label count at the docFreq of the label's drill-down term, so with a non-default FacetsConfig DrillDownTermsIndexing (NONE on any dimension, or FULL_PATH_ONLY / DIMENSION_AND_FULL_PATH on a hierarchical dimension) it silently returns 0, or a value below the true count
 
-Bug LFV-425 · Area: facet / sampling (RandomSamplingFacetsCollector.amortizeFacetCounts x FacetsConfig drill-down term indexing) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-425 · Area: facet / sampling (RandomSamplingFacetsCollector.amortizeFacetCounts x FacetsConfig drill-down term indexing) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-425.html](../../bugs/LFV-425.html)
+Finding page: [../../bugs/LFV-425.html](../../bugs/LFV-425.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: 1 sampled hit / sampling rate 0.5 = 2 (both documents have dim/x). Act
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

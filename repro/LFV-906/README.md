@@ -1,6 +1,6 @@
 # JavascriptCompiler.compile lets the bytecode generator's method-size failure escape untranslated: a well-formed, shallowly nested expression that is too big for one JVM method throws ASM's MethodTooLargeException (or an ArrayIndexOutOfBoundsException from ASM's frame computation) on 8.5.0 to 10.5.2 and the 10.6.0 release line, and the class-file API's IllegalArgumentException on main, instead of the documented ParseException / IllegalStateException
 
-Bug LFV-906 · Area: expressions / JavascriptCompiler code generation (compileExpression exception translation for class-file size limits) · Priority: low · Impact: wrong error · Novelty: known upstream
+Finding LFV-906 · Area: expressions / JavascriptCompiler code generation (compileExpression exception translation for class-file size limits) · Priority: low · Impact: wrong error · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You compile a well-formed expression that is too big for one JVM method but nest
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -50,7 +50,7 @@ The module(s) expressions also need their third-party runtime jars; `./gradlew -
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/expressions-shallow-large-expression-escapes-documented-exceptions/](../../models/expressions-shallow-large-expression-escapes-documented-exceptions/)
+Formal models and scripts this finding's part of the hunt used: [../../models/expressions-shallow-large-expression-escapes-documented-exceptions/](../../models/expressions-shallow-large-expression-escapes-documented-exceptions/)
 
 ## Feedback
 

@@ -1,14 +1,14 @@
-# Flexible StandardQueryParser narrows out-of-range int literals with intValue, so i:[2147483648 TO *] matches every document with the field
+# Flexible StandardQueryParser narrows out-of-range int literals with intValue(), so i:[2147483648 TO *] matches every document with the field
 
-Bug LFV-082 · Area: queryparser / flexible · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-082 · Area: queryparser / flexible · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-082.html](../../bugs/LFV-082.html)
+Finding page: [../../bugs/LFV-082.html](../../bugs/LFV-082.html)
 
-AI-assisted finding, reproduced on Lucene main but not yet independently re-verified, and not yet triaged by a human Lucene committer. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You parse a point query whose literal lies outside the field's int range, such as i:[2147483648 TO *], i&gt;=2147483648 or i:2147483648, with the flexible StandardQueryParser and an Integer PointsConfig. You expect no match, because no int value reaches that bound. Instead PointRangeQueryNodeProcessor and PointQueryNodeProcessor narrow the parsed number with Number.intValue, which wraps it, so the range queries match all 5 documents of the repro and i:2147483648 matches the Integer.MIN_VALUE document.
+You parse a point query whose literal lies outside the field's int range, such as i:[2147483648 TO *], i&gt;=2147483648 or i:2147483648, with the flexible StandardQueryParser and an Integer PointsConfig. You expect no match, because no int value reaches that bound. Instead PointRangeQueryNodeProcessor and PointQueryNodeProcessor narrow the parsed number with Number.intValue(), which wraps it, so the range queries match all 5 documents of the repro and i:2147483648 matches the Integer.MIN_VALUE document.
 
 The test shows that the flexible StandardQueryParser with an Integer PointsConfig narrows the out-of-range literal in i:[2147483648 TO *] with intValue(), so it parses to i:[-2147483648 TO 2147483647].
 
@@ -24,7 +24,7 @@ Expected: 0 hits on a one-document index (i = 0), since no int is &gt;= 2^31. Ac
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

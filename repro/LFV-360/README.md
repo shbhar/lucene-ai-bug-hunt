@@ -1,8 +1,8 @@
 # JapaneseNumberFilter and KoreanNumberFilter honour KeywordAttribute only on the token that starts a number, so a keyword-protected numeral word directly after a numeral token is merged into the number and normalized (三 + protected 京一 gives 30000000000000001, the name 오경일 with 경일 protected gives 50000000000000001) (released since 6.0.0 / 8.2.0)
 
-Bug LFV-360 · Area: analysis / kuromoji and nori number filters (JapaneseNumberFilter, KoreanNumberFilter: KeywordAttribute inside a number composition) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-360 · Area: analysis / kuromoji and nori number filters (JapaneseNumberFilter, KoreanNumberFilter: KeywordAttribute inside a number composition) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-360.html](../../bugs/LFV-360.html)
+Finding page: [../../bugs/LFV-360.html](../../bugs/LFV-360.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected the tokens `[3, 京一]`; actual the single token `30000000000000001` (
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,8 +1,8 @@
 # Spatial heatmap: HeatmapFacetCounter gives non-zero counts to cells outside a non-rectangular input shape when documents are indexed with coarse leaf cells, although the javadoc says those cells are always 0
 
-Bug LFV-670 · Area: spatial-extras / prefix-tree heatmap faceting (HeatmapFacetCounter.calcFacets, also reached through PrefixTreeStrategy.calcFacets; coarse 'ancestor' leaf cells reported by PrefixTreeFacetCounter) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-670 · Area: spatial-extras / prefix-tree heatmap faceting (HeatmapFacetCounter.calcFacets, also reached through PrefixTreeStrategy.calcFacets; coarse 'ancestor' leaf cells reported by PrefixTreeFacetCounter) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-670.html](../../bugs/LFV-670.html)
+Finding page: [../../bugs/LFV-670.html](../../bugs/LFV-670.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected 0 for the top-right cell [78.75,90]x[78.75,90], which does not intersec
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

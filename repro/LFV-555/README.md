@@ -1,12 +1,12 @@
-# DirectoryTaxonomyWriter.close skips its own cleanup when its commit fails: after an I/O error that closes the internal IndexWriter every close throws and the writer's near-real-time reader keeps its segment files open, and after an fsync error inside close the IndexWriter and the taxonomy write lock stay held until close is retried or rollback is called (every release since 5.0.0)
+# DirectoryTaxonomyWriter.close() skips its own cleanup when its commit fails: after an I/O error that closes the internal IndexWriter every close() throws and the writer's near-real-time reader keeps its segment files open, and after an fsync error inside close() the IndexWriter and the taxonomy write lock stay held until close() is retried or rollback() is called (every release since 5.0.0)
 
-Bug LFV-555 · Area: facet / taxonomy writer: DirectoryTaxonomyWriter.close (failure cleanup) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-555 · Area: facet / taxonomy writer: DirectoryTaxonomyWriter.close() (failure cleanup) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You add categories to a DirectoryTaxonomyWriter, a commit fails with an I/O error (for example a full disk while the new segment is written), and you then call close, whose javadoc says it 'Frees used resources as well as closes the underlying IndexWriter'. You expect close to release the writer's resources even when it throws, as IndexWriter.close has done since LUCENE-4246. Instead close is 'commit; indexWriter.close; doClose;' with no try/finally, so it throws AlreadyClosedException from its own commit on every call and never closes its internal near-real-time reader, whose segment file stays open; when the error is an fsync inside close, the internal IndexWriter and the taxonomy's write lock also stay held until close is retried or rollback is called.
+You add categories to a DirectoryTaxonomyWriter, a commit fails with an I/O error (for example a full disk while the new segment is written), and you then call close(), whose javadoc says it 'Frees used resources as well as closes the underlying IndexWriter'. You expect close() to release the writer's resources even when it throws, as IndexWriter.close() has done since LUCENE-4246. Instead close() is 'commit(); indexWriter.close(); doClose();' with no try/finally, so it throws AlreadyClosedException from its own commit() on every call and never closes its internal near-real-time reader, whose segment file stays open; when the error is an fsync inside close(), the internal IndexWriter and the taxonomy's write lock also stay held until close() is retried or rollback() is called.
 
 The test shows that after a commit fails with an I/O error (an aborting segment-write error that closes the internal IndexWriter), `DirectoryTaxonomyWriter.close()` throws from its own `commit()` and never closes its near-real-time reader.
 
@@ -22,7 +22,7 @@ Expected: `close()` frees the reader (as its javadoc says), so `MockDirectoryWra
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

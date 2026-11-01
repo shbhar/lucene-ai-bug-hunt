@@ -1,14 +1,14 @@
 # Intervals.before(source, reference) treats a source interval at position 0 as before a reference interval that also starts at position 0, so for example before(york, york) matches the one-word document 'york'
 
-Bug LFV-293 · Area: queries / intervals (Intervals.before, OffsetIntervalsSource PRECEDING) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-293 · Area: queries / intervals (Intervals.before, OffsetIntervalsSource PRECEDING) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-293.html](../../bugs/LFV-293.html)
+Finding page: [../../bugs/LFV-293.html](../../bugs/LFV-293.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You search with Intervals.before(source, reference), for example before(term new, phrase(new, york)) on the text 'new york', or before(term york, term york) on the one-word text 'york'. You expect no match, because the javadoc says before 'Returns intervals from the source that appear before intervals from the reference' and nothing comes before the first word. Instead both documents match: before is built from a helper that places a pseudo-interval one position before each reference match, and for a reference at position 0 the helper clamps that position to 0 instead of producing nothing, so a source at position 0 counts as 'before' it; prepend one unrelated word and the same text correctly stops matching.
+You search with Intervals.before(source, reference), for example before(term new, phrase(new, york)) on the text 'new york', or before(term york, term york) on the one-word text 'york'. You expect no match, because the javadoc says before 'Returns intervals from the source that appear before intervals from the reference' and nothing comes before the first word. Instead both documents match: before() is built from a helper that places a pseudo-interval one position before each reference match, and for a reference at position 0 the helper clamps that position to 0 instead of producing nothing, so a source at position 0 counts as 'before' it; prepend one unrelated word and the same text correctly stops matching.
 
 The test shows that `Intervals.before(york, york)` matches the one-word document "york", so a term at position 0 counts as before a reference that also starts at position 0.
 
@@ -24,7 +24,7 @@ Expected 0 hits (nothing comes before the only word); actual: 1 hit (`expected:<
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

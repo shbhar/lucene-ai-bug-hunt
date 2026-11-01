@@ -1,14 +1,14 @@
-# An orphaned NRT reader can report isCurrent true for different index content after a new writer session
+# An orphaned NRT reader can report isCurrent() true for different index content after a new writer session
 
-Bug LFV-012 · Area: index / IndexWriter NRT · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-012 · Area: index / IndexWriter NRT · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-012.html](../../bugs/LFV-012.html)
+Finding page: [../../bugs/LFV-012.html](../../bugs/LFV-012.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You keep an NRT reader after its writer is rolled back or closed, then open a new writer on the same directory and change the index. You expect reader.isCurrent to return false. Instead SegmentInfos.version restarts in each writer session and the closed-writer branch of isCurrent compares only versions, so the stale reader reports true for different content.
+You keep an NRT reader after its writer is rolled back or closed, then open a new writer on the same directory and change the index. You expect reader.isCurrent() to return false. Instead SegmentInfos.version restarts in each writer session and the closed-writer branch of isCurrent compares only versions, so the stale reader reports true for different content.
 
 The test shows that an NRT reader whose writer was rolled back reports `isCurrent() == true` after a new writer on the same directory has committed different content, because the new session's second commit lands on the reader's SegmentInfos version (10) and the closed-writer branch of `isCurrent` compares only versions.
 
@@ -24,7 +24,7 @@ Expected `isCurrent()` to be false (reader maxDoc 4, latest commit maxDoc 3); ac
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

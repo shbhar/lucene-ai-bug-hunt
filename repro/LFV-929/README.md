@@ -1,17 +1,17 @@
-# WordDelimiterGraphFilterFactory (and the deprecated WordDelimiterFilterFactory) throw a java.util.NoSuchElementException with no message from inform when the 'types' file holds no rule (empty, only comment or blank lines, or a sole '# =&gt;...' rule that the loader drops as a comment), because parseTypes calls TreeMap.lastKey on the empty rule map
+# WordDelimiterGraphFilterFactory (and the deprecated WordDelimiterFilterFactory) throw a java.util.NoSuchElementException with no message from inform() when the 'types' file holds no rule (empty, only comment or blank lines, or a sole '# =&gt; ...' rule that the loader drops as a comment), because parseTypes calls TreeMap.lastKey() on the empty rule map
 
-Bug LFV-929 · Area: analysis / WordDelimiterGraphFilterFactory and WordDelimiterFilterFactory types option (parseTypes) versus the getLines resource-file format · Priority: low · Impact: crash · Novelty: known upstream
+Finding LFV-929 · Area: analysis / WordDelimiterGraphFilterFactory and WordDelimiterFilterFactory types option (parseTypes) versus the getLines resource-file format · Priority: low · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You give WordDelimiterGraphFilterFactory a types file that holds no rule yet, for example only a '# custom character types' comment, an empty file, or the single rule '# =&gt; ALPHA' (which the loader drops, because a line that starts with '#' is a comment), and expect the analyzer to build and tokenize exactly as without the option: getLines documents that comment and blank lines are skipped, and the other resource files (the same factory's protected words, stop words, mapping rules) load such a file as empty. Instead inform throws java.util.NoSuchElementException with a null message from TreeMap.lastKey, because parseTypes sizes its table from the largest mapped character without checking that any rule was read. A file with one real rule works, and a two-line guard that returns no custom table when the rule map is empty fixes both factories.
+You give WordDelimiterGraphFilterFactory a types file that holds no rule yet, for example only a '# custom character types' comment, an empty file, or the single rule '# =&gt; ALPHA' (which the loader drops, because a line that starts with '#' is a comment), and expect the analyzer to build and tokenize exactly as without the option: getLines documents that comment and blank lines are skipped, and the other resource files (the same factory's protected words, stop words, mapping rules) load such a file as empty. Instead inform() throws java.util.NoSuchElementException with a null message from TreeMap.lastKey(), because parseTypes sizes its table from the largest mapped character without checking that any rule was read. A file with one real rule works, and a two-line guard that returns no custom table when the rule map is empty fixes both factories.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: inform throws java.util.NoSuchElementException with a null message from TreeMap.lastKey, because parseTypes sizes its table from the largest mapped character without checking that any rule was read.
+- Actual: inform() throws java.util.NoSuchElementException with a null message from TreeMap.lastKey(), because parseTypes sizes its table from the largest mapped character without checking that any rule was read.
 
 ## Files
 
@@ -20,7 +20,7 @@ You give WordDelimiterGraphFilterFactory a types file that holds no rule yet, fo
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

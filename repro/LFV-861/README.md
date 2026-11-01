@@ -1,20 +1,20 @@
-# Classic Highlighter's SimpleSpanFragmenter.start does not reset waitForPos, so a Highlighter reused for the next text (or for the same text again) keeps suppressing fragment boundaries after a phrase match that ended the previous text: one oversized fragment, then one-word fragments and a different best fragment, depending on what was highlighted before
+# Classic Highlighter's SimpleSpanFragmenter.start() does not reset waitForPos, so a Highlighter reused for the next text (or for the same text again) keeps suppressing fragment boundaries after a phrase match that ended the previous text: one oversized fragment, then one-word fragments and a different best fragment, depending on what was highlighted before
 
-Bug LFV-861 · Area: highlighter / classic Highlighter fragmenting (SimpleSpanFragmenter.start, state carried across texts) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-861 · Area: highlighter / classic Highlighter fragmenting (SimpleSpanFragmenter.start, state carried across texts) · Priority: low · Impact: minor · Novelty: new
 
-Bug page: [../../bugs/LFV-861.html](../../bugs/LFV-861.html)
+Finding page: [../../bugs/LFV-861.html](../../bugs/LFV-861.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You reuse one classic Highlighter with a QueryScorer and a SimpleSpanFragmenter for several texts (Highlighter keeps one fragmenter and calls its start, documented as 'Initializes the Fragmenter', for every text) and expect each text to be cut into the same fragments as with a fresh Highlighter. Instead start resets the position and fragment count but not waitForPos, the position the fragmenter is still waiting for, so when a phrase match ended the previous text no boundary is allowed in the next text until it reaches that old position: with the phrase 'search library' at the end of the first text and fragment size 20, the next text starts with one 70-character fragment 'Highlighting picks short fragments of text around each match so that a', then one-word fragments ', reader', ', of', ', the', where a fresh Highlighter gives 'Highlighting picks', ' short fragments of', ' text around each', and getBestFragment also differs. Hits and scores are unaffected; only the snippet layout changes, and it depends on what the same Highlighter highlighted before.
+You reuse one classic Highlighter with a QueryScorer and a SimpleSpanFragmenter for several texts (Highlighter keeps one fragmenter and calls its start(), documented as 'Initializes the Fragmenter', for every text) and expect each text to be cut into the same fragments as with a fresh Highlighter. Instead start() resets the position and fragment count but not waitForPos, the position the fragmenter is still waiting for, so when a phrase match ended the previous text no boundary is allowed in the next text until it reaches that old position: with the phrase 'search library' at the end of the first text and fragment size 20, the next text starts with one 70-character fragment 'Highlighting picks short fragments of text around each match so that a', then one-word fragments ', reader', ', of', ', the', where a fresh Highlighter gives 'Highlighting picks', ' short fragments of', ' text around each', and getBestFragment also differs. Hits and scores are unaffected; only the snippet layout changes, and it depends on what the same Highlighter highlighted before.
 
 The test shows that a classic `Highlighter` with `SimpleSpanFragmenter` that is reused after a text ending in a phrase match cuts the next text differently from a fresh Highlighter, because `SimpleSpanFragmenter.start()` does not reset `waitForPos`.
 
 ## Expected vs actual
 
-Expected the fresh Highlighter's fragments `[Highlighting picks, short fragments of, text around each,...]`; actual `[Highlighting picks short fragments of text around each match so that a, reader, of, the,...]` (one 70-char fragment, then one-word ones), with `-ea` and `-da`.
+Expected the fresh Highlighter's fragments `[Highlighting picks, short fragments of, text around each, ...]`; actual `[Highlighting picks short fragments of text around each match so that a, reader, of, the, ...]` (one 70-char fragment, then one-word ones), with `-ea` and `-da`.
 
 ## Files
 
@@ -24,7 +24,7 @@ Expected the fresh Highlighter's fragments `[Highlighting picks, short fragments
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

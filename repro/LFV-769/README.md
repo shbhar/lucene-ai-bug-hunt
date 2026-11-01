@@ -1,6 +1,8 @@
 # Monitor.match can throw NullPointerException while queries are being registered (or while a read-only Monitor refreshes), because QueryIndex keeps its per-reader term filters in a plain HashMap that the searcher refresh and reader-close listeners modify while match threads read it without a lock
 
-Bug LFV-769 · Area: monitor / QueryIndex term-filter map (searcher refresh vs concurrent match, writable and read-only Monitor) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-769 · Area: monitor / QueryIndex term-filter map (searcher refresh vs concurrent match, writable and read-only Monitor) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-769.html](../../bugs/LFV-769.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -10,8 +12,8 @@ You share one Monitor between threads: some threads call Monitor.match on docume
 
 ## Expected vs actual
 
-- Expected: You expect every match of a valid document to return its matching queries.
-- Actual: When the internal map from searcher to term filter (a plain java.util.HashMap) grows, a concurrent match can look up its own searcher's entry and get null, and Monitor.match throws NullPointerException from TermFilteredPresearcher.buildQuery; the read-only Monitor fails the same way while its refresh runs.
+- Expected: No `Monitor.match` call throws while another thread registers queries.
+- Actual: `NullPointerException: ... "this.val$termAcceptor" is null` at `TermFilteredPresearcher.java:122`, thrown out of `Monitor.match`, with assertions on and off.
 
 ## Files
 
@@ -21,7 +23,7 @@ You share one Monitor between threads: some threads call Monitor.match on docume
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -50,6 +52,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestMonitorMatchDuringRegister.java](TestMonitorMatchDuringRegister.java)
 
 ## Feedback
 

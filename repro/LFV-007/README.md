@@ -1,14 +1,14 @@
 # FSTCompiler silently writes a corrupt FST when a fixed-length-arc node would expand to 2^31 bytes or more
 
-Bug LFV-007 · Area: util / FST · Priority: low · Impact: data corruption · Novelty: new
+Finding LFV-007 · Area: util / FST · Priority: low · Impact: data corruption · Novelty: new
 
-Bug page: [../../bugs/LFV-007.html](../../bugs/LFV-007.html)
+Finding page: [../../bugs/LFV-007.html](../../bugs/LFV-007.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build an FST in which one node has many arcs and at least one large output, so that its fixed-length arc area numArcs*maxBytesPerArc reaches 2^31 bytes. You expect a correct FST or an error. Instead, with assertions off, compile returns an FST whose node header was written over the unexpanded arc list: lookups through that node throw, and enumeration can return a key that was never added.
+You build an FST in which one node has many arcs and at least one large output, so that its fixed-length arc area numArcs*maxBytesPerArc reaches 2^31 bytes. You expect a correct FST or an error. Instead, with assertions off, compile() returns an FST whose node header was written over the unexpanded arc list: lookups through that node throw, and enumeration can return a key that was never added.
 
 The test shows that a default BYTE2 `FSTCompiler` with 2048 sparse root arcs, one of them 2^20 bytes (a 1,048,570-byte output), so the fixed-length root node would take 2048 x 2^20 = 2^31 bytes and the int size wraps.
 
@@ -24,7 +24,7 @@ Expected: `Util.get` returns key 0's output (or `compile()` fails). Actual: with
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -46,7 +46,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/study-fst-verification/](../../models/study-fst-verification/)
+Formal models and scripts this finding's part of the hunt used: [../../models/study-fst-verification/](../../models/study-fst-verification/)
 
 ## Feedback
 

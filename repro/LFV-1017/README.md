@@ -1,17 +1,17 @@
-# On main (11.0), the MIGRATE.md recipe for compound-file settings (iwc.getCodec.compoundFormat.setShouldUseCompoundFile / setMaxCFSSegmentSizeMB) changes the CompoundFormat of the single shared default codec, so one writer's settings silently become the compound-file settings of every other default-codec IndexWriter in the JVM
+# On main (11.0), the MIGRATE.md recipe for compound-file settings (iwc.getCodec().compoundFormat().setShouldUseCompoundFile / setMaxCFSSegmentSizeMB) changes the CompoundFormat of the single shared default codec, so one writer's settings silently become the compound-file settings of every other default-codec IndexWriter in the JVM
 
-Bug LFV-1017 · Area: codecs / compound-file settings (CompoundFormat on the shared default codec; MIGRATE.md 11.0 recipe) · Priority: unranked · Impact: minor · Novelty: known upstream
+Finding LFV-1017 · Area: codecs / compound-file settings (CompoundFormat on the shared default codec; MIGRATE.md 11.0 recipe) · Priority: unranked · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You follow the 11.0 MIGRATE.md recipe on one writer's fresh IndexWriterConfig (CompoundFormat cfs = iwc.getCodec.compoundFormat; cfs.setShouldUseCompoundFile(false); cfs.setMaxCFSSegmentSizeMB(512)) and then open a second, unrelated IndexWriter on another directory with its own brand-new default IndexWriterConfig. You expect only the first writer to change, as in 10.x, where the recipe's 'Before' form set the same values on that writer's own merge policy. Instead every config that was not given a codec holds the one default codec instance (Codec.getDefault, also what Codec.forName("Lucene104") returns), whose CompoundFormat keeps the settings in mutable fields, so the second writer writes its force-merged, naturally merged and addIndexes(CodecReader) segments non-compound, and the settings stay after the first writer closes.
+You follow the 11.0 MIGRATE.md recipe on one writer's fresh IndexWriterConfig (CompoundFormat cfs = iwc.getCodec().compoundFormat(); cfs.setShouldUseCompoundFile(false); cfs.setMaxCFSSegmentSizeMB(512)) and then open a second, unrelated IndexWriter on another directory with its own brand-new default IndexWriterConfig. You expect only the first writer to change, as in 10.x, where the recipe's 'Before' form set the same values on that writer's own merge policy. Instead every config that was not given a codec holds the one default codec instance (Codec.getDefault(), also what Codec.forName("Lucene104") returns), whose CompoundFormat keeps the settings in mutable fields, so the second writer writes its force-merged, naturally merged and addIndexes(CodecReader) segments non-compound, and the settings stay after the first writer closes.
 
 ## Expected vs actual
 
 - Expected: You expect only the first writer to change, as in 10.x, where the recipe's 'Before' form set the same values on that writer's own merge policy.
-- Actual: Every config that was not given a codec holds the one default codec instance (Codec.getDefault, also what Codec.forName("Lucene104") returns), whose CompoundFormat keeps the settings in mutable fields, so the second writer writes its force-merged, naturally merged and addIndexes(CodecReader) segments non-compound, and the settings stay after the first writer closes.
+- Actual: Every config that was not given a codec holds the one default codec instance (Codec.getDefault(), also what Codec.forName("Lucene104") returns), whose CompoundFormat keeps the settings in mutable fields, so the second writer writes its force-merged, naturally merged and addIndexes(CodecReader) segments non-compound, and the settings stay after the first writer closes.
 
 ## Files
 
@@ -20,7 +20,7 @@ You follow the 11.0 MIGRATE.md recipe on one writer's fresh IndexWriterConfig (C
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

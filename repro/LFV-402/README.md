@@ -1,14 +1,16 @@
-# PointInSetIncludingScoreQuery.ramBytesUsed leaves out its per-value score list, so scoring numeric JoinUtil joins (ScoreMode Max, Min, Avg, Total) under-report their heap (1.5x-2.4x on 9.11.0 and later, 6.2x or more in 8.2.0-9.10.0) and LRUQueryCache under-charges them (since 8.2.0)
+# PointInSetIncludingScoreQuery.ramBytesUsed() leaves out its per-value score list, so scoring numeric JoinUtil joins (ScoreMode Max, Min, Avg, Total) under-report their heap (1.5x-2.4x on 9.11.0 and later, 6.2x or more in 8.2.0-9.10.0) and LRUQueryCache under-charges them (since 8.2.0)
 
-Bug LFV-402 · Area: join / JoinUtil numeric query-time join RAM accounting (PointInSetIncludingScoreQuery, Accountable#ramBytesUsed; core LRUQueryCache RAM budget) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-402 · Area: join / JoinUtil numeric query-time join RAM accounting (PointInSetIncludingScoreQuery, Accountable#ramBytesUsed; core LRUQueryCache RAM budget) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-402.html](../../bugs/LFV-402.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a numeric query-time join with JoinUtil.createJoinQuery(fromField, multipleValuesPerDocument, toField, numberType, fromQuery, fromSearcher, ScoreMode.Max) (or Min, Avg, Total) and expect its ramBytesUsed to estimate the heap the query holds, which is what Accountable promises, what LRUQueryCache charges against maxRamBytesUsed, and what the string-field scoring join (TermsIncludingScoreQuery) and the ScoreMode.None numeric join (PointInSetQuery) do. Instead the PointInSetIncludingScoreQuery it returns adds up only its base object, field, from-query and packed join values, and leaves out aggregatedJoinScores, the FloatArrayList with one float per join value that its constructor fills: with 100,000 join values it reports 304,248 bytes while it retains 710,632 (2.3x; 1.5x-2.4x depending on how compactly the keys prefix-code), against 303,272 vs 304,544 for ScoreMode.None. A query cache holding such a join as a filter charges it the same low number (304,408 bytes charged, 710,632 retained), so the cache can hold up to about 2.5 times its budget in these keys; the matching documents are correct.
+You build a numeric query-time join with JoinUtil.createJoinQuery(fromField, multipleValuesPerDocument, toField, numberType, fromQuery, fromSearcher, ScoreMode.Max) (or Min, Avg, Total) and expect its ramBytesUsed() to estimate the heap the query holds, which is what Accountable promises, what LRUQueryCache charges against maxRamBytesUsed, and what the string-field scoring join (TermsIncludingScoreQuery) and the ScoreMode.None numeric join (PointInSetQuery) do. Instead the PointInSetIncludingScoreQuery it returns adds up only its base object, field, from-query and packed join values, and leaves out aggregatedJoinScores, the FloatArrayList with one float per join value that its constructor fills: with 100,000 join values it reports 304,248 bytes while it retains 710,632 (2.3x; 1.5x-2.4x depending on how compactly the keys prefix-code), against 303,272 vs 304,544 for ScoreMode.None. A query cache holding such a join as a filter charges it the same low number (304,408 bytes charged, 710,632 retained), so the cache can hold up to about 2.5 times its budget in these keys; the matching documents are correct.
 
-The test shows that the scoring numeric join query from `JoinUtil.createJoinQuery(..., Integer.class,..., ScoreMode.Max)` (PointInSetIncludingScoreQuery) leaves its per-value score list out of `ramBytesUsed()`.
+The test shows that the scoring numeric join query from `JoinUtil.createJoinQuery(..., Integer.class, ..., ScoreMode.Max)` (PointInSetIncludingScoreQuery) leaves its per-value score list out of `ramBytesUsed()`.
 
 ## Expected vs actual
 
@@ -22,7 +24,7 @@ Expected `ramBytesUsed()` within 5% of the heap RamUsageTester measures (37,224 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

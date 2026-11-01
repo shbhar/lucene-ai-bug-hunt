@@ -1,12 +1,14 @@
 # NRTCachingDirectory.sync creates a commit's cached segment files in the underlying directory after the commit's directory fsync, so an OS crash right after the segments_N rename can leave a newest commit whose files are missing and an index that will not open
 
-Bug LFV-205 · Area: store / NRTCachingDirectory (commit durability: IndexWriter.startCommit, SegmentInfos.prepareCommit/finishCommit) · Priority: low · Impact: index unusable · Novelty: new
+Finding LFV-205 · Area: store / NRTCachingDirectory (commit durability: IndexWriter.startCommit, SegmentInfos.prepareCommit/finishCommit) · Priority: low · Impact: index unusable · Novelty: new
+
+Finding page: [../../bugs/LFV-205.html](../../bugs/LFV-205.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index through NRTCachingDirectory (for example new NRTCachingDirectory(FSDirectory.open(path), 5.0, 60.0), the class javadoc's own example), call IndexWriter.commit, and the machine crashes during that commit. You expect what Lucene's commit protocol and LUCENE-8048 are built for: after the crash the index opens to the previous commit or to the new one, because SegmentInfos.prepareCommit fsyncs the directory before the commit is published by renaming pending_segments_N to segments_N. Instead the newly flushed segment files are still in NRTCachingDirectory's RAM cache at that directory fsync; NRTCachingDirectory.sync creates them on disk only afterwards and fsyncs their bytes but never the directory, so the rename can become durable before the new files' names do, and in that crash state every open fails (CorruptSegmentInfoException: segment info file _1.si cannot be read), while the same steps on a plain FSDirectory open fine.
+You index through NRTCachingDirectory (for example new NRTCachingDirectory(FSDirectory.open(path), 5.0, 60.0), the class javadoc's own example), call IndexWriter.commit(), and the machine crashes during that commit. You expect what Lucene's commit protocol and LUCENE-8048 are built for: after the crash the index opens to the previous commit or to the new one, because SegmentInfos.prepareCommit fsyncs the directory before the commit is published by renaming pending_segments_N to segments_N. Instead the newly flushed segment files are still in NRTCachingDirectory's RAM cache at that directory fsync; NRTCachingDirectory.sync creates them on disk only afterwards and fsyncs their bytes but never the directory, so the rename can become durable before the new files' names do, and in that crash state every open fails (CorruptSegmentInfoException: segment info file _1.si cannot be read), while the same steps on a plain FSDirectory open fine.
 
 The test shows that NRTCachingDirectory creates a commit's cached segment files in the delegate during sync(), after the commit's directory fsync, so a crash state where the segments_2 rename persisted but those creates did not cannot be opened.
 
@@ -21,7 +23,7 @@ Expected: the crash state of the second commit opens at commit 1 or 2. Actual: D
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

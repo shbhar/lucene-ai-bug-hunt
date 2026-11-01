@@ -1,17 +1,19 @@
-# IndexWriter on main: a push of the buffered deletes that finds nothing left to freeze leaks one flush-ticket count, so for the rest of the writer's life every NRT reader reports isCurrent == false, even right after commit, while openIfChanged returns null
+# IndexWriter on main: a push of the buffered deletes that finds nothing left to freeze leaks one flush-ticket count, so for the rest of the writer's life every NRT reader reports isCurrent() == false, even right after commit(), while openIfChanged() returns null
 
-Bug LFV-1043 · Area: index / IndexWriter NRT (DocumentsWriterFlushQueue flush-ticket count, DocumentsWriter.anyChanges) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-1043 · Area: index / IndexWriter NRT (DocumentsWriterFlushQueue flush-ticket count, DocumentsWriter.anyChanges) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-1043.html](../../bugs/LFV-1043.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-Several threads add and delete documents on one IndexWriter; afterwards you commit and open an NRT reader without changing anything else, and you expect that reader's isCurrent to be true, as it is on 10.5.2. Instead, if two threads pushed the buffered deletes at the same time and the second push found nothing left to freeze, DocumentsWriterFlushQueue.addTicket counted a ticket it never queued and never gives the count back (a regression of #15134). From then on DocumentsWriter.anyChanges is always true, so every NRT reader of the writer, also ones opened after later commits, reports isCurrent == false while openIfChanged returns null.
+Several threads add and delete documents on one IndexWriter; afterwards you commit and open an NRT reader without changing anything else, and you expect that reader's isCurrent() to be true, as it is on 10.5.2. Instead, if two threads pushed the buffered deletes at the same time and the second push found nothing left to freeze, DocumentsWriterFlushQueue.addTicket counted a ticket it never queued and never gives the count back (a regression of #15134). From then on DocumentsWriter.anyChanges() is always true, so every NRT reader of the writer, also ones opened after later commits, reports isCurrent() == false while openIfChanged() returns null.
 
 ## Expected vs actual
 
-- Expected: You expect that reader's isCurrent to be true, as it is on 10.5.2.
-- Actual: If two threads pushed the buffered deletes at the same time and the second push found nothing left to freeze, DocumentsWriterFlushQueue.addTicket counted a ticket it never queued and never gives the count back (a regression of #15134).
+- Expected: `hasTickets()` is false after a null ticket, as on 10.5.2.
+- Actual: `hasTickets()` stays true: `AssertionError` at `TestDocumentsWriterFlushQueue.java:27`, with assertions on and off.
 
 ## Files
 
@@ -20,7 +22,7 @@ Several threads add and delete documents on one IndexWriter; afterwards you comm
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -41,6 +43,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestDocumentsWriterFlushQueue.java](TestDocumentsWriterFlushQueue.java)
 
 ## Feedback
 

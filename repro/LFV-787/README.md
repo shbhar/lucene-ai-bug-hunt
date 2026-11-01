@@ -1,8 +1,8 @@
 # Mixing SuggestField and ContextSuggestField under one field name is accepted by addDocument and rejected only when the completion postings are written at flush or merge, where the IllegalArgumentException is tragic: the IndexWriter closes and loses every uncommitted document, and two cleanly committed segments of the two types make every merge that combines them close the writer again, also in a new writer (released since 5.3.0)
 
-Bug LFV-787 · Area: suggest / document suggester (CompletionFieldsConsumer type check at flush and merge; core flush and merge abort paths) · Priority: low · Impact: index unusable · Novelty: new
+Finding LFV-787 · Area: suggest / document suggester (CompletionFieldsConsumer type check at flush and merge; core flush and merge abort paths) · Priority: low · Impact: index unusable · Novelty: new
 
-Bug page: [../../bugs/LFV-787.html](../../bugs/LFV-787.html)
+Finding page: [../../bugs/LFV-787.html](../../bugs/LFV-787.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: the writer stays open (rejecting the merge is fine); actual: tragic Il
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,6 +1,6 @@
 # When a merge fails to open the refreshed reader of a segment with doc-values updates, IndexWriter never releases its reference on the pooled segment reader, so the segment's files stay open after IndexWriter.close
 
-Bug LFV-446 · Area: index / IndexWriter merge-reader acquisition (ReadersAndUpdates.getReaderForMerge) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-446 · Area: index / IndexWriter merge-reader acquisition (ReadersAndUpdates.getReaderForMerge) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -12,7 +12,7 @@ The test shows that one segment with a doc-values update, pooled by an NRT reade
 
 ## Expected vs actual
 
-Expected no open file once `IndexWriter.close()` has returned; actual: `MockDirectoryWrapper.close()` reports 4 open files `{_0.cfs, _0_1_Lucene90_0.dvp,.dvs,.dvd}`.
+Expected no open file once `IndexWriter.close()` has returned; actual: `MockDirectoryWrapper.close()` reports 4 open files `{_0.cfs, _0_1_Lucene90_0.dvp, .dvs, .dvd}`.
 
 ## Files
 
@@ -22,7 +22,7 @@ Expected no open file once `IndexWriter.close()` has returned; actual: `MockDire
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

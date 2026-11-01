@@ -1,6 +1,6 @@
 # AnalyzingSuggester and FuzzySuggester do not escape the 0x00 byte that ends each analyzed form, so a U+0000 in a suggestion or key makes them return the same suggestion twice, lose the EXACT_FIRST exact match, or return entries that do not start with the key
 
-Bug LFV-601 · Area: suggest / analyzing suggester (AnalyzingSuggester FST input encoding: analyzed form + END_BYTE 0x00 + dedup byte, inherited by FuzzySuggester; Util.TopNSearcher result path) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-601 · Area: suggest / analyzing suggester (AnalyzingSuggester FST input encoding: analyzed form + END_BYTE 0x00 + dedup byte, inherited by FuzzySuggester; Util.TopNSearcher result path) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You build an AnalyzingSuggester (or a FuzzySuggester) with its default construct
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

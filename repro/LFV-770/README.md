@@ -1,14 +1,14 @@
-# DoubleValuesSource#toSortableLongDoubleValuesSource loses its NumericUtils.doubleToSortableLong encoding when rewritten (rewrite returns the plain toLongValuesSource cast adapter), so values read after the documented rewrite step, and sorts on it through IndexSearcher, use (long) casts instead
+# DoubleValuesSource#toSortableLongDoubleValuesSource() loses its NumericUtils.doubleToSortableLong encoding when rewritten (rewrite() returns the plain toLongValuesSource() cast adapter), so values read after the documented rewrite step, and sorts on it through IndexSearcher, use (long) casts instead
 
-Bug LFV-770 · Area: core / search value sources (DoubleValuesSource, LongValuesSource adapters) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-770 · Area: core / search value sources (DoubleValuesSource, LongValuesSource adapters) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-770.html](../../bugs/LFV-770.html)
+Finding page: [../../bugs/LFV-770.html](../../bugs/LFV-770.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You turn a double source into a long source with DoubleValuesSource#toSortableLongDoubleValuesSource, documented as 'Convert to LongValuesSource by calling NumericUtils#doubleToSortableLong', and, as the LongValuesSource javadoc tells clients to, call rewrite(IndexSearcher) before getValues, or you sort on its getSortField, which IndexSearcher rewrites for you. You expect the sortable-long encoding, which keeps the order of the doubles; instead rewrite returns the plain toLongValuesSource adapter (its toString changes from sortableLong(...) to long(...)), so 0.75, 0.25 and -0.5 all become 0, 2.5 becomes 2 and NaN becomes 0, and a sort over the values {0.75, 0.25, -0.5, 2.5} comes back in docID order with keys 0, 0, 0, 2. The source is correct when it is not rewritten, and the one-line fix is to return inner.rewrite(searcher).toSortableLongDoubleValuesSource.
+You turn a double source into a long source with DoubleValuesSource#toSortableLongDoubleValuesSource(), documented as 'Convert to LongValuesSource by calling NumericUtils#doubleToSortableLong', and, as the LongValuesSource javadoc tells clients to, call rewrite(IndexSearcher) before getValues, or you sort on its getSortField(), which IndexSearcher rewrites for you. You expect the sortable-long encoding, which keeps the order of the doubles; instead rewrite() returns the plain toLongValuesSource() adapter (its toString changes from sortableLong(...) to long(...)), so 0.75, 0.25 and -0.5 all become 0, 2.5 becomes 2 and NaN becomes 0, and a sort over the values {0.75, 0.25, -0.5, 2.5} comes back in docID order with keys 0, 0, 0, 2. The source is correct when it is not rewritten, and the one-line fix is to return inner.rewrite(searcher).toSortableLongDoubleValuesSource().
 
 The test shows that `DoubleValuesSource#toSortableLongDoubleValuesSource()` loses its `NumericUtils.doubleToSortableLong` encoding after the documented `rewrite(IndexSearcher)` step; the rewritten source is the plain `(long)` cast adapter.
 
@@ -24,7 +24,7 @@ Expected: `doubleToSortableLong(0.75)` = 4604930618986332160 for a document with
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,12 +1,14 @@
 # IndriAndWeight.explain does not check that its scorer landed on the requested document, so a document that matches no clause is explained as a match with another document's score, or explain throws (EOFException or IndexOutOfBoundsException from a norms read past the clause scorer's last match; AssertionError with -ea)
 
-Bug LFV-875 · Area: search / IndriAndQuery (IndriAndWeight.explain) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-875 · Area: search / IndriAndQuery (IndriAndWeight.explain) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-875.html](../../bugs/LFV-875.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You search with an IndriAndQuery of SHOULD clauses, for example IndriAndQuery(SHOULD f:a), and call IndexSearcher.explain for a document that contains none of the clause terms and is not a hit. You expect a no-match explanation (isMatch false), as TermQuery and a BooleanQuery over the same clauses give. Instead IndriAndWeight.explain advances its scorer to the document, checks the result only with 'assert advanced == doc', and returns Explanation.match(scorer.score,...) for wherever the scorer landed: a match carrying the next hit's score, or, past the last match, an EOFException or IndexOutOfBoundsException from a norms read (AssertionError with -ea).
+You search with an IndriAndQuery of SHOULD clauses, for example IndriAndQuery(SHOULD f:a), and call IndexSearcher.explain for a document that contains none of the clause terms and is not a hit. You expect a no-match explanation (isMatch false), as TermQuery and a BooleanQuery over the same clauses give. Instead IndriAndWeight.explain advances its scorer to the document, checks the result only with 'assert advanced == doc', and returns Explanation.match(scorer.score(), ...) for wherever the scorer landed: a match carrying the next hit's score, or, past the last match, an EOFException or IndexOutOfBoundsException from a norms read (AssertionError with -ea).
 
 The test shows that IndriAndWeight.explain does not check where its scorer landed, so a document that matches no clause of `IndriAndQuery(SHOULD f:a)` is explained as a match with the next hit's score.
 
@@ -22,7 +24,7 @@ Expected: `explain(query, 0).isMatch()` is false (doc 0 has no `f:a`). Actual wi
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,7 +46,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/indri-query-family-composite-score-boost-visitor-explain-laws/](../../models/indri-query-family-composite-score-boost-visitor-explain-laws/)
+Formal models and scripts this finding's part of the hunt used: [../../models/indri-query-family-composite-score-boost-visitor-explain-laws/](../../models/indri-query-family-composite-score-boost-visitor-explain-laws/)
 
 ## Feedback
 

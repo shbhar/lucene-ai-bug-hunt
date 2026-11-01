@@ -1,14 +1,14 @@
 # DateRecognizerFilterFactory gives every filter it creates the same java.text.DateFormat, so an analyzer built from it throws NumberFormatException or ArrayIndexOutOfBoundsException when several threads analyse text at the same time
 
-Bug LFV-483 · Area: analysis / analysis-common miscellaneous filters (DateRecognizerFilterFactory, DateRecognizerFilter) · Priority: medium · Impact: crash · Novelty: new
+Finding LFV-483 · Area: analysis / analysis-common miscellaneous filters (DateRecognizerFilterFactory, DateRecognizerFilter) · Priority: medium · Impact: crash · Novelty: new
 
-Bug page: [../../bugs/LFV-483.html](../../bugs/LFV-483.html)
+Finding page: [../../bugs/LFV-483.html](../../bugs/LFV-483.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build an analyzer with CustomAnalyzer from a whitespace tokenizer and the dateRecognizer filter (datePattern=yyyy-MM-dd, locale=en-US) and analyse text such as '2024-01-15 foo 1999-12-31' from four threads at once, as IndexWriter does with its indexing threads. You expect every thread to get the same date tokens as a single-threaded run, because Analyzer gives each thread its own set of token stream components. Instead some analyses throw NumberFormatException ('multiple points', 'For input string: ""') or ArrayIndexOutOfBoundsException, because DateRecognizerFilterFactory creates one java.text.DateFormat, which is not thread-safe, and create passes that same instance to the filter of every thread.
+You build an analyzer with CustomAnalyzer from a whitespace tokenizer and the dateRecognizer filter (datePattern=yyyy-MM-dd, locale=en-US) and analyse text such as '2024-01-15 foo 1999-12-31' from four threads at once, as IndexWriter does with its indexing threads. You expect every thread to get the same date tokens as a single-threaded run, because Analyzer gives each thread its own set of token stream components. Instead some analyses throw NumberFormatException ('multiple points', 'For input string: ""') or ArrayIndexOutOfBoundsException, because DateRecognizerFilterFactory creates one java.text.DateFormat, which is not thread-safe, and create() passes that same instance to the filter of every thread.
 
 The test shows that an analyzer built with `DateRecognizerFilterFactory` (via CustomAnalyzer) throws when two threads use it at once: every filter the factory creates gets the same `java.text.DateFormat`, which is not thread-safe.
 
@@ -24,7 +24,7 @@ Expected no exception (Analyzer gives each thread its own filter); actual `Numbe
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

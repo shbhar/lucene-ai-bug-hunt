@@ -1,6 +1,6 @@
 # BengaliAnalyzer never removes 13 of its 116 default stop words (e.g. কারণ, শুধু, মধ্যে, অন্য) because its StopFilter runs after Indic/Bengali normalization while the bundled stopwords.txt has only unnormalized spellings
 
-Bug LFV-672 · Area: analysis-common / Bengali analyzer default stop words (BengaliAnalyzer, bn/stopwords.txt; interaction with IndicNormalizationFilter and BengaliNormalizationFilter) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-672 · Area: analysis-common / Bengali analyzer default stop words (BengaliAnalyzer, bn/stopwords.txt; interaction with IndicNormalizationFilter and BengaliNormalizationFilter) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -11,7 +11,7 @@ You index Bengali text with the stock BengaliAnalyzer, whose constructor javadoc
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -20,7 +20,7 @@ You index Bengali text with the stock BengaliAnalyzer, whose constructor javadoc
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

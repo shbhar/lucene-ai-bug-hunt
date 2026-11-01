@@ -1,12 +1,12 @@
 # IndexWriter.deleteAll misses a segment flush that another thread is already running, so documents added before deleteAll survive it and are committed
 
-Bug LFV-474 · Area: index / IndexWriter deleteAll versus a concurrent segment flush (DocumentsWriter.lockAndAbortAll, flush-ticket queue) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-474 · Area: index / IndexWriter deleteAll versus a concurrent segment flush (DocumentsWriter.lockAndAbortAll, flush-ticket queue) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-Several threads index into one IndexWriter, and one of them is in the middle of writing its full in-memory buffer out as a new segment when another thread calls deleteAll. You expect deleteAll to drop every buffered document and every segment, like opening a new IndexWriter with OpenMode.CREATE, so the next commit is empty: every document was added with a smaller sequence number than deleteAll's, and some of those addDocument calls had already returned before deleteAll was called. Instead deleteAll returns without waiting for that segment to be published, the flushing thread then adds it to the freshly cleared index, and its documents survive deleteAll into the commit, still carrying the old field schema.
+Several threads index into one IndexWriter, and one of them is in the middle of writing its full in-memory buffer out as a new segment when another thread calls deleteAll(). You expect deleteAll to drop every buffered document and every segment, like opening a new IndexWriter with OpenMode.CREATE, so the next commit is empty: every document was added with a smaller sequence number than deleteAll's, and some of those addDocument calls had already returned before deleteAll was called. Instead deleteAll returns without waiting for that segment to be published, the flushing thread then adds it to the freshly cleared index, and its documents survive deleteAll into the commit, still carrying the old field schema.
 
 ## Expected vs actual
 
@@ -21,7 +21,7 @@ Several threads index into one IndexWriter, and one of them is in the middle of 
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -43,7 +43,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/dw-flush-control-deletequeue-tla/](../../models/dw-flush-control-deletequeue-tla/)
+Formal models and scripts this finding's part of the hunt used: [../../models/dw-flush-control-deletequeue-tla/](../../models/dw-flush-control-deletequeue-tla/)
 
 ## Feedback
 

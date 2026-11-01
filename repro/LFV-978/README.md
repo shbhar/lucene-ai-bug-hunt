@@ -1,14 +1,14 @@
-# DirectoryTaxonomyWriter.replaceTaxonomy is not failure-atomic: if addIndexes throws, the taxonomy is already emptied but the writer keeps its old ordinal counter and cache, so later addCategory calls and the next commit or close store an empty or broken taxonomy
+# DirectoryTaxonomyWriter.replaceTaxonomy is not failure-atomic: if addIndexes throws, the taxonomy is already emptied but the writer keeps its old ordinal counter and cache, so later addCategory calls and the next commit or close() store an empty or broken taxonomy
 
-Bug LFV-978 · Area: facet / taxonomy writer (DirectoryTaxonomyWriter.replaceTaxonomy failure path: deleteAll before addIndexes, writer state reset only on success) · Priority: low · Impact: data corruption · Novelty: new
+Finding LFV-978 · Area: facet / taxonomy writer (DirectoryTaxonomyWriter.replaceTaxonomy failure path: deleteAll before addIndexes, writer state reset only on success) · Priority: low · Impact: data corruption · Novelty: new
 
-Bug page: [../../bugs/LFV-978.html](../../bugs/LFV-978.html)
+Finding page: [../../bugs/LFV-978.html](../../bugs/LFV-978.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You call replaceTaxonomy on a DirectoryTaxonomyWriter to swap in a rebuilt taxonomy, the call throws (in the repro an IOException while a file of a valid, closed source is read, or IndexNotFoundException because the source holds no index), and the application then closes the writer as usual or keeps using it. You expect the failed call to leave the taxonomy that the writer and its last commit describe, so that addCategory returns 'its existing ordinal' for an existing category (TaxonomyWriter.java:53) and the root keeps ordinal 0. Instead replaceTaxonomy has already emptied the internal index with deleteAll while the writer keeps its old ordinal counter, cache and parent arrays: close commits a taxonomy of size 0 (expected 4), a kept-open writer returns ordinal 2 for dim/a although the commit no longer has it and stores a new label with ordinal 4 at docID 0, and over a main index that still refers to the old ordinals the facet counts a=2 b=1 x=1 y=1 come out as x=3 y=2.
+You call replaceTaxonomy on a DirectoryTaxonomyWriter to swap in a rebuilt taxonomy, the call throws (in the repro an IOException while a file of a valid, closed source is read, or IndexNotFoundException because the source holds no index), and the application then closes the writer as usual or keeps using it. You expect the failed call to leave the taxonomy that the writer and its last commit describe, so that addCategory returns 'its existing ordinal' for an existing category (TaxonomyWriter.java:53) and the root keeps ordinal 0. Instead replaceTaxonomy has already emptied the internal index with deleteAll() while the writer keeps its old ordinal counter, cache and parent arrays: close() commits a taxonomy of size 0 (expected 4), a kept-open writer returns ordinal 2 for dim/a although the commit no longer has it and stores a new label with ordinal 4 at docID 0, and over a main index that still refers to the old ordinals the facet counts a=2 b=1 x=1 y=1 come out as x=3 y=2.
 
 The test shows that a `DirectoryTaxonomyWriter.replaceTaxonomy` call that throws an IOException while reading a valid, closed source taxonomy has already emptied the taxonomy (deleteAll ran first), while the writer keeps answering from its old cache, and close() commits that emptied index.
 
@@ -24,7 +24,7 @@ Expected: `addCategory(dim/a)` after the failure returns dim/a's existing ordina
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

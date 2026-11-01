@@ -1,6 +1,6 @@
 # SmartChineseAnalyzer indexes whitespace characters as terms: VERTICAL TAB, FORM FEED, OGHAM SPACE MARK and the eleven spaces U+2000-U+200A (EN QUAD to HAIR SPACE, among them EN, EM and THIN SPACE) each become a one-character term, because Utility.getCharType classifies them OTHER instead of SPACE_LIKE
 
-Bug LFV-728 · Area: analysis-smartcn / HHMM segmenter character classes (Utility.getCharType SPACE_LIKE test -> HHMMSegmenter OTHER branch -> one-character STRING term; SmartChineseAnalyzer and HMMChineseTokenizer) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-728 · Area: analysis-smartcn / HHMM segmenter character classes (Utility.getCharType SPACE_LIKE test -> HHMMSegmenter OTHER branch -> one-character STRING term; SmartChineseAnalyzer and HMMChineseTokenizer) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You index text with the stock SmartChineseAnalyzer, whose segmenter has a charac
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

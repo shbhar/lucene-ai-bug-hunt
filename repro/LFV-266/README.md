@@ -1,8 +1,8 @@
 # SpanWithinQuery's Weight#matches reports the contained (little) span's positions but the enclosing (big) span's offsets and sub-matches, so Matches-based highlighting (the default UnifiedHighlighter, MatchRegionRetriever) marks the enclosing terms and a field with offsets highlights differently from the same text indexed with positions only
 
-Bug LFV-266 · Area: queries / span queries Matches API (SpanWeight#matches takes offsets and sub-matches from ContainSpans#collect for SpanWithinQuery; seen through the UnifiedHighlighter and MatchRegionRetriever) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-266 · Area: queries / span queries Matches API (SpanWeight#matches takes offsets and sub-matches from ContainSpans#collect for SpanWithinQuery; seen through the UnifiedHighlighter and MatchRegionRetriever) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-266.html](../../bugs/LFV-266.html)
+Finding page: [../../bugs/LFV-266.html](../../bugs/LFV-266.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected startOffset 3 (the match is "ac", offsets [3,5)); actual 0, the start o
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

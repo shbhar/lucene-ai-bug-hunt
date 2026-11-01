@@ -1,8 +1,8 @@
 # Grouping DoubleRangeFactory gives the below-min group the lower bound Double.MIN_VALUE (4.9E-324, the smallest positive double) instead of the most negative value, so that group's DoubleRange label does not contain its own members
 
-Bug LFV-411 · Area: grouping / range group selectors (DoubleRangeFactory, used by DoubleRangeGroupSelector) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-411 · Area: grouping / range group selectors (DoubleRangeFactory, used by DoubleRangeGroupSelector) · Priority: low · Impact: minor · Novelty: new
 
-Bug page: [../../bugs/LFV-411.html](../../bugs/LFV-411.html)
+Finding page: [../../bugs/LFV-411.html](../../bugs/LFV-411.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: a [min, -10.0) range that contains -20; actual (-ea and -da): the inve
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

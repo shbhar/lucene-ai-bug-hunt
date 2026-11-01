@@ -1,12 +1,14 @@
-# A failed addIndexes(Directory...) leaves the incoming fields registered in the writer's field schema, so getFieldNames lists them and later valid documents that use those names differently are rejected until the writer is reopened
+# A failed addIndexes(Directory...) leaves the incoming fields registered in the writer's field schema, so getFieldNames() lists them and later valid documents that use those names differently are rejected until the writer is reopened
 
-Bug LFV-124 · Area: index / IndexWriter addIndexes(Directory...) and the writer-wide field registry (FieldInfos.FieldNumbers) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-124 · Area: index / IndexWriter addIndexes(Directory...) and the writer-wide field registry (FieldInfos.FieldNumbers) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-124.html](../../bugs/LFV-124.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You call IndexWriter#addIndexes(Directory...) with an index whose first field a_new is new to the destination and whose field z_conflict clashes with the destination's schema; the call correctly throws IllegalArgumentException and adds no segment, as its javadoc promises ('either no indexes will have been added or they all will have been'). You expect the writer to be as it was before the call, so that a later document can use a_new with any schema, as it can after the writer is reopened and after the same failure in addIndexes(CodecReader...). Instead the writer keeps a_new registered with the incoming schema, because addIndexes(Directory...) registers each incoming FieldInfo in the writer-wide FieldNumbers map while it iterates and its failure path only deletes the copied files: getFieldNames lists a_new although no segment has it, and a document with NumericDocValuesField('a_new') is rejected ('cannot change field "a_new" from index options=DOCS to inconsistent index options=NONE') until the writer is reopened.
+You call IndexWriter#addIndexes(Directory...) with an index whose first field a_new is new to the destination and whose field z_conflict clashes with the destination's schema; the call correctly throws IllegalArgumentException and adds no segment, as its javadoc promises ('either no indexes will have been added or they all will have been'). You expect the writer to be as it was before the call, so that a later document can use a_new with any schema, as it can after the writer is reopened and after the same failure in addIndexes(CodecReader...). Instead the writer keeps a_new registered with the incoming schema, because addIndexes(Directory...) registers each incoming FieldInfo in the writer-wide FieldNumbers map while it iterates and its failure path only deletes the copied files: getFieldNames() lists a_new although no segment has it, and a document with NumericDocValuesField('a_new') is rejected ('cannot change field "a_new" from index options=DOCS to inconsistent index options=NONE') until the writer is reopened.
 
 The test shows that a failed `IndexWriter#addIndexes(Directory...)` (schema conflict on "z_conflict", nothing added) leaves the incoming field "a_new", checked before the conflict, registered in the writer's schema (default config).
 
@@ -22,7 +24,7 @@ Expected the first document of the destination that uses "a_new" (`NumericDocVal
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,7 +46,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/indexingchain-schema/](../../models/indexingchain-schema/)
+Formal models and scripts this finding's part of the hunt used: [../../models/indexingchain-schema/](../../models/indexingchain-schema/)
 
 ## Feedback
 

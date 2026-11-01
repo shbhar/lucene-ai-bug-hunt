@@ -1,8 +1,8 @@
 # ICUTokenizer silently drops a word that is directly followed by ZERO WIDTH JOINER and an emoji, together with the emoji, because the joined 'word ZWJ emoji' segment gets rule status 0 (UAX #29 WB3c chain in Default.rbbi) and the emoji check looks only at its first code point
 
-Bug LFV-659 · Area: analysis / ICU (ICUTokenizer rule status: Default.rbbi WB3c chain, BreakIteratorWrapper emoji status, status-0 skip) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-659 · Area: analysis / ICU (ICUTokenizer rule status: Default.rbbi WB3c chain, BreakIteratorWrapper emoji status, status-0 skip) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-659.html](../../bugs/LFV-659.html)
+Finding page: [../../bugs/LFV-659.html](../../bugs/LFV-659.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: some token contains "abc". Actual: no tokens at all (`expected a token
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

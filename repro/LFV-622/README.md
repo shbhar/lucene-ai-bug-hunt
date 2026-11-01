@@ -1,14 +1,14 @@
-# OpenNLPSentenceBreakIterator.next(n) returns DONE instead of the end of the text when the n-th boundary is the last one, so next(1) differs from next and a caller that steps with next(n) until DONE loses the final sentence group
+# OpenNLPSentenceBreakIterator.next(n) returns DONE instead of the end of the text when the n-th boundary is the last one, so next(1) differs from next() and a caller that steps with next(n) until DONE loses the final sentence group
 
-Bug LFV-622 · Area: analysis / opennlp OpenNLPSentenceBreakIterator (java.text.BreakIterator implementation, next(int)) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-622 · Area: analysis / opennlp OpenNLPSentenceBreakIterator (java.text.BreakIterator implementation, next(int)) · Priority: low · Impact: minor · Novelty: new
 
-Bug page: [../../bugs/LFV-622.html](../../bugs/LFV-622.html)
+Finding page: [../../bugs/LFV-622.html](../../bugs/LFV-622.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You set a text on an OpenNLPSentenceBreakIterator and call next(n) to jump n sentence boundaries, expecting the n-th boundary, as java.text.BreakIterator#next(int) promises ('Returns the nth boundary from the current boundary') and as n calls of next give. When that boundary is the end of the text, next(n) returns DONE (-1) instead: with the model-free NLPSentenceDetectorOp on 'Whole text is one sentence.', next from first returns 27 but next(1) returns -1, and on the module's three-sentence test text (boundaries 0, 31, 59, 102) next(3) from first returns -1 instead of 102 while next(2) correctly returns 59. The iterator is still moved to the end, so only the returned value is wrong; code that steps with next(n) until DONE loses the final sentence group.
+You set a text on an OpenNLPSentenceBreakIterator and call next(n) to jump n sentence boundaries, expecting the n-th boundary, as java.text.BreakIterator#next(int) promises ('Returns the nth boundary from the current boundary') and as n calls of next() give. When that boundary is the end of the text, next(n) returns DONE (-1) instead: with the model-free NLPSentenceDetectorOp on 'Whole text is one sentence.', next() from first() returns 27 but next(1) returns -1, and on the module's three-sentence test text (boundaries 0, 31, 59, 102) next(3) from first() returns -1 instead of 102 while next(2) correctly returns 59. The iterator is still moved to the end, so only the returned value is wrong; code that steps with next(n) until DONE loses the final sentence group.
 
 The test shows that OpenNLPSentenceBreakIterator.next(1) returns DONE instead of the end of the text when that is the next boundary (no model file: new NLPSentenceDetectorOp()).
 
@@ -24,7 +24,7 @@ Expected next(1) from first() on "One sentence." to return 13, as next() does; a
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,8 +1,8 @@
 # SpellChecker.suggestSimilar with SuggestWordFrequencyComparator drops more frequent suggestions: once the queue is full it raises the accuracy cutoff to the score of the least frequent queued word, which is a valid bound only for a score-first order (since 3.1, LUCENE-2479)
 
-Bug LFV-566 · Area: suggest / spell: SpellChecker.suggestSimilar (index-based n-gram spell checker; comparator vs. full-queue accuracy cutoff) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-566 · Area: suggest / spell: SpellChecker.suggestSimilar (index-based n-gram spell checker; comparator vs. full-queue accuracy cutoff) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-566.html](../../bugs/LFV-566.html)
+Finding page: [../../bugs/LFV-566.html](../../bugs/LFV-566.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected `[receive]`; actual `[relieve]` (`expected:<[re[cei]ve]> but was:<[re[l
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

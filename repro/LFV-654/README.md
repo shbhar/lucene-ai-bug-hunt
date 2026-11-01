@@ -1,14 +1,14 @@
 # Nori UserDictionary picks a user noun's right context id (last syllable with a final consonant, without one, or not Hangul) from the last character of the whole entry line instead of the noun, so a trailing space or an inline comment ('학교 # memo') changes how the word after the noun is analysed
 
-Bug LFV-654 · Area: analysis / nori UserDictionary (right context id of user nouns, used by the Viterbi connection costs) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-654 · Area: analysis / nori UserDictionary (right context id of user nouns, used by the Viterbi connection costs) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-654.html](../../bugs/LFV-654.html)
+Finding page: [../../bugs/LFV-654.html](../../bugs/LFV-654.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You load a nori user dictionary whose line for the noun 학교 ('school') ends with a space, or carries an inline comment as in '학교 # memo' (the parser deletes '#' to the end of the line but keeps the space before it), and expect the same analysis as with the plain line '학교', because the parser splits the line on whitespace and gets the same noun with no segmentation. Instead UserDictionary.java:94 takes the noun's right context id, which tells the tokenizer whether the noun's last syllable ends in a consonant, from the last character of the whole line, here the space, so the noun gets the generic id and the word after it is analysed differently: on 9.12.3 '학교이' gives 이/VCP with '학교' but 이/J with '학교 ', and KoreanAnalyzer turns '학교가방을 샀다' into [학교][가방][사] with '학교' but [학교][방][사] with '학교 ', losing the term 가방 ('bag'). The two line forms disagree in every release from 7.4.0 to 10.5.2 and on main (main: '학교이' gives 이/JKS vs 이/VCP, '사람이나' gives [사람] vs [사람][이]), and a shorter segmentation such as '세종시 세종' takes the id from 종 (final consonant) instead of 시 (none) in the same way.
+You load a nori user dictionary whose line for the noun 학교 ('school') ends with a space, or carries an inline comment as in '학교 # memo' (the parser deletes '#' to the end of the line but keeps the space before it), and expect the same analysis as with the plain line '학교', because the parser splits the line on whitespace and gets the same noun with no segmentation. Instead UserDictionary.java:94 takes the noun's right context id, which tells the tokenizer whether the noun's last syllable ends in a consonant, from the last character of the whole line, here the space, so the noun gets the generic id and the word after it is analysed differently: on 9.12.3 '학교이' gives 이/VCP with '학교' but 이/J with '학교 ', and KoreanAnalyzer turns '학교가방을 샀다' into [학교][가방][사] with '학교' but [학교][방][사] with '학교 ', losing the term 가방 ('bag'). The two line forms disagree in every release from 7.4.0 to 10.6.0 (10.6.0 by reading) and on main (main: '학교이' gives 이/JKS vs 이/VCP, '사람이나' gives [사람] vs [사람][이]), and a shorter segmentation such as '세종시 세종' takes the id from 종 (final consonant) instead of 시 (none) in the same way.
 
 The test shows that a nori user dictionary line `사람 ` (trailing space) changes how KoreanAnalyzer analyses the text after the noun, compared with the line `사람`, because UserDictionary takes the noun's right context id from the last character of the line.
 
@@ -24,7 +24,7 @@ Expected the same terms for "사람이나" with both lines ([사람]); actual `e
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

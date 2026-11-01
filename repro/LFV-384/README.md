@@ -1,12 +1,14 @@
-# OfflineSorter loses a partitionsInRAM permit whenever its ExecutorService rejects a partition-sort task, so a later sort on the same sorter waits forever even though the executor is idle (released since 6.6.0)
+# OfflineSorter loses a partitionsInRAM permit whenever its ExecutorService rejects a partition-sort task, so a later sort() on the same sorter waits forever even though the executor is idle (released since 6.6.0)
 
-Bug LFV-384 · Area: util / OfflineSorter concurrent sort (partitionsInRAM permits on a rejected submit) · Priority: low · Impact: hang · Novelty: new
+Finding LFV-384 · Area: util / OfflineSorter concurrent sort (partitionsInRAM permits on a rejected submit) · Priority: low · Impact: hang · Novelty: new
+
+Finding page: [../../bugs/LFV-384.html](../../bugs/LFV-384.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You give OfflineSorter your own bounded thread pool, one sort fails with RejectedExecutionException because the pool was full (or shut down), and you expect the same sorter to work again once the pool is idle, since every other exception path gives the partition's partitionsInRAM permit back. Instead the permit that readPartition took for the rejected partition is never released (only the task's finally block releases it, and a rejected task never runs; the semaphore belongs to the sorter instance), so with maxPartitionsInRAM = 1 the next sort on that sorter waits forever in Semaphore.acquire with an idle executor (executed: 'sort did not return within 20 s; waiting for a partition permit: true; executor active=0 queued=0'). With maxPartitionsInRAM = k each rejection costs one permit and after k rejections every later sort hangs; with a shut-down executor, a call that should fail fast with RejectedExecutionException waits instead.
+You give OfflineSorter your own bounded thread pool, one sort() fails with RejectedExecutionException because the pool was full (or shut down), and you expect the same sorter to work again once the pool is idle, since every other exception path gives the partition's partitionsInRAM permit back. Instead the permit that readPartition took for the rejected partition is never released (only the task's finally block releases it, and a rejected task never runs; the semaphore belongs to the sorter instance), so with maxPartitionsInRAM = 1 the next sort() on that sorter waits forever in Semaphore.acquire with an idle executor (executed: 'sort() did not return within 20 s; waiting for a partition permit: true; executor active=0 queued=0'). With maxPartitionsInRAM = k each rejection costs one permit and after k rejections every later sort() hangs; with a shut-down executor, a call that should fail fast with RejectedExecutionException waits instead.
 
 The test shows that after one sort() fails with RejectedExecutionException (executor shut down, maxPartitionsInRAM = 1), a second sort() on the same OfflineSorter waits forever for the partitionsInRAM permit that the rejected task never released.
 
@@ -22,7 +24,7 @@ Expected: the second sort() throws RejectedExecutionException again. Actual (-ea
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,7 +46,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/offline-sorter/](../../models/offline-sorter/)
+Formal models and scripts this finding's part of the hunt used: [../../models/offline-sorter/](../../models/offline-sorter/)
 
 ## Feedback
 

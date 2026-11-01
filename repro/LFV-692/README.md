@@ -1,12 +1,12 @@
-# Stempel's base Reduce.optimize passes its new, empty row list to removeGaps instead of the trie's rows, so every Trie.reduce(new Reduce) call throws IndexOutOfBoundsException
+# Stempel's base Reduce.optimize passes its new, empty row list to removeGaps instead of the trie's rows, so every Trie.reduce(new Reduce()) call throws IndexOutOfBoundsException
 
-Bug LFV-692 · Area: analysis-stempel / egothor stemmer trie reduction (Reduce.optimize, reached through Trie.reduce, MultiTrie.reduce and MultiTrie2.reduce) · Priority: low · Impact: crash · Novelty: known upstream
+Finding LFV-692 · Area: analysis-stempel / egothor stemmer trie reduction (Reduce.optimize, reached through Trie.reduce, MultiTrie.reduce and MultiTrie2.reduce) · Priority: low · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You reduce a stempel stemmer table with the base class of the egothor reductions, for example trie.reduce(new Reduce), and expect what its javadoc promises: 'Optimize (remove holes in the rows) the given Trie and return the restructured Trie', a trie that still gives the same stems. Instead every call throws IndexOutOfBoundsException ('Index 0 out of bounds for length 0'), even for a one-word trie or the bundled Polish table. The cause is one wrong argument at Reduce.java:83: optimize passes its freshly created, empty list 'rows' to removeGaps as the list to read from, instead of 'orows' (the trie's own rows), which the sibling reductions Lift and Gener pass to the same helper.
+You reduce a stempel stemmer table with the base class of the egothor reductions, for example trie.reduce(new Reduce()), and expect what its javadoc promises: 'Optimize (remove holes in the rows) the given Trie and return the restructured Trie', a trie that still gives the same stems. Instead every call throws IndexOutOfBoundsException ('Index 0 out of bounds for length 0'), even for a one-word trie or the bundled Polish table. The cause is one wrong argument at Reduce.java:83: optimize passes its freshly created, empty list 'rows' to removeGaps as the list to read from, instead of 'orows' (the trie's own rows), which the sibling reductions Lift and Gener pass to the same helper.
 
 ## Expected vs actual
 
@@ -20,7 +20,7 @@ You reduce a stempel stemmer table with the base class of the egothor reductions
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

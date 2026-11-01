@@ -1,6 +1,6 @@
 # IndexWriter.forceApply marks a re-resolving update packet finished outside the IndexWriter lock when its re-iteration matches no segment, so a merge that commits in that gap skips the packet's already-resolved doc-values updates and nobody applies them again: an acknowledged updateNumericDocValue/updateDocValues is lost and softUpdateDocument leaves two live versions of the document, also after commit (since 7.0.0)
 
-Bug LFV-596 · Area: index / IndexWriter frozen update packets vs. merge carry-over (forceApply, commitMergedDeletesAndUpdates, BufferedUpdatesStream) · Priority: medium · Impact: data corruption · Novelty: known upstream
+Finding LFV-596 · Area: index / IndexWriter frozen update packets vs. merge carry-over (forceApply, commitMergedDeletesAndUpdates, BufferedUpdatesStream) · Priority: medium · Impact: data corruption · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -11,7 +11,7 @@ You update a document's doc-values field (updateNumericDocValue, updateDocValues
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -21,7 +21,7 @@ You update a document's doc-values field (updateNumericDocValue, updateDocValues
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -48,7 +48,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/frozen-updates-apply-merge-carryover-tla/](../../models/frozen-updates-apply-merge-carryover-tla/)
+Formal models and scripts this finding's part of the hunt used: [../../models/frozen-updates-apply-merge-carryover-tla/](../../models/frozen-updates-apply-merge-carryover-tla/)
 
 ## Feedback
 

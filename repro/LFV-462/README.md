@@ -1,12 +1,12 @@
-# MultiTermIntervalsSource.matches checks the expansion limit with a post-increment ('count++ &gt; maxExpansions'), so Weight#matches, and highlighting through it, accepts a document with exactly maxExpansions + 1 matching terms, where the javadoc and the search path (which uses '++count') reject it (IllegalStateException; IndexSearcher.TooManyClauses on main since #16899)
+# MultiTermIntervalsSource.matches() checks the expansion limit with a post-increment ('count++ &gt; maxExpansions'), so Weight#matches, and highlighting through it, accepts a document with exactly maxExpansions + 1 matching terms, where the javadoc and the search path (which uses '++count') reject it (IllegalStateException; IndexSearcher.TooManyClauses on main since #16899)
 
-Bug LFV-462 · Area: queries / intervals (MultiTermIntervalsSource behind Intervals.prefix, wildcard, regexp, range, fuzzyTerm and multiterm; Weight#matches / IntervalsSource#matches) · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-462 · Area: queries / intervals (MultiTermIntervalsSource behind Intervals.prefix, wildcard, regexp, range, fuzzyTerm and multiterm; Weight#matches / IntervalsSource#matches) · Priority: low · Impact: wrong error · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build IntervalQuery("f", Intervals.prefix(new BytesRef("p"), 2)) over a document 'pa pb pc' (three terms match p*) and call Weight#matches for it, as a highlighter does. You expect the over-expansion exception (IllegalStateException; IndexSearcher.TooManyClauses on main since #16899), because the javadoc says the source throws if the prefix 'expands to more than maxExpansions terms', and searching the same query on the same segment does throw. Instead matches tests 'count++ &gt; maxExpansions' after adding each term, so it returns a Matches for exactly maxExpansions + 1 matching terms in the document and throws only at maxExpansions + 2; the same holds for wildcard, regexp, range, fuzzyTerm and multiterm.
+You build IntervalQuery("f", Intervals.prefix(new BytesRef("p"), 2)) over a document 'pa pb pc' (three terms match p*) and call Weight#matches for it, as a highlighter does. You expect the over-expansion exception (IllegalStateException; IndexSearcher.TooManyClauses on main since #16899), because the javadoc says the source throws if the prefix 'expands to more than maxExpansions terms', and searching the same query on the same segment does throw. Instead matches() tests 'count++ &gt; maxExpansions' after adding each term, so it returns a Matches for exactly maxExpansions + 1 matching terms in the document and throws only at maxExpansions + 2; the same holds for wildcard, regexp, range, fuzzyTerm and multiterm.
 
 The test shows that `Weight#matches` for `IntervalQuery("f", Intervals.prefix(new BytesRef("p"), 2))` on one document `pa pb pc` (3 = maxExpansions + 1 matching terms) returns a `Matches`, while searching the same query throws (`MultiTermIntervalsSource.matches()` tests `count++ > maxExpansions`, the search path `++count`).
 
@@ -22,7 +22,7 @@ Expected `IndexSearcher.TooManyClauses` (javadoc: thrown if the prefix expands t
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

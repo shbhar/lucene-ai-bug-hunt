@@ -1,8 +1,8 @@
 # geo.Rectangle checks minLat &lt;= maxLat only with an assert, so a lat/lon box with swapped latitudes (new Rectangle, LatLonShape.newBoxQuery, a WKT ENVELOPE) throws a bare AssertionError with -ea and is silently accepted with -da, where LatLonShape box queries then return hits that match no region; the Cartesian twin XYRectangle throws IllegalArgumentException for the same mistake
 
-Bug LFV-1014 · Area: core / geo Rectangle (LatLonShape box queries, newGeometryQuery(Rectangle), SimpleWKTShapeParser ENVELOPE) · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-1014 · Area: core / geo Rectangle (LatLonShape box queries, newGeometryQuery(Rectangle), SimpleWKTShapeParser ENVELOPE) · Priority: low · Impact: wrong error · Novelty: new
 
-Bug page: [../../bugs/LFV-1014.html](../../bugs/LFV-1014.html)
+Finding page: [../../bugs/LFV-1014.html](../../bugs/LFV-1014.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: IllegalArgumentException; actual: a bare `java.lang.AssertionError` fr
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

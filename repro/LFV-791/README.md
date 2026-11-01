@@ -1,8 +1,8 @@
 # A relevance-first TopFieldCollector (Sort.RELEVANCE or Sort(FIELD_SCORE, tiebreak)) never sets the minimum competitive score when totalHitsThreshold is crossed, so skipping starts only if a later hit is competitive, and the search can score every match (performance regression since 8.7.0; results correct)
 
-Bug LFV-791 · Area: search / sorting (TopFieldCollector, relevance-first sort: minimum competitive score at the totalHitsThreshold crossing) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-791 · Area: search / sorting (TopFieldCollector, relevance-first sort: minimum competitive score at the totalHitsThreshold crossing) · Priority: low · Impact: minor · Novelty: new
 
-Bug page: [../../bugs/LFV-791.html](../../bugs/LFV-791.html)
+Finding page: [../../bugs/LFV-791.html](../../bugs/LFV-791.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: after hits scored 2 and 1, a min competitive score &gt;= 2 (the queue 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

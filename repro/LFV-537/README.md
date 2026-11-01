@@ -1,6 +1,6 @@
 # JaroWinklerDistance.setThreshold javadoc says 'Set to a negative value to get the Jaro distance', but a negative threshold adds the Winkler bonus to every pair (the same as threshold 0); only a threshold of 1 or more gives plain Jaro; documentation defect, the javadoc fix is the default proposal
 
-Bug LFV-537 · Area: suggest / spell (JaroWinklerDistance threshold) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-537 · Area: suggest / spell (JaroWinklerDistance threshold) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ Expected: the Jaro value for martha/marhta, 0.9444444. Actual (-ea and -da): the
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

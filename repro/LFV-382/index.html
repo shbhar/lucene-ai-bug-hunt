@@ -18,11 +18,11 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>SimpleNaiveBayesDocumentClassifier applies a documented &#x27;field^boost&#x27; (e.g. &#x27;title^10&#x27;) only on its first call: it writes the stripped field name back into the caller&#x27;s textFieldNames array, so every later classification silently returns the unboosted result (released since 6.0.0)</h1>
-<p class="facts small"><span>Bug LFV-382</span><span>Area: classification / document classifiers (SimpleNaiveBayesDocumentClassifier field boosts)</span><span>Priority: medium</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
-<p><a href="../../bugs/LFV-382.html">Bug page for LFV-382</a></p>
+<p class="facts small"><span>Finding LFV-382</span><span>Area: classification / document classifiers (SimpleNaiveBayesDocumentClassifier field boosts)</span><span>Priority: medium</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-382.html">Finding page for LFV-382</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
-<p>You build a SimpleNaiveBayesDocumentClassifier with textFieldNames {&quot;title^10&quot;, &quot;body&quot;}, as its constructor javadoc allows, and classify documents with it one after another, expecting the title boost on every call. The first call applies the boost but also overwrites &quot;title^10&quot; with &quot;title&quot; in textFieldNames, which is the caller&#x27;s own array kept by reference, so from the second call on every boost is 1: classifying the same document twice gives fruit (0.99994) and then vehicle (0.55373), exactly the unboosted classifier&#x27;s answer, and on the upstream test&#x27;s own fixture (&#x27;title^100&#x27;) the class flips from batman to the video-game class. No error is raised, and a second classifier built from the same String is unboosted even on its first call.</p>
+<p>You build a SimpleNaiveBayesDocumentClassifier with textFieldNames {&quot;title^10&quot;, &quot;body&quot;}, as its constructor javadoc allows, and classify documents with it one after another, expecting the title boost on every call. The first call applies the boost but also overwrites &quot;title^10&quot; with &quot;title&quot; in textFieldNames, which is the caller&#x27;s own array kept by reference, so from the second call on every boost is 1: classifying the same document twice gives fruit (0.99994) and then vehicle (0.55373), exactly the unboosted classifier&#x27;s answer, and on the upstream test&#x27;s own fixture (&#x27;title^100&#x27;) the class flips from batman to the video-game class. No error is raised, and a second classifier built from the same String[] is unboosted even on its first call.</p>
 <p>The test shows that SimpleNaiveBayesDocumentClassifier built with the documented field boost &quot;title^10&quot; applies the boost only on its first call; the same document classified a second time gets the unboosted result.</p>
 <h2>Expected vs actual</h2>
 <p>Expected: both assignClass calls return the boosted result <code>fruit 0.9989943793309103</code>; actual: the second returns <code>vehicle 0.7933884297520658</code> (the unboosted answer).</p>
@@ -31,7 +31,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </ul><h2>Run it</h2><ul>
 <li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
 <li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
+<li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
@@ -52,5 +52,5 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.classification.document.TestSimpleNaiveBayesDocumentClassifierBoostReuse</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/classification/index.html">classification</a></p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-30. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<p>Formal models and scripts this finding's part of the hunt used: <a href="../../models/classification/index.html">classification</a></p>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-01. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

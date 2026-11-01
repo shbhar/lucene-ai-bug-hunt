@@ -1,14 +1,14 @@
-# MemorySegmentIndexInput.readBytes(long,...) past EOF on a multi-chunk MMapDirectory input reports a masked position: IllegalArgumentException 'read negative position' for a non-negative argument, or EOFException naming the wrong position
+# MemorySegmentIndexInput.readBytes(long, ...) past EOF on a multi-chunk MMapDirectory input reports a masked position: IllegalArgumentException 'read negative position' for a non-negative argument, or EOFException naming the wrong position
 
-Bug LFV-135 · Area: store / MMapDirectory (MemorySegmentIndexInput absolute reads, error reporting) · Priority: low · Impact: wrong error · Novelty: known upstream
+Finding LFV-135 · Area: store / MMapDirectory (MemorySegmentIndexInput absolute reads, error reporting) · Priority: low · Impact: wrong error · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks. Maintainer triage: Confirmed, triaged by Uwe Schindler (Lucene PMC) on 2026-10-29 (https://lists.apache.org/thread/cry1gb5bxr73vs4fk6td2rntvnpqlorr). Uwe Schindler now plans to fix it: the wrong offset is reported through a private method that the subclass can override, and Uwe will post a PR. (Earlier on 2026-10-28 Uwe had suggested ignoring it.). This site files nothing upstream.
 
 ## What it shows
 
-You take a random-access view of an MMapDirectory file that spans more than one mmap chunk, for example randomAccessSlice(33, 143) of a 191-byte file with 128-byte chunks, and call readBytes(pos, b, 0, 1) with a position past its end; you expect an EOFException naming that position, as readByte(pos) on the same view, a single-chunk view and NIOFSDirectory give. Instead readBytes(228,...) throws an unchecked IllegalArgumentException 'read negative position (pos=-28)' and readBytes(314,...) throws an EOFException naming position 58, because the method overwrites its position argument with the offset inside the chunk before its error handler reports it.
+You take a random-access view of an MMapDirectory file that spans more than one mmap chunk, for example randomAccessSlice(33, 143) of a 191-byte file with 128-byte chunks, and call readBytes(pos, b, 0, 1) with a position past its end; you expect an EOFException naming that position, as readByte(pos) on the same view, a single-chunk view and NIOFSDirectory give. Instead readBytes(228, ...) throws an unchecked IllegalArgumentException 'read negative position (pos=-28)' and readBytes(314, ...) throws an EOFException naming position 58, because the method overwrites its position argument with the offset inside the chunk before its error handler reports it.
 
-The test shows that RandomAccessInput.readBytes(228,...) past the end of a 143-byte view of a multi-chunk MMapDirectory file (128-byte chunks, view at offset 33) reports a masked position.
+The test shows that RandomAccessInput.readBytes(228, ...) past the end of a 143-byte view of a multi-chunk MMapDirectory file (128-byte chunks, view at offset 33) reports a masked position.
 
 ## Expected vs actual
 
@@ -22,7 +22,7 @@ Expected: EOFException naming pos=228 (as readByte(228) gives). Actual (-ea and 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

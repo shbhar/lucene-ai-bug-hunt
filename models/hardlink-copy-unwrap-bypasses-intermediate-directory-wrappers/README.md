@@ -4,9 +4,9 @@ Tools: TLA+/TLC.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- HardlinkCopyDirectoryWrapper.copyFrom unwraps both directory chains to the innermost FSDirectory and hard-links there, so every FilterDirectory in between is skipped for the copied file: an inner TrackingDirectoryWrapper does not record it, an inner LockValidatingDirectoryWrapper does not check its lock, and a one-sided byte-transforming or namespace-owning layer is bypassed (bug LFV-912; [repro](../../repro/LFV-912/))
+- HardlinkCopyDirectoryWrapper.copyFrom unwraps both directory chains to the innermost FSDirectory and hard-links there, so every FilterDirectory in between is skipped for the copied file: an inner TrackingDirectoryWrapper does not record it, an inner LockValidatingDirectoryWrapper does not check its lock, and a one-sided byte-transforming or namespace-owning layer is bypassed (finding LFV-912; [repro](../../repro/LFV-912/))
 
 ## Files
 
@@ -22,4 +22,4 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## How to run
 
-- TLA+ with TLC: `java -cp tla2tools.jar tlc2.TLC -config <Model>.cfg <Model>.tla` (a counterexample trace is the bug when the model encodes the current code).
+- TLA+ with TLC: `java -cp tla2tools.jar tlc2.TLC -config <Model>.cfg <Model>.tla` (a counterexample trace is the finding when the model encodes the current code).

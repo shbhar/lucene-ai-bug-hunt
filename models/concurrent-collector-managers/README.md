@@ -4,9 +4,9 @@ Tools: Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- IndexSearcher throws IllegalArgumentException for any reader that contains a leaf with maxDoc == 0 (for example a ParallelLeafReader with no sub-readers): the whole-segment LeafReaderContextPartition of that leaf fails a bounds check meant for real sub-range partitions (regression in 10.0.0) (bug LFV-202; [repro](../../repro/LFV-202/))
+- IndexSearcher throws IllegalArgumentException for any reader that contains a leaf with maxDoc() == 0 (for example a ParallelLeafReader with no sub-readers): the whole-segment LeafReaderContextPartition of that leaf fails a bounds check added for partition ranges (regression in 10.0.0) (finding LFV-202; [repro](../../repro/LFV-202/), [finding page](../../bugs/LFV-202.html))
 
 ## Files
 

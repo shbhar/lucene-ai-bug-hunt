@@ -1,8 +1,8 @@
 # JoinUtil's single-valued term join forgets a from-document that scored exactly 0, so ScoreMode.Min and ScoreMode.Avg give too-high, order-dependent scores
 
-Bug LFV-227 · Area: join / JoinUtil query-time term join (TermsWithScoreCollector.SV and SV.Avg, ScoreMode Min/Avg) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-227 · Area: join / JoinUtil query-time term join (TermsWithScoreCollector.SV and SV.Avg, ScoreMode Min/Avg) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-227.html](../../bugs/LFV-227.html)
+Finding page: [../../bugs/LFV-227.html](../../bugs/LFV-227.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -10,7 +10,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You build JoinUtil.createJoinQuery("join", false, "ref", fromQuery, searcher, ScoreMode.Min) where two from-documents share the join value x and fromQuery scores them 0 and 2 (one matches only a FILTER clause), and expect the to-document with ref x to score min(0, 2) = 0, or (0 + 2) / 2 = 1 with ScoreMode.Avg, because the ScoreMode javadoc says 'the min of all child scores' and 'the average of all child scores' and the multi-valued join returns exactly that on the same documents. Instead both modes return 2: the single-valued collector uses an accumulated score of exactly 0 to mean 'this join value has not been seen yet', so after a from-document that scored 0, the next from-document with the same value overwrites the stored minimum (Min) or restarts the sum and count (Avg). Which documents match does not change; only scores and ranking are wrong, and they depend on collection order (scores [0, 2] go wrong, [2, 0] come out right).
 
-The test shows that `JoinUtil.createJoinQuery(..., multipleValuesPerDocument=false,..., ScoreMode.Min)` forgets a from-document that scored exactly 0: the single-valued collector treats a stored score of 0 as "join value not seen yet", so the next from-document with the same join value overwrites the minimum.
+The test shows that `JoinUtil.createJoinQuery(..., multipleValuesPerDocument=false, ..., ScoreMode.Min)` forgets a from-document that scored exactly 0: the single-valued collector treats a stored score of 0 as "join value not seen yet", so the next from-document with the same join value overwrites the minimum.
 
 ## Expected vs actual
 
@@ -24,7 +24,7 @@ Expected for two from-documents with join value x scoring 0 then 2 (the 0 is a F
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,6 +1,6 @@
 # Sequential DrillSideways lets a TOP_SCORES hit collector prune the shared base query, so drill-sideways facet counts silently miss matching documents
 
-Bug LFV-789 · Area: facet / DrillSideways (sequential query-first scoring: score mode of the base weight and the scorable handed to the hit collector) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-789 · Area: facet / DrillSideways (sequential query-first scoring: score mode of the base weight and the scorable handed to the hit collector) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You run a sequential DrillSideways search (no executor) with a filter-style base
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,17 +1,17 @@
-# IndexWriter.deleteDocuments(Query...) and updateDocuments(Query,...) do not document that the query runs only when the buffered delete is applied later, or that an exception it throws then (for example a PhraseQuery or FieldExistsQuery on a StringField, or TooManyClauses from an interval prefix once more than 128 terms match) closes the IndexWriter and discards every change since the last commit (documentation defect; the close itself is an intended fail-safe)
+# IndexWriter.deleteDocuments(Query...) and updateDocuments(Query, ...) do not document that the query runs only when the buffered delete is applied later, or that an exception it throws then (for example a PhraseQuery or FieldExistsQuery on a StringField, or TooManyClauses from an interval prefix once more than 128 terms match) closes the IndexWriter and discards every change since the last commit (documentation defect; the close itself is an intended fail-safe)
 
-Bug LFV-823 · Area: index / IndexWriter delete-by-query (deleteDocuments(Query...) and updateDocuments(Query,...) javadoc and class NOTE vs deferred application in FrozenBufferedUpdates and the applyUpdatesPacket tragic close) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-823 · Area: index / IndexWriter delete-by-query (deleteDocuments(Query...) and updateDocuments(Query, ...) javadoc and class NOTE vs deferred application in FrozenBufferedUpdates and the applyUpdatesPacket tragic close) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index 10 documents with a StringField id, commit 6 of them, and call deleteDocuments(new PhraseQuery("id", "d1", "d2")), which returns a sequence number; nothing in its javadoc says the query runs later or what happens if it fails then. The query actually runs only when the buffered delete is applied, and because a StringField has no positions the PhraseQuery throws IllegalStateException at that point: the exception comes out of the next commit (or flush, NRT open, merge, close, or an unrelated addDocument), the IndexWriter closes itself and the 4 uncommitted documents are gone. The close is a deliberate fail-safe (the same documents are lost without it); what is missing is a warning on deleteDocuments(Query...) and both updateDocuments(Query,...) overloads, and in the class NOTE on when the writer closes itself.
+You index 10 documents with a StringField id, commit 6 of them, and call deleteDocuments(new PhraseQuery("id", "d1", "d2")), which returns a sequence number; nothing in its javadoc says the query runs later or what happens if it fails then. The query actually runs only when the buffered delete is applied, and because a StringField has no positions the PhraseQuery throws IllegalStateException at that point: the exception comes out of the next commit (or flush, NRT open, merge, close, or an unrelated addDocument), the IndexWriter closes itself and the 4 uncommitted documents are gone. The close is a deliberate fail-safe (the same documents are lost without it); what is missing is a warning on deleteDocuments(Query...) and both updateDocuments(Query, ...) overloads, and in the class NOTE on when the writer closes itself.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -21,7 +21,7 @@ You index 10 documents with a StringField id, commit 6 of them, and call deleteD
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

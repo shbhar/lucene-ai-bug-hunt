@@ -1,8 +1,8 @@
 # LatLonDocValuesField.newSlowGeometryQuery with CONTAINS and two or more Point geometries matches documents that hold only some of the query points, while its documented IndexOrDocValuesQuery partner LatLonPoint.newGeometryQuery requires all of them
 
-Bug LFV-701 · Area: core / document: LatLon point geometry queries (LatLonDocValuesQuery CONTAINS on the doc-values path vs LatLonPoint.newGeometryQuery, and their IndexOrDocValuesQuery pairing) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-701 · Area: core / document: LatLon point geometry queries (LatLonDocValuesQuery CONTAINS on the doc-values path vs LatLonPoint.newGeometryQuery, and their IndexOrDocValuesQuery pairing) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-701.html](../../bugs/LFV-701.html)
+Finding page: [../../bugs/LFV-701.html](../../bugs/LFV-701.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: 0 hits (the document lacks (10, 10)). Actual on main with -ea and with
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

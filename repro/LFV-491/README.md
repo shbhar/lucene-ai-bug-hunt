@@ -1,6 +1,6 @@
 # TaxonomyMergeUtils.merge / OrdinalMappingLeafReader do not re-map the taxonomy ordinals stored in association facet fields, so merged IntAssociationFacetField / FloatAssociationFacetField values are credited to unrelated categories (10.x, main) or lost (9.x)
 
-Bug LFV-491 · Area: facet / taxonomy (TaxonomyMergeUtils.merge, OrdinalMappingLeafReader) · Priority: medium · Impact: data corruption · Novelty: known upstream
+Finding LFV-491 · Area: facet / taxonomy (TaxonomyMergeUtils.merge, OrdinalMappingLeafReader) · Priority: medium · Impact: data corruption · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You merge an index and its taxonomy into another index/taxonomy pair with Taxono
 ## Run it
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

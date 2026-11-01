@@ -1,14 +1,14 @@
 # SimplePatternTokenizer and SimplePatternSplitTokenizer stop scanning when a non-matching lookahead reaches the end of the input, so later tokens are dropped (or later separators ignored)
 
-Bug LFV-525 · Area: analysis / pattern tokenizers (analysis-common: SimplePatternTokenizer, SimplePatternSplitTokenizer and their simplePattern / simplePatternSplit factories) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-525 · Area: analysis / pattern tokenizers (analysis-common: SimplePatternTokenizer, SimplePatternSplitTokenizer and their simplePattern / simplePatternSplit factories) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-525.html](../../bugs/LFV-525.html)
+Finding page: [../../bugs/LFV-525.html](../../bugs/LFV-525.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You tokenize 'say "hello world' with SimplePatternTokenizer and the pattern "[^"]*"|[a-z]+ (a quoted string or a word) and expect [say, hello, world], because the javadoc says the longest match at each start point is the next token and the class otherwise skips one character and tries again (PatternTokenizer with the same regex gives these three tokens). Instead you get only [say]: the lookahead from the unclosed quote runs to the end of the input without ever matching, and that end-of-input branch ends tokenization instead of retrying at the next character, so 'hello' and 'world' are never indexed (minimal case: abc|b on 'ab' gives instead of [b]). SimplePatternSplitTokenizer has the same branch and emits the whole rest as one token: separator &lt;[^&gt;]*&gt;|+ on 'x &lt; y' gives [x, '&lt; y'] instead of String.split's [x, &lt;, y]; nothing throws.
+You tokenize 'say "hello world' with SimplePatternTokenizer and the pattern "[^"]*"|[a-z]+ (a quoted string or a word) and expect [say, hello, world], because the javadoc says the longest match at each start point is the next token and the class otherwise skips one character and tries again (PatternTokenizer with the same regex gives these three tokens). Instead you get only [say]: the lookahead from the unclosed quote runs to the end of the input without ever matching, and that end-of-input branch ends tokenization instead of retrying at the next character, so 'hello' and 'world' are never indexed (minimal case: abc|b on 'ab' gives [] instead of [b]). SimplePatternSplitTokenizer has the same branch and emits the whole rest as one token: separator &lt;[^&gt;]*&gt;|[ ]+ on 'x &lt; y' gives [x, '&lt; y'] instead of String.split's [x, &lt;, y]; nothing throws.
 
 The test shows that SimplePatternTokenizer stops scanning when a lookahead that never matched reaches the end of the input, instead of retrying at the next character as it does when the lookahead dies earlier.
 
@@ -24,7 +24,7 @@ Expected pattern `abc|b` on `ab` to give `[b]` (as on `abx`); actual `[]` (`toke
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

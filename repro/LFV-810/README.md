@@ -1,17 +1,17 @@
 # A nested Intervals.ordered(a, a) or unordered(a, a) passes its inner gap up to its parent, so maxgaps(0, ordered(ordered(a, a), a)) misses 'a x a a' while maxgaps(0, ordered(ordered(a, b), a)) matches 'a x b a'
 
-Bug LFV-810 · Area: queries / intervals (a whole ordered/unordered of equal sub-sources nested in another operator: RepeatingIntervalsSource width, Ordered/UnorderedIntervalsSource.deduplicate) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-810 · Area: queries / intervals (a whole ordered/unordered of equal sub-sources nested in another operator: RepeatingIntervalsSource width(), Ordered/UnorderedIntervalsSource.deduplicate) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You nest a repeated pair inside another interval operator, for example ordered(ordered(a, a), a), and filter it with maxgaps(0,...): the IntervalIterator#gaps javadoc counts only the gaps between the parent's immediate sub-intervals, so 'a x a a' (sub-intervals [0,2] and [3,3]) should match, just as maxgaps(0, ordered(ordered(a, b), a)) matches 'a x b a'. Instead, because the two arguments of the inner ordered(a, a) are equal, Lucene builds it as a RepeatingIntervalsSource whose width is the sum of its two copies (2) rather than its span (3), so the parent counts the inner 'x' as its own gap (gaps 1) and maxgaps(0) silently drops the document. The same happens for ordered(unordered(a, a), b), unordered(ordered(a, a), b) and ordered(x, ordered(a, a)), while wrapping the inner pair in a no-op filter such as maxwidth(100,...) brings the hit back.
+You nest a repeated pair inside another interval operator, for example ordered(ordered(a, a), a), and filter it with maxgaps(0, ...): the IntervalIterator#gaps javadoc counts only the gaps between the parent's immediate sub-intervals, so 'a x a a' (sub-intervals [0,2] and [3,3]) should match, just as maxgaps(0, ordered(ordered(a, b), a)) matches 'a x b a'. Instead, because the two arguments of the inner ordered(a, a) are equal, Lucene builds it as a RepeatingIntervalsSource whose width() is the sum of its two copies (2) rather than its span (3), so the parent counts the inner 'x' as its own gap (gaps 1) and maxgaps(0) silently drops the document. The same happens for ordered(unordered(a, a), b), unordered(ordered(a, a), b) and ordered(x, ordered(a, a)), while wrapping the inner pair in a no-op filter such as maxwidth(100, ...) brings the hit back.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: Because the two arguments of the inner ordered(a, a) are equal, Lucene builds it as a RepeatingIntervalsSource whose width is the sum of its two copies (2) rather than its span (3), so the parent counts the inner 'x' as its own gap (gaps 1) and maxgaps(0) silently drops the document.
+- Actual: Because the two arguments of the inner ordered(a, a) are equal, Lucene builds it as a RepeatingIntervalsSource whose width() is the sum of its two copies (2) rather than its span (3), so the parent counts the inner 'x' as its own gap (gaps 1) and maxgaps(0) silently drops the document.
 
 ## Files
 
@@ -20,7 +20,7 @@ You nest a repeated pair inside another interval operator, for example ordered(o
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -4,9 +4,9 @@ Tools: SMT-LIB (Z3/cvc5).
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- FeatureField saturation and sigmoid queries and IntervalQuery scoring compute w*(1 - k/(S+k)) instead of the documented w*S/(S+k) (and the same rewrite for the sigmoid), so documents whose value is far below the pivot score exactly 0.0 or tie with documents that have different values (bug LFV-898; [repro](../../repro/LFV-898/))
+- FeatureField saturation and sigmoid queries and IntervalQuery scoring compute w*(1 - k/(S+k)) instead of the documented w*S/(S+k) (and the same rewrite for the sigmoid), so documents whose value is far below the pivot score exactly 0.0 or tie with documents that have different values (finding LFV-898; [repro](../../repro/LFV-898/), [finding page](../../bugs/LFV-898.html))
 
 ## Files
 

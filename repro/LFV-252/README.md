@@ -1,12 +1,14 @@
-# ControlledRealTimeReopenThread.close never unregisters its refresh listener, so one later refresh of the still-open ReferenceManager overwrites the Long.MAX_VALUE 'closed' generation and an untimed waitForGeneration on the closed instance can block forever
+# ControlledRealTimeReopenThread.close() never unregisters its refresh listener, so one later refresh of the still-open ReferenceManager overwrites the Long.MAX_VALUE 'closed' generation and an untimed waitForGeneration on the closed instance can block forever
 
-Bug LFV-252 · Area: search / ControlledRealTimeReopenThread (NRT generation tracking: close, the HandleRefresh refresh listener, waitForGeneration) · Priority: low · Impact: hang · Novelty: new
+Finding LFV-252 · Area: search / ControlledRealTimeReopenThread (NRT generation tracking: close(), the HandleRefresh refresh listener, waitForGeneration) · Priority: low · Impact: hang · Novelty: new
+
+Finding page: [../../bugs/LFV-252.html](../../bugs/LFV-252.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You use a ControlledRealTimeReopenThread with a SearcherManager, close the reopen thread (for example at shutdown), the application refreshes the still-open manager once more, and a request thread that still holds the closed instance calls waitForGeneration(gen) for its own new change. You expect the call to return, because close sets the searching generation to Long.MAX_VALUE 'so any waiting search threads will return', the method's @return says it returns when 'this instance was closed', and a wait with no refresh in between does return at once. Instead the HandleRefresh listener that the constructor registered on the manager is never removed, so that one refresh writes the writer's generation back over Long.MAX_VALUE, and the untimed wait blocks until some later refresh covers gen, which never comes once the manager is closed; only an interrupt releases the thread.
+You use a ControlledRealTimeReopenThread with a SearcherManager, close the reopen thread (for example at shutdown), the application refreshes the still-open manager once more, and a request thread that still holds the closed instance calls waitForGeneration(gen) for its own new change. You expect the call to return, because close() sets the searching generation to Long.MAX_VALUE 'so any waiting search threads will return', the method's @return says it returns when 'this instance was closed', and a wait with no refresh in between does return at once. Instead the HandleRefresh listener that the constructor registered on the manager is never removed, so that one refresh writes the writer's generation back over Long.MAX_VALUE, and the untimed wait blocks until some later refresh covers gen, which never comes once the manager is closed; only an interrupt or a second close() releases the thread.
 
 The test shows that one refresh of the still-open SearcherManager after `ControlledRealTimeReopenThread.close()` lowers the closed `Long.MAX_VALUE` generation again (the refresh listener is never removed), so an untimed `waitForGeneration(gen)` on the closed instance blocks.
 
@@ -22,7 +24,7 @@ Expected the wait on the closed instance to return at once ("so any waiting sear
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,7 +46,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/nrt-reference-managers/](../../models/nrt-reference-managers/)
+Formal models and scripts this finding's part of the hunt used: [../../models/nrt-reference-managers/](../../models/nrt-reference-managers/)
 
 ## Feedback
 

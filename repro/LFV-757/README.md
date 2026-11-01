@@ -1,8 +1,8 @@
 # Tessellator: after a hole that touches the outer ring at one vertex is merged, the leftover copies of that vertex make a later hole's bridge cross the first hole, so LatLonShape and XYShape index a valid two-hole polygon with triangles that cover a hole, or reject it (regression from #15211, in 10.4.0 and 9.12.3)
 
-Bug LFV-757 · Area: geo / Tessellator hole elimination (polygon indexing for LatLonShape and XYShape) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-757 · Area: geo / Tessellator hole elimination (polygon indexing for LatLonShape and XYShape) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-757.html](../../bugs/LFV-757.html)
+Finding page: [../../bugs/LFV-757.html](../../bugs/LFV-757.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected 0 hits for an XYShape INTERSECTS point query at (3.75, 6.5) inside hole
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

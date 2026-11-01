@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>index defect (LFV-208)</title><style>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ConcurrentMergeScheduler.merge hands a checked-out merge back with onMergeFinished on any failure in its spawn block, so a merge whose thread already started is unregistered while still running, and a merge whose thread never started is never completed (LFV-208)</title><style>
 :root{--fg:#1d2329;--dim:#5a6570;--line:#d8dee4;--bg:#fff;--soft:#f5f7f9;--link:#0b5cad}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
 font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
@@ -17,8 +17,8 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 .scroll{overflow-x:auto}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
-</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>index defect</h1>
-<p class="facts small"><span>Bug LFV-208</span><span>Area: index</span><span>Priority: low</span><span>Impact: hang</span><span>Novelty: known upstream</span></p>
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>ConcurrentMergeScheduler.merge hands a checked-out merge back with onMergeFinished on any failure in its spawn block, so a merge whose thread already started is unregistered while still running, and a merge whose thread never started is never completed</h1>
+<p class="facts small"><span>Finding LFV-208</span><span>Area: index / ConcurrentMergeScheduler merge spawn (CMS.merge hand-back, IndexWriterMergeSource.onMergeFinished, IndexWriter.mergeFinish)</span><span>Priority: low</span><span>Impact: hang</span><span>Novelty: known upstream</span></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You use the default ConcurrentMergeScheduler, and something fails while it hands a merge to a new merge thread: for example the JVM cannot create another thread, or a negative forced-merge rate that setForceMergeMBPerSec accepted is rejected right after the thread started. You expect the merge either to run normally or to be abandoned cleanly, so that calls waiting for it see the failure. Instead the scheduler&#x27;s catch block only unregisters the merge: if the thread never started, the merge is never completed, so addIndexes(CodecReader...) waits forever and forceMerge/forceMergeDeletes return with the work undone; if the thread had already started, its segments look free while they are being merged, a second merge of the same segments starts, and the writer is closed by a tragic exception.</p>
@@ -30,7 +30,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </ul><h2>Run it</h2><ul>
 <li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
 <li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
+<li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
@@ -52,4 +52,4 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.index.TestCmsMergeFailurePath9x</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-30. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-01. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

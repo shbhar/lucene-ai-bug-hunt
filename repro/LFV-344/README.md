@@ -1,16 +1,16 @@
 # An unfrozen MemoryIndex does not reset its lazily built per-field state when more values are added to a field after a read, so later searches miss the new terms or points, throw ArrayIndexOutOfBoundsException, return unsorted SORTED_NUMERIC values or score with stale norms
 
-Bug LFV-344 · Area: memory / MemoryIndex lazy per-field read state (sorted terms, points and doc-values preparation, norms) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-344 · Area: memory / MemoryIndex lazy per-field read state (sorted terms, points and doc-values preparation, norms) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You add a value to a field of a MemoryIndex that is not frozen, search it, add more values to the same field, and search again; you expect the second search to see everything, like a MemoryIndex built from the same adds, because freeze is the only documented point after which no data may be added and adding the same field several times is supported. Instead the field keeps the read state that the first read built lazily and nothing ever resets (the sorted term ids, the point min/max and 1D order, the sorted doc values, the cached norm): a term or IntPoint added later is silently not found (for example IntPoint p=2, search, p=1: newExactQuery(p, 1) no longer matches), SORTED_NUMERIC values come back as 2, 1, the score uses the old norm, or the search throws ArrayIndexOutOfBoundsException from the corrupted term dictionary (an AssertionError under -ea for some inputs).
+You add a value to a field of a MemoryIndex that is not frozen, search it, add more values to the same field, and search again; you expect the second search to see everything, like a MemoryIndex built from the same adds, because freeze() is the only documented point after which no data may be added and adding the same field several times is supported. Instead the field keeps the read state that the first read built lazily and nothing ever resets (the sorted term ids, the point min/max and 1D order, the sorted doc values, the cached norm): a term or IntPoint added later is silently not found (for example IntPoint p=2, search, p=1: newExactQuery(p, 1) no longer matches), SORTED_NUMERIC values come back as 2, 1, the score uses the old norm, or the search throws ArrayIndexOutOfBoundsException from the corrupted term dictionary (an AssertionError under -ea for some inputs).
 
 ## Expected vs actual
 
-- Expected: You expect the second search to see everything, like a MemoryIndex built from the same adds, because freeze is the only documented point after which no data may be added and adding the same field several times is supported.
+- Expected: You expect the second search to see everything, like a MemoryIndex built from the same adds, because freeze() is the only documented point after which no data may be added and adding the same field several times is supported.
 - Actual: The field keeps the read state that the first read built lazily and nothing ever resets (the sorted term ids, the point min/max and 1D order, the sorted doc values, the cached norm): a term or IntPoint added later is silently not found (for example IntPoint p=2, search, p=1: newExactQuery(p, 1) no longer matches), SORTED_NUMERIC values come back as 2, 1, the score uses the old norm, or the search throws ArrayIndexOutOfBoundsException from the corrupted term dictionary (an AssertionError under -ea for some inputs).
 
 ## Files
@@ -21,7 +21,7 @@ You add a value to a field of a MemoryIndex that is not frozen, search it, add m
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

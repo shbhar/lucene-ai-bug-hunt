@@ -1,17 +1,17 @@
-# IndexWriter.close never returns when a background merge fails while a forced-merge cascade merge is still pending (forceMerge(n, false), then close): the tragic rollback is skipped because close is already closing, getNextMerge refuses the pending merge once the tragedy is set, and waitForMerges never checks the tragedy (since 9.3.0)
+# IndexWriter.close() never returns when a background merge fails while a forced-merge cascade merge is still pending (forceMerge(n, false), then close()): the tragic rollback is skipped because close() is already closing, getNextMerge() refuses the pending merge once the tragedy is set, and waitForMerges() never checks the tragedy (since 9.3.0)
 
-Bug LFV-648 · Area: index / IndexWriter close (waitForMerges, ConcurrentMergeScheduler, tragic merge failure) · Priority: low · Impact: hang · Novelty: known upstream
+Finding LFV-648 · Area: index / IndexWriter close (waitForMerges, ConcurrentMergeScheduler, tragic merge failure) · Priority: low · Impact: hang · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You start a background forced merge with forceMerge(1, false) and then call close, and you expect close to commit and return, or, if a merge fails, to throw and leave the writer closed, as its javadoc says. Instead, if one merge fails (for example disk full) just after another forced merge finished and queued the next round, close waits forever in waitForMerges: the failure does not roll the writer back because close is already closing, since 9.3.0 IndexWriter refuses to start any pending merge after such a failure, and the wait loop never looks at the failure. The write lock stays held and a rollback from another thread blocks as well; only interrupting the closing thread ends the wait.
+You start a background forced merge with forceMerge(1, false) and then call close(), and you expect close() to commit and return, or, if a merge fails, to throw and leave the writer closed, as its javadoc says. Instead, if one merge fails (for example disk full) just after another forced merge finished and queued the next round, close() waits forever in waitForMerges(): the failure does not roll the writer back because close() is already closing, since 9.3.0 IndexWriter refuses to start any pending merge after such a failure, and the wait loop never looks at the failure. The write lock stays held and a rollback() from another thread blocks as well; only interrupting the closing thread ends the wait.
 
 ## Expected vs actual
 
-- Expected: You expect close to commit and return, or, if a merge fails, to throw and leave the writer closed, as its javadoc says.
-- Actual: If one merge fails (for example disk full) just after another forced merge finished and queued the next round, close waits forever in waitForMerges: the failure does not roll the writer back because close is already closing, since 9.3.0 IndexWriter refuses to start any pending merge after such a failure, and the wait loop never looks at the failure.
+- Expected: You expect close() to commit and return, or, if a merge fails, to throw and leave the writer closed, as its javadoc says.
+- Actual: If one merge fails (for example disk full) just after another forced merge finished and queued the next round, close() waits forever in waitForMerges(): the failure does not roll the writer back because close() is already closing, since 9.3.0 IndexWriter refuses to start any pending merge after such a failure, and the wait loop never looks at the failure.
 
 ## Files
 
@@ -21,7 +21,7 @@ You start a background forced merge with forceMerge(1, false) and then call clos
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -47,7 +47,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/iw-blocking-calls-watchdog-failure-visibility/](../../models/iw-blocking-calls-watchdog-failure-visibility/)
+Formal models and scripts this finding's part of the hunt used: [../../models/iw-blocking-calls-watchdog-failure-visibility/](../../models/iw-blocking-calls-watchdog-failure-visibility/)
 
 ## Feedback
 

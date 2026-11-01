@@ -1,14 +1,14 @@
 # JapaneseIterationMarkCharFilter expands the unvoiced kana iteration mark ゝ/ヽ after the na-row, the small tsu and the handakuten kana (な に ぬ ね の, っ, ぱ ぴ ぷ ぺ and their katakana forms) to a different kana, so なゝめ becomes などめ instead of ななめ (のゝしる becomes のねしる, ぱゝ becomes ぱば), because kana that have no voiced form are stored as self-mappings in the voicing table and the 'is voiced' check reads every self-mapping as voiced
 
-Bug LFV-607 · Area: analysis-kuromoji / Japanese char filters (JapaneseIterationMarkCharFilter kana iteration marks ゝ/ヽ: isHiraganaDakuten / isKatakanaDakuten over the h2d / k2d voicing tables, used by normalizedHiragana / normalizedKatakana; JapaneseIterationMarkCharFilterFactory 'japaneseIterationMark') · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-607 · Area: analysis-kuromoji / Japanese char filters (JapaneseIterationMarkCharFilter kana iteration marks ゝ/ヽ: isHiraganaDakuten / isKatakanaDakuten over the h2d / k2d voicing tables, used by normalizedHiragana / normalizedKatakana; JapaneseIterationMarkCharFilterFactory 'japaneseIterationMark') · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-607.html](../../bugs/LFV-607.html)
+Finding page: [../../bugs/LFV-607.html](../../bugs/LFV-607.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You put JapaneseIterationMarkCharFilter in front of an analyzer and index なゝめ, the older spelling of ななめ ('diagonal'), and expect the filter to replace the iteration mark ゝ with the repeated kana, as its javadoc promises ('normalizes... iteration marks to their expanded form'). Instead it emits などめ, so the index holds a different word and a search for ななめ finds nothing; the same happens for 19 more kana (のゝ becomes のね, ぱゝ becomes ぱば, っゝ becomes っぢ, and the katakana forms with ヽ). The filter decides whether the preceding kana is voiced by checking whether it maps to itself in its voicing table, but the kana that have no voiced form (っ, な..の, ぱ ぴ ぷ ぺ) are stored there as self-mappings too, so it strips a dakuten they never had and emits the preceding code point.
+You put JapaneseIterationMarkCharFilter in front of an analyzer and index なゝめ, the older spelling of ななめ ('diagonal'), and expect the filter to replace the iteration mark ゝ with the repeated kana, as its javadoc promises ('normalizes ... iteration marks to their expanded form'). Instead it emits などめ, so the index holds a different word and a search for ななめ finds nothing; the same happens for 19 more kana (のゝ becomes のね, ぱゝ becomes ぱば, っゝ becomes っぢ, and the katakana forms with ヽ). The filter decides whether the preceding kana is voiced by checking whether it maps to itself in its voicing table, but the kana that have no voiced form (っ, な..の, ぱ ぴ ぷ ぺ) are stored there as self-mappings too, so it strips a dakuten they never had and emits the preceding code point.
 
 `JapaneseIterationMarkCharFilter` expands the unvoiced iteration mark ゝ after な (a kana with no voiced form) to a different kana, because it reads な as voiced.
 
@@ -24,7 +24,7 @@ Expected: `なゝめ` -&gt; `ななめ`; actual: `などめ`.
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

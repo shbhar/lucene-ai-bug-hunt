@@ -1,14 +1,16 @@
-# AfterEffectB.explain shows the raw totalTermFreq and docFreq under children labelled 'F,... + 1' and 'n,... + 1' (and lists tfn twice), so its own formula (F + 1) / (n * (tfn + 1)) on the children it lists does not give the value it shows; the score itself is correct
+# AfterEffectB.explain shows the raw totalTermFreq and docFreq under children labelled 'F, ... + 1' and 'n, ... + 1' (and lists tfn twice), so its own formula (F + 1) / (n * (tfn + 1)) on the children it lists does not give the value it shows; the score itself is correct
 
-Bug LFV-922 · Area: core / search similarities (DFR after effect B explanation: AfterEffectB.explain, reached through DFRSimilarity.explain) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-922 · Area: core / search similarities (DFR after effect B explanation: AfterEffectB.explain, reached through DFRSimilarity.explain) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-922.html](../../bugs/LFV-922.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You search with DFRSimilarity(basic model, new AfterEffectB, normalization) and call IndexSearcher.explain on a hit. The AfterEffectB node says 'computed as (F + 1) / (n * (tfn + 1)) from:' and labels its children 'F, total number of occurrences of term across all documents + 1' and 'n, number of documents containing term + 1', so for a term with totalTermFreq 6 and docFreq 3 you expect F = 7 and n = 4. Instead the children show 6 and 3 (the raw statistics) and tfn is listed twice, so the formula on the listed children gives 0.71897 while the node correctly shows 0.61626 (I(n)B2); the score is right and only the explanation's operands are wrong.
+You search with DFRSimilarity(basic model, new AfterEffectB(), normalization) and call IndexSearcher.explain on a hit. The AfterEffectB node says 'computed as (F + 1) / (n * (tfn + 1)) from:' and labels its children 'F, total number of occurrences of term across all documents + 1' and 'n, number of documents containing term + 1', so for a term with totalTermFreq 6 and docFreq 3 you expect F = 7 and n = 4. Instead the children show 6 and 3 (the raw statistics) and tfn is listed twice, so the formula on the listed children gives 0.71897 while the node correctly shows 0.61626 (I(n)B2); the score is right and only the explanation's operands are wrong.
 
-The test shows that `AfterEffectB.explain` (used by `DFRSimilarity.explain`) puts the raw totalTermFreq and docFreq under children labelled "F,... + 1" and "n,... + 1".
+The test shows that `AfterEffectB.explain` (used by `DFRSimilarity.explain`) puts the raw totalTermFreq and docFreq under children labelled "F, ... + 1" and "n, ... + 1".
 
 ## Expected vs actual
 
@@ -22,7 +24,7 @@ Expected, for totalTermFreq 6 and docFreq 3: F = 7 and n = 4. Actual (-ea and -d
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,7 +46,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/explanation-formula-strings-vs-their-own-operand-values/](../../models/explanation-formula-strings-vs-their-own-operand-values/)
+Formal models and scripts this finding's part of the hunt used: [../../models/explanation-formula-strings-vs-their-own-operand-values/](../../models/explanation-formula-strings-vs-their-own-operand-values/)
 
 ## Feedback
 

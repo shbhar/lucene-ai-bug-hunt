@@ -1,36 +1,36 @@
 # AI-assisted bug hunt in Apache Lucene
 
-A dated snapshot (2026-10-30) of AI-assisted work: defects found in [Apache Lucene](https://github.com/apache/lucene). Every bug the hunt found and confirmed went through AI-run checks: an independent repro, an intended-behaviour check and a prior-report search. This is an independent list: per the Apache Lucene project’s AI policy, nothing here is filed in Lucene unless a person files it by hand.
+A dated snapshot (2026-11-01) of AI-assisted work: findings in [Apache Lucene](https://github.com/apache/lucene). Every finding the hunt made and confirmed went through AI-run checks: an independent repro and a prior-report search. This is an independent list: per the Apache Lucene project’s AI policy, nothing here is filed in Lucene unless a person files it by hand.
 
 Browse the table: open `index.html` (published with GitHub Pages).
 
 ## What is in this snapshot
 
-- 1035 registered bugs: 775 new, for which the automated prior-report search found no earlier report (a keyword search; private reports are not visible), and 260 already known upstream (others reported or discussed the same bug; tracked, but not counted as new).
+- 1035 registered findings: 775 new, for which the automated prior-report search found no earlier report (a keyword search; private reports are not visible), and 260 already known upstream (others reported or discussed the same behaviour; tracked, but not counted as new).
 - 2 of them are withheld pending security review: they appear in the table and in every count, but only with their id, module, priority tier, novelty (new or known upstream) and the line "Details withheld pending security review".
-- Priority tiers: 9 high, 225 medium, 794 low, 7 not yet ranked.
-- 393 public bug pages (`bugs/`), 1033 repro directories (`repro/`) and 139 units of formal models and scripts (`models/`).
+- Priority tiers: 9 high, 226 medium, 793 low, 7 not yet ranked.
+- 654 public finding pages (`bugs/`), 1033 repro directories (`repro/`) and 140 units of formal models and scripts (`models/`).
 - The full table as data: `data/bugs.csv` and `data/bugs.json`.
 
 ## Share a filtered view
 
-The table keeps its filters, search and sort in the page address, so a link opens the same view; "Link to this view" and "Copy link", beside Reset, give the link to the current view. For example: [the bugs new in 10.6](https://shbhar.github.io/lucene-ai-bug-hunt/?new106=1#bugs), [Medium priority only](https://shbhar.github.io/lucene-ai-bug-hunt/?priority=medium#bugs), or [a search for mmap](https://shbhar.github.io/lucene-ai-bug-hunt/?q=mmap#bugs).
+The table keeps its filters, search and sort in the page address, so a link opens the same view; "Link to this view" and "Copy link", beside Reset, give the link to the current view. For example: [the findings new in 10.6](https://shbhar.github.io/lucene-ai-bug-hunt/?new106=1#bugs), [Medium priority only](https://shbhar.github.io/lucene-ai-bug-hunt/?priority=medium#bugs), or [a search for mmap](https://shbhar.github.io/lucene-ai-bug-hunt/?q=mmap#bugs).
 
-## How the bugs were found
+## How the findings were found
 
-The hunt used AI models (Anthropic Claude Opus and OpenAI GPT-5.6) with formal methods (TLA+/TLC model checking, Alloy, Z3/cvc5 SMT solving, Dafny proofs and bounded model checking) alongside fuzzing, model-based, property-based and differential testing, and static analysis. Of the 773 new bugs the hunt found that are shown in full, a formal tool's own output gave the first signal for 45; a semi-formal check (a check of the real jar against exact semantics over a bounded input space, exhaustive or for some harnesses randomly sampled, or a hypothesis formed while modelling that a tool then witnessed) for 425; code reading or other testing for 276; and a testing baseline for 27. Every bug ends in a minimal executable test that fails while the bug is present (on Lucene main, or on the release branch for a bug only a release branch has).
+The hunt used AI models (Anthropic Claude Opus and OpenAI GPT-5.6) with formal methods (TLA+/TLC model checking, Alloy, Z3/cvc5 SMT solving, Dafny proofs and bounded model checking) alongside fuzzing, model-based, property-based and differential testing, and static analysis. Of the 773 new findings the hunt made that are shown in full, a formal tool's own output gave the first signal for 45; a semi-formal check (a check of the real jar against exact semantics over a bounded input space, exhaustive or for some harnesses randomly sampled, or a hypothesis formed while modelling that a tool then witnessed) for 423; code reading or other testing for 278; and a testing baseline for 27. Every finding ends in a minimal executable test that fails while the reported behaviour is present (on Lucene main, or on the release branch for a finding only a release branch has).
 
 ## Lucene version
 
-The hunt began on Lucene main ea57360912ed (2026-10-24). On 2026-10-26, 458 of the repros then published were set up for a rerun on main a9779ef3c193. 456 ran and still showed the bug (454 unchanged, 2 with changed behaviour: LFV-160, LFV-462, one of them with an adapted repro); 2 (LFV-003, LFV-069) could not be run, because the rerun host had too little memory for them. None had been fixed upstream. Since then, 729 of the bugs shown in full got a smaller repro, one minimal test, which replaces their earlier repro files. The repros published now were last run on these commits: 772 on 645d4fe14a20, 224 on a9779ef3c193, 33 on ea57360912ed, 2 on Lucene branch_10_6 4ae946e5a9b9, 2 on b83101cdd2; each repro page says where its repro was run, or that no run is on file.
+The hunt began on Lucene main ea57360912ed (2026-10-24). On 2026-10-26, 456 of the repros then published were set up for a rerun on main a9779ef3c193. 454 ran and still reproduced (452 unchanged, 2 with changed behaviour: LFV-160, LFV-462, one of them with an adapted repro); 2 (LFV-003, LFV-069) could not be run, because the rerun host had too little memory for them. None had been fixed upstream. Since then, 728 of the findings shown in full got a smaller repro, one minimal test, which replaces their earlier repro files. The repros published now were last run on these commits: 772 on 645d4fe14a20, 223 on a9779ef3c193, 33 on ea57360912ed, 2 on Lucene branch_10_6 4ae946e5a9b9, 2 on b83101cdd2, 1 on 716d6f216f52; each repro page says where its repro was run, or that no run is on file.
 
-## Reproduce a bug
+## Reproduce a finding
 
-Each `repro/<id>/` directory holds the minimal test sources, what they show, expected against actual, and a recipe: JDK 25, a Lucene checkout at the tested commit built with `./gradlew --no-daemon assemble`, and the JUnit Platform console launcher, whose vintage engine runs `LuceneTestCase` tests. A failing test is the bug reproducing; a rerun with the same seed replays the same random choices.
+Each `repro/<id>/` directory holds the minimal test sources, what they show, expected against actual, and a recipe: JDK 25, a Lucene checkout at the tested commit built with `./gradlew --no-daemon assemble`, and the JUnit Platform console launcher, whose vintage engine runs `LuceneTestCase` tests. A failing test is the finding reproducing; a rerun with the same seed replays the same random choices.
 
 ## How to help
 
-- If you know the code: pick a bug, check it, and say what you found in an issue in [this repository](https://github.com/shbhar/lucene-ai-bug-hunt/issues) ("real", "intended", "duplicate of ...", or a better fix).
+- If you know the code: pick a finding, check it, and say what you found in an issue in [this repository](https://github.com/shbhar/lucene-ai-bug-hunt/issues) ("real", "intended", "duplicate of ...", or a better fix).
 - Please do not open issues or pull requests in apache/lucene about these findings unless a Lucene committer agrees one should be filed. Following Lucene's AI policy, upstream issues and pull requests are written by a person, in their own words.
 - The 2 withheld rows rated security-sensitive (in scope of Lucene's SECURITY.md) go privately to security@lucene.apache.org first.
 - If you believe any finding has security implications, report it privately to security@lucene.apache.org rather than in a public issue.
@@ -39,10 +39,10 @@ Each `repro/<id>/` directory holds the minimal test sources, what they show, exp
 
 | Path | Content |
 |---|---|
-| `index.html` | the bug table and the method notes |
-| `bugs/<id>.html`, `assets/<id>/` | public bug pages and their diagrams |
+| `index.html` | the findings table and the method notes |
+| `bugs/<id>.html`, `assets/<id>/` | public finding pages and their diagrams |
 | `repro/<id>/` | minimal repro sources, README and run recipe |
-| `models/<unit>/` | formal models and scripts of the hunt units that worked on a public bug |
+| `models/<unit>/` | formal models and scripts of the hunt units that worked on a public finding |
 | `data/bugs.csv`, `data/bugs.json` | the table as data (public fields only) |
 
 ## License

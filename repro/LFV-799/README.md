@@ -1,6 +1,6 @@
 # LongRangeOnRangeFacetCounts and DoubleRangeOnRangeFacetCounts throw an internal ArrayIndexOutOfBoundsException from every public constructor when given no ranges, instead of returning an empty result like the classic range facet counters or rejecting the empty list with an IllegalArgumentException
 
-Bug LFV-799 · Area: facet / range-on-range facet counts (LongRangeOnRangeFacetCounts and DoubleRangeOnRangeFacetCounts constructors: getEncodedRanges reads ranges[0]) · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-799 · Area: facet / range-on-range facet counts (LongRangeOnRangeFacetCounts and DoubleRangeOnRangeFacetCounts constructors: getEncodedRanges reads ranges[0]) · Priority: low · Impact: wrong error · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ Expected: an empty result (as the classic range counters return) or an `IllegalA
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

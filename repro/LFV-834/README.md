@@ -1,6 +1,8 @@
 # A PayloadScoreQuery that wraps another PayloadScoreQuery (directly or through a same-field FieldMaskingSpanQuery) ignores every payload and scores each hit 1.0 with includeSpanScore=false, and with includeSpanScore=true (the 3-argument constructor's default) fails every search with an AssertionError (-ea) or NullPointerException (-da), because the outer weight borrows the inner PayloadSpanWeight's SimScorer, which is null (since 5.3.0, LUCENE-6706)
 
-Bug LFV-834 · Area: queries / payloads (PayloadScoreQuery.PayloadSpanWeight SimScorer source; SpanScorer null-SimScorer early return) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-834 · Area: queries / payloads (PayloadScoreQuery.PayloadSpanWeight SimScorer source; SpanScorer null-SimScorer early return) · Priority: low · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-834.html](../../bugs/LFV-834.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected: score 3.0 for the one document whose token x has payload 3, as the non
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

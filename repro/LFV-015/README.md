@@ -1,18 +1,20 @@
 # After rolled-back segment names are reused, reopening an old NRT reader throws a misleading IllegalStateException
 
-Bug LFV-015 · Area: index / IndexWriter NRT · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-015 · Area: index / IndexWriter NRT · Priority: low · Impact: wrong error · Novelty: new
+
+Finding page: [../../bugs/LFV-015.html](../../bugs/LFV-015.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You open an NRT reader from a writer that is then rolled back without committing, a later writer reuses the same segment names and commits, and you call openIfChanged(oldReader, commit). You expect a new reader or an AlreadyClosedException, as documented. Instead the LUCENE-5931 guard throws an IllegalStateException that blames the application for removing index files, although Lucene's own IndexFileDeleter deleted them, and its OpenMode.CREATE advice also fails.
+You open an NRT reader from a writer that is then rolled back without committing, a second writer is opened and rolled back too, a third writer reuses the same segment names and commits, and you call openIfChanged(oldReader, commit). You expect a new reader or an AlreadyClosedException, as documented. Instead the LUCENE-5931 guard throws an IllegalStateException that blames the application for removing index files, although Lucene's own IndexFileDeleter deleted them, and its OpenMode.CREATE advice also fails.
 
 The test shows that an NRT reader opened from a never-committed writer, kept across that writer's rollback and a second writer's rollback, cannot be reopened on a third writer's commit that reuses the segment name `_0`.
 
 ## Expected vs actual
 
-Expected `DirectoryReader.openIfChanged(r, commit)` to return a new reader on the 2-document commit (its javadoc). Actual: `IllegalStateException: same segment _0 has invalid doc count change; likely you are re-opening a reader after illegally removing index files yourself...`, though Lucene's own IndexFileDeleter removed them.
+Expected `DirectoryReader.openIfChanged(r, commit)` to return a new reader on the 2-document commit (its javadoc). Actual: `IllegalStateException: same segment _0 has invalid doc count change; likely you are re-opening a reader after illegally removing index files yourself ...`, though Lucene's own IndexFileDeleter removed them.
 
 ## Files
 
@@ -22,7 +24,7 @@ Expected `DirectoryReader.openIfChanged(r, commit)` to return a new reader on th
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

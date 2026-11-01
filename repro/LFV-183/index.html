@@ -18,7 +18,7 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>Since 9.12.0 the default postings writer stores the byte length of a level-1 block&#x27;s competitive impacts in a signed short, so with a custom Similarity whose norms do not fit in a byte, a term with 8,192 or more postings in one segment (4,096 before 10.4) can need more than 32,767 bytes: flush fails an assertion with -ea, and with -da the segment is written but that term&#x27;s postings then throw on every read or are read back wrong</h1>
-<p class="facts small"><span>Bug LFV-183</span><span>Area: codecs / postings writer and reader (Lucene104 level-1 skip data, ImpactLength; the same field in the Lucene912, Lucene101 and Lucene103 formats)</span><span>Priority: medium</span><span>Impact: data corruption</span><span>Novelty: known upstream</span></p>
+<p class="facts small"><span>Finding LFV-183</span><span>Area: codecs / postings writer and reader (Lucene104 level-1 skip data, ImpactLength; the same field in the Lucene912, Lucene101 and Lucene103 formats)</span><span>Priority: medium</span><span>Impact: data corruption</span><span>Novelty: known upstream</span></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index with the default codec and a custom Similarity whose norm is the field length (or another value that does not fit in a byte), and one term appears in 8,192 documents of a segment with growing frequencies, for example through Lucene&#x27;s DelimitedTermFrequencyTokenFilter. You expect the term&#x27;s postings to read back exactly as indexed. Instead the writer stores the length of the level-1 skip block&#x27;s impact list, which here exceeds 32,767 bytes, in a signed short: with assertions on, flush fails; with assertions off, the segment is written and every read of the term throws &#x27;numBytes must be &gt;= 0&#x27;, or, with wider norms, decodes wrong data (doc 0 with freq 1,602,871,807 instead of 1,000, and most documents missing).</p>
@@ -29,7 +29,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </ul><h2>Run it</h2><ul>
 <li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
 <li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
+<li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
@@ -46,5 +46,5 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.index.TestLevel1ImpactsLengthOverflow</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/postings-lucene104/index.html">postings-lucene104</a></p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-30. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<p>Formal models and scripts this finding's part of the hunt used: <a href="../../models/postings-lucene104/index.html">postings-lucene104</a></p>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-01. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

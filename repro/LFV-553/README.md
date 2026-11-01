@@ -1,17 +1,17 @@
 # MoreLikeThis with maxQueryTerms = 0 throws NullPointerException from like(...), retrieveInterestingTerms(...) and the rewrite of MoreLikeThisQuery or the XML parser's LikeThisQuery, instead of returning a query with no terms (regression since 4.10.0)
 
-Bug LFV-553 · Area: queries / MoreLikeThis term selection (MoreLikeThis.createQueue bounded priority queue; MoreLikeThisQuery; XML query parser LikeThisQueryBuilder) · Priority: low · Impact: wrong error · Novelty: known upstream
+Finding LFV-553 · Area: queries / MoreLikeThis term selection (MoreLikeThis.createQueue bounded priority queue; MoreLikeThisQuery; XML query parser LikeThisQueryBuilder) · Priority: low · Impact: wrong error · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You set MoreLikeThis.setMaxQueryTerms(0), whose javadoc says only 'the maximum number of query terms that will be included in any generated query', and call like(...) or retrieveInterestingTerms(...) on text with at least one eligible term, or search with a MoreLikeThisQuery or XML &lt;LikeThisQuery&gt; that carries maxQueryTerms 0. You expect a query with no terms (or an up-front IllegalArgumentException). Instead createQueue sizes its priority queue to limit = min(0, #terms) = 0, finds 'queue.size &lt; limit' false for the first eligible term, and dereferences queue.top, which is null for a zero-capacity queue, so the call throws 'NullPointerException: Cannot read field "score" because "term" is null' (MoreLikeThis.java:669).
+You set MoreLikeThis.setMaxQueryTerms(0), whose javadoc says only 'the maximum number of query terms that will be included in any generated query', and call like(...) or retrieveInterestingTerms(...) on text with at least one eligible term, or search with a MoreLikeThisQuery or XML &lt;LikeThisQuery&gt; that carries maxQueryTerms 0. You expect a query with no terms (or an up-front IllegalArgumentException). Instead createQueue sizes its priority queue to limit = min(0, #terms) = 0, finds 'queue.size() &lt; limit' false for the first eligible term, and dereferences queue.top(), which is null for a zero-capacity queue, so the call throws 'NullPointerException: Cannot read field "score" because "term" is null' (MoreLikeThis.java:669).
 
 ## Expected vs actual
 
 - Expected: You expect a query with no terms (or an up-front IllegalArgumentException).
-- Actual: createQueue sizes its priority queue to limit = min(0, #terms) = 0, finds 'queue.size &lt; limit' false for the first eligible term, and dereferences queue.top, which is null for a zero-capacity queue, so the call throws 'NullPointerException: Cannot read field "score" because "term" is null' (MoreLikeThis.java:669).
+- Actual: createQueue sizes its priority queue to limit = min(0, #terms) = 0, finds 'queue.size() &lt; limit' false for the first eligible term, and dereferences queue.top(), which is null for a zero-capacity queue, so the call throws 'NullPointerException: Cannot read field "score" because "term" is null' (MoreLikeThis.java:669).
 
 ## Files
 
@@ -21,7 +21,7 @@ You set MoreLikeThis.setMaxQueryTerms(0), whose javadoc says only 'the maximum n
 ## Run it
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -48,7 +48,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/queries-mlt-commonterms-reference/](../../models/queries-mlt-commonterms-reference/)
+Formal models and scripts this finding's part of the hunt used: [../../models/queries-mlt-commonterms-reference/](../../models/queries-mlt-commonterms-reference/)
 
 ## Feedback
 

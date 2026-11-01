@@ -1,17 +1,17 @@
 # Slicing an MMapDirectory clone with read advice after its original is closed throws AssertionError instead of AlreadyClosedException (PosixNativeAccess.madvise wraps the closed-arena IllegalStateException in an Error)
 
-Bug LFV-129 · Area: store / MMapDirectory read advice (PosixNativeAccess madvise, MemorySegmentIndexInput slices of closed inputs) · Priority: low · Impact: wrong error · Novelty: known upstream
+Finding LFV-129 · Area: store / MMapDirectory read advice (PosixNativeAccess madvise, MemorySegmentIndexInput slices of closed inputs) · Priority: low · Impact: wrong error · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You clone an MMapDirectory input, close the original, and then slice the clone with an IOContext whose read advice is RANDOM or SEQUENTIAL (for example with setReadAdvice(ADVISE_BY_CONTEXT) and IOContext.DEFAULT.withHints(DataAccessHint.RANDOM)); like reading from the clone, which throws AlreadyClosedException, this should report that the input is closed. Instead the slice call throws java.lang.AssertionError: java.lang.IllegalStateException: Already closed, because PosixNativeAccess.madvise wraps every Throwable of the native posix_madvise call in an AssertionError before MemorySegmentIndexInput.advise can turn the closed-arena IllegalStateException into AlreadyClosedException. It is an explicit throw, not an assert, so it happens with assertions disabled too; no data is read or written wrongly.
+You clone an MMapDirectory input, close the original, and then slice the clone with an IOContext whose read advice is RANDOM or SEQUENTIAL (for example with setReadAdvice(ADVISE_BY_CONTEXT) and IOContext.DEFAULT.withHints(DataAccessHint.RANDOM)); like reading from the clone, which throws AlreadyClosedException, this should report that the input is closed. Instead the slice call throws java.lang.AssertionError: java.lang.IllegalStateException: Already closed, because PosixNativeAccess.madvise wraps every Throwable of the native posix_madvise call in an AssertionError before MemorySegmentIndexInput.advise() can turn the closed-arena IllegalStateException into AlreadyClosedException. It is an explicit throw, not an assert, so it happens with assertions disabled too; no data is read or written wrongly.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: The slice call throws java.lang.AssertionError: java.lang.IllegalStateException: Already closed, because PosixNativeAccess.madvise wraps every Throwable of the native posix_madvise call in an AssertionError before MemorySegmentIndexInput.advise can turn the closed-arena IllegalStateException into AlreadyClosedException.
+- Actual: The slice call throws java.lang.AssertionError: java.lang.IllegalStateException: Already closed, because PosixNativeAccess.madvise wraps every Throwable of the native posix_madvise call in an AssertionError before MemorySegmentIndexInput.advise() can turn the closed-arena IllegalStateException into AlreadyClosedException.
 
 ## Files
 
@@ -21,7 +21,7 @@ You clone an MMapDirectory input, close the original, and then slice the clone w
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

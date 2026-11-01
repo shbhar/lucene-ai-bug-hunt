@@ -1,14 +1,14 @@
 # A FLOAT or DOUBLE sort on a NUMERIC doc-values field with a skip index and no points silently returns wrong or missing top hits when values have the sign bit set (negative values, or -0.0 with a tie-break sort): skipper pruning compares sortable-encoded bounds with the raw IEEE-bit block min/max
 
-Bug LFV-144 · Area: search / sorting (NumericComparator doc-values-skipper pruning for FLOAT/DOUBLE) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-144 · Area: search / sorting (NumericComparator doc-values-skipper pruning for FLOAT/DOUBLE) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-144.html](../../bugs/LFV-144.html)
+Finding page: [../../bugs/LFV-144.html](../../bugs/LFV-144.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You store float or double values as raw IEEE bits in a single-valued NUMERIC doc-values field with a skip index and no points (for example NumericDocValuesField.indexedField("f", Float.floatToRawIntBits(v)), the layout of Lucene's own skip-index sort test) and sort on it with SortField.Type.FLOAT or DOUBLE. You expect the same hits as on the same values without a skip index, lowest value first. Instead, with 10,000 docs holding 0, -1,..., -9999 and a TermQuery that matches all of them, the ascending top 3 is [-8191, -8190, -8189] instead of [-9999, -9998, -9997] and a descending searchAfter(-9000) returns no hits, because the pruning compares bounds in NumericUtils sortable order with skipper block min/max in raw-bit order, and the two orders disagree for values with the sign bit set.
+You store float or double values as raw IEEE bits in a single-valued NUMERIC doc-values field with a skip index and no points (for example NumericDocValuesField.indexedField("f", Float.floatToRawIntBits(v)), the layout of Lucene's own skip-index sort test) and sort on it with SortField.Type.FLOAT or DOUBLE. You expect the same hits as on the same values without a skip index, lowest value first. Instead, with 10,000 docs holding 0, -1, ..., -9999 and a TermQuery that matches all of them, the ascending top 3 is [-8191, -8190, -8189] instead of [-9999, -9998, -9997] and a descending searchAfter(-9000) returns no hits, because the pruning compares bounds in NumericUtils sortable order with skipper block min/max in raw-bit order, and the two orders disagree for values with the sign bit set.
 
 The test shows that an ascending `SortField.Type.FLOAT` sort on raw-float-bit NUMERIC doc values with a skip index and no points (`NumericDocValuesField.indexedField`) misses the smallest negative values once doc-values-skipper pruning engages (10,000 docs valued 0..-9999, TermQuery).
 
@@ -24,7 +24,7 @@ Expected the top 3 `[-9999.0, -9998.0, -9997.0]`; actual `[-8191.0, -8190.0, -81
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

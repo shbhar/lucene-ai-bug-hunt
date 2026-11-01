@@ -1,8 +1,8 @@
 # When IndexWriter#addBatch rejects a vector part-way through a DENSE vector column, the core HNSW and scalar-quantized vectors writers fall out of step with a flat field writer that keeps the default addDenseValues (new in #16734): the next commit closes the IndexWriter, or with assertions off commits a corrupt HNSW graph or misaligned COSINE quantization state
 
-Bug LFV-579 · Area: codecs / vectors writers (Lucene99HnswVectorsWriter and Lucene104ScalarQuantizedVectorsWriter field writers over a flat field writer; columnar addBatch DENSE vector bulk path) · Priority: low · Impact: data corruption · Novelty: new
+Finding LFV-579 · Area: codecs / vectors writers (Lucene99HnswVectorsWriter and Lucene104ScalarQuantizedVectorsWriter field writers over a flat field writer; columnar addBatch DENSE vector bulk path) · Priority: low · Impact: data corruption · Novelty: new
 
-Bug page: [../../bugs/LFV-579.html](../../bugs/LFV-579.html)
+Finding page: [../../bugs/LFV-579.html](../../bugs/LFV-579.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: commit succeeds and CheckIndex is clean; actual: `AssertionError: Leve
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -46,7 +46,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/upstream-delta-columnar-dense-vector-batch/](../../models/upstream-delta-columnar-dense-vector-batch/)
+Formal models and scripts this finding's part of the hunt used: [../../models/upstream-delta-columnar-dense-vector-batch/](../../models/upstream-delta-columnar-dense-vector-batch/)
 
 ## Feedback
 

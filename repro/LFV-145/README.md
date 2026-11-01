@@ -1,8 +1,8 @@
 # Merging segments of an index sorted by a FLOAT or DOUBLE field misplaces a NaN whose sign bit is set, so the merged segment violates its declared index sort (CheckIndex at level 2 or higher reports it) and sorted searches that terminate early on the index sort return wrong top hits
 
-Bug LFV-145 · Area: index / index sorting at merge time (IndexSorter.FloatSorter/DoubleSorter merge keys, MultiSorter) -> search / TopFieldCollector index-sort early termination · Priority: medium · Impact: data corruption · Novelty: new
+Finding LFV-145 · Area: index / index sorting at merge time (IndexSorter.FloatSorter/DoubleSorter merge keys, MultiSorter) -> search / TopFieldCollector index-sort early termination · Priority: medium · Impact: data corruption · Novelty: new
 
-Bug page: [../../bugs/LFV-145.html](../../bugs/LFV-145.html)
+Finding page: [../../bugs/LFV-145.html](../../bugs/LFV-145.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected the merged order `[NaN, 3.0, 2.0, 1.0, 0.5]` (Float.compare, as at flus
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

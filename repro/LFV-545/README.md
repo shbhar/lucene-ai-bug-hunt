@@ -1,8 +1,8 @@
 # SimplePatternTokenizer and SimplePatternSplitTokenizer restart a failed match one UTF-16 unit after a supplementary start character, so they can emit tokens that start or end inside a surrogate pair
 
-Bug LFV-545 · Area: analysis / pattern tokenizers (analysis-common: SimplePatternTokenizer, SimplePatternSplitTokenizer and their simplePattern / simplePatternSplit factories) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-545 · Area: analysis / pattern tokenizers (analysis-common: SimplePatternTokenizer, SimplePatternSplitTokenizer and their simplePattern / simplePatternSplit factories) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-545.html](../../bugs/LFV-545.html)
+Finding page: [../../bugs/LFV-545.html](../../bugs/LFV-545.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected `[x]` at [3,4) for `E[0-9]+|[^E ]+` on `E x`, and `[Eb]` at [0,3) for t
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 2 test(s) run, 2 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

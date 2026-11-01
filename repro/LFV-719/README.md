@@ -1,8 +1,8 @@
 # ICUTokenizerFactory keeps the UTF-8 byte order mark at the start of a custom per-script rule file (rulefiles) as rule text, so the file either fails with a misleading ICU syntax error or loads without error and the tokenizer then emits no tokens for that script (every release since 4.1.0)
 
-Bug LFV-719 · Area: analysis / ICU (ICUTokenizerFactory per-script rule files: rulefiles, parseRules) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-719 · Area: analysis / ICU (ICUTokenizerFactory per-script rule files: rulefiles, parseRules) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-719.html](../../bugs/LFV-719.html)
+Finding page: [../../bugs/LFV-719.html](../../bugs/LFV-719.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected `[ab cd]` for `ab cd` (as without the BOM); actual `[]` (`expected:<[ab
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

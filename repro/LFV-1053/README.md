@@ -1,8 +1,8 @@
 # ICUCollationKeyAnalyzer does not override attributeFactory(String), so Analyzer.normalize returns the plain UTF-8 bytes instead of the ICU collation key, and classic QueryParser range queries on an ICU collation-key field match the wrong documents
 
-Bug LFV-1053 · Area: analysis-icu / collation (ICUCollationKeyAnalyzer vs Analyzer#normalize; classic QueryParser range bounds) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-1053 · Area: analysis-icu / collation (ICUCollationKeyAnalyzer vs Analyzer#normalize; classic QueryParser range bounds) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-1053.html](../../bugs/LFV-1053.html)
+Finding page: [../../bugs/LFV-1053.html](../../bugs/LFV-1053.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ You index the values a, b, c, d and e in a TextField analyzed with new ICUCollat
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -51,7 +51,7 @@ The module(s) analysis-icu, facet also need their third-party runtime jars; `./g
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-## Files shown on the bug page
+## Files shown on the finding page
 
 - [TestICUCollationKeyAnalyzerRange.java](TestICUCollationKeyAnalyzerRange.java)
 

@@ -1,14 +1,14 @@
 # FSTCompletionLookup sorts weights as unsigned bytes, so negative weights get the highest buckets and are suggested before positive ones
 
-Bug LFV-479 · Area: suggest / FST completion suggester (FSTCompletionLookup.build weight bucketing) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-479 · Area: suggest / FST completion suggester (FSTCompletionLookup.build weight bucketing) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-479.html](../../bugs/LFV-479.html)
+Finding page: [../../bugs/LFV-479.html](../../bugs/LFV-479.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build an FSTCompletionLookup from two suggestions, apple with weight 10 and apricot with weight -10, and ask lookup("ap", true, 2) for the best completions first. You expect apple first, because the class javadoc says buckets come from 'sorting the input by weight', InputIterator says 'higher numbers mean better suggestions', and encodeWeight accepts every int. Instead you get [apricot/5, apple/0], with no error: build sorts the weights by their unsigned big-endian bytes, where every negative int (first byte 0x80 or above) comes after every non-negative int, so all negative weights land in the highest buckets and are suggested first.
+You build an FSTCompletionLookup from two suggestions, apple with weight 10 and apricot with weight -10, and ask lookup("ap", true, 2) for the best completions first. You expect apple first, because the class javadoc says buckets come from 'sorting the input by weight', InputIterator says 'higher numbers mean better suggestions', and encodeWeight accepts every int. Instead you get [apricot/5, apple/0], with no error: build() sorts the weights by their unsigned big-endian bytes, where every negative int (first byte 0x80 or above) comes after every non-negative int, so all negative weights land in the highest buckets and are suggested first.
 
 The test shows that `FSTCompletionLookup` sorts weights as unsigned bytes, so a negative weight lands in the highest bucket and is suggested before a positive one.
 
@@ -24,7 +24,7 @@ Expected `apple` (weight 10) before `apricot` (weight -10) for `lookup("ap", tru
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

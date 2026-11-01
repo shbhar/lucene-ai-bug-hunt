@@ -1,12 +1,12 @@
-# CachingCollector and CachingCollectorManager report isCached true (no overflow) but hold only the hits their wrapped first-pass collector let through (TOP_SCORES pruning, early leaf termination, skipped leaves), so replay silently feeds the second pass fewer matches than re-running the query
+# CachingCollector and CachingCollectorManager report isCached() true (no overflow) but hold only the hits their wrapped first-pass collector let through (TOP_SCORES pruning, early leaf termination, skipped leaves), so replay() silently feeds the second pass fewer matches than re-running the query
 
-Bug LFV-161 · Area: search / CachingCollector first-pass caching (CachingCollector, CachingCollectorManager) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-161 · Area: search / CachingCollector first-pass caching (CachingCollector, CachingCollectorManager) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You run a query once through a CachingCollector or CachingCollectorManager that wraps a first-pass collector, see isCached return true (the cache did not overflow), and replay the cached hits into a second collector, expecting the same result as running that collector on the query, which is what the javadocs and the grouping docs offer ('without re-running the query', 'hold all hits'). Instead the cache holds only the hits the first-pass collector let through: TopScoreDocCollectorManager(10, 1000), the IndexSearcher#search(Query, int) default, prunes non-competitive hits (even when the score-caching variant tells the searcher it needs COMPLETE), an index-order TopFieldCollector stops each segment early, and TotalHitCountCollector skips whole segments it can count from index statistics. In the repro, replaying into a hit counter sees 1001, 2 and 0 of 5000 matching documents, with no error.
+You run a query once through a CachingCollector or CachingCollectorManager that wraps a first-pass collector, see isCached() return true (the cache did not overflow), and replay the cached hits into a second collector, expecting the same result as running that collector on the query, which is what the javadocs and the grouping docs offer ('without re-running the query', 'hold all hits'). Instead the cache holds only the hits the first-pass collector let through: TopScoreDocCollectorManager(10, 1000), the IndexSearcher#search(Query, int) default, prunes non-competitive hits (even when the score-caching variant tells the searcher it needs COMPLETE), an index-order TopFieldCollector stops each segment early, and TotalHitCountCollector skips whole segments it can count from index statistics. In the repro, replaying into a hit counter sees 1001, 2 and 0 of 5000 matching documents, with no error.
 
 ## Expected vs actual
 
@@ -22,7 +22,7 @@ You run a query once through a CachingCollector or CachingCollectorManager that 
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

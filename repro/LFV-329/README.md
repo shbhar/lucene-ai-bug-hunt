@@ -1,12 +1,14 @@
-# DoubleValuesSourceRescorer and LateInteractionRescorer throw NoSuchElementException instead of returning no hits when the searcher's reader has no segments: rescore takes leaves.getFirst before it looks at the hits
+# DoubleValuesSourceRescorer and LateInteractionRescorer throw NoSuchElementException instead of returning no hits when the searcher's reader has no segments: rescore() takes leaves().getFirst() before it looks at the hits
 
-Bug LFV-329 · Area: search / rescoring · Priority: low · Impact: crash · Novelty: new
+Finding LFV-329 · Area: search / rescoring · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-329.html](../../bugs/LFV-329.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You search an index that has no segments yet (for example a freshly created or emptied index, or an empty shard), get the expected 0 hits, and pass them to a DoubleValuesSourceRescorer or LateInteractionRescorer. You expect 0 rescored hits, which is what QueryRescorer and SortRescorer return for the same input. Instead rescore throws java.util.NoSuchElementException, because it takes the reader's first segment with leaves.getFirst before it looks at the hits, and there is no first segment.
+You search an index that has no segments yet (for example a freshly created or emptied index, or an empty shard), get the expected 0 hits, and pass them to a DoubleValuesSourceRescorer or LateInteractionRescorer. You expect 0 rescored hits, which is what QueryRescorer and SortRescorer return for the same input. Instead rescore() throws java.util.NoSuchElementException, because it takes the reader's first segment with leaves().getFirst() before it looks at the hits, and there is no first segment.
 
 The test shows that `DoubleValuesSourceRescorer.rescore` on a searcher whose reader has no segments (here an empty `MultiReader`, same as a fresh empty index) throws instead of returning the 0 first-pass hits.
 
@@ -22,7 +24,7 @@ Expected: 0 rescored hits, as QueryRescorer returns; actual (-ea and -da): `java
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

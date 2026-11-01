@@ -1,6 +1,6 @@
 # IndriAndQuery does not rewrite its clauses, so a PrefixQuery, WildcardQuery, FuzzyQuery or other rewrite-only clause makes search, count and explain throw UnsupportedOperationException
 
-Bug LFV-299 · Area: search / IndriAndQuery (composite query clause rewriting) · Priority: low · Impact: crash · Novelty: known upstream
+Finding LFV-299 · Area: search / IndriAndQuery (composite query clause rewriting) · Priority: low · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You build an IndriAndQuery from ordinary clauses, for example a TermQuery and th
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

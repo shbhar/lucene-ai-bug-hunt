@@ -1,14 +1,14 @@
-# BinaryPoint.newExactQuery and the one-dimensional newRangeQuery keep the caller's byte as the query bounds (BinaryPoint.pack returns the caller's array for one dimension), while the same factory packs a private copy for two or more dimensions, so a caller that refills its buffer silently changes queries it already built
+# BinaryPoint.newExactQuery and the one-dimensional newRangeQuery keep the caller's byte[] as the query bounds (BinaryPoint.pack returns the caller's array for one dimension), while the same factory packs a private copy for two or more dimensions, so a caller that refills its buffer silently changes queries it already built
 
-Bug LFV-751 · Area: document / point query factories (BinaryPoint, PointRangeQuery) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-751 · Area: document / point query factories (BinaryPoint, PointRangeQuery) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-751.html](../../bugs/LFV-751.html)
+Finding page: [../../bugs/LFV-751.html](../../bugs/LFV-751.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You write a one-dimensional binary key into a scratch byte, build BinaryPoint.newExactQuery(field, scratch), write the next key into the same array, build a second query and OR the two; you expect each query to match the key it was built for, as BinaryPoint's two-dimension range queries and its one-value newSetQuery do. Instead both queries now mean the second key (they compare equal and print the same bounds) and the OR finds 1 document instead of 2; likewise a one-dimensional newRangeQuery whose lo/hi arrays the caller overwrites afterwards matches 0 documents instead of the range it was built for. BinaryPoint.pack returns new BytesRef(point[0]), a wrapper over the caller's array, when there is one dimension, and PointRangeQuery stores that array as its bounds, so matching, equals, hashCode and toString read whatever the caller's array holds at the time.
+You write a one-dimensional binary key into a scratch byte[], build BinaryPoint.newExactQuery(field, scratch), write the next key into the same array, build a second query and OR the two; you expect each query to match the key it was built for, as BinaryPoint's two-dimension range queries and its one-value newSetQuery do. Instead both queries now mean the second key (they compare equal and print the same bounds) and the OR finds 1 document instead of 2; likewise a one-dimensional newRangeQuery whose lo/hi arrays the caller overwrites afterwards matches 0 documents instead of the range it was built for. BinaryPoint.pack returns new BytesRef(point[0]), a wrapper over the caller's array, when there is one dimension, and PointRangeQuery stores that array as its bounds, so matching, equals, hashCode and toString read whatever the caller's array holds at the time.
 
 The test shows that `BinaryPoint.newExactQuery` on a one-dimensional field keeps the caller's `byte[]` as its bounds, so writing into that array after building the query changes what the query matches.
 
@@ -24,7 +24,7 @@ Expected 1 hit (the query was built for value {1}, which the only document holds
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

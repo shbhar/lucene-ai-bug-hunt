@@ -1,12 +1,12 @@
-# HnswGraph.DenseNodesIterator.consume (the level-0 node iterator of every HNSW graph) does not advance its cursor, so draining level 0 in chunks with consume returns the first chunk forever and a nextInt after consume starts again at node 0 (latent: Lucene itself never calls consume on level 0)
+# HnswGraph.DenseNodesIterator.consume() (the level-0 node iterator of every HNSW graph) does not advance its cursor, so draining level 0 in chunks with consume() returns the first chunk forever and a nextInt() after consume() starts again at node 0 (latent: Lucene itself never calls consume() on level 0)
 
-Bug LFV-159 · Area: util / HNSW graph node iterators (HnswGraph.NodesIterator, DenseNodesIterator) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-159 · Area: util / HNSW graph node iterators (HnswGraph.NodesIterator, DenseNodesIterator) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You take the level-0 node iterator of an HNSW graph (getNodesOnLevel(0), a DenseNodesIterator over the node ids [0, size)) and read it in chunks with consume(buf), expecting each call to hand out the next block of ids, as the javadoc ('Consume integers from the iterator') and the two sibling iterator classes do. Instead DenseNodesIterator.consume copies the block but never moves its cursor, so every call returns the same first block, hasNext stays true and the loop never ends; a nextInt after consume also starts again at 0. Lucene's own code never calls consume on level 0, so indexes and search results are not affected.
+You take the level-0 node iterator of an HNSW graph (getNodesOnLevel(0), a DenseNodesIterator over the node ids [0, size)) and read it in chunks with consume(buf), expecting each call to hand out the next block of ids, as the javadoc ('Consume integers from the iterator') and the two sibling iterator classes do. Instead DenseNodesIterator.consume copies the block but never moves its cursor, so every call returns the same first block, hasNext() stays true and the loop never ends; a nextInt() after consume() also starts again at 0. Lucene's own code never calls consume() on level 0, so indexes and search results are not affected.
 
 The test shows that `HnswGraph.DenseNodesIterator.consume()` (the level-0 node iterator) does not advance its cursor, so a second `consume()` returns the first chunk again.
 
@@ -22,7 +22,7 @@ Expected the second chunk of `new DenseNodesIterator(4)` read into an `int[2]` t
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,6 +1,6 @@
 # The kNN visitedLimit javadoc (LeafReader#searchNearestVectors, TopKnnCollector, KnnCollectorManager, TopKnnCollectorManager, HnswGraphSearcher) calls it 'the maximum number of nodes that the search is allowed to visit', but since 10.3/10.4 batched scoring deliberately treats it as a best-effort limit that a search can exceed (javadoc only; the code behaviour is intended upstream)
 
-Bug LFV-149 · Area: search / kNN visit limit (visitedLimit javadoc on LeafReader, TopKnnCollector and the kNN collector managers; HNSW and exhaustive vector search) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-149 · Area: search / kNN visit limit (visitedLimit javadoc on LeafReader, TopKnnCollector and the kNN collector managers; HNSW and exhaustive vector search) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -11,7 +11,7 @@ You call LeafReader#searchNearestVectors (or KnnVectorsReader#search with a TopK
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -22,7 +22,7 @@ You call LeafReader#searchNearestVectors (or KnnVectorsReader#search with a TopK
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

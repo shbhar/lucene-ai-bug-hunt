@@ -1,18 +1,20 @@
-# Polygon.fromGeoJSON throws NullPointerException instead of its own ParseException 'coordinates should be an array, but got:...' when "coordinates" (or an element of a MultiPolygon's coordinates) is JSON null or an object, because the error message calls o.getClass on the null the parser uses for those values (every release since 6.2.0)
+# Polygon.fromGeoJSON throws NullPointerException instead of its own ParseException 'coordinates should be an array, but got: ...' when "coordinates" (or an element of a MultiPolygon's coordinates) is JSON null or an object, because the error message calls o.getClass() on the null the parser uses for those values (every release since 6.2.0)
 
-Bug LFV-953 · Area: core / geo GeoJSON parsing (Polygon.fromGeoJSON, SimpleGeoJSONPolygonParser) · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-953 · Area: core / geo GeoJSON parsing (Polygon.fromGeoJSON, SimpleGeoJSONPolygonParser) · Priority: low · Impact: wrong error · Novelty: new
+
+Finding page: [../../bugs/LFV-953.html](../../bugs/LFV-953.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You call Polygon.fromGeoJSON on a GeoJSON Polygon whose "coordinates" is null or an object, such as {"type":"Polygon","coordinates":null}, or on a MultiPolygon with an object element, {"type":"MultiPolygon","coordinates":[{}]}, and expect the ParseException that the parser has an explicit check for ('coordinates should be an array, but got:...', 'elements of coordinates array should be an array, but got:...'), as you get when coordinates is a string, a number or a boolean. Instead java.lang.NullPointerException ('Cannot invoke "Object.getClass" because "o" is null') escapes, because SimpleGeoJSONPolygonParser stores JSON null and nested objects as Java null and both checks build their message with + o.getClass. Every other type check in the class builds its message with + o, which is null-safe.
+You call Polygon.fromGeoJSON on a GeoJSON Polygon whose "coordinates" is null or an object, such as {"type":"Polygon","coordinates":null}, or on a MultiPolygon with an object element, {"type":"MultiPolygon","coordinates":[{}]}, and expect the ParseException that the parser has an explicit check for ('coordinates should be an array, but got: ...', 'elements of coordinates array should be an array, but got: ...'), as you get when coordinates is a string, a number or a boolean. Instead java.lang.NullPointerException ('Cannot invoke "Object.getClass()" because "o" is null') escapes, because SimpleGeoJSONPolygonParser stores JSON null and nested objects as Java null and both checks build their message with + o.getClass(). Every other type check in the class builds its message with + o, which is null-safe.
 
 The test shows that `Polygon.fromGeoJSON` throws `NullPointerException` instead of its own `ParseException` when `"coordinates"` is JSON null (`{"type":"Polygon","coordinates":null}`) or a MultiPolygon element is an object (`[{}]`): both 'should be an array, but got: ' messages call `o.getClass()` on the null the parser stores for null/object values.
 
 ## Expected vs actual
 
-Expected `ParseException` (as for a string value). Actual: `NullPointerException: Cannot invoke "Object.getClass()" because "o" is null` (SimpleGeoJSONPolygonParser.java:208, and:90 for the MultiPolygon line).
+Expected `ParseException` (as for a string value). Actual: `NullPointerException: Cannot invoke "Object.getClass()" because "o" is null` (SimpleGeoJSONPolygonParser.java:208, and :90 for the MultiPolygon line).
 
 ## Files
 
@@ -22,7 +24,7 @@ Expected `ParseException` (as for a string value). Actual: `NullPointerException
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

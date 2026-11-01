@@ -1,6 +1,6 @@
 # Kuromoji UserDictionary loads entries whose whitespace makes the stored segment lengths disagree with the surface form (a half-width space inside the surface, a tab between segments, a space after a comma), so JapaneseTokenizer later emits a term that starts with a space and drops the entry's last character, throws ArrayIndexOutOfBoundsException, or emits an empty token
 
-Bug LFV-656 · Area: analysis / kuromoji user dictionary (ja.dict.UserDictionary entry validation; USER-token expansion in ViterbiNBest and JapaneseTokenizer.incrementToken) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-656 · Area: analysis / kuromoji user dictionary (ja.dict.UserDictionary entry validation; USER-token expansion in ViterbiNBest and JapaneseTokenizer.incrementToken) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You add the entry 'ソニー ミュージック,ソニー ミュージック,ソ
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

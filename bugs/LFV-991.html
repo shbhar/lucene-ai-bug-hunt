@@ -1,0 +1,448 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>On main, LRUQueryCache.clear() can wipe the statistics of an entry that stays cached</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.triage{margin:var(--s4) 0 0;padding:var(--s2) var(--s4);border-left:3px solid var(--info);background:var(--panel);
+max-width:var(--measure)}
+.triage p{margin:0;font-size:var(--step--1);line-height:1.5}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the finding in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All findings</a> &middot; Lucene finding &middot; LFV-991 &middot; lruquerycache-clear-not-atomic-with-concurrent-inserts</p><h1 id='top'>On main, LRUQueryCache.clear() can wipe the statistics of an entry that stays cached</h1><p class='tldr'>On main, <code>LRUQueryCache.clear()</code> calls <code class='nw'>onClear()</code> only after emptying its partitions, with no lock held, so an entry cached in between survives while a subclass that resets its statistics in <code class='nw'>onClear()</code> forgets it: it reports 0 entries for a cache holding 1, and -1 after eviction. No release is affected.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 642</span><span class='sub'>An unreleased main-only LRUQueryCache regression that only skews a subclass&#x27;s own statistics when clear() races with searches while cache contents stay correct, so it follows the broader main-only query-cache row LFV-054.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>minor</span></dd></div><div><dt>Since</dt><dd>main only, since #15558 (merged 2026-04-14)<span class='sub'>introduced 2026-04-14</span></dd></div><div><dt>Affected</dt><dd>main and branch_11x (11.0, unreleased); no release</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div class='wide'><dt>Found by</dt><dd>non-formal: an executed interleaving probe; a TLA+ model (TLC) widened it</dd></div></dl><p class='ai-note'>AI-assisted page: this finding was first signalled by code reading or testing and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-11-01.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All findings</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The finding in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>A statistics bug on main: search results and the cache itself stay correct, but the statistics a subclass keeps through the cache's callbacks drift.</p><div class='part' id='background'><div class="hd hd-3"><h3 id='background-h'>Background: the query cache and its statistics callbacks</h3><a class="hlink" href="#background" target="_self" aria-label="Link to this section" aria-describedby="background-h"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span><code class='nw'>LRUQueryCache</code> caches the documents that a filter clause matches, per segment. Its own counters, <code class='nw'>getCacheSize()</code> and <code class='nw'>ramBytesUsed()</code>, are totals for the whole cache.</span></li><li><span>For finer statistics (per index, per query type) its javadoc says to override callbacks: <code>onCacheEntryInserted</code> and <code>onCacheEntryEvicted</code> fire per entry, and <code class='nw'>onClear()</code> fires when the cache is completely cleared, so a subclass resets its numbers there.</span></li><li><span>On main (since #15558, in no release) the cache is split into partitions, 16 by default, each with its own lock, instead of one lock for the whole cache.</span></li></ol></div><figure class='visual' id='lruquerycache-clear-not-atomic-with-concurrent-inserts-short-visual'><div class='frame'><a class='still' href='../assets/LFV-991/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-991/bug.png' alt='Diagram of the bug on Lucene main: a clear() thread and a search thread over one cache partition. clear() empties the partition and releases its lock; before clear() calls onClear(), the search caches the filter f:t and the subclass&#x27;s callback count becomes 1; then onClear() resets the count to 0. Afterwards getCacheSize() is 1 but the subclass reports 0. On 10.x the search cannot cache while clear() holds the cache&#x27;s lock.' width='1920' height='1080'></a></div><figcaption>One <code class='nw'>clear()</code> and one search on main, step by step: the partition is emptied and its lock released, the search caches <code class='nw'>f:t</code> and the subclass counts it, then <code class='nw'>onClear()</code> resets the count to 0 while the cache still holds the entry. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><div class="hd hd-3"><h3 id='the-bug-step-by-step'>The finding, step by step</h3><a class="hlink" href="#the-bug-step-by-step" target="_self" aria-label="Link to this section" aria-describedby="the-bug-step-by-step"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span>You subclass <code class='nw'>LRUQueryCache</code> to keep statistics, as its javadoc suggests: +1 in <code>onCacheEntryInserted</code>, -1 in <code>onCacheEntryEvicted</code>, reset to 0 in <code class='nw'>onClear()</code>. One thread calls <code class='nw'>clear()</code> while another thread's search caches the filter <code class='nw'>f:t</code>.</span></li><li><span>You expect your count to match <code class='nw'>getCacheSize()</code> afterwards: the entry was either cached before the clear (and is gone) or after it (and is counted). On 10.x that always holds: <code class='nw'>clear()</code> calls <code class='nw'>onClear()</code> under the lock every insertion takes.</span></li><li><span>On main, <code class='nw'>clear()</code> empties the partition, releases its lock, and only then calls <code class='nw'>onClear()</code>. The search caches <code class='nw'>f:t</code> in that gap (your count: 1), and <code class='nw'>onClear()</code> resets your count to 0.</span></li><li><span>Result: <code class='nw'>getCacheSize()</code> is 1 but your count is 0. Once that entry is evicted, your count goes to -1 (a longer test that also counts bytes reports -336 bytes against the cache's 0). It stays wrong until the next <code class='nw'>clear()</code>; search results and the cache's own counters are correct.</span></li><li><span>With the default 16 partitions the same happens when a search caches into a partition that <code class='nw'>clear()</code> has already passed while it is still clearing later ones.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Only main and branch_11x (the coming 11.0). It takes an application-installed <code class='nw'>LRUQueryCache</code> subclass that keeps statistics through the callbacks and resets them in <code class='nw'>onClear()</code>, and a <code class='nw'>clear()</code> while searches run, for example an admin "clear cache" action. Search results, the memory bound and the cache's own counts stay correct; the subclass's numbers stay wrong until the next <code class='nw'>clear()</code>.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>678 words</span></summary><div class='body'><p><code class='nw'>LRUQueryCache</code> invites subclasses to keep per-index or per-query statistics through callbacks: count in <code>onCacheEntryInserted</code> / <code>onCacheEntryEvicted</code>, reset in <code class='nw'>onClear()</code>, the "callback when the cache is completely cleared"; its javadoc says these callbacks "are called synchronously and under a lock". On main, #15558 split the cache into partitions with one lock each, and <code class='nw'>clear()</code> now empties the partitions one at a time and calls <code class='nw'>onClear()</code> afterwards with no lock held. A search that caches an entry into an already emptied partition, or after the loop and before the subclass's <code class='nw'>onClear()</code> has reset its statistics, is counted by the subclass and then wiped by that reset, while the entry stays cached.</p><p>The subclass then reports 0 entries and 0 bytes for a cache that holds 1 entry of 336 bytes, and -1 / -336 once that entry is evicted, until the next <code class='nw'>clear()</code>. Search results, the memory bound, and <code class='nw'>getCacheSize()</code> / <code class='nw'>ramBytesUsed()</code> once the threads are done stay correct. Every release, 10.6.0 included, runs <code class='nw'>clear()</code> and <code class='nw'>onClear()</code> under the lock every insertion takes, so only main and branch_11x (the coming 11.0) are affected.</p><div class="hd hd-3"><h3 id='what-the-bug-is-the-mechanism-main-645d4fe14a20'>The mechanism (main <code class='nw'>645d4fe14a20</code>)</h3><a class="hlink" href="#what-the-bug-is-the-mechanism-main-645d4fe14a20" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-mechanism-main-645d4fe14a20"><span aria-hidden="true">#</span></a></div><pre><code>// LRUQueryCache.java:457-463
+/** Clear the content of this cache. */
+public void clear() {
+  for (int i = 0; i &lt; this.numberOfPartitions; i++) {
+    this.lruQueryCachePartition[i].clear();   // :1191-1203, that partition&#x27;s write lock only
+  }
+  onClear();                                  // the subclass hook: no lock held
+}</code></pre><ol><li>A query goes to partition <code>query.hashCode() &amp; (numberOfPartitions - 1)</code> (<code class='nw'>:437</code>); each partition has its own read-write lock (<code class='nw'>:956-959</code>). An insertion takes only its partition's write lock and fires <code>onCacheEntryInserted</code> under it (<code class='nw'>putIfAbsent</code>, <code class='nw'>:1100-1131</code>). On main a search waits for a busy lock (<code class='nw'>get()</code>, <code class='nw'>:1064</code>); nothing skips the cache.</li><li><code class='nw'>clear()</code> releases each partition's lock as soon as that partition is empty, so two windows open: partitions already passed accept new entries while later ones are being cleared, and after the loop every partition accepts new entries until the subclass's <code class='nw'>onClear()</code> has reset its statistics (before <code class='nw'>onClear()</code> is called, and while it runs, since it holds no lock).</li><li>An insertion in either window is counted by the subclass, then wiped by its reset in <code class='nw'>onClear()</code>, while the entry stays cached. The callback history "insert(q), then clear" with q still cached matches no serial order of the two operations.</li><li><code class='nw'>getCacheSize()</code> and <code class='nw'>ramBytesUsed()</code> sum the partitions' own counters (<code class='nw'>:730-736</code>, <code class='nw'>:563-569</code>). The partition's own <code class='nw'>onClear()</code> still asserts the write lock that insertions take before it resets them (<code class='nw'>:1139-1143</code>), so the cache's counts are right once the threads are done (the getters sum the partitions without a lock); only the subclass hook lost the lock.</li><li>A subclass cannot repair it: <code class='nw'>clear()</code> reports no per-entry evictions (neither does 10.x), and <code class='nw'>onClear()</code> says nothing about partitions or entries. Serializing its own callbacks with <code class='nw'>clear()</code> does not work either: a private lock held around <code class='nw'>super.clear()</code> and taken in every ledger callback deadlocks, because the callbacks run under a partition write lock that <code class='nw'>super.clear()</code> then needs (executed: a forced schedule with one partition and a latch-free run with 16 partitions both deadlock, assertions on and off).</li><li>On every release, 5.1.0 to 10.6.0, <code class='nw'>clear()</code> runs <code class='nw'>cache.clear()</code> and <code class='nw'>onClear()</code> under the one lock every insertion takes (10.5.2 and 10.6.0 <code>LRUQueryCache.java:415-426</code>), and from 6.1.0 on a search that finds it busy skips the cache (<code class='nw'>lock.tryLock()</code> in 6.1.0-9.10.0, <code>readLock.tryLock()</code> from 9.11.0, 10.5.2 <code class='nw'>:821</code>); in 5.1.0-6.0.1 the cache is <code class='nw'>synchronized</code> and a search waits.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><ul><li>Minimal test (one partition, main <code class='nw'>645d4fe14a20</code>): <code class='nw'>getCacheSize()</code> 1, subclass count 0, with assertions on and off.</li><li>The finder's longer test (main <code class='nw'>a9779ef3c193</code>, identical <code>LRUQueryCache.java</code>): "after clear() returned, subclass stats entries=0 bytes=0 but getCacheSize()=1 ramBytesUsed()=336; after evicting the survivor, subclass stats entries=-1 bytes=-336", both for an insertion just before <code class='nw'>onClear()</code> and for one into an already cleared partition (16 partitions).</li><li>A TLA+ model of the partitioned cache (TLC) finds the violation with 2 partitions (17-state trace) and with 1; the 10.x single lock (853,774 distinct states) and the cache without <code class='nw'>clear()</code> (1,237,688) are clean.</li></ul></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>211 words</span></summary><div class='body'><ul><li><strong>Who.</strong> Main and branch_11x only. Caching is disabled by default on main (<code>IndexSearcher.java:82-84</code>, #14187), so it takes an application that installs its own <code class='nw'>LRUQueryCache</code> subclass keeping statistics through the callbacks and resetting them in <code class='nw'>onClear()</code> (the pattern the class javadoc suggests and upstream's <code>testFineGrainedStats</code> uses), and that calls <code class='nw'>clear()</code> while searches run.</li><li><strong>What goes wrong.</strong> The subclass undercounts the entries and bytes that survive the clear, goes negative once they are evicted, and stays wrong until the next <code class='nw'>clear()</code>. Each entry cached in the window that is still cached after the reset is one entry the subclass no longer counts. No exception, no assertion.</li><li><strong>Not affected.</strong> Search results; the cache's own <code class='nw'>getCacheSize()</code> and <code class='nw'>ramBytesUsed()</code> once the threads are done; the memory bound (eviction uses the partitions' own counters, <code>requiresEviction()</code>, <code>LRUQueryCache.java:1214-1221</code>); every release.</li><li><strong>How likely: plausible.</strong> Without any latch, harnesses with 3 search threads (2 in the cross-model review's) and one thread calling <code class='nw'>clear()</code> 5 times per round ended with a mismatch in 4 of 300 (assertions off) and 7 of 300 (on) rounds (finder), 132-140 of 300, 2 of 500 and 18-29 of 1,000 (history step); 0 without <code class='nw'>clear()</code>, and 0 on 10.5.2 and 10.6. The rates depend on the harness and the machine load.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>The test shows that on main, <code>LRUQueryCache.clear()</code> (1 partition) releases the partition lock before it calls <code class='nw'>onClear()</code>, so an entry a search caches in that window stays cached while a subclass that counts entries in <code>onCacheEntryInserted</code> and resets in <code class='nw'>onClear()</code> drops it.</p><figure class='code'><figcaption><span class='fname'>TestLRUQueryCacheClearOnClear.java (JUnit test)</span><span class='meta'>87 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search;
+
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+public class TestLRUQueryCacheClearOnClear extends LuceneTestCase {
+
+  public void testInsertBeforeOnClearIsNotLost() throws Exception {
+    try (Directory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+        Document doc = new Document();
+        doc.add(new StringField(&quot;f&quot;, &quot;t&quot;, Field.Store.NO));
+        w.addDocument(doc);
+      }
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        AtomicLong entries = new AtomicLong();
+        CountDownLatch inOnClear = new CountDownLatch(1);
+        CountDownLatch inserted = new CountDownLatch(1);
+        LRUQueryCache cache =
+            new LRUQueryCache(10, 1 &lt;&lt; 20, context -&gt; true, 1f, 1, null) {
+              @Override
+              protected void onCacheEntryInserted(Object coreKey, Query query, long ramBytesUsed) {
+                entries.incrementAndGet();
+              }
+
+              @Override
+              protected void onClear() {
+                inOnClear.countDown();
+                try {
+                  inserted.await(10, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                  throw new AssertionError(e);
+                }
+                entries.set(0);
+              }
+            };
+        IndexSearcher searcher = new IndexSearcher(reader);
+        searcher.setQueryCache(cache);
+        searcher.setQueryCachingPolicy(
+            new QueryCachingPolicy() {
+              @Override
+              public void onUse(Query query) {}
+
+              @Override
+              public boolean shouldCache(Query query) {
+                return true;
+              }
+            });
+        Thread clearer = new Thread(cache::clear);
+        clearer.start();
+        inOnClear.await();
+        searcher.search(new ConstantScoreQuery(new TermQuery(new Term(&quot;f&quot;, &quot;t&quot;))), 1);
+        inserted.countDown();
+        clearer.join();
+        // expected: 1, the entry cached before onClear() is still cached; actual: 0
+        assertEquals(&quot;callback entry count&quot;, cache.getCacheSize(), entries.get());
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code># in a copy of this finding&#x27;s repro folder (repro/LFV-991/, which holds src/)
+# Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
+LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
+CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
+CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
+CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
+CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
+CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
+
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
+
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.search.TestLRUQueryCacheClearOnClear
+</code></pre></figure><dl class='outcome'><div><dt>Expected vs actual</dt><dd>Expected: callback count 1 = <code class='nw'>getCacheSize()</code>. Actual: 0 for a cache holding 1 entry, <code>expected:&lt;1&gt; but was:&lt;0&gt;</code>, with -ea and -da.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-991/'>repro/LFV-991/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>36 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>Lucene main 645d4fe14a20 (2026-10-28)</code></td></tr><tr><th scope='row'>jdk</th><td><code class='nw'>25.0.3+9-LTS</code></td></tr></tbody></table></div><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># Lucene main 645d4fe14a20, assertions on (-ea), seed DEADBEEF: 1 test(s) run, 1 failed
+    =&gt; java.lang.AssertionError: callback entry count expected:&lt;1&gt; but was:&lt;0&gt;
+       org.junit.Assert.fail(Assert.java:89)
+       org.junit.Assert.failNotEquals(Assert.java:835)
+       org.junit.Assert.assertEquals(Assert.java:647)
+       org.apache.lucene.search.TestLRUQueryCacheClearOnClear.testInsertBeforeOnClearIsNotLost(TestLRUQueryCacheClearOnClear.java:83)</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it looks unintended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The class javadoc offers these callbacks for per-index statistics and says they are "called synchronously and under a lock"; on main <code class='nw'>onClear()</code> runs under none.</li><li>Lucene's own partition <code class='nw'>onClear()</code> still resets under the insertion lock, and upstream's <code>testFineGrainedStats</code> keeps exactly this ledger.</li><li>Every release keeps <code class='nw'>clear()</code> and inserts mutually exclusive; nothing announces the change.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>274 words</span></summary><div class='body'><ul><li><strong>The callbacks exist for this.</strong> "In case you would like to have more fine-grained statistics, such as per-index or per-query-class statistics, it is possible to override various callbacks: ... and {@link #onClear}. ... they are called synchronously and under a lock." (<code>LRUQueryCache.java:88-101</code>). The sentence dates from LUCENE-6157 ("Add the ability to compute finer-grained stats on the LRU filter cache", Adrien Grand, 2015); on main it is false for <code class='nw'>onClear()</code>.</li><li><strong>Lucene's own code still relies on the lock.</strong> The partition's <code class='nw'>onClear()</code> asserts the write lock insertions take before it resets its counters (<code class='nw'>:1139-1143</code>).</li><li><strong>Upstream's test keeps exactly this ledger.</strong> <code>testFineGrainedStats</code> counts in <code class='nw'>onDocIdSetCache</code> / <code>onDocIdSetEviction</code>, resets in <code class='nw'>onClear()</code> and asserts the count equals <code class='nw'>getCacheSize()</code> (<code>TestLRUQueryCache.java:954-1130</code>, sequential); <code class='nw'>testConcurrency</code> calls <code class='nw'>clear()</code> while searches run (<code class='nw'>:114</code>, <code class='nw'>:155</code>). The class is "thread-safe" (<code class='nw'>:64</code>).</li><li><strong>Nothing announces a change.</strong> CHANGES says "GITHUB#15558: Refactor QueryCache for performance." (<code>lucene/CHANGES.txt:212</code>); MIGRATE covers <code>clearCoreCacheKey(CacheKey)</code> and the per-entry firing of the old hooks (<code>lucene/MIGRATE.md:514-542</code>). On #15558 Michael Sokolov asked "so no functional change expected?" (their question); no comment there mentions <code class='nw'>clear()</code> or <code class='nw'>onClear</code>.</li><li><strong>The risk was named in general before.</strong> On #10081 (LUCENE-9038, 2019) Ben Manes read the contract as letting implementations "rely on this exclusive read/write access" under the cache's single lock and warned that a concurrent redesign would need to review external users; Adrien Grand replied that a better cache would come with "a way to transition our users to it" and that he "wouldn't worry about the migration path yet" (his words). That warning predates the partitioned code and names neither <code class='nw'>clear()</code> nor <code class='nw'>onClear()</code>.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>197 words</span></summary><div class='body'><p>The strongest case for "intended" (built by the refute reviewer, the intended-lens reviewer and the devil's-advocate verifier): <code class='nw'>clear()</code> says only "Clear the content of this cache." and promises no atomicity; the hooks are Expert and <code>@lucene.experimental</code>; the "under a lock" sentence is performance advice, and <code class='nw'>onHit</code> / <code class='nw'>onMiss</code> already run under a shared read lock since #13306; a global barrier would undo the partitioning; on #15558 sgup432 said the deprecated per-unique-query hooks "won't report accurate data"; and the deterministic tests block inside a callback.</p><p>Why it fails: latch-free stress runs show the drift with no blocking callback; sgup432's remark concerns the deprecated per-unique-query hooks, while the minimal test uses the recommended <code>onCacheEntryInserted</code>, and the drift is 0 without <code class='nw'>clear()</code>; Lucene's own <code class='nw'>testConcurrency</code> calls <code class='nw'>clear()</code> while searches run; a subclass cannot fix it on its side (a private lock around <code class='nw'>super.clear()</code> and its callbacks deadlocks, see the mechanism, point 5); <code class='nw'>clear()</code> is rare, so taking every partition lock there costs little; and the drift is permanent until the next <code class='nw'>clear()</code>. <strong>Verdict: a regression against 10.x and the documented statistics use, not a broken atomicity promise.</strong> Documenting a best-effort <code class='nw'>onClear()</code> remains a legitimate maintainer choice.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>A: clear() holds every partition's write lock (recommended, validated)</strong></p><p class='short'>Make <code class='nw'>clear()</code> take every partition's write lock in ascending order, clear all partitions and call <code class='nw'>onClear()</code> under them (+16/-3 in <code>LRUQueryCache.java</code>). The repro and <code>TestLRUQueryCache</code> then pass with assertions on and off. Land it with LFV-1001's fix (<code class='nw'>cleanUp()</code> on a private lock): alone, it lets a subclass whose <code class='nw'>onClear()</code> synchronizes on the cache deadlock against <code class='nw'>cleanUp()</code>.</p><pre class='snippet' tabindex='0'><code>int locked = 0;
+try {
+  for (; locked &lt; numberOfPartitions; locked++) {
+    lruQueryCachePartition[locked].writeLock.lock(); // always in ascending order
+  }
+  for (int i = 0; i &lt; numberOfPartitions; i++) {
+    lruQueryCachePartition[i].clear(); // re-enters the write lock it holds
+  }
+  onClear(); // now under every partition lock, like the single lock on 10.x
+} finally {
+  for (int i = locked - 1; i &gt;= 0; i--) {
+    lruQueryCachePartition[i].writeLock.unlock();
+  }
+}</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>3 options · 626 words</span></summary><div class='body'><p>One fix was built and validated in a scratch worktree of <code class='nw'>645d4fe14a20</code> with gradle, alone and together with the sibling fix for LFV-1001; two alternatives are described, not built.</p><div class="hd hd-3"><h3 id='fix-all-partition-locks'>A: clear() holds every partition's write lock (recommended, validated) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-all-partition-locks" target="_self" aria-label="Link to this section" aria-describedby="fix-all-partition-locks"><span aria-hidden="true">#</span></a></div><p>The finder's fix, with its comment rewrapped for google-java-format. <code class='nw'>clear()</code> becomes:</p><pre class='snippet' tabindex='0'><code>int locked = 0;
+try {
+  for (; locked &lt; numberOfPartitions; locked++) {
+    lruQueryCachePartition[locked].writeLock.lock(); // always in ascending order
+  }
+  for (int i = 0; i &lt; numberOfPartitions; i++) {
+    lruQueryCachePartition[i].clear(); // re-enters the write lock it holds
+  }
+  onClear(); // now under every partition lock, like the single lock on 10.x
+} finally {
+  for (int i = locked - 1; i &gt;= 0; i--) {
+    lruQueryCachePartition[i].writeLock.unlock();
+  }
+}</code></pre><p class='k'>Trade-offs</p><ul><li>Restores the 10.x ordering for <code class='nw'>clear()</code> and makes "under a lock" true for <code class='nw'>onClear()</code> again. It does not make callbacks of different partitions mutually exclusive (LFV-1000, the stale javadoc).</li><li>While <code class='nw'>clear()</code> runs, lookups and inserts on every partition wait for it (on main a search waits for a busy partition lock; on 10.x it skipped the cache instead). <code class='nw'>clear()</code> is rare and only clears maps, so the pause is short unless a subclass's <code class='nw'>onClear()</code> is slow.</li><li>No other path holds two partition locks (<code>assertConsistent()</code> takes them one at a time), so ascending order suffices among them; TLC model E: no deadlock and the statistics invariant holds (4,852,161 distinct states).</li><li><strong>Coupling with LFV-1001.</strong> <code class='nw'>cleanUp()</code> is <code class='nw'>synchronized</code> on the cache and takes partition locks while it holds that monitor (<code>LRUQueryCache.java:1392</code>). With this fix alone, a subclass whose <code class='nw'>onClear()</code> synchronizes on the cache can deadlock against <code class='nw'>cleanUp()</code>: found by the finder's TLC model (M4) and raised independently by the cross-model reviewer. With <code class='nw'>cleanUp()</code> on a private lock (LFV-1001's fix) the combination is clean (TLC M3, 2,180,461 distinct states). Land both together.</li></ul><p class='k'>What the checks validated</p><ul><li>Stock <code class='nw'>645d4fe14a20</code>: the minimal test fails with assertions on and off.</li><li>With A: the minimal test and <code>TestLRUQueryCache</code> pass (41 tests: the minimal test plus <code>TestLRUQueryCache</code>'s 40, of which 3 are skipped as <code class='nw'>@AwaitsFix</code>; 0 failures), seed DEADBEEF with assertions on and seed C0FFEE with assertions off.</li><li><code>checkGoogleJavaFormat</code>, <code class='nw'>ecjLintMain</code>, <code>forbiddenApisMain</code>, <code class='nw'>ecjLintTest</code> and <code>forbiddenApisTest</code> for core pass with A and the lint-clean test (re-run from scratch by the fact check).</li><li>A plus LFV-1001's private-lock fix: the minimal test and <code>TestLRUQueryCache</code> pass (seed 5EED1234, assertions on; that run had the earlier comment wording, a comment-only difference; the fact check ran the final combined diff with the same seed: the five checks and both test classes pass).</li><li>From the hunt: the finder's and the independent reproduction's JUnits pass with the fix shadowed in, and the independent reproduction's latch-free stress drops to 0 of 300 rounds.</li></ul><div class="hd hd-3"><h3 id='fix-document-best-effort'>B: document onClear() as best effort under concurrent inserts (not built)</h3><a class="hlink" href="#fix-document-best-effort" target="_self" aria-label="Link to this section" aria-describedby="fix-document-best-effort"><span aria-hidden="true">#</span></a></div><p>Say in the class and <code class='nw'>onClear()</code> javadocs that on a partitioned cache <code class='nw'>onClear()</code> runs after the partitions are cleared, with no lock, and that entries cached concurrently with <code class='nw'>clear()</code> may survive it.</p><p class='k'>Trade-offs</p><p>No behaviour change, but subclass statistics keep drifting and a subclass has no way to resync (<code class='nw'>onClear()</code> carries no partition or entry information). The minimal test keeps failing, so it is no regression test for this option. The stale "under a lock" sentence needs fixing anyway (LFV-1000).</p><div class="hd hd-3"><h3 id='fix-per-entry-evictions'>C: report every cleared entry through onCacheEntryEvicted (not built)</h3><a class="hlink" href="#fix-per-entry-evictions" target="_self" aria-label="Link to this section" aria-describedby="fix-per-entry-evictions"><span aria-hidden="true">#</span></a></div><p>Each partition fires the eviction callback for its entries, under its own lock, as it clears them, so a per-entry ledger balances without relying on <code class='nw'>onClear()</code>.</p><p class='k'>Trade-offs</p><p>Changes what <code class='nw'>clear()</code> has reported since 10.x (no per-entry evictions) and costs one callback per entry; a subclass that still resets in <code class='nw'>onClear()</code> keeps losing the entries cached after the loop unless <code class='nw'>onClear()</code> also moves under the locks.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Downstream: Elasticsearch's query-cache subclass resets its per-shard statistics in <code class='nw'>onClear()</code>, and a code comment there says its callbacks need no lock of their own "since it is done in LRUQueryCache"; whether its statistics drift on Lucene 11 was not tested.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>An executed interleaving probe on the stock main jar (a latch in the insertion callback) showed the subclass count drift from <code class='nw'>getCacheSize()</code>. The finder turned it into public-API JUnits and a TLA+ model of the partitioned cache, which found the same failure with a single partition and checked the 10.x lock and the fix.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>162 words</span></summary><div class='body'><p><strong>Method: non-formal first signal, then TLA+ model checking (TLC).</strong></p><ul><li>A round-14 planning probe for the partitioned query cache ran a deterministic interleaving test on the stock main jar: a latch in the insertion callback let a search cache into an already cleared partition, and the subclass reported 0 entries / 0 bytes while <code class='nw'>getCacheSize()</code> was 1 and <code class='nw'>ramBytesUsed()</code> 336, then -1 after eviction.</li><li>A hunt unit turned it into public-API JUnits (16 partitions and the window before <code class='nw'>onClear()</code>), a 10.x-callback variant, and a latch-free stress harness.</li><li>It then model-checked the partitioned cache in TLA+ (<code class='nw'>LruPartClear.tla</code>: N partitions with one write lock each, insertions with their callback, evictions, <code class='nw'>clear()</code>'s loop then <code class='nw'>onClear()</code>, <code class='nw'>cleanUp()</code>'s steps, a subclass ledger). TLC's counterexample widened the finding to a single partition (<code class='nw'>onClear()</code> runs outside the partition lock), the 10.x single-lock reference and the all-partition-locks fix were clean, and a second model found the fix's lock-order coupling with the synchronized <code class='nw'>cleanUp()</code> (M4).</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report: GitHub issues and PRs (with the JIRA archive), commits, mailing lists, downstream projects and the web, searched 2026-10-28/29 and rechecked 2026-10-31. Closest: #10081 (LUCENE-9038, 2019), where Ben Manes warned that subclasses may rely on the cache's single lock.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>3 searches</span></summary><div class='body'><ul><li><strong>Closest items, none a report of this bug:</strong> #10081 (LUCENE-9038, 2019: Ben Manes' general warning that implementations may rely on exclusive access under the cache's lock, years before the partitioned code); #15558 (the introducing PR; no comment mentions <code class='nw'>clear()</code> or <code class='nw'>onClear</code>); #16657 (sgup432 noted that <code class='nw'>clear()</code> empties the cache partition by partition, for a different design question); #16212 (a <code>ConcurrentModificationException</code> in <code class='nw'>cleanUp()</code>, fixed); elastic/elasticsearch#163523 (javanna's list of what Elasticsearch must adapt for the Lucene 11 cache, which does not mention this).</li><li><strong>Limits:</strong> GitHub search does not index review comments (the #15558 threads were read directly); private discussions are not visible.</li></ul><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene incl. the JIRA archive), downstream repositories, the dev@, java-user@, issues@ and commits@ lists, the web</th><td class='when'>2026-10-28 to 2026-10-29</td><td>two scripted prior-report search runs (run 2 alone: 598 distinct hits), 20 manual GitHub searches over apache/lucene, elastic/elasticsearch, opensearch-project/OpenSearch and apache/solr, the changed files of all 78 apache/lucene PRs updated since 2026-10-24, the commits API for LRUQueryCache.java, 19 threads read in full</td><td>no report; nearest items listed above</td></tr><tr><th scope='row'>apache/lucene issues, PRs and commits</th><td class='when'>2026-10-29 (registration check)</td><td>the 12 PRs and 10 issues created since 2026-10-27 and the files of all 38 open PRs updated since then</td><td>nothing touches the query cache</td></tr><tr><th scope='row'>apache/lucene issues, PRs and commits</th><td class='when'>2026-10-31</td><td>'onClear'; LRUQueryCache issues and PRs updated since 2026-10-28; open PRs on LRUQueryCache; commits to LRUQueryCache.java on main and branch_11x</td><td>only #10081; open PRs #16757, #16306, #16051 do not touch clear(); no commit after fadd63e0eb4 (2026-09-29)</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced on main by #15558 (<code class='nw'>d50fb36d9af3</code>, merged 2026-04-14) and not backported, so main and branch_11x only. Every release runs <code class='nw'>clear()</code> and <code class='nw'>onClear()</code> under the insertion lock; executed: 8.11.4, 9.12.3, 10.4.0, 10.5.0, 10.5.2 and the 10.6.0 commit pass, the parent passes, <code class='nw'>d50fb36d9af3</code> fails.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>7 rows</span></summary><div class='body'><p><strong>Introduced by</strong> <code class='nw'>d50fb36d9af3</code> (apache/lucene#15558, "Refactor QueryCache to improve performance", Sagar Upadhyaya, merged by Michael Froh on 2026-04-14; design issue #14222). The shape is already in the PR's first partitioning commit <code class='nw'>ef7cf0ff101e</code> (2026-01-08). It was not backported: Michael Froh said on #15558 they were "erring on the side of caution", and Sagar Upadhyaya later called it "a conscious choice" (their words). No release tag contains it; branch_11x, cut from main on 2026-10-28, does.</p><p>By reading, every release from 5.1.0 to 10.5.2 runs <code class='nw'>clear()</code> and <code class='nw'>onClear()</code> under the one lock insertions take (<code class='nw'>synchronized</code> in 5.1.0-6.0.1, a <code class='nw'>ReentrantLock</code> in 6.1.0-9.10.0, a <code class='nw'>ReadWriteLock</code> write lock from 9.11.0, #13306). Upstream main <code class='nw'>2f424fd428da</code> (2026-10-30) has no <code>LRUQueryCache.java</code> commit after <code class='nw'>fadd63e0eb4</code> (2026-09-29).</p><p>The version runs use a driver written on the callbacks that exist from 8.x on (<code class='nw'>onDocIdSetCache</code>, <code>onDocIdSetEviction</code>, <code class='nw'>onClear</code>), core jar only; the minimal test needs main-only API.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>645d4fe14a20</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>minimal test fails with assertions on and off (gradle and the standalone runner); passes with fix A</td></tr><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>driver inconsistent (count 0, getCacheSize() 1), assertions on and off; latch-free stress 18 of 1,000 rounds</td></tr><tr><th scope='row'>main <code class='nw'>d50fb36d9af3</code> (#15558)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> introducing commit</span></td><td>driver inconsistent, assertions on and off; stress 29 of 1,000</td></tr><tr><th scope='row'>main <code class='nw'>55b4574a20d2</code> (its parent)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> bisect</span></td><td>driver consistent, assertions on and off; stress 0 of 1,000</td></tr><tr><th scope='row'>10.6.0 (release commit <code class='nw'>4ae946e5a9b</code>)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>driver consistent; the finder's stress 0 of 300</td></tr><tr><th scope='row'>10.5.2</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>driver consistent; stress 0 of 1,000; the 10.x-callback JUnits of the finder, the independent reproduction and the intended-behaviour check pass</td></tr><tr><th scope='row'>8.11.4, 9.12.3, 10.4.0, 10.5.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>driver consistent: the search skips the cache while clear() holds the lock</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>The finder, an independent reproducer, a devil's-advocate verifier, an adjudication with a new seed, a credibility audit, the minimal-repro step and this doc's gradle runs all reproduced it. Read-only reviews by OpenAI GPT-5.6 agreed on the root cause; the refute one also raised the fix's lock-order coupling.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>462 words</span></summary><div class='body'><p>Neither cross-model review could run code (both were read-only); all execution evidence comes from Claude-family AI tools and separate re-runs of the repro.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>Finder (a hunt unit: JUnit, stress, TLA+/TLC)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>3-test JUnit fails 2 of 3 with assertions on and off (40 of 40 race runs over 20 iterations), the control passes; the 10.x-callback test fails on main and passes on 10.5.2 and branch_10_6; latch-free stress 4-7 of 300; TLC counterexample with 2 and 1 partitions, the 10.x lock and the fix clean.</td></tr><tr><th scope='row'>Refute review (OpenAI GPT-5.6, read-only)</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> not real, low (procedural)</span></td><td>Could not run code; root cause agrees, inputs in contract; independently pointed out the fix's lock inversion with the synchronized <code class='nw'>cleanUp()</code>.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own JUnit (16-partition and 1-partition cases) fails 2 of 3 with assertions on and off; own stress 132-140 of 300, 0 without <code class='nw'>clear()</code>; passes on 10.5.2 and 9.12.3; with the fix both classes pass and the stress is 0 of 300.</td></tr><tr><th scope='row'>Intended-behaviour review (OpenAI GPT-5.6, read-only)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (medium)</span></td><td>The works-as-designed case rated moderate and rejected; the step re-ran the JUnit (fails) and its own stress on the new callbacks: 2 of 500, 0 without <code class='nw'>clear()</code>.</td></tr><tr><th scope='row'>Devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (medium-high)</span></td><td>Seven works-as-designed arguments built and rejected; main fails, 10.5.2 passes. Framing: a regression, not a broken atomicity promise.</td></tr><tr><th scope='row'>Adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high); impact minor</span></td><td>Re-ran the independent reproduction's JUnit with seed C0FFEE42: fails 2 of 3 with assertions on and off, the control passes.</td></tr><tr><th scope='row'>Credibility audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>Seed A0D17005 fails 2 of 3, the fix passes 3 of 3; found that the 16-partition test's query pick depends on the seed, one reason the minimal test uses one partition.</td></tr><tr><th scope='row'>Minimal repro (2026-10-29)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduces</span></td><td>Standalone runner on <code class='nw'>645d4fe14a20</code>: fails with assertions on and off, 20 of 20 per mode; the fix passes.</td></tr><tr><th scope='row'>This doc (2026-10-31)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduces; fix validated</span></td><td>Gradle in a scratch worktree: stock fails (assertions on and off); fix A passes the repro and <code>TestLRUQueryCache</code> (on and off) and the core lint checks; A plus LFV-1001's fix passes.</td></tr><tr><th scope='row'>Fact check (2026-10-31)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> holds; 3 text fixes</span></td><td>Re-ran the repro (stock fails with assertions on and off, fix A passes), the gradle command, fix A and the final combined diff with the five core checks. Its three text fixes (the TLC trace length, the cross-model review's thread count, the release range of skip-on-busy) are applied here.</td></tr><tr><th scope='row'>Cross-model fact check (OpenAI GPT-5.6, read-only)</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> substantially sound</span></td><td>Two wording fixes adopted (where the minimal test pins the insertion; the test counts). Its proposed subclass-side workaround, a private lock around <code class='nw'>super.clear()</code> and the callbacks, was run and deadlocks, so that point is answered in the mechanism, point 5.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-991/bug.png' download='lruquerycache-clear-not-atomic-with-concurrent-inserts-bug.png' target='_self'>PNG</a> <span class='n'>477 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Finding record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,377 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Finding record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-991, snapshot of 2026-11-01</p><dl class='card'><div><dt>Registry title</dt><dd>On main, LRUQueryCache.clear() empties its partitions one at a time and then calls onClear() with no lock held, so an entry cached during clear() survives while a subclass that resets its statistics in onClear() drops it (it reports 0 entries for a cache holding 1, and -1 once that entry is evicted); regression from #15558, main only</dd></div><div><dt>Area</dt><dd>search / query cache (LRUQueryCache.clear() and the onClear statistics callback)</dd></div><div><dt>Priority</dt><dd>Low, rank 642: An unreleased main-only LRUQueryCache regression that only skews a subclass&#x27;s own statistics when clear() races with searches while cache contents stay correct, so it follows the broader main-only query-cache row LFV-054.</dd></div><div><dt>Impact class</dt><dd>minor</dd></div><div><dt>Impact note</dt><dd>Statistics only, on unreleased main (11.0): an application that installs an LRUQueryCache subclass keeping statistics through the documented callbacks (counted on insert and evict, reset in onClear()) and calls clear() while searches run gets statistics that undercount the surviving entries, turn negative once those are evicted and stay wrong until the next clear(); search hits, the cache's own getCacheSize()/ramBytesUsed() and its memory bound stay correct, the default query cache is off on main, and every release, 10.6.0 (released 2026-10-29) included, is unaffected.</dd></div><div><dt>Summary</dt><dd>You subclass LRUQueryCache to keep per-index statistics the way its class javadoc suggests (count in onCacheEntryInserted/onCacheEntryEvicted, reset in onClear()) and call clear() while searches are running. You expect the subclass's numbers to match getCacheSize() and ramBytesUsed() afterwards, as on 10.x, where clear() and onClear() run under the same lock every insertion takes; on main, clear() empties the partitions one at a time, each under its own lock, and then calls onClear() with no lock, so an entry that a search caches into an already emptied partition (or just before onClear()) stays in the cache while onClear() wipes its count. The subclass then reports 0 entries and 0 bytes for a cache that holds 1 entry of 336 bytes, -1 and -336 once that entry is evicted, and the error lasts until the next clear().</dd></div><div><dt>Introduced</dt><dd>d50fb36d9af3 (GITHUB#15558 'Refactor QueryCache to improve performance', by Sagar Upadhyaya (sgup432), merged by Michael Froh (msfroh); design issue #14222; the clear()/onClear() shape is already in the PR's first partitioning commit ef7cf0ff101e, authored 2026-01-08) [exec: the history driver passes at the parent 55b4574a20d2 and fails at d50fb36d9af3, both plain javac builds of lucene-core, with -ea and -da; read: blame of LRUQueryCache.java:459-462 on a9779ef3c193, git log -L 457,463 and git log -S show no later change]. The class javadoc sentence it made false for onClear ('called synchronously and under a lock') dates from LUCENE-6157 (d7e0fd28dd9, Adrien Grand, 2015) [read: blame] (2026-04-14 (squash commit d50fb36d9af3, author and commit date; PR opened 2026-01-09))</dd></div><div><dt>First affected version</dt><dd>unreleased (main / 11.0.0-SNAPSHOT since 2026-04-14 and branch_11x, cut from main 2026-10-28; #15558 was deliberately not backported, so every release with LRUQueryCache, 5.1.0 to 10.5.2, and 10.6.0 (released 2026-10-29; branch_10_6 4ae946e5a9b) are unaffected [exec on 8.11.4, 9.12.3, 10.4.0, 10.5.0, 10.5.2 and the 10.6 RC; read for the other release tags])</dd></div><div><dt>Affected versions</dt><dd>main from d50fb36d9af3 (2026-04-14) to a9779ef3c193 [exec: the finder's JUnit fails 2 of 3 with -ea and -da (seed DEADBEEF; 40 of 40 race runs over 20 iterations), the independent reproduction's own JUnit fails 2 of 3 with -ea and -da, the adjudication's re-run with seed C0FFEE42 fails with -ea and -da, the re-run with seed 5EED4001 fails 2 of 3 with -da; the history driver fails at d50fb36d9af3 and a9779ef3c193 with -ea and -da]; branch_11x [read: contains d50fb36d9af3, newest LRUQueryCache.java commit fadd63e0eb4, same as main; not executed separately]; upstream main 645d4fe14a2 (2026-10-28) [read: no LRUQueryCache.java commit after fadd63e0eb4, author date 2026-09-29]. Not affected [exec]: 8.11.4, 9.12.3, 10.4.0, 10.5.0, 10.5.2, the 10.6 RC branch_10_6 4ae946e5a9b9 (core jar only) and main's parent commit 55b4574a20d2 (history driver; latch-free stress 0 of 1000 rounds on 10.5.2 and the parent); 10.5.2 and 9.12.3 with -ea and -da; 10.5.2; 10.5.2 and branch_10_6 (finder's compat JUnit; finder's stress 0 of 300 on branch_10_6). [read] Every release tag from 5.1.0 to 10.5.2 runs clear() and onClear() under the one lock insertions take (synchronized 5.1.0-6.0.1, ReentrantLock 6.1.0-9.10.0, ReadWriteLock write lock from 9.11.0, #13306); on 10.x a search that finds the write lock held skips caching (readLock.tryLock), so the interleaving cannot occur. All runs JDK 25.0.3 on Linux aarch64</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>non-formal</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (the prior-report record verdict new, searched 2026-10-28, read-only; recheck 2026-10-29): two scripted prior-report searches (GitHub issues, PRs and commits, downstream repositories, the dev@, java-user@, issues@ and commits@ lists, the JIRA archive and the web; run 2 alone 598 distinct hits, none the same bug), 20 manual GitHub searches over apache/lucene, elastic/elasticsearch, opensearch-project/OpenSearch and apache/solr, the changed files of all 78 apache/lucene PRs updated since 2026-10-24, the upstream commits API for LRUQueryCache.java on main, branch_10x and branch_10_6 (by author date), 19 threads read in full and 9 web queries. Nearest items, not this bug: #10081 (LUCENE-9038, open since 2019), where Ben Manes read the class contract as running the hooks under one lock, so that 'implementations may rely on this exclusive read/write access', and warned that external users would need review before a concurrent redesign, which Adrien Grand acknowledged; it is a general design warning written years before the partitioned code existed and names neither clear() nor onClear(). #15558 (the introducing change; no comment or review mentions clear(), onClear or callback ordering; msokolov asked 'so no functional change expected?' apart from the hook deprecation). #16657 (sgup432 noted that clear() clears entries partition by partition, for a different design question). #14222, #16212, #13306, #16757, #16306, #16169, #15964, #7976 and #8868 (other cache changes or defects). Downstream: elastic/elasticsearch#163523 (javanna, 2026-10-27, open) lists what Elasticsearch must adapt for the Lucene 11 cache and does not mention clear()/onClear() atomicity; elastic/elasticsearch#82455 and opensearch-project/OpenSearch#22563 are other issues. Not fixed upstream: upstream main 645d4fe14a2 (2026-10-28) has no LRUQueryCache.java commit after fadd63e0eb4 (author date 2026-09-29). Recheck: the 12 apache/lucene PRs and 10 issues created since 2026-10-27 and the files of all 38 open PRs updated since 2026-10-27 touch no query-cache file; 'onClear' still returns only #10081; query-cache PRs and issues updated since 2026-10-26: none; the owner's tracking issue #16937 does not mention the query cache</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>645d4fe14a20</code> (gradle in a scratch worktree, 2026-10-31: the minimal test fails with assertions on and off, passes with the fix; a standalone runner, 2026-10-29: fails, 20 of 20 per mode). The hunt ran on main <code class='nw'>a9779ef3c193</code>, whose <code>LRUQueryCache.java</code> is identical. Releases 8.11.4, 9.12.3, 10.4.0, 10.5.0, 10.5.2 and the 10.6.0 commit <code class='nw'>4ae946e5a9b</code>, the parent <code class='nw'>55b4574a20d2</code> and the introducing commit <code class='nw'>d50fb36d9af3</code> with a driver on the 10.x callbacks.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Finding record</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/search/LRUQueryCache.java:64 (&#x27;This class is thread-safe.&#x27;), :88-101 (callbacks for fine-grained statistics, &#x27;called synchronously and under a lock&#x27;), :413-418 (onClear: &#x27;Expert: callback when the cache is completely cleared.&#x27;), :457-463 (clear() loop, then onClear() with no lock), :1100-1131 (putIfAbsent under the partition lock), :1139-1143 (the partition&#x27;s own onClear() asserts its write lock), :1191-1203 (LRUQueryCachePartition.clear())</code></li><li><code>SECURITY.md (In-scope reports; Other out-of-scope reports; Reporting out-of-scope issues publicly)</code></li></ul></dd></div><div><dt>The finding in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/search/LRUQueryCache.java:437, :457-463, :730-736, :563-569, :956-959, :1064, :1100-1131, :1139-1143, :1191-1203 (read)</code></li><li><code>a Lucene clone releases/lucene/10.5.2 and releases/lucene/10.6.0: LRUQueryCache.java:415-426 (clear() under the write lock), 10.5.2 :821 and :917 (readLock.tryLock)</code></li><li><code>a Lucene clone release tags 5.1.0, 6.0.1 (synchronized get/putIfAbsent/clear, no tryLock), 6.1.0 and 9.10.0 (ReentrantLock, lock.tryLock()), 9.11.0 (ReentrantReadWriteLock, readLock.tryLock()): LRUQueryCache.java (read)</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/search/IndexSearcher.java:82-84 (caching disabled by default)</code></li><li><code>lucene/core/src/test/org/apache/lucene/search/TestLRUQueryCache.java:954-1130 (testFineGrainedStats; onClear() override :1063-1068)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/LRUQueryCache.java:1214-1221 (requiresEviction)</code></li></ul></dd></div><div><dt>Why it looks unintended</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/search/LRUQueryCache.java:64, :88-101, :413-418, :1139-1143 (read)</code></li><li><code>lucene/core/src/test/org/apache/lucene/search/TestLRUQueryCache.java:114, :155, :954-1130 (read)</code></li><li><code>lucene/CHANGES.txt:212; lucene/MIGRATE.md:514-542 (read)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/search/LRUQueryCache.java:474-535 (assertConsistent), :1392 (synchronized cleanUp)</code></li></ul></dd></div><div><dt>History</dt><dd><ul class='paths'><li><code>a Lucene clone: git log -1 releases/lucene/10.6.0 (4ae946e5a9b)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestLRUQueryCacheClearOnClear.java (JUnit test): <a href='../repro/LFV-991/src/org/apache/lucene/search/TestLRUQueryCacheClearOnClear.java'><code>repro/LFV-991/src/org/apache/lucene/search/TestLRUQueryCacheClearOnClear.java</code></a> (87 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>Made in parallel with this doc from the code at <code class='nw'>645d4fe14a20</code> and the executed minimal test (one partition).</p><ul class='paths'><li><a href='../assets/LFV-991/bug.png'><code>assets/LFV-991/bug.png</code></a> (477 KB)</li></ul><p class='meta built'>Built 2026-11-01 from the hunt's record of this finding and its doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-11-01. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All findings</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  var own = !base && window.top === window && /^(https?|file):$/.test(location.protocol);
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = (own ? String(location.href).split('#')[0] : base) + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

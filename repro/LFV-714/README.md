@@ -1,14 +1,14 @@
 # ComplexPhraseQueryParser: a quoted phrase that is only one parenthesized group is read as a sequence of positions, so "(john OR jonathan)" matches only the sequence 'john jonathan' and "(jo* -john)" matches documents whose only jo* term is john
 
-Bug LFV-714 · Area: queryparser / complexPhrase: ComplexPhraseQueryParser (ComplexPhraseQuery.parsePhraseElements second-pass parse, read by ComplexPhraseQuery.rewrite) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-714 · Area: queryparser / complexPhrase: ComplexPhraseQueryParser (ComplexPhraseQuery.parsePhraseElements second-pass parse, read by ComplexPhraseQuery.rewrite) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-714.html](../../bugs/LFV-714.html)
+Finding page: [../../bugs/LFV-714.html](../../bugs/LFV-714.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You parse "(john OR jonathan)" or "(jo* -john)" with ComplexPhraseQueryParser and search; inside a complex phrase a bracketed group is one position with alternatives (class javadoc example "(john jon jonathan~) peters*", upstream tests "(john OR johathon) smith" and "(jo* -john) smith") and one-element phrases are supported, so you expect the documents that contain john or jonathan, or a jo* term other than john. Instead the classic grammar drops parentheses around the whole input (QueryParser.jj:289-293 and:311), so the second pass gets the same BooleanQuery as for "john OR jonathan", and ComplexPhraseQuery.rewrite makes each member a consecutive position: "(john OR jonathan)" becomes spanNear([john, jonathan], 0, true) and matches only documents that contain the sequence 'john jonathan', and "(jo* -john)" becomes spanNot(spanOr(jo*), spanNear([spanOr(jo*), john])) and also matches 'john smith', whose only jo* term is john.
+You parse "(john OR jonathan)" or "(jo* -john)" with ComplexPhraseQueryParser and search; inside a complex phrase a bracketed group is one position with alternatives (class javadoc example "(john jon jonathan~) peters*", upstream tests "(john OR johathon) smith" and "(jo* -john) smith") and one-element phrases are supported, so you expect the documents that contain john or jonathan, or a jo* term other than john. Instead the classic grammar drops parentheses around the whole input (QueryParser.jj:289-293 and :311), so the second pass gets the same BooleanQuery as for "john OR jonathan", and ComplexPhraseQuery.rewrite makes each member a consecutive position: "(john OR jonathan)" becomes spanNear([john, jonathan], 0, true) and matches only documents that contain the sequence 'john jonathan', and "(jo* -john)" becomes spanNot(spanOr(jo*), spanNear([spanOr(jo*), john])) and also matches 'john smith', whose only jo* term is john.
 
 The test shows that `ComplexPhraseQueryParser` reads a phrase that is only one parenthesized group as a sequence: `"(john OR jonathan)"` becomes `spanNear([john, jonathan], 0, true)` instead of one position with alternatives.
 
@@ -24,7 +24,7 @@ Expected 1 hit on the document `john smith`; actual 0 (`expected:<1> but was:<0>
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

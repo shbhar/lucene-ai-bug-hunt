@@ -1,17 +1,17 @@
-# BytesRefHash accepts initial capacity 1 but never grows the table, so add or find of any second distinct key spins forever; since 10.3.0 the same capacity also stores a key whose hashcode is -1 as an empty slot
+# BytesRefHash accepts initial capacity 1 but never grows the table, so add() or find() of any second distinct key spins forever; since 10.3.0 the same capacity also stores a key whose hashcode is -1 as an empty slot
 
-Bug LFV-422 · Area: util / BytesRefHash (initial capacity 1: rehash trigger, linear probe and slot word) · Priority: low · Impact: hang · Novelty: known upstream
+Finding LFV-422 · Area: util / BytesRefHash (initial capacity 1: rehash trigger, linear probe and slot word) · Priority: low · Impact: hang · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You create new BytesRefHash(pool, 1, new BytesRefHash.DirectBytesStartArray(1)), which the constructor accepts because it rejects only capacities &lt;= 0 and non-powers of two, add the key 'a', then add or look up 'b', expecting id 1 or -1 at once, as with capacity 2. Instead the call never returns: with one slot, hashHalfSize is 0, so add's rehash trigger 'count == hashHalfSize' never fires, the single slot stays full, and the linear probe in findHash loops forever looking for an empty slot. Since 10.3.0 (#14720) the same capacity also stores a key whose seeded murmur3 hashcode is exactly -1 as the EMPTY marker, so find returns -1 for a key that was just added and adding it again gives it a second id.
+You create new BytesRefHash(pool, 1, new BytesRefHash.DirectBytesStartArray(1)), which the constructor accepts because it rejects only capacities &lt;= 0 and non-powers of two, add the key 'a', then add or look up 'b', expecting id 1 or -1 at once, as with capacity 2. Instead the call never returns: with one slot, hashHalfSize is 0, so add()'s rehash trigger 'count == hashHalfSize' never fires, the single slot stays full, and the linear probe in findHash loops forever looking for an empty slot. Since 10.3.0 (#14720) the same capacity also stores a key whose seeded murmur3 hashcode is exactly -1 as the EMPTY marker, so find() returns -1 for a key that was just added and adding it again gives it a second id.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: The call never returns: with one slot, hashHalfSize is 0, so add's rehash trigger 'count == hashHalfSize' never fires, the single slot stays full, and the linear probe in findHash loops forever looking for an empty slot.
+- Actual: The call never returns: with one slot, hashHalfSize is 0, so add()'s rehash trigger 'count == hashHalfSize' never fires, the single slot stays full, and the linear probe in findHash loops forever looking for an empty slot.
 
 ## Files
 
@@ -21,7 +21,7 @@ You create new BytesRefHash(pool, 1, new BytesRefHash.DirectBytesStartArray(1)),
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,8 +1,8 @@
 # Merge doc-values carry-over (#16570) can lose an acknowledged update or close the writer on a duplicate delGen
 
-Bug LFV-002 · Area: index / IndexWriter merge · Priority: medium · Impact: data corruption · Novelty: new
+Finding LFV-002 · Area: index / IndexWriter merge · Priority: medium · Impact: data corruption · Novelty: new
 
-Bug page: [../../bugs/LFV-002.html](../../bugs/LFV-002.html)
+Finding page: [../../bugs/LFV-002.html](../../bugs/LFV-002.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected the k0 document's last update `n=2` after the merge, commit and reopen;
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

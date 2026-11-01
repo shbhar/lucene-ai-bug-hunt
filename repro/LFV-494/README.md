@@ -1,12 +1,12 @@
 # UnifiedHighlighter with LengthGoalBreakIterator on a multi-valued field: a passage in a later value starts at the U+0000 value separator
 
-Bug LFV-494 · Area: highlighter / UnifiedHighlighter break iterators (LengthGoalBreakIterator#preceding under the SplittingBreakIterator that UnifiedHighlighter puts around every field's iterator, multi-valued fields) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-494 · Area: highlighter / UnifiedHighlighter break iterators (LengthGoalBreakIterator#preceding under the SplittingBreakIterator that UnifiedHighlighter puts around every field's iterator, multi-valued fields) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You highlight a field with two stored values, 'First value here.' and 'Second value here.', using UnifiedHighlighter.builder(...).withBreakIterator( -&gt; LengthGoalBreakIterator.createMinLength(sentence iterator, 10, 0.5f)), and expect the same snippet as with the plain sentence iterator, because each value is already one sentence longer than the goal: '&lt;b&gt;Second&lt;/b&gt; value here.' for the query 'second'. Instead the passage starts one character early, on the internal U+0000 value separator ('\u0000&lt;b&gt;Second&lt;/b&gt; value here.'), and for 'first second' the two values come out joined by U+0000 instead of '... ' ('&lt;b&gt;First&lt;/b&gt; value here.\u0000&lt;b&gt;Second&lt;/b&gt; value here.'). The cause is LengthGoalBreakIterator.preceding answering DONE (-1) for an offset inside the value, which the SplittingBreakIterator that UnifiedHighlighter always wraps around the iterator turns into the separator's index.
+You highlight a field with two stored values, 'First value here.' and 'Second value here.', using UnifiedHighlighter.builder(...).withBreakIterator(() -&gt; LengthGoalBreakIterator.createMinLength(sentence iterator, 10, 0.5f)), and expect the same snippet as with the plain sentence iterator, because each value is already one sentence longer than the goal: '&lt;b&gt;Second&lt;/b&gt; value here.' for the query 'second'. Instead the passage starts one character early, on the internal U+0000 value separator ('\u0000&lt;b&gt;Second&lt;/b&gt; value here.'), and for 'first second' the two values come out joined by U+0000 instead of '... ' ('&lt;b&gt;First&lt;/b&gt; value here.\u0000&lt;b&gt;Second&lt;/b&gt; value here.'). The cause is LengthGoalBreakIterator.preceding answering DONE (-1) for an offset inside the value, which the SplittingBreakIterator that UnifiedHighlighter always wraps around the iterator turns into the separator's index.
 
 ## Expected vs actual
 
@@ -20,7 +20,7 @@ You highlight a field with two stored values, 'First value here.' and 'Second va
 ## Run it
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

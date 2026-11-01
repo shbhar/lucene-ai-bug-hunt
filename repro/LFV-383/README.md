@@ -1,6 +1,8 @@
 # Sequential DrillSideways never returns on a segment of more than 2^31 - 2048 documents: DrillSidewaysScorer's int chunk start wraps to Integer.MIN_VALUE, so its union and drill-down-advance loops never exit (released since 4.2.0)
 
-Bug LFV-383 · Area: facet / DrillSideways (sequential DrillSidewaysScorer, union and drill-down-advance strategies) · Priority: low · Impact: hang · Novelty: new
+Finding LFV-383 · Area: facet / DrillSideways (sequential DrillSidewaysScorer, union and drill-down-advance strategies) · Priority: low · Impact: hang · Novelty: new
+
+Finding page: [../../bugs/LFV-383.html](../../bugs/LFV-383.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -12,7 +14,7 @@ The test shows that `DrillSidewaysScorer`'s union loop on a segment of `IndexWri
 
 ## Expected vs actual
 
-Expected `score()` to return and collect the last 3 docs; actual `AssertionError:... still looping after 2097153 docID() calls, collected []`, with `-ea` and `-da`.
+Expected `score()` to return and collect the last 3 docs; actual `AssertionError: ... still looping after 2097153 docID() calls, collected []`, with `-ea` and `-da`.
 
 ## Files
 
@@ -22,7 +24,7 @@ Expected `score()` to return and collect the last 3 docs; actual `AssertionError
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -47,7 +49,7 @@ The module(s) facet also need their third-party runtime jars; `./gradlew -p luce
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/overflow-at-scale-2/](../../models/overflow-at-scale-2/)
+Formal models and scripts this finding's part of the hunt used: [../../models/overflow-at-scale-2/](../../models/overflow-at-scale-2/)
 
 ## Feedback
 

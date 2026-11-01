@@ -1,18 +1,20 @@
 # Expressions: !, &amp;&amp;, || and ?: keep only the low 32 bits of a bitwise/shift result or hex/octal literal, so a non-zero value such as 1 &lt;&lt; 32 or 0x100000000 counts as false
 
-Bug LFV-181 · Area: expressions / JavascriptCompiler code generation (boolean operators on long-typed operands: bitwise and shift results, hex and octal literals) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-181 · Area: expressions / JavascriptCompiler code generation (boolean operators on long-typed operands: bitwise and shift results, hex and octal literals) · Priority: low · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-181.html](../../bugs/LFV-181.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You compile a Lucene expression that tests a high bit of a long field, such as '(flags &amp; 0x100000000) ? 10: 1' over a NumericDocValuesField with flags = 2^32 + 1, and expect 10, because 'flags &amp; 0x100000000' evaluates to 4294967296 and '(flags &amp; 0x100000000) != 0' is 1. Instead you get 1: the compiler asks for the operand of !, &amp;&amp;, || and ?: as a 32-bit int and narrows a long-typed operand (the result of &amp; | ^ ~ &lt;&lt; &gt;&gt; &gt;&gt;&gt;, or a hex/octal literal) by keeping only its low 32 bits, so every non-zero value whose low 32 bits are zero counts as false. The same number is true when written as the decimal literal 4294967296, as a variable or as '((1 &lt;&lt; 32) + 0)', but false as '0x100000000' or '(1 &lt;&lt; 32)'.
+You compile a Lucene expression that tests a high bit of a long field, such as '(flags &amp; 0x100000000) ? 10 : 1' over a NumericDocValuesField with flags = 2^32 + 1, and expect 10, because 'flags &amp; 0x100000000' evaluates to 4294967296 and '(flags &amp; 0x100000000) != 0' is 1. Instead you get 1: the compiler asks for the operand of !, &amp;&amp;, || and ?: as a 32-bit int and narrows a long-typed operand (the result of &amp; | ^ ~ &lt;&lt; &gt;&gt; &gt;&gt;&gt;, or a hex/octal literal) by keeping only its low 32 bits, so every non-zero value whose low 32 bits are zero counts as false. The same number is true when written as the decimal literal 4294967296, as a variable or as '((1 &lt;&lt; 32) + 0)', but false as '0x100000000' or '(1 &lt;&lt; 32)'.
 
 The test shows that a Lucene expression tests a long-typed condition by keeping only its low 32 bits, so the non-zero value `(1 << 32)` = 4294967296 counts as false.
 
 ## Expected vs actual
 
-Expected: `(1 << 32) ? 1: 0` = 1. Actual: 0 (`expected:<1.0> but was:<0.0>`), with `-ea` and `-da`.
+Expected: `(1 << 32) ? 1 : 0` = 1. Actual: 0 (`expected:<1.0> but was:<0.0>`), with `-ea` and `-da`.
 
 ## Files
 
@@ -22,7 +24,7 @@ Expected: `(1 << 32) ? 1: 0` = 1. Actual: 0 (`expected:<1.0> but was:<0.0>`), wi
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 4 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

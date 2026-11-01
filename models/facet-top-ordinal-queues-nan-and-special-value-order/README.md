@@ -4,10 +4,10 @@ Tools: SMT-LIB (Z3/cvc5), Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- Float taxonomy facets: if one child label aggregates to NaN, getTopChildren can return a lower-valued label in place of a higher one (a=5, b=NaN, c=10 gives top-1 [a]), because TopOrdAndFloatQueue compares values with &lt; and &gt;; a regression in 9.11.0 from #12966 (bug LFV-825; [repro](../../repro/LFV-825/))
-- Taxonomy Facets#getAllDims sorts float-valued dims with a NaN-unsafe &lt; / &gt; comparator, so one dim whose value is NaN puts the other dims out of value order, breaks the documented rule that getTopDims equals the first entries of getAllDims, and with 32 or more dims can make getAllDims throw 'Comparison method violates its general contract!' (released since 4.7.0) (bug LFV-820; [repro](../../repro/LFV-820/))
+- Float taxonomy facets: if one child label aggregates to NaN, getTopChildren can return a lower-valued label in place of a higher one (a=5, b=NaN, c=10 gives top-1 [a]), because TopOrdAndFloatQueue compares values with &lt; and &gt;; a regression in 9.11.0 from #12966 (finding LFV-825; [repro](../../repro/LFV-825/), [finding page](../../bugs/LFV-825.html))
+- Taxonomy Facets#getAllDims sorts float-valued dims with a NaN-unsafe &lt; / &gt; comparator, so one dim whose value is NaN puts the other dims out of value order, breaks the documented rule that getTopDims equals the first entries of getAllDims, and with 32 or more dims can make getAllDims throw 'Comparison method violates its general contract!' (released since 4.7.0) (finding LFV-820; [repro](../../repro/LFV-820/), [finding page](../../bugs/LFV-820.html))
 
 ## Files
 

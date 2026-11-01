@@ -1,17 +1,17 @@
 # XYShape circle queries miss lines and polygons that enter the circle only near its extreme x or y, and can report CONTAINS for a polygon the circle sticks out of, when the centre coordinate is large relative to the radius, because XYRectangle.fromPointDistance rounds the circle's bounding box inward
 
-Bug LFV-767 · Area: geo / XYShape circle queries (XYRectangle.fromPointDistance, Circle2D.CartesianDistance) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-767 · Area: geo / XYShape circle queries (XYRectangle.fromPointDistance, Circle2D.CartesianDistance) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index an XYShape line that passes just inside a circle and search with XYShape.newDistanceQuery (INTERSECTS) for an XYCircle whose centre coordinate is large compared with the radius, for example centre (2^23, 2^23+1), radius 1.3 and the segment (2^23+1, 2^23)-(2^23+2, 2^23+3), which passes 1.265 from the centre, expecting the hit you get for the same shapes moved exactly to the origin. Instead INTERSECTS finds nothing and DISJOINT matches the document, because XYRectangle.fromPointDistance builds the circle's bounding box as x + nextUp(r) in float, which rounds to nearest (2^23 + 1.3 becomes 2^23 + 1), and since 8.6.0 Circle2D's Cartesian contains rejects every point outside that too-small box before its exact distance test, including the segment's closest point to the centre. The same box makes CONTAINS report that a polygon contains a circle that sticks out of it.
+You index an XYShape line that passes just inside a circle and search with XYShape.newDistanceQuery (INTERSECTS) for an XYCircle whose centre coordinate is large compared with the radius, for example centre (2^23, 2^23+1), radius 1.3 and the segment (2^23+1, 2^23)-(2^23+2, 2^23+3), which passes 1.265 from the centre, expecting the hit you get for the same shapes moved exactly to the origin. Instead INTERSECTS finds nothing and DISJOINT matches the document, because XYRectangle.fromPointDistance builds the circle's bounding box as x + nextUp(r) in float, which rounds to nearest (2^23 + 1.3 becomes 2^23 + 1), and since 8.6.0 Circle2D's Cartesian contains() rejects every point outside that too-small box before its exact distance test, including the segment's closest point to the centre. The same box makes CONTAINS report that a polygon contains a circle that sticks out of it.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: INTERSECTS finds nothing and DISJOINT matches the document, because XYRectangle.fromPointDistance builds the circle's bounding box as x + nextUp(r) in float, which rounds to nearest (2^23 + 1.3 becomes 2^23 + 1), and since 8.6.0 Circle2D's Cartesian contains rejects every point outside that too-small box before its exact distance test, including the segment's closest point to the centre.
+- Actual: INTERSECTS finds nothing and DISJOINT matches the document, because XYRectangle.fromPointDistance builds the circle's bounding box as x + nextUp(r) in float, which rounds to nearest (2^23 + 1.3 becomes 2^23 + 1), and since 8.6.0 Circle2D's Cartesian contains() rejects every point outside that too-small box before its exact distance test, including the segment's closest point to the centre.
 
 ## Files
 
@@ -21,7 +21,7 @@ You index an XYShape line that passes just inside a circle and search with XYSha
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

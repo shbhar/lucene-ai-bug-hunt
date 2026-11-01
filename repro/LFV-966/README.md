@@ -1,14 +1,14 @@
-# QueryNodeProcessorPipeline's listIterator/subList views, and replaceAll / Collections.replaceAll built on them, put processors on the pipeline without its QueryConfigHandler, so the flexible query parser silently skips point, boost and default phrase slop handling or throws NullPointerException
+# QueryNodeProcessorPipeline's listIterator()/subList() views, and replaceAll / Collections.replaceAll built on them, put processors on the pipeline without its QueryConfigHandler, so the flexible query parser silently skips point, boost and default phrase slop handling or throws NullPointerException
 
-Bug LFV-966 · Area: queryparser / flexible core: QueryNodeProcessorPipeline (java.util.List views and default methods) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-966 · Area: queryparser / flexible core: QueryNodeProcessorPipeline (java.util.List views and default methods) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-966.html](../../bugs/LFV-966.html)
+Finding page: [../../bugs/LFV-966.html](../../bugs/LFV-966.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You customise a flexible query parser pipeline, for example StandardQueryParser's, by inserting or replacing a processor through the pipeline's java.util.List API: pipeline.listIterator then add or set, subList(..).set, pipeline.replaceAll or Collections.replaceAll. You expect the processor to receive the pipeline's QueryConfigHandler, as it does with add(k, p) or set(k, p), because the class says it 'takes care of setting this QueryConfigHandler on all processor on pipeline'. Instead those paths write through the private ArrayList's own views and leave the processor with a null handler, so a replaced PointQueryNodeProcessor turns n:5 into a TermQuery that finds 0 of 1 matching documents, a replaced BoostQueryNodeProcessor drops field boosts, and most other stock processors throw NullPointerException at parse.
+You customise a flexible query parser pipeline, for example StandardQueryParser's, by inserting or replacing a processor through the pipeline's java.util.List API: pipeline.listIterator() then add or set, subList(..).set, pipeline.replaceAll or Collections.replaceAll. You expect the processor to receive the pipeline's QueryConfigHandler, as it does with add(k, p) or set(k, p), because the class says it 'takes care of setting this QueryConfigHandler on all processor on pipeline'. Instead those paths write through the private ArrayList's own views and leave the processor with a null handler, so a replaced PointQueryNodeProcessor turns n:5 into a TermQuery that finds 0 of 1 matching documents, a replaced BoostQueryNodeProcessor drops field boosts, and most other stock processors throw NullPointerException at parse.
 
 The test shows that a processor put on a QueryNodeProcessorPipeline through its listIterator() (here replacing StandardQueryParser's PointQueryNodeProcessor with ListIterator.set) never gets the pipeline's QueryConfigHandler, unlike pipeline.set(k, p).
 
@@ -24,7 +24,7 @@ Expected `n:5` (a field with a PointsConfig) to parse to a PointRangeQuery; actu
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

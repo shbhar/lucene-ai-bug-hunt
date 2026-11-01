@@ -1,17 +1,17 @@
-# IndexSearcher.explain throws NullPointerException (AssertionError with -ea) for a span query inside a BooleanQuery that Lucene weights without scores (a FILTER or MUST_NOT clause, or the query of a FunctionScoreQuery whose source does not need scores), because BooleanWeight.explain calls score on scorers built with COMPLETE_NO_SCORES
+# IndexSearcher.explain throws NullPointerException (AssertionError with -ea) for a span query inside a BooleanQuery that Lucene weights without scores (a FILTER or MUST_NOT clause, or the query of a FunctionScoreQuery whose source does not need scores), because BooleanWeight.explain calls score() on scorers built with COMPLETE_NO_SCORES
 
-Bug LFV-863 · Area: search / BooleanWeight.explain (span and payload-span queries under non-scoring clauses; FunctionScoreQuery; Monitor ExplainingMatch) · Priority: low · Impact: crash · Novelty: known upstream
+Finding LFV-863 · Area: search / BooleanWeight.explain (span and payload-span queries under non-scoring clauses; FunctionScoreQuery; Monitor ExplainingMatch) · Priority: low · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You search with a BooleanQuery such as '+body:quick -(spanNear([body:brown, body:fox], 0, true) body:dog)', which ComplexPhraseQueryParser builds from 'quick AND NOT ("brown fox" OR dog)', and call IndexSearcher.explain to see why a document matched or not; you expect an Explanation. Instead explain throws NullPointerException (AssertionError with -ea): Lucene builds the weight of a FILTER or MUST_NOT clause, or of the query inside a FunctionScoreQuery whose source does not read scores, without scores, but BooleanWeight.explain still asks that weight's scorers for score, and a span scorer built without scores has no similarity scorer. Search results are correct and only explain fails, but Monitor's ExplainingMatch reports such a query as an error and loses its match.
+You search with a BooleanQuery such as '+body:quick -(spanNear([body:brown, body:fox], 0, true) body:dog)', which ComplexPhraseQueryParser builds from 'quick AND NOT ("brown fox" OR dog)', and call IndexSearcher.explain to see why a document matched or not; you expect an Explanation. Instead explain throws NullPointerException (AssertionError with -ea): Lucene builds the weight of a FILTER or MUST_NOT clause, or of the query inside a FunctionScoreQuery whose source does not read scores, without scores, but BooleanWeight.explain still asks that weight's scorers for score(), and a span scorer built without scores has no similarity scorer. Search results are correct and only explain fails, but Monitor's ExplainingMatch reports such a query as an error and loses its match.
 
 ## Expected vs actual
 
 - Expected: You expect an Explanation.
-- Actual: Explain throws NullPointerException (AssertionError with -ea): Lucene builds the weight of a FILTER or MUST_NOT clause, or of the query inside a FunctionScoreQuery whose source does not read scores, without scores, but BooleanWeight.explain still asks that weight's scorers for score, and a span scorer built without scores has no similarity scorer.
+- Actual: Explain throws NullPointerException (AssertionError with -ea): Lucene builds the weight of a FILTER or MUST_NOT clause, or of the query inside a FunctionScoreQuery whose source does not read scores, without scores, but BooleanWeight.explain still asks that weight's scorers for score(), and a span scorer built without scores has no similarity scorer.
 
 ## Files
 
@@ -23,7 +23,7 @@ You search with a BooleanQuery such as '+body:quick -(spanNear([body:brown, body
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

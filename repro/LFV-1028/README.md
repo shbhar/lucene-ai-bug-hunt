@@ -1,17 +1,17 @@
-# StandardQueryParser's two javadoc code examples, the class's 'Typical usage, including configuration tweaks' and the StandardQueryParser(Analyzer) constructor's 'The same as:', have never compiled: they call setAllowLeadingWildcard and setAnalyzer on getQueryConfigHandler, which returns a QueryConfigHandler that has no such setters (they are methods of StandardQueryParser itself), and the class example also assigns that QueryConfigHandler to a StandardQueryConfigHandler variable (documentation defect; every release since 2.9.0)
+# StandardQueryParser's two javadoc code examples, the class's 'Typical usage, including configuration tweaks' and the StandardQueryParser(Analyzer) constructor's 'The same as:', have never compiled: they call setAllowLeadingWildcard and setAnalyzer on getQueryConfigHandler(), which returns a QueryConfigHandler that has no such setters (they are methods of StandardQueryParser itself), and the class example also assigns that QueryConfigHandler to a StandardQueryConfigHandler variable (documentation defect; every release since 2.9.0)
 
-Bug LFV-1028 · Area: queryparser / flexible StandardQueryParser (class and constructor javadoc examples) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-1028 · Area: queryparser / flexible StandardQueryParser (class and constructor javadoc examples) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You copy the StandardQueryParser class javadoc's 'Typical usage, including configuration tweaks' (StandardQueryConfigHandler config = qpHelper.getQueryConfigHandler; config.setAllowLeadingWildcard(true); config.setAnalyzer(new WhitespaceAnalyzer)) or the constructor javadoc's 'The same as:' (qp.getQueryConfigHandler.setAnalyzer(analyzer)) and expect it to compile. Instead javac rejects four lines: getQueryConfigHandler is declared to return QueryConfigHandler, which cannot be assigned to StandardQueryConfigHandler, and neither config handler has setAllowLeadingWildcard or setAnalyzer (they offer only the key-based get/has/set/unset(ConfigurationKey,...)). The setters are methods of StandardQueryParser itself, which is exactly what the constructor body calls (this.setAnalyzer(analyzer)), so the fix is javadoc only.
+You copy the StandardQueryParser class javadoc's 'Typical usage, including configuration tweaks' (StandardQueryConfigHandler config = qpHelper.getQueryConfigHandler(); config.setAllowLeadingWildcard(true); config.setAnalyzer(new WhitespaceAnalyzer())) or the constructor javadoc's 'The same as:' (qp.getQueryConfigHandler().setAnalyzer(analyzer)) and expect it to compile. Instead javac rejects four lines: getQueryConfigHandler() is declared to return QueryConfigHandler, which cannot be assigned to StandardQueryConfigHandler, and neither config handler has setAllowLeadingWildcard or setAnalyzer (they offer only the key-based get/has/set/unset(ConfigurationKey, ...)). The setters are methods of StandardQueryParser itself, which is exactly what the constructor body calls (this.setAnalyzer(analyzer)), so the fix is javadoc only.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: Javac rejects four lines: getQueryConfigHandler is declared to return QueryConfigHandler, which cannot be assigned to StandardQueryConfigHandler, and neither config handler has setAllowLeadingWildcard or setAnalyzer (they offer only the key-based get/has/set/unset(ConfigurationKey,...)).
+- Actual: Javac rejects four lines: getQueryConfigHandler() is declared to return QueryConfigHandler, which cannot be assigned to StandardQueryConfigHandler, and neither config handler has setAllowLeadingWildcard or setAnalyzer (they offer only the key-based get/has/set/unset(ConfigurationKey, ...)).
 
 ## Files
 
@@ -20,7 +20,7 @@ You copy the StandardQueryParser class javadoc's 'Typical usage, including confi
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

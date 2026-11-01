@@ -1,12 +1,12 @@
 # PACKED_NIBBLE quantized vectors with an odd dimension fail once raw vectors are dropped
 
-Bug LFV-065 · Area: codecs / vectors · Priority: low · Impact: crash · Novelty: new
+Finding LFV-065 · Area: codecs / vectors · Priority: low · Impact: crash · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You use PACKED_NIBBLE scalar quantization with an odd vector dimension and drop the raw vectors. You expect vectorValue and full-precision rescoring to work from the quantized data. Instead every vectorValue call and every rescore throws (ArrayIndexOutOfBoundsException on 10.5.2).
+You use PACKED_NIBBLE scalar quantization with an odd vector dimension and drop the raw vectors. You expect vectorValue() and full-precision rescoring to work from the quantized data. Instead every vectorValue() call and every rescore throws (ArrayIndexOutOfBoundsException on 10.5.2).
 
 The test shows that with Lucene104ScalarQuantizedVectorsFormat(PACKED_NIBBLE), a 3-dim float vector cannot be read back from the quantized data once the raw vectors are dropped (upstream's simulateEmptyRawVectors file rewrite).
 
@@ -22,7 +22,7 @@ Expected: vectorValue(0) returns the dequantized 3-dim vector. Actual (-ea and -
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,7 +44,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/study-quantization-smt/](../../models/study-quantization-smt/)
+Formal models and scripts this finding's part of the hunt used: [../../models/study-quantization-smt/](../../models/study-quantization-smt/)
 
 ## Feedback
 

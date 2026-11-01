@@ -1,18 +1,18 @@
-# If MergePolicy.keepFullyDeletedSegment throws while IndexWriter opens an NRT reader (for example a read error while SoftDeletesRetentionMergePolicy runs its retention query), StandardDirectoryReader.open never releases the SegmentReader it obtained just before the check, so that segment's core and files stay open after IndexWriter.close
+# If MergePolicy.keepFullyDeletedSegment throws while IndexWriter opens an NRT reader (for example a read error while SoftDeletesRetentionMergePolicy runs its retention query), StandardDirectoryReader.open never releases the SegmentReader it obtained just before the check, so that segment's core and files stay open after IndexWriter.close()
 
-Bug LFV-626 · Area: core / index NRT reader open from IndexWriter (StandardDirectoryReader.open(IndexWriter,...) keep check for fully deleted segments; SoftDeletesRetentionMergePolicy as the stock trigger) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-626 · Area: core / index NRT reader open from IndexWriter (StandardDirectoryReader.open(IndexWriter, ...) keep check for fully deleted segments; SoftDeletesRetentionMergePolicy as the stock trigger) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You use soft deletes with SoftDeletesRetentionMergePolicy, open a new IndexWriter on an index whose last commit holds a fully soft-deleted segment that the retention query keeps, and call DirectoryReader.open(writer); the merge policy's keep check for that segment fails (one read error while the retention query reads the segment, or your retention-query supplier throws), so the open fails with that exception. You expect the failed open to release what it acquired, as StandardDirectoryReader.open's own catch block does for every reader already in its list (LUCENE-5262), so that closing the writer leaves no file open. Instead the SegmentReader obtained just before the keep check is neither in that list nor released, so after IndexWriter.close the segment stays open (MockDirectoryWrapper: 'there are still 4 open files: {_0.cfs=1, _0_1_Lucene90_0.dvp=1, _0_1_Lucene90_0.dvs=1, _0_1_Lucene90_0.dvd=1}'), while the writer itself stays open and a later NRT open works.
+You use soft deletes with SoftDeletesRetentionMergePolicy, open a new IndexWriter on an index whose last commit holds a fully soft-deleted segment that the retention query keeps, and call DirectoryReader.open(writer); the merge policy's keep check for that segment fails (one read error while the retention query reads the segment, or your retention-query supplier throws), so the open fails with that exception. You expect the failed open to release what it acquired, as StandardDirectoryReader.open's own catch block does for every reader already in its list (LUCENE-5262), so that closing the writer leaves no file open. Instead the SegmentReader obtained just before the keep check is neither in that list nor released, so after IndexWriter.close() the segment stays open (MockDirectoryWrapper: 'there are still 4 open files: {_0.cfs=1, _0_1_Lucene90_0.dvp=1, _0_1_Lucene90_0.dvs=1, _0_1_Lucene90_0.dvd=1}'), while the writer itself stays open and a later NRT open works.
 
 The test shows that when SoftDeletesRetentionMergePolicy's keep check throws during the first NRT open of a new IndexWriter over a commit with a kept, fully soft-deleted segment, StandardDirectoryReader.open never releases that segment's SegmentReader.
 
 ## Expected vs actual
 
-Expected no open files after the failed `DirectoryReader.open(writer)` and `IndexWriter.close()`; actual: `MockDirectoryWrapper: cannot close: there are still 4 open files: {_0.cfs=1,...}`, with `-ea` and `-da`.
+Expected no open files after the failed `DirectoryReader.open(writer)` and `IndexWriter.close()`; actual: `MockDirectoryWrapper: cannot close: there are still 4 open files: {_0.cfs=1, ...}`, with `-ea` and `-da`.
 
 ## Files
 
@@ -22,7 +22,7 @@ Expected no open files after the failed `DirectoryReader.open(writer)` and `Inde
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

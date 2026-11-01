@@ -1,12 +1,12 @@
-# Hunspell spell and suggest throw AssertionError under -ea when a word ends with a CHECKCOMPOUNDPATTERN replacement whose beginchars are empty, because the compound check looks up a zero-length second part
+# Hunspell spell() and suggest() throw AssertionError under -ea when a word ends with a CHECKCOMPOUNDPATTERN replacement whose beginchars are empty, because the compound check looks up a zero-length second part
 
-Bug LFV-713 · Area: analysis / hunspell (Hunspell.spell and suggest compound checking, CHECKCOMPOUNDPATTERN replacements) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-713 · Area: analysis / hunspell (Hunspell.spell and suggest compound checking, CHECKCOMPOUNDPATTERN replacements) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You load a Hunspell dictionary with a compound rule such as 'CHECKCOMPOUNDPATTERN o /X z' (a simplified compound form whose second part may begin with anything: hunspell(5) allows empty beginchars with a flag and an optional replacement) and call Hunspell.spell("foz"), and expect true or false; C Hunspell 1.3.2 and 1.7.2 both say false. Instead, with assertions enabled, spell and suggest throw java.lang.AssertionError from WordStorage.lookupWord ('assert length &gt; 0'). The cause: checkCompoundPatternReplacements expands the final 'z' to 'o' plus empty beginchars and puts the break right after 'foo', but never checks that a second part remains, so checkCompoundsAfter looks up a second part of length 0; with -da that lookup finds nothing and spell returns false for the repro.
+You load a Hunspell dictionary with a compound rule such as 'CHECKCOMPOUNDPATTERN o /X z' (a simplified compound form whose second part may begin with anything: hunspell(5) allows empty beginchars with a flag and an optional replacement) and call Hunspell.spell("foz"), and expect true or false; C Hunspell 1.3.2 and 1.7.2 both say false. Instead, with assertions enabled, spell() and suggest() throw java.lang.AssertionError from WordStorage.lookupWord ('assert length &gt; 0'). The cause: checkCompoundPatternReplacements expands the final 'z' to 'o' plus empty beginchars and puts the break right after 'foo', but never checks that a second part remains, so checkCompoundsAfter looks up a second part of length 0; with -da that lookup finds nothing and spell() returns false for the repro.
 
 The test shows that with `-ea`, `Hunspell.spell("foz")` throws for a dictionary with `CHECKCOMPOUNDPATTERN o /X z` (empty beginchars, replacement z), because expanding the final `z` leaves an empty second compound part that is then looked up.
 
@@ -22,7 +22,7 @@ Expected `false` (C Hunspell's answer, and Lucene's with `-da`); actual with `-e
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

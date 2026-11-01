@@ -1,14 +1,14 @@
 # SubmissionReport writes scores of 1000 or more with a grouping comma ("1,200.5000") into the TREC run file that QueryDriver documents as the submission file for trec_eval, so trec_eval reads such a score as 1.0 and ranks those hits wrongly
 
-Bug LFV-937 · Area: benchmark / quality (utils.SubmissionReport, the TREC run-file writer used by QualityBenchmark and QueryDriver) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-937 · Area: benchmark / quality (utils.SubmissionReport, the TREC run-file writer used by QualityBenchmark and QueryDriver) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-937.html](../../bugs/LFV-937.html)
+Finding page: [../../bugs/LFV-937.html](../../bugs/LFV-937.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You evaluate search quality with lucene/benchmark's SubmissionReport, for example through QueryDriver, whose usage text calls the output the 'submission file for trec_eval', and expect the score column of each TREC run line (qid Q0 docno rank score tag) to be a plain number. SubmissionReport formats scores with NumberFormat.getInstance(Locale.ROOT) and never turns grouping off, so a hit scoring 1200.5 is written as '1,200.5000'. trec_eval reads that column with C atof, which stops at the comma and returns 1.0, and then re-sorts the run by the parsed score, so a run [1200.5, 900.25] is evaluated as [900.25, 1.0], with the top hit moved down, and the reported metrics are silently wrong.
+You evaluate search quality with lucene/benchmark's SubmissionReport, for example through QueryDriver, whose usage text calls the output the 'submission file for trec_eval', and expect the score column of each TREC run line (qid Q0 docno rank score tag) to be a plain number. SubmissionReport formats scores with NumberFormat.getInstance(Locale.ROOT) and never turns grouping off, so a hit scoring 1200.5 is written as '1,200.5000'. trec_eval reads that column with C atof(), which stops at the comma and returns 1.0, and then re-sorts the run by the parsed score, so a run [1200.5, 900.25] is evaluated as [900.25, 1.0], with the top hit moved down, and the reported metrics are silently wrong.
 
 The test shows that `SubmissionReport.report` writes a hit with score 1200.5 into the TREC run line (`qid Q0 docno rank score tag`, the file `QueryDriver` calls the submission file for trec_eval) with a grouping comma.
 
@@ -24,7 +24,7 @@ Expected the score column `1200.5000`; actual `1,200.5000` (trec_eval reads it w
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

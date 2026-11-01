@@ -1,6 +1,6 @@
 # Doc-values-rewritten multi-term queries are invisible to QueryVisitor, so they escape the nested clause limit and the query-cache RAM budget
 
-Bug LFV-038 · Area: search / multi-term queries · Priority: high · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-038 · Area: search / multi-term queries · Priority: high · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You run a query tree whose leaves are multi-term queries rewritten with MultiTer
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

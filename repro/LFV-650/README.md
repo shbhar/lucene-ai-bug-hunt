@@ -1,18 +1,20 @@
-# TeeSinkTokenFilter: a sink created with newSinkTokenStream before a filter that adds an attribute is put on the tee (the order of the class javadoc example), for example any stemmer adding KeywordAttribute, throws IllegalArgumentException from restoreState on its first token, so IndexWriter.addDocument rejects the document
+# TeeSinkTokenFilter: a sink created with newSinkTokenStream() before a filter that adds an attribute is put on the tee (the order of the class javadoc example), for example any stemmer adding KeywordAttribute, throws IllegalArgumentException from restoreState on its first token, so IndexWriter.addDocument rejects the document
 
-Bug LFV-650 · Area: analysis / TeeSinkTokenFilter (sinks: newSinkTokenStream attribute snapshot, SinkTokenStream replay through AttributeSource.restoreState) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-650 · Area: analysis / TeeSinkTokenFilter (sinks: newSinkTokenStream() attribute snapshot, SinkTokenStream replay through AttributeSource.restoreState) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-650.html](../../bugs/LFV-650.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You create a sink with tee.newSinkTokenStream and then wrap the tee in a further filter, as the class javadoc example does (sinks first, then final1 = new LowerCaseFilter(source1)), and expect the sink to replay every token the tee consumed, as newSinkTokenStream promises. If that later filter adds an attribute the tee did not have yet, for example PorterStemFilter adding KeywordAttribute for a stemmed field next to an unstemmed sink field, the sink lacks it, because its attributes are a cloneAttributes snapshot taken when it was created, and its restoreState throws IllegalArgumentException ('State contains AttributeImpl of type...KeywordAttributeImpl that is not in in this AttributeSource') on the first token, so addDocument rejects the document. With LowerCaseFilter, the javadoc's own filter, nothing is added and the example works; creating the sink after the stemmer also works.
+You create a sink with tee.newSinkTokenStream() and then wrap the tee in a further filter, as the class javadoc example does (sinks first, then final1 = new LowerCaseFilter(source1)), and expect the sink to replay every token the tee consumed, as newSinkTokenStream() promises. If that later filter adds an attribute the tee did not have yet, for example PorterStemFilter adding KeywordAttribute for a stemmed field next to an unstemmed sink field, the sink lacks it, because its attributes are a cloneAttributes() snapshot taken when it was created, and its restoreState throws IllegalArgumentException ('State contains AttributeImpl of type ...KeywordAttributeImpl that is not in in this AttributeSource') on the first token, so addDocument rejects the document. With LowerCaseFilter, the javadoc's own filter, nothing is added and the example works; creating the sink after the stemmer also works.
 
 The test shows that a sink created with `tee.newSinkTokenStream()` before a `PorterStemFilter` is put on the tee (the class javadoc's order) cannot replay the token "foxes".
 
 ## Expected vs actual
 
-Expected the sink to return "foxes"; actual: `restoreState` throws `IllegalArgumentException: State contains AttributeImpl of type...KeywordAttributeImpl that is not in in this AttributeSource`, with `-ea` and `-da`.
+Expected the sink to return "foxes"; actual: `restoreState` throws `IllegalArgumentException: State contains AttributeImpl of type ...KeywordAttributeImpl that is not in in this AttributeSource`, with `-ea` and `-da`.
 
 ## Files
 
@@ -22,7 +24,7 @@ Expected the sink to return "foxes"; actual: `restoreState` throws `IllegalArgum
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,8 +1,8 @@
 # SpellChecker.indexDictionary checks for already-indexed words only against the spell index as it was before the call, so a word that one dictionary repeats is indexed once per occurrence and suggestSimilar returns it several times, pushing distinct suggestions out
 
-Bug LFV-518 · Area: suggest / spell: SpellChecker.indexDictionary (n-gram spell index build) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-518 · Area: suggest / spell: SpellChecker.indexDictionary (n-gram spell index build) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-518.html](../../bugs/LFV-518.html)
+Finding page: [../../bugs/LFV-518.html](../../bugs/LFV-518.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected suggestSimilar("recieve", 2) = [relieve, receive]; main returns [reliev
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

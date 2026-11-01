@@ -1,12 +1,12 @@
 # WikipediaTokenizer silently drops letters and digits from plain text that Unicode 3.0 already had (µ in '5 µm', ª/º in '1ª'/'2º', fullwidth digits and letters, ligatures such as ﬁ, Yi syllables, Arabic presentation forms; 2,083 BMP code points that ClassicTokenizer keeps) because its LETTER and DIGIT macros are hard-coded 2008 range lists
 
-Bug LFV-721 · Area: analysis-common / wikipedia: WikipediaTokenizer (JFlex grammar character classes, WikipediaTokenizerImpl.jflex LETTER/DIGIT macros) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-721 · Area: analysis-common / wikipedia: WikipediaTokenizer (JFlex grammar character classes, WikipediaTokenizerImpl.jflex LETTER/DIGIT macros) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You tokenize ordinary plain text with WikipediaTokenizer, for example '5 µm', '1ª edición 2º piso', '２０２６ year', 'ﬁle' or the Yi text 'ꀀꀁ', and expect every letter and digit to end up in a token, as it does with ClassicTokenizer (whose grammar is also pinned to Unicode 3.0) and StandardTokenizer. Instead WikipediaTokenizer skips these characters without an error: '5 µm' gives [5, m], '1ª 2º' gives [1, 2], 'ﬁle' gives [le], and '２０２６', 'ＡＢＣ' and 'ꀀꀁ' give no token; an exhaustive check of the BMP finds 2,083 letters and digits that ClassicTokenizer keeps and WikipediaTokenizer drops. The cause is the grammar: ALPHANUM is built from LETTER and DIGIT macros that are fixed range lists copied in 2008 (WikipediaTokenizerImpl.jflex:154,:156), which miss U+00AA, U+00B5, U+00BA and every letter or digit from U+2000 up to the halfwidth forms outside the CJ and Korean ranges, so these characters fall into the '[^]' ignore rule (:216); StandardTokenizer had the same lists and replaced them with [:letter:]/[:digit:] in 2.4 (LUCENE-1126), but the WikipediaTokenizer copy was never updated.
+You tokenize ordinary plain text with WikipediaTokenizer, for example '5 µm', '1ª edición 2º piso', '２０２６ year', 'ﬁle' or the Yi text 'ꀀꀁ', and expect every letter and digit to end up in a token, as it does with ClassicTokenizer (whose grammar is also pinned to Unicode 3.0) and StandardTokenizer. Instead WikipediaTokenizer skips these characters without an error: '5 µm' gives [5, m], '1ª 2º' gives [1, 2], 'ﬁle' gives [le], and '２０２６', 'ＡＢＣ' and 'ꀀꀁ' give no token; an exhaustive check of the BMP finds 2,083 letters and digits that ClassicTokenizer keeps and WikipediaTokenizer drops. The cause is the grammar: ALPHANUM is built from LETTER and DIGIT macros that are fixed range lists copied in 2008 (WikipediaTokenizerImpl.jflex:154, :156), which miss U+00AA, U+00B5, U+00BA and every letter or digit from U+2000 up to the halfwidth forms outside the CJ and Korean ranges, so these characters fall into the '[^]' ignore rule (:216); StandardTokenizer had the same lists and replaced them with [:letter:]/[:digit:] in 2.4 (LUCENE-1126), but the WikipediaTokenizer copy was never updated.
 
 ## Expected vs actual
 
@@ -20,7 +20,7 @@ You tokenize ordinary plain text with WikipediaTokenizer, for example '5 µm', '
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

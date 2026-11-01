@@ -1,6 +1,6 @@
 # Main (the future 11.0) turns incremental doc-values updates on by default (IndexWriterConfig.DEFAULT_MAX_DOC_VALUES_OVERLAYS = 8; opt-in, 0, in 10.6), but neither the 11.0.0 section of CHANGES.txt nor MIGRATE.md records the change: the only note is the 10.6.0 'Opt-in' entry, because main's 'Enabled by default' note was moved to 10.6.0 and then reworded (documentation defect, unreleased)
 
-Bug LFV-959 · Area: release notes (lucene/CHANGES.txt 11.0.0, lucene/MIGRATE.md 10.x -> 11.0) x index / doc-values updates (IndexWriterConfig#DEFAULT_MAX_DOC_VALUES_OVERLAYS, GITHUB#16418, GITHUB#16648) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-959 · Area: release notes (lucene/CHANGES.txt 11.0.0, lucene/MIGRATE.md 10.x -> 11.0) x index / doc-values updates (IndexWriterConfig#DEFAULT_MAX_DOC_VALUES_OVERLAYS, GITHUB#16418, GITHUB#16648) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You upgrade from Lucene 10.6 to 11.0 and use doc-values updates (for example Ind
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,14 +1,14 @@
 # LatLonPoint#nearest reports an EQUAL_TO TotalHits that counts deleted documents
 
-Bug LFV-088 · Area: document / LatLonPoint#nearest · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-088 · Area: document / LatLonPoint#nearest · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-088.html](../../bugs/LFV-088.html)
+Finding page: [../../bugs/LFV-088.html](../../bugs/LFV-088.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index documents with a LatLonPoint field, delete or update some of them, and call LatLonPoint.nearest(searcher, field, lat, lon, n) with n larger than the index. You expect TopFieldDocs.totalHits, which is labelled TotalHits.Relation.EQUAL_TO (exact), to count only documents that can be hits, here the hits returned. Instead the total is the per-segment sum of PointValues#getDocCount, an index statistic that still counts deleted documents, so 3 documents with one deleted return 2 hits but report exactly '3 hits', more than reader.numDocs.
+You index documents with a LatLonPoint field, delete or update some of them, and call LatLonPoint.nearest(searcher, field, lat, lon, n) with n larger than the index. You expect TopFieldDocs.totalHits, which is labelled TotalHits.Relation.EQUAL_TO (exact), to count only documents that can be hits, here the hits returned. Instead the total is the per-segment sum of PointValues#getDocCount, an index statistic that still counts deleted documents, so 3 documents with one deleted return 2 hits but report exactly '3 hits', more than reader.numDocs().
 
 The test shows that `LatLonPoint.nearest` returns an EQUAL_TO `TotalHits` that counts a deleted (unmerged) document.
 
@@ -24,7 +24,7 @@ Expected, with 3 documents and 1 deleted: exactly 2 hits (or a lower bound &lt;=
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

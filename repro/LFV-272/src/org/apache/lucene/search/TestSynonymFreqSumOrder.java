@@ -52,7 +52,7 @@ public class TestSynonymFreqSumOrder extends LuceneTestCase {
                 .addTerm(new Term("f", "c"), 0.3f)
                 .build();
         for (ScoreDoc hit : searcher.search(q, 10).scoreDocs) {
-          // explain() must report the hit's score; on main they differ by 1 ulp for docs 1 and 2
+          // explain() must report the hit's score; on main they differ by 2 ulps for docs 1 and 2
           float explained = searcher.explain(q, hit.doc).getValue().floatValue();
           assertEquals("doc " + hit.doc + " hit score vs explain()", hit.score, explained, 0f);
         }

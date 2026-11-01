@@ -1,6 +1,6 @@
 # RegExp builds about n^2/2 transitions for a run of n repeated nullable atoms (a.*.*...b, a(x?)^n b, [a-z]*, (bc)?), and on main RegexpQuery keeps that automaton: a 2,002-character regexp of language a.*b holds 502,502 transitions and 170 MB (10.5.2: 4 states, 7 KB)
 
-Bug LFV-962 · Area: util / automaton (RegExp, Operations.concatenate; reached from RegexpQuery and the classic and flexible query parsers) · Priority: unranked · Impact: crash · Novelty: known upstream
+Finding LFV-962 · Area: util / automaton (RegExp, Operations.concatenate; reached from RegexpQuery and the classic and flexible query parsers) · Priority: unranked · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ You build a RegexpQuery, directly or by typing /regexp/ syntax into the classic 
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

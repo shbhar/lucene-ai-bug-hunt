@@ -1,12 +1,14 @@
 # JapaneseCompletionFilterFactory upper-cases the default mode name instead of the configured value, so mode="query" is rejected with IllegalArgumentException while the sibling JapaneseTokenizerFactory accepts lower-case modes (minor consistency defect; no javadoc promises case-insensitive values)
 
-Bug LFV-335 · Area: analysis / kuromoji (JapaneseCompletionFilterFactory 'mode' argument parsing, SPI name japaneseCompletion) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-335 · Area: analysis / kuromoji (JapaneseCompletionFilterFactory 'mode' argument parsing, SPI name japaneseCompletion) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-335.html](../../bugs/LFV-335.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You configure the Japanese completion filter through its factory with mode="query", for example CustomAnalyzer.builder.withTokenizer("japanese", "mode", "normal").addTokenFilter("japaneseCompletion", "mode", "query"), the same way the sibling Japanese tokenizer factory accepts mode="search". You expect a QUERY-mode filter, because the factory's own parsing code calls toUpperCase(Locale.ROOT) on the mode. Instead the constructor throws IllegalArgumentException 'No enum constant...JapaneseCompletionFilter.Mode.query': the toUpperCase is applied to the default name "INDEX", which is already upper case, so the configured value reaches the case-sensitive Enum.valueOf unchanged and only the exact names INDEX and QUERY work.
+You configure the Japanese completion filter through its factory with mode="query", for example CustomAnalyzer.builder().withTokenizer("japanese", "mode", "normal").addTokenFilter("japaneseCompletion", "mode", "query"), the same way the sibling Japanese tokenizer factory accepts mode="search". You expect a QUERY-mode filter, because the factory's own parsing code calls toUpperCase(Locale.ROOT) on the mode. Instead the constructor throws IllegalArgumentException 'No enum constant ...JapaneseCompletionFilter.Mode.query': the toUpperCase is applied to the default name "INDEX", which is already upper case, so the configured value reaches the case-sensitive Enum.valueOf unchanged and only the exact names INDEX and QUERY work.
 
 The test shows that `JapaneseCompletionFilterFactory` rejects `mode=query`, because its `toUpperCase(Locale.ROOT)` runs on the default name `INDEX` instead of on the configured value.
 
@@ -22,7 +24,7 @@ Expected: `mode=query` is upper-cased to `QUERY`. Actual: `IllegalArgumentExcept
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

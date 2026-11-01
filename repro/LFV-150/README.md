@@ -1,6 +1,6 @@
 # Since 10.3.0, a field-sorted top-n search whose query fully matches a segment without deletions (MatchAllDocsQuery, a range covering the segment) no longer skips non-competitive documents: the comparator's initial all-docs competitive iterator reports a run to maxDoc through UpdateableDocIdSetIterator.docIDRunEnd, so DenseConjunctionBulkScorer hands the whole segment to the collector in one collectRange call (performance regression; results correct)
 
-Bug LFV-150 · Area: search / sorting (TopFieldCollector competitive iterator x DenseConjunctionBulkScorer collectRange shortcut) · Priority: medium · Impact: minor · Novelty: known upstream
+Finding LFV-150 · Area: search / sorting (TopFieldCollector competitive iterator x DenseConjunctionBulkScorer collectRange shortcut) · Priority: medium · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You run a top-10 search sorted on a LONG field with points (or a STRING field wi
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

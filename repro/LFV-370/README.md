@@ -1,6 +1,8 @@
-# BBoxStrategy's overlap-ratio explanation (BBoxOverlapRatioValueSource) shows the target ratio under 'queryFactor' instead of the query ratio, so explain misreports how the score was computed; the score itself is correct
+# BBoxStrategy's overlap-ratio explanation (BBoxOverlapRatioValueSource) shows the target ratio under 'queryFactor' instead of the query ratio, so explain() misreports how the score was computed; the score itself is correct
 
-Bug LFV-370 · Area: spatial-extras / BBoxStrategy overlap-ratio relevance (BBoxOverlapRatioValueSource.score: explanation tree) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-370 · Area: spatial-extras / BBoxStrategy overlap-ratio relevance (BBoxOverlapRatioValueSource.score: explanation tree) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-370.html](../../bugs/LFV-370.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected: queryRatio 200/1600 = 0.125; actual (-ea and -da): targetRatio 1.0 ("q
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

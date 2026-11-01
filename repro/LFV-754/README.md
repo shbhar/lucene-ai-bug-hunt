@@ -1,6 +1,8 @@
 # SweetSpotSimilarity.lengthNorm adds abs(x-min) + abs(x-max) in int, so a field of 1,073,741,848 or more terms (reachable with one custom term frequency) gets a NaN norm: the document is never collected, and default top-k search also skips competitive documents in the same postings block and skip range
 
-Bug LFV-754 · Area: misc / similarities (SweetSpotSimilarity lengthNorm; NaN effect on impacts-based top-k pruning in core search) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-754 · Area: misc / similarities (SweetSpotSimilarity lengthNorm; NaN effect on impacts-based top-k pruning in core search) · Priority: low · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-754.html](../../bugs/LFV-754.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected 1/sqrt(1073741825) = 3.0517578E-5 (the javadoc says the default degrade
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

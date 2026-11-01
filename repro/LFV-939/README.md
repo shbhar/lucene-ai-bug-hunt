@@ -1,14 +1,14 @@
-# The file-format javadoc of the default terms dictionary (Lucene103BlockTreeTermsWriter) gives a wrong.tim/.tmd grammar: each.tmd FieldStats still lists RootCodeLength and root-code bytes, which the trie-based terms index no longer writes, and the PostingsHeader is documented at the start of every.tim field although it is written once in.tmd, before NumFields (documentation defect; the writer and reader agree)
+# The file-format javadoc of the default terms dictionary (Lucene103BlockTreeTermsWriter) gives a wrong .tim/.tmd grammar: each .tmd FieldStats still lists RootCodeLength and root-code bytes, which the trie-based terms index no longer writes, and the PostingsHeader is documented at the start of every .tim field although it is written once in .tmd, before NumFields (documentation defect; the writer and reader agree)
 
-Bug LFV-939 · Area: codecs / terms dictionary (Lucene103BlockTreeTermsWriter.tim/.tmd file-format javadoc vs its writer and reader) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-939 · Area: codecs / terms dictionary (Lucene103BlockTreeTermsWriter .tim/.tmd file-format javadoc vs its writer and reader) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You decode the terms metadata (.tmd) and terms dictionary (.tim) files of the default codec by following the Lucene103BlockTreeTermsWriter javadoc, which says.tmd is Header, NumFields, FieldStats... with a RootCodeLength and root-code bytes in each FieldStats, and that every.tim field starts with a PostingsHeader. The writer instead puts the postings writer's header (an IndexHeader plus the block size) once into.tmd, right after its own header and before NumFields, writes no PostingsHeader into.tim and, since the trie terms index of 10.3.0, writes no root code; a parser built from the text reads NumFields as 63 (the first byte of the codec magic) and, even with that header skipped, takes SumTotalTermFreq for RootCodeLength. Lucene's own reader matches the writer, so nothing breaks at runtime; only the documentation is wrong.
+You decode the terms metadata (.tmd) and terms dictionary (.tim) files of the default codec by following the Lucene103BlockTreeTermsWriter javadoc, which says .tmd is Header, NumFields, FieldStats... with a RootCodeLength and root-code bytes in each FieldStats, and that every .tim field starts with a PostingsHeader. The writer instead puts the postings writer's header (an IndexHeader plus the block size) once into .tmd, right after its own header and before NumFields, writes no PostingsHeader into .tim and, since the trie terms index of 10.3.0, writes no root code; a parser built from the text reads NumFields as 63 (the first byte of the codec magic) and, even with that header skipped, takes SumTotalTermFreq for RootCodeLength. Lucene's own reader matches the writer, so nothing breaks at runtime; only the documentation is wrong.
 
-The test shows that the terms metadata file (.tmd) of the default codec, parsed with the Lucene103BlockTreeTermsWriter javadoc (TermsMeta --&gt; Header, NumFields,...), misreads NumFields, because the writer puts the postings writer header (the javadoc PostingsHeader, documented at the start of every.tim field) into.tmd right after the header.
+The test shows that the terms metadata file (.tmd) of the default codec, parsed with the Lucene103BlockTreeTermsWriter javadoc (TermsMeta --&gt; Header, NumFields, ...), misreads NumFields, because the writer puts the postings writer header (the javadoc PostingsHeader, documented at the start of every .tim field) into .tmd right after the header.
 
 ## Expected vs actual
 
@@ -22,7 +22,7 @@ NumFields 1 (one indexed field); actual 63, the first byte (0x3f) of the codec m
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

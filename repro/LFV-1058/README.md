@@ -1,6 +1,6 @@
 # JapaneseNumberFilter and KoreanNumberFilter emit a composed number on the attribute state of the token after it, so the number takes that token's part of speech, reading, position increment and position length (車は三台 with は removed by a StopFilter gives 3 +1 名詞-接尾-助数詞 instead of 3 +2 名詞-数) (known: #10130, Japanese part of speech) (released since 6.0.0 / 8.2.0)
 
-Bug LFV-1058 · Area: analysis / kuromoji and nori number filters (JapaneseNumberFilter, KoreanNumberFilter: attribute state of the composed number token) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-1058 · Area: analysis / kuromoji and nori number filters (JapaneseNumberFilter, KoreanNumberFilter: attribute state of the composed number token) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You add JapaneseNumberFilter (or KoreanNumberFilter) to an analysis chain and ex
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,6 +1,8 @@
-# IndexSearcher's cumulative maxClauseCount check never counts a query held by a values source (FunctionScoreQuery.boostByQuery's boost query, DoubleValuesSource.fromQuery, QueryValueSource): the function queries' visit stops at the source and each embedded query is checked alone with a fresh budget, so the total number of executed clauses is unbounded
+# IndexSearcher's cumulative maxClauseCount check never counts a query held by a values source (FunctionScoreQuery.boostByQuery's boost query, DoubleValuesSource.fromQuery, QueryValueSource): the function queries' visit() stops at the source and each embedded query is checked alone with a fresh budget, so the total number of executed clauses is unbounded
 
-Bug LFV-923 · Area: queries / function queries (FunctionScoreQuery, FunctionMatchQuery, FunctionRangeQuery and FunctionQuery QueryVisitor traversal of DoubleValuesSource/ValueSource; consumer: IndexSearcher's cumulative clause limit) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-923 · Area: queries / function queries (FunctionScoreQuery, FunctionMatchQuery, FunctionRangeQuery and FunctionQuery QueryVisitor traversal of DoubleValuesSource/ValueSource; consumer: IndexSearcher's cumulative clause limit) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-923.html](../../bugs/LFV-923.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected `IndexSearcher.TooManyNestedClauses` (default maxClauseCount 1024); act
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,6 +1,6 @@
 # ScorerUtil.minRequiredScore (new in 10.3.0, #14827) never terminates when the remaining clauses' max score is negative at a minimum competitive score of 0, so with assertions disabled a top-k BooleanQuery with a negative-scoring SHOULD clause spins forever in MaxScoreBulkScorer, the infinite loop that LUCENE-10428 had turned into an exception
 
-Bug LFV-1016 · Area: search / top-k dynamic pruning (ScorerUtil.minRequiredScore, called by MaxScoreBulkScorer) · Priority: unranked · Impact: hang · Novelty: known upstream
+Finding LFV-1016 · Area: search / top-k dynamic pruning (ScorerUtil.minRequiredScore, called by MaxScoreBulkScorer) · Priority: unranked · Impact: hang · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -11,7 +11,7 @@ You run IndexSearcher.search(q, 10) on a 3-document index, where q ORs a clause 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -20,7 +20,7 @@ You run IndexSearcher.search(q, 10) on a 3-document index, where q ORs a clause 
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -42,7 +42,7 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/rescoretopn-negative-rescore-values-maxscore-hang/](../../models/rescoretopn-negative-rescore-values-maxscore-hang/)
+Formal models and scripts this finding's part of the hunt used: [../../models/rescoretopn-negative-rescore-values-maxscore-hang/](../../models/rescoretopn-negative-rescore-values-maxscore-hang/)
 
 ## Feedback
 

@@ -1,6 +1,6 @@
 # DrillSideways built with both a TaxonomyReader and a SortedSetDocValuesReaderState (the constructors documented for indexes that mix FacetField and SortedSetDocValuesFacetField dimensions) never counts the SortedSetDocValues dimensions, because the default buildFacetsResult ignores the state whenever taxoReader != null (every release since 4.7.0)
 
-Bug LFV-725 · Area: facet / DrillSideways (default buildFacetsResult for the mixed TaxonomyReader + SortedSetDocValuesReaderState constructors) · Priority: medium · Impact: wrong error · Novelty: known upstream
+Finding LFV-725 · Area: facet / DrillSideways (default buildFacetsResult for the mixed TaxonomyReader + SortedSetDocValuesReaderState constructors) · Priority: medium · Impact: wrong error · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You index a taxonomy dimension color with FacetField and a SortedSetDocValues di
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

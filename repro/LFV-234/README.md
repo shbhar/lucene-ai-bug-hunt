@@ -1,17 +1,17 @@
-# GroupingSearch.setIgnoreDocsWithoutGroupField(true) is applied only to the first pass, so totalGroupCount, getAllMatchingGroups and getAllGroupHeads still include the null group
+# GroupingSearch.setIgnoreDocsWithoutGroupField(true) is applied only to the first pass, so totalGroupCount, getAllMatchingGroups() and getAllGroupHeads() still include the null group
 
-Bug LFV-234 · Area: grouping / GroupingSearch (all-groups and all-group-heads passes) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-234 · Area: grouping / GroupingSearch (all-groups and all-group-heads passes) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a GroupingSearch with setIgnoreDocsWithoutGroupField(true) and setAllGroups(true) or setAllGroupHeads(true), and some documents that match your query have no value in the group field. You expect those documents to form no group at all, as the setter's javadoc says ('ignore documents that don't have the group field instead of putting them in a null group'), so that totalGroupCount, documented as usable 'for accurate pagination', equals the number of groups that can be returned. Instead only the returned top groups honour the flag: totalGroupCount and getAllMatchingGroups still count the null group (3 instead of 2 in the repro), and getAllGroupHeads still marks the best document without the field as a group head.
+You build a GroupingSearch with setIgnoreDocsWithoutGroupField(true) and setAllGroups(true) or setAllGroupHeads(true), and some documents that match your query have no value in the group field. You expect those documents to form no group at all, as the setter's javadoc says ('ignore documents that don't have the group field instead of putting them in a null group'), so that totalGroupCount, documented as usable 'for accurate pagination', equals the number of groups that can be returned. Instead only the returned top groups honour the flag: totalGroupCount and getAllMatchingGroups() still count the null group (3 instead of 2 in the repro), and getAllGroupHeads() still marks the best document without the field as a group head.
 
 ## Expected vs actual
 
 - Expected: You expect those documents to form no group at all, as the setter's javadoc says ('ignore documents that don't have the group field instead of putting them in a null group'), so that totalGroupCount, documented as usable 'for accurate pagination', equals the number of groups that can be returned.
-- Actual: Only the returned top groups honour the flag: totalGroupCount and getAllMatchingGroups still count the null group (3 instead of 2 in the repro), and getAllGroupHeads still marks the best document without the field as a group head.
+- Actual: Only the returned top groups honour the flag: totalGroupCount and getAllMatchingGroups() still count the null group (3 instead of 2 in the repro), and getAllGroupHeads() still marks the best document without the field as a group head.
 
 ## Files
 
@@ -21,7 +21,7 @@ You build a GroupingSearch with setIgnoreDocsWithoutGroupField(true) and setAllG
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

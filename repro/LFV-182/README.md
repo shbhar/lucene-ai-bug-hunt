@@ -1,14 +1,14 @@
 # JavascriptCompiler.compile(source, functions, Integer.MAX_VALUE) rejects every expression, even '1', because maxNestingDepth + 1 overflows to Integer.MIN_VALUE
 
-Bug LFV-182 · Area: expressions / JavascriptCompiler nesting-depth guard (compile(String, Map, int maxNestingDepth), new in #16423, unreleased) · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-182 · Area: expressions / JavascriptCompiler nesting-depth guard (compile(String, Map, int maxNestingDepth), new in #16423, released in 10.6.0) · Priority: low · Impact: wrong error · Novelty: new
 
-Bug page: [../../bugs/LFV-182.html](../../bugs/LFV-182.html)
+Finding page: [../../bugs/LFV-182.html](../../bugs/LFV-182.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You compile an expression with the new overload JavascriptCompiler.compile(source, functions, maxNestingDepth) and pass Integer.MAX_VALUE to ask for no practical nesting limit, and you expect it to accept at least everything that Integer.MAX_VALUE - 1 accepts, because the parameter is documented only as 'the maximum depth of nesting', with no bound. Instead every expression, even '1', fails with ParseException 'Nesting level too deep (&gt;-2147483648)': the parse-time depth listener is created with maxNestingDepth + 1 to account for the root node, that int addition wraps to Integer.MIN_VALUE, and the depth check fails on the first parser rule. Integer.MAX_VALUE - 1 and the default limit of 1024 work, and the overload is in no release yet, so it can be fixed before 10.6.0 ships.
+You compile an expression with the new overload JavascriptCompiler.compile(source, functions, maxNestingDepth) and pass Integer.MAX_VALUE to ask for no practical nesting limit, and you expect it to accept at least everything that Integer.MAX_VALUE - 1 accepts, because the parameter is documented only as 'the maximum depth of nesting', with no bound. Instead every expression, even '1', fails with ParseException 'Nesting level too deep (&gt;-2147483648)': the parse-time depth listener is created with maxNestingDepth + 1 to account for the root node, that int addition wraps to Integer.MIN_VALUE, and the depth check fails on the first parser rule. Integer.MAX_VALUE - 1 and the default limit of 1024 work, and the overload first shipped in 10.6.0 (released 2026-10-29).
 
 The test shows that `JavascriptCompiler.compile("1", DEFAULT_FUNCTIONS, Integer.MAX_VALUE)` rejects even the trivial expression `1`, because the parse-time nesting listener is created with `maxNestingDepth + 1`, which wraps to `Integer.MIN_VALUE`.
 
@@ -24,7 +24,7 @@ Expected: `1` compiles. Actual: `ParseException: Invalid expression '1': Nesting
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 4 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

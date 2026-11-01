@@ -1,6 +1,6 @@
-# Test-framework ForceMergePolicy, documented as 'only returns forced merges', still lets the wrapped policy's natural merges run on commit and NRT reopen, because it inherits FilterMergePolicy's forwarding of findFullFlushMerges (regression since 9.3.0)
+# Test-framework ForceMergePolicy, documented as 'only returns forced merges', still lets the wrapped policy's natural merges run on commit() and NRT reopen, because it inherits FilterMergePolicy's forwarding of findFullFlushMerges (regression since 9.3.0)
 
-Bug LFV-576 · Area: test-framework / merge policies (ForceMergePolicy; FilterMergePolicy forwarding of MergePolicy.findFullFlushMerges for merge-on-commit and merge-on-getReader) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-576 · Area: test-framework / merge policies (ForceMergePolicy; FilterMergePolicy forwarding of MergePolicy.findFullFlushMerges for merge-on-commit and merge-on-getReader) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You wrap a merge policy in the test framework's ForceMergePolicy, documented as 
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

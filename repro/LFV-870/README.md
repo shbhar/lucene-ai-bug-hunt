@@ -1,6 +1,6 @@
 # Word2VecSynonymFilter documents minAcceptedSimilarity as a cosine similarity, but Word2VecSynonymProvider compares it with the normalised score (1 + cosine) / 2, so the effective cosine cutoff is 2m - 1 (the default 0.8 accepts cosine 0.6, 0.5 accepts orthogonal terms, values below 0.5 accept negatively correlated terms); documentation defect, the javadoc fix is the default proposal
 
-Bug LFV-870 · Area: analysis-common / synonym.word2vec (Word2VecSynonymFilter minAcceptedSimilarity javadoc vs Word2VecSynonymProvider threshold test) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-870 · Area: analysis-common / synonym.word2vec (Word2VecSynonymFilter minAcceptedSimilarity javadoc vs Word2VecSynonymProvider threshold test) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ Expected only the token `a` (b's cosine 0.707 is below 0.8); actual: `b` is adde
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -45,7 +45,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/word2vec-synonym-provider-vs-exact-cosine-reference/](../../models/word2vec-synonym-provider-vs-exact-cosine-reference/)
+Formal models and scripts this finding's part of the hunt used: [../../models/word2vec-synonym-provider-vs-exact-cosine-reference/](../../models/word2vec-synonym-provider-vs-exact-cosine-reference/)
 
 ## Feedback
 

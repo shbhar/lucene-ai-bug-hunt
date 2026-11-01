@@ -1,6 +1,6 @@
 # Document suggester with skipDuplicates=true and an index-time synonym returns fewer than n distinct suggestions (n=2 drops one that n=3 returns), because Util.TopNSearcher drops its queue before the last result although acceptPartialPath can still reject that path, and NRTSuggester sizes the queue from entries per analyzed form, which ignores synonym graph paths
 
-Bug LFV-660 · Area: suggest / document suggester (NRTSuggester skipDuplicates, queue sizing) and util / FST (Util.TopNSearcher) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-660 · Area: suggest / document suggester (NRTSuggester skipDuplicates, queue sizing) and util / FST (Util.TopNSearcher) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ You index suggestions through a CompletionAnalyzer with an index-time synonym (b
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

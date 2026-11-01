@@ -1,17 +1,17 @@
 # Cross-field BlendedTermQuery gives a sparse field's term a docFreq above that field's docCount, so matches score negative (and since 10.3 are dropped from top-k), and a field with no indexed terms makes search throw NullPointerException
 
-Bug LFV-484 · Area: search / BlendedTermQuery cross-field statistics blending · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-484 · Area: search / BlendedTermQuery cross-field statistics blending · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a BlendedTermQuery for "lucene" on the fields title and keywords, as its javadoc suggests for cross-field search, over an index where two titles contain "lucene" and only one document has a keywords field at all. You expect every matching document back with a non-negative score, and a field that no document has yet to simply match nothing. Instead the query gives keywords:lucene the largest docFreq of all its terms (2) although only 1 document has the keywords field, so BM25's idf turns negative and that document scores -0.10 and is ranked last, since 10.3 it is missing from search(q, 10) when it sits in a segment of its own (count(q) = 3, 2 hits returned), and when no document has the keywords field yet, search throws NullPointerException.
+You build a BlendedTermQuery for "lucene" on the fields title and keywords, as its javadoc suggests for cross-field search, over an index where two titles contain "lucene" and only one document has a keywords field at all. You expect every matching document back with a non-negative score, and a field that no document has yet to simply match nothing. Instead the query gives keywords:lucene the largest docFreq of all its terms (2) although only 1 document has the keywords field, so BM25's idf turns negative and that document scores -0.10 and is ranked last, since 10.3 it is missing from search(q, 10) when it sits in a segment of its own (count(q) = 3, 2 hits returned), and when no document has the keywords field yet, search() throws NullPointerException.
 
 ## Expected vs actual
 
 - Expected: You expect every matching document back with a non-negative score, and a field that no document has yet to simply match nothing.
-- Actual: The query gives keywords:lucene the largest docFreq of all its terms (2) although only 1 document has the keywords field, so BM25's idf turns negative and that document scores -0.10 and is ranked last, since 10.3 it is missing from search(q, 10) when it sits in a segment of its own (count(q) = 3, 2 hits returned), and when no document has the keywords field yet, search throws NullPointerException.
+- Actual: The query gives keywords:lucene the largest docFreq of all its terms (2) although only 1 document has the keywords field, so BM25's idf turns negative and that document scores -0.10 and is ranked last, since 10.3 it is missing from search(q, 10) when it sits in a segment of its own (count(q) = 3, 2 hits returned), and when no document has the keywords field yet, search() throws NullPointerException.
 
 ## Files
 
@@ -20,7 +20,7 @@ You build a BlendedTermQuery for "lucene" on the fields title and keywords, as i
 ## Run it
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

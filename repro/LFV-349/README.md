@@ -1,17 +1,17 @@
 # Monitor.register throws IllegalArgumentException 'Cannot build a conjunction (or disjunction) with no children' for a legal query, or a part of one, that reports no terms to the query visitor (an empty TermInSetQuery, an inverted TermRangeQuery, RegexpQuery '#', a term-less PhraseQuery or SynonymQuery), and the other queries of that commit chunk are not registered either
 
-Bug LFV-349 · Area: monitor / presearcher query analysis (QueryAnalyzer, QueryTree; default TermFilteredPresearcher) · Priority: medium · Impact: crash · Novelty: known upstream
+Finding LFV-349 · Area: monitor / presearcher query analysis (QueryAnalyzer, QueryTree; default TermFilteredPresearcher) · Priority: medium · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You register a query with a Lucene Monitor that contains a clause matching no term, for example 'text:apple OR id:' where the id list happens to be empty, or the inverted range 'text:[m TO c]' typed into the classic QueryParser. You expect it to be registered: it is a legal query, and the Monitor already indexes queries it cannot analyse under a catch-all token. Instead register throws IllegalArgumentException 'Cannot build a conjunction with no children', and the other queries passed in the same call (the same internal chunk) are not registered either.
+You register a query with a Lucene Monitor that contains a clause matching no term, for example 'text:apple OR id:()' where the id list happens to be empty, or the inverted range 'text:[m TO c]' typed into the classic QueryParser. You expect it to be registered: it is a legal query, and the Monitor already indexes queries it cannot analyse under a catch-all token. Instead register() throws IllegalArgumentException 'Cannot build a conjunction with no children', and the other queries passed in the same call (the same internal chunk) are not registered either.
 
 ## Expected vs actual
 
 - Expected: You expect it to be registered: it is a legal query, and the Monitor already indexes queries it cannot analyse under a catch-all token.
-- Actual: register throws IllegalArgumentException 'Cannot build a conjunction with no children', and the other queries passed in the same call (the same internal chunk) are not registered either.
+- Actual: register() throws IllegalArgumentException 'Cannot build a conjunction with no children', and the other queries passed in the same call (the same internal chunk) are not registered either.
 
 ## Files
 
@@ -21,7 +21,7 @@ You register a query with a Lucene Monitor that contains a clause matching no te
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

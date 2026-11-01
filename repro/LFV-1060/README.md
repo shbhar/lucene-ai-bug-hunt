@@ -1,17 +1,19 @@
-# IndexWriter.hasUncommittedChanges can return false for an acknowledged, uncommitted delete while another thread flushes or refreshes an NRT reader, because it reads changeCount before the in-RAM state (every release since 4.5.1)
+# IndexWriter.hasUncommittedChanges() can return false for an acknowledged, uncommitted delete while another thread flushes or refreshes an NRT reader, because it reads changeCount before the in-RAM state (every release since 4.5.1)
 
-Bug LFV-1060 · Area: index / IndexWriter (hasUncommittedChanges: changeCount vs. buffered deletes in flight) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-1060 · Area: index / IndexWriter (hasUncommittedChanges: changeCount vs. buffered deletes in flight) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-1060.html](../../bugs/LFV-1060.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You delete a committed document with deleteDocuments, do not commit, and call hasUncommittedChanges while another thread calls flush or refreshes an NRT reader; you expect true, because the delete was acknowledged and is not in the last commit, and the javadoc allows only false positives. Instead the method reads changeCount first (still equal to the last commit's) and the in-RAM state second, and if the flush applies the delete, increments changeCount and empties the delete buffers between those two reads, it returns false; the next call returns true. A caller that commits only when the method returns true skips that commit.
+You delete a committed document with deleteDocuments, do not commit, and call hasUncommittedChanges() while another thread calls flush() or refreshes an NRT reader; you expect true, because the delete was acknowledged and is not in the last commit, and the javadoc allows only false positives. Instead the method reads changeCount first (still equal to the last commit's) and the in-RAM state second, and if the flush applies the delete, increments changeCount and empties the delete buffers between those two reads, it returns false; the next call returns true. A caller that commits only when the method returns true skips that commit.
 
 ## Expected vs actual
 
-- Expected: You expect true, because the delete was acknowledged and is not in the last commit, and the javadoc allows only false positives.
-- Actual: The method reads changeCount first (still equal to the last commit's) and the in-RAM state second, and if the flush applies the delete, increments changeCount and empties the delete buffers between those two reads, it returns false; the next call returns true.
+- Expected: `hasUncommittedChanges()` returns true: the delete is acknowledged and not committed.
+- Actual: It returns false: `AssertionError` at `TestHasUncommittedChangesConcurrentFlush.java:55`, with assertions on and off; the next call returns true.
 
 ## Files
 
@@ -20,7 +22,7 @@ You delete a committed document with deleteDocuments, do not commit, and call ha
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -42,7 +44,11 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/iw-hasuncommittedchanges-read-order-race/](../../models/iw-hasuncommittedchanges-read-order-race/)
+## Files shown on the finding page
+
+- [TestHasUncommittedChangesConcurrentFlush.java](TestHasUncommittedChangesConcurrentFlush.java)
+
+Formal models and scripts this finding's part of the hunt used: [../../models/iw-hasuncommittedchanges-read-order-race/](../../models/iw-hasuncommittedchanges-read-order-race/)
 
 ## Feedback
 

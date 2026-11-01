@@ -1,12 +1,12 @@
 # SpanishPluralStemmer's special-case list has the singular 'contrarreloj' where the plural 'contrarrelojes' belongs, so the singular is cut to 'contrarrel', the plural stems to 'contrarreloje', and the two forms never match
 
-Bug LFV-688 · Area: analysis-common / es (SpanishPluralStemmer special-case list, SpanishPluralStemFilter) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-688 · Area: analysis-common / es (SpanishPluralStemmer special-case list, SpanishPluralStemFilter) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You stem Spanish text with SpanishPluralStemFilter, which CHANGES describes as 'precise stemming of Spanish plurals', and expect the plural 'contrarrelojes' to reduce to 'contrarreloj' and the singular 'contrarreloj' to stay as it is, as 'relojes' -&gt; 'reloj' and 'bojes' -&gt; 'boj' do. Instead the singular becomes 'contrarrel' and the plural 'contrarreloje', so a document containing 'contrarrelojes' is not found by the query 'contrarreloj'. The cause is one entry of the hand-written special-case list (SpanishPluralStemmer.java:163): the 12 other entries are plurals in -es whose last two letters stem removes (:173, 'return len - 2'), but this entry is the singular, and the missing plural falls through to the generic 'remove the final s' rule (:222-224).
+You stem Spanish text with SpanishPluralStemFilter, which CHANGES describes as 'precise stemming of Spanish plurals', and expect the plural 'contrarrelojes' to reduce to 'contrarreloj' and the singular 'contrarreloj' to stay as it is, as 'relojes' -&gt; 'reloj' and 'bojes' -&gt; 'boj' do. Instead the singular becomes 'contrarrel' and the plural 'contrarreloje', so a document containing 'contrarrelojes' is not found by the query 'contrarreloj'. The cause is one entry of the hand-written special-case list (SpanishPluralStemmer.java:163): the 12 other entries are plurals in -es whose last two letters stem() removes (:173, 'return len - 2'), but this entry is the singular, and the missing plural falls through to the generic 'remove the final s' rule (:222-224).
 
 ## Expected vs actual
 
@@ -20,7 +20,7 @@ You stem Spanish text with SpanishPluralStemFilter, which CHANGES describes as '
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -43,7 +43,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/analysis-rule-tables-second-batch/](../../models/analysis-rule-tables-second-batch/)
+Formal models and scripts this finding's part of the hunt used: [../../models/analysis-rule-tables-second-batch/](../../models/analysis-rule-tables-second-batch/)
 
 ## Feedback
 

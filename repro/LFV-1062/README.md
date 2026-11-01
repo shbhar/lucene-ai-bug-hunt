@@ -1,0 +1,55 @@
+# An IndexWriter opened from a leaf-sorted reader's IndexCommit pairs each segment with the segment reader at the same leaf position, so deleteDocuments(term) deletes another segment's documents and the commit persists that silently
+
+Finding LFV-1062 · Area: index / IndexWriter opened from a reader's IndexCommit (ReaderPool pre-enrollment) with a leaf-sorted reader (DirectoryReader leaf sorter, IndexWriterConfig#setLeafSorter) · Priority: medium · Impact: data corruption · Novelty: new
+
+Finding page: [../../bugs/LFV-1062.html](../../bugs/LFV-1062.html)
+
+AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
+
+## What it shows
+
+You commit two one-document segments (_0 holds id=a, _1 holds id=b), open DirectoryReader.open(dir, newestFirst) so that its leaves are [_1, _0], open an IndexWriter with setIndexCommit(reader.getIndexCommit()), call deleteDocuments(new Term("id", "a")) and commit. You expect the index to keep only b, as it does when the reader has no sorter or when the same commit is taken from DirectoryReader.listCommits. Instead the writer deletes b and keeps a: ReaderPool pairs segmentInfos.info(i) (segment order) with reader.leaves().get(i) (sorted order) by position, so each segment's pooled reader carries the other segment's documents, the delete matches a's data but is recorded under _1, and the commit writes _1's live docs, with CheckIndex clean.
+
+## Expected vs actual
+
+- Expected: After the commit `id:a` has 0 hits and `id:b` has 1 hit.
+- Actual: `id:a` has 1 hit and `id:b` has 0: `AssertionError: expected:<0> but was:<1>` at the first assertion, assertions on and off.
+
+## Files
+
+- [src/org/apache/lucene/index/TestIndexWriterFromLeafSortedReader.java](src/org/apache/lucene/index/TestIndexWriterFromLeafSortedReader.java) (JUnit test)
+
+## Run it
+
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
+
+```bash
+# Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
+LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
+CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
+CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
+CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
+CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
+CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
+
+javac -d classes -cp "$CP" $(find src -name '*.java')
+
+# run 1: assertions off (production-like), seed DEADBEEF
+java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.index.TestIndexWriterFromLeafSortedReader
+```
+
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestIndexWriterFromLeafSortedReader.java](TestIndexWriterFromLeafSortedReader.java)
+
+Formal models and scripts this finding's part of the hunt used: [../../models/iw-from-reader-commit-leaf-sorted-reader-pairs-wrong-segments/](../../models/iw-from-reader-commit-leaf-sorted-reader-pairs-wrong-segments/)
+
+## Feedback
+
+Open an issue in [lucene-ai-bug-hunt](https://github.com/shbhar/lucene-ai-bug-hunt/issues). Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.

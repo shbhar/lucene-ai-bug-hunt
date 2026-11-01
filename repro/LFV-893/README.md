@@ -1,12 +1,14 @@
 # ValueSource#asDoubleValuesSource and #asLongValuesSource never call createWeight, so a ValueSource that keeps per-query state in its context (ttf, sttf, or a user ValueSource) fails with NullPointerException through FunctionScoreQuery, its explain, or a LongValuesSource sort
 
-Bug LFV-893 · Area: queries / function queries (ValueSource to DoubleValuesSource/LongValuesSource bridge: asDoubleValuesSource, asLongValuesSource) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-893 · Area: queries / function queries (ValueSource to DoubleValuesSource/LongValuesSource bridge: asDoubleValuesSource, asLongValuesSource) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-893.html](../../bugs/LFV-893.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You expose a ValueSource as a DoubleValuesSource with asDoubleValuesSource and score with it through FunctionScoreQuery (for example FunctionScoreQuery.boostByValue, the documented replacement for the removed BoostedQuery), or sort by asLongValuesSource.getSortField, and expect the per-document values the same ValueSource gives through FunctionQuery or its own getSortField (3 for ttf(text, test) in the repro). Instead the bridge builds a fresh context in getValues and explain and calls in.getValues without ever calling in.createWeight, so ttf and sttf, which compute their statistic in createWeight and return context.get(this) from getValues, throw NullPointerException ('this.val$fv' is null at ValueSource.java:210 or:144), and a user ValueSource that stores per-query state in createWeight, as the ValueSource javadoc describes, finds its context entry missing. FunctionQuery, FunctionRangeQuery and ValueSource#getSortField all call createWeight first, and the bridge's rewrite(searcher) already holds the searcher such a call needs.
+You expose a ValueSource as a DoubleValuesSource with asDoubleValuesSource() and score with it through FunctionScoreQuery (for example FunctionScoreQuery.boostByValue, the documented replacement for the removed BoostedQuery), or sort by asLongValuesSource().getSortField(), and expect the per-document values the same ValueSource gives through FunctionQuery or its own getSortField (3 for ttf(text, test) in the repro). Instead the bridge builds a fresh context in getValues and explain and calls in.getValues without ever calling in.createWeight, so ttf and sttf, which compute their statistic in createWeight and return context.get(this) from getValues, throw NullPointerException ('this.val$fv' is null at ValueSource.java:210 or :144), and a user ValueSource that stores per-query state in createWeight, as the ValueSource javadoc describes, finds its context entry missing. FunctionQuery, FunctionRangeQuery and ValueSource#getSortField all call createWeight first, and the bridge's rewrite(searcher) already holds the searcher such a call needs.
 
 The test shows that `ValueSource#asDoubleValuesSource` never calls `createWeight`, so `FunctionScoreQuery.boostByValue(new MatchAllDocsQuery(), ttf.asDoubleValuesSource())` cannot score with `ttf(text, test)`.
 
@@ -22,7 +24,7 @@ Expected score 2 (the ttf of the one document "test test", as `FunctionQuery` gi
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

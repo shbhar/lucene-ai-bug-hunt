@@ -1,8 +1,8 @@
 # ICUFoldingFilter removes the hook, stroke or descender from older Cyrillic letters such as ҧ (U+04A7) but from none of the 24 letters of that kind added in Unicode 4.1-7.0, such as its modern Abkhaz counterpart ԥ (U+0525), so the two spellings of a word give different terms
 
-Bug LFV-877 · Area: analysis / icu (ICUFoldingFilter UTR#30 folding data: the hand-written 'Rule: verbatim' Cyrillic block of DiacriticFolding.txt, compiled into utr30.nrm) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-877 · Area: analysis / icu (ICUFoldingFilter UTR#30 folding data: the hand-written 'Rule: verbatim' Cyrillic block of DiacriticFolding.txt, compiled into utr30.nrm) · Priority: low · Impact: minor · Novelty: new
 
-Bug page: [../../bugs/LFV-877.html](../../bugs/LFV-877.html)
+Finding page: [../../bugs/LFV-877.html](../../bugs/LFV-877.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected `ԥ` to fold to `п` (U+043F); actual: `ԥ` unchanged (`term 0 expected
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

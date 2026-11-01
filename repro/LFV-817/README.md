@@ -1,6 +1,6 @@
 # TermStates#get hands a lazily looked-up TermState to the other partitions of the same segment without safe publication, so under intra-segment concurrency a partition can read docFreq or file pointers still at 0 and a non-scoring term or phrase query silently misses matches (executed on aarch64)
 
-Bug LFV-817 · Area: search / intra-segment concurrency (index / TermStates lazy per-leaf lookup) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-817 · Area: search / intra-segment concurrency (index / TermStates lazy per-leaf lookup) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You search with an IndexSearcher that splits one segment into several partitions
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

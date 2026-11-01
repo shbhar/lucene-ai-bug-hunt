@@ -1,14 +1,14 @@
-# DocValuesStatsCollectorManager merges LongDocValuesStats and SortedLongDocValuesStats (lucene/misc) through their wrapping long sum, so on a searcher with an executor mean, variance and stdev are silently wrong (for example about 8x too small, or negative) once a slice's long sum or the reduce's running long sum passes Long.MAX_VALUE, as 6 epoch-nanosecond timestamps do, while the same search without an executor is exact
+# DocValuesStatsCollectorManager merges LongDocValuesStats and SortedLongDocValuesStats (lucene/misc) through their wrapping long sum(), so on a searcher with an executor mean(), variance() and stdev() are silently wrong (for example about 8x too small, or negative) once a slice's long sum or the reduce's running long sum passes Long.MAX_VALUE, as 6 epoch-nanosecond timestamps do, while the same search without an executor is exact
 
-Bug LFV-882 · Area: misc / DocValuesStats long statistics (DocValuesStatsCollectorManager concurrent reduce) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-882 · Area: misc / DocValuesStats long statistics (DocValuesStatsCollectorManager concurrent reduce) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-882.html](../../bugs/LFV-882.html)
+Finding page: [../../bugs/LFV-882.html](../../bugs/LFV-882.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index ordinary large long values, for example 24 epoch-nanosecond timestamps in 6 segments, compute LongDocValuesStats (or SortedLongDocValuesStats) with DocValuesStatsCollectorManager exactly as its class javadoc shows on new IndexSearcher(reader, executor), and expect mean = 1.7616096115E18, 'the mean of all values of the field' and the value the same search without an executor returns, because merge promises 'the combined statistics of both segments as if they had been collected together'. Instead mean is 2.243809386908707E17 (about 8x too small; other slicings give a negative mean) and variance and stdev are wrong too, because merge recomputes the combined mean as (sum + otherSum) / count from long sums that have wrapped past Long.MAX_VALUE, while serial collection keeps a running mean that never reads the sum. Only sum is documented as possibly overflowing; count, min and max stay right.
+You index ordinary large long values, for example 24 epoch-nanosecond timestamps in 6 segments, compute LongDocValuesStats (or SortedLongDocValuesStats) with DocValuesStatsCollectorManager exactly as its class javadoc shows on new IndexSearcher(reader, executor), and expect mean() = 1.7616096115E18, 'the mean of all values of the field' and the value the same search without an executor returns, because merge() promises 'the combined statistics of both segments as if they had been collected together'. Instead mean() is 2.243809386908707E17 (about 8x too small; other slicings give a negative mean) and variance() and stdev() are wrong too, because merge() recomputes the combined mean as (sum + otherSum) / count from long sums that have wrapped past Long.MAX_VALUE, while serial collection keeps a running mean that never reads the sum. Only sum() is documented as possibly overflowing; count(), min() and max() stay right.
 
 The test shows that `DocValuesStatsCollectorManager` with `LongDocValuesStats` on an `IndexSearcher` with an executor returns a wrong `mean()` once a slice's long sum wraps (6 one-doc segments of the value 2e18, default slicing 5 + 1).
 
@@ -24,7 +24,7 @@ Expected the executor mean to equal the serial mean `2.0E18`; actual: `-1.074457
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

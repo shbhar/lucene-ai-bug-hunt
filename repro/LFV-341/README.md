@@ -1,12 +1,14 @@
-# KatakanaRomanizer.romanize(CharsRef) ignores CharsRef.offset, so a CharsRef that is a slice of a larger char is romanized from chars[0, length) instead of the slice (latent: Lucene's own JapaneseCompletionFilter always passes offset 0)
+# KatakanaRomanizer.romanize(CharsRef) ignores CharsRef.offset, so a CharsRef that is a slice of a larger char[] is romanized from chars[0, length) instead of the slice (latent: Lucene's own JapaneseCompletionFilter always passes offset 0)
 
-Bug LFV-341 · Area: analysis / kuromoji (KatakanaRomanizer in org.apache.lucene.analysis.ja.completion, the romaji helper of JapaneseCompletionFilter) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-341 · Area: analysis / kuromoji (KatakanaRomanizer in org.apache.lucene.analysis.ja.completion, the romaji helper of JapaneseCompletionFilter) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-341.html](../../bugs/LFV-341.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You call KatakanaRomanizer.getInstance.romanize(...) with a CharsRef that is a slice of a larger array, for example CharsRef.subSequence(2, 6) of 'ハシヤキュウ' (the slice 'ヤキュウ' at offset 2), and expect the romaji of the slice, [yakyuu], because CharsRef is documented as 'a slice (offset + length) into an existing char' and the same text at offset 0 gives [yakyuu]. Instead romanize reads chars[0, length), here 'ハシヤキ', and returns [hasiyaki, hashiyaki]; a slice at offset 1 of 'アトウキョウ' gives [atoukyo] instead of [toukyou], and one at offset 1 of 'xトウキョウt' gives instead of [toukyout]. There is no exception, with or without assertions, and Lucene's own JapaneseCompletionFilter is not affected because it always passes offset 0.
+You call KatakanaRomanizer.getInstance().romanize(...) with a CharsRef that is a slice of a larger array, for example CharsRef.subSequence(2, 6) of 'ハシヤキュウ' (the slice 'ヤキュウ' at offset 2), and expect the romaji of the slice, [yakyuu], because CharsRef is documented as 'a slice (offset + length) into an existing char[]' and the same text at offset 0 gives [yakyuu]. Instead romanize reads chars[0, length), here 'ハシヤキ', and returns [hasiyaki, hashiyaki]; a slice at offset 1 of 'アトウキョウ' gives [atoukyo] instead of [toukyou], and one at offset 1 of 'xトウキョウt' gives [] instead of [toukyout]. There is no exception, with or without assertions, and Lucene's own JapaneseCompletionFilter is not affected because it always passes offset 0.
 
 The test shows that `KatakanaRomanizer.romanize(CharsRef)` ignores `CharsRef.offset`: the slice `トウキョウ` at offset 1 of `アトウキョウ` is romanized from `chars[0, 5)` instead.
 
@@ -22,7 +24,7 @@ Expected `[toukyou]`; actual `[atoukyo]` (`expected:<[toukyou]> but was:<[atouky
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

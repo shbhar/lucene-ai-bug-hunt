@@ -1,6 +1,6 @@
 # With an executor, grouped search breaks ties by slice number instead of doc ID, so tied groups and tied documents differ from sequential search
 
-Bug LFV-238 · Area: grouping / collector managers (FirstPassGroupingCollectorManager, TopGroupsCollectorManager and BlockGroupingCollectorManager reduce through the cross-shard merges SearchGroup.merge, TopGroups.merge and TopGroups.mergeBlockGroups; GroupingSearch) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-238 · Area: grouping / collector managers (FirstPassGroupingCollectorManager, TopGroupsCollectorManager and BlockGroupingCollectorManager reduce through the cross-shard merges SearchGroup.merge, TopGroups.merge and TopGroups.mergeBlockGroups; GroupingSearch) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ You run a grouped search (GroupingSearch, or the grouping collector managers) on
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,8 +1,8 @@
 # Grouping LongRangeFactory and DoubleRangeFactory give the last range below max the full width, so its reported group bounds run past max and overlap the range for values &gt;= max
 
-Bug LFV-407 · Area: grouping / range group selectors (LongRangeFactory and DoubleRangeFactory, used by LongRangeGroupSelector and DoubleRangeGroupSelector) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-407 · Area: grouping / range group selectors (LongRangeFactory and DoubleRangeFactory, used by LongRangeGroupSelector and DoubleRangeGroupSelector) · Priority: low · Impact: minor · Novelty: new
 
-Bug page: [../../bugs/LFV-407.html](../../bugs/LFV-407.html)
+Finding page: [../../bugs/LFV-407.html](../../bugs/LFV-407.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected `new LongRangeFactory(10, 10, 25).getRange(22, null)` = `LongRange(20, 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 2 test(s) run, 2 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

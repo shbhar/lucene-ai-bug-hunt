@@ -1,8 +1,8 @@
 # FixedShingleFilter takes the gap before each token of a graph route from that token's stream position increment, so tokens stacked right after a hole (a removed stop word followed by a preserved original, a stemmed variant or a synonym) get shingles that skip the filler ('at café' for 'at the café') while the correct ones ('at _ café') are missing, and a token after a multi-position token gets a filler it should not have ('login _' instead of 'login page'); released since 8.0.0
 
-Bug LFV-781 · Area: analysis-common / shingle (FixedShingleFilter, FixedShingleFilterFactory) over core analysis GraphTokenFilter (route walk) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-781 · Area: analysis-common / shingle (FixedShingleFilter, FixedShingleFilterFactory) over core analysis GraphTokenFilter (route walk) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-781.html](../../bugs/LFV-781.html)
+Finding page: [../../bugs/LFV-781.html](../../bugs/LFV-781.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected no shingle "a c" (c is two positions after a), actual `[a _, a c]`.
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

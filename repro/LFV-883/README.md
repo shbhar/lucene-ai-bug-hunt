@@ -1,6 +1,6 @@
 # GroupReducer lets one group's CollectionTerminatedException escape SecondPassGroupingCollector, so IndexSearcher ends the whole segment and every other group silently misses its remaining documents in that segment
 
-Bug LFV-883 · Area: grouping / GroupReducer and SecondPassGroupingCollector (second-pass per-group collectors) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-883 · Area: grouping / GroupReducer and SecondPassGroupingCollector (second-pass per-group collectors) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You write a GroupReducer whose per-group collector needs only the first document
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

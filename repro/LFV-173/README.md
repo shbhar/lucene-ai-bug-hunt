@@ -1,17 +1,17 @@
-# LogOddsFusionQuery returns the raw clause score in segments where only one clause has a scorer, so identical documents score differently depending on their segment and explain disagrees with the score
+# LogOddsFusionQuery returns the raw clause score in segments where only one clause has a scorer, so identical documents score differently depending on their segment and explain() disagrees with the score
 
-Bug LFV-173 · Area: search / score fusion (LogOddsFusionQuery: LogOddsFusionWeight#scorerSupplier) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-173 · Area: search / score fusion (LogOddsFusionQuery: LogOddsFusionWeight#scorerSupplier) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You combine two or more probability clauses (for example a BayesianScoreQuery over BM25 and a kNN query) with LogOddsFusionQuery and search an index that has more than one segment. You expect every document to get the documented fused score, sigmoid(n^alpha * mean of the gated log-odds over all n clauses), which is also what explain reports, whichever segment holds the document. Instead, in a segment where only one clause has a scorer, the query hands back that clause's own scorer unchanged, so documents there get the raw clause score: in the repro two documents with identical content score 0.6386912 and 0.5532073, while explain reports 0.6386912 for both.
+You combine two or more probability clauses (for example a BayesianScoreQuery over BM25 and a kNN query) with LogOddsFusionQuery and search an index that has more than one segment. You expect every document to get the documented fused score, sigmoid(n^alpha * mean of the gated log-odds over all n clauses), which is also what explain() reports, whichever segment holds the document. Instead, in a segment where only one clause has a scorer, the query hands back that clause's own scorer unchanged, so documents there get the raw clause score: in the repro two documents with identical content score 0.6386912 and 0.5532073, while explain() reports 0.6386912 for both.
 
 ## Expected vs actual
 
-- Expected: You expect every document to get the documented fused score, sigmoid(n^alpha * mean of the gated log-odds over all n clauses), which is also what explain reports, whichever segment holds the document.
-- Actual: In a segment where only one clause has a scorer, the query hands back that clause's own scorer unchanged, so documents there get the raw clause score: in the repro two documents with identical content score 0.6386912 and 0.5532073, while explain reports 0.6386912 for both.
+- Expected: You expect every document to get the documented fused score, sigmoid(n^alpha * mean of the gated log-odds over all n clauses), which is also what explain() reports, whichever segment holds the document.
+- Actual: In a segment where only one clause has a scorer, the query hands back that clause's own scorer unchanged, so documents there get the raw clause score: in the repro two documents with identical content score 0.6386912 and 0.5532073, while explain() reports 0.6386912 for both.
 
 ## Files
 
@@ -21,7 +21,7 @@ You combine two or more probability clauses (for example a BayesianScoreQuery ov
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

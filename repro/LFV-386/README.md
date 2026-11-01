@@ -1,6 +1,8 @@
 # ByteSliceReader's final-slice test (nextIndex + newSize &gt;= endIndex) overflows int when a postings stream's last slice ends exactly at the 2^31-byte end of the in-RAM byte pool, so IndexWriter silently commits up to 3 wrong postings bytes that CheckIndex accepts
 
-Bug LFV-386 · Area: index / in-RAM postings byte slices (ByteSliceReader, TermsHashPerField) · Priority: low · Impact: data corruption · Novelty: new
+Finding LFV-386 · Area: index / in-RAM postings byte slices (ByteSliceReader, TermsHashPerField) · Priority: low · Impact: data corruption · Novelty: new
+
+Finding page: [../../bugs/LFV-386.html](../../bugs/LFV-386.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected: the 14 bytes written (1..14) read back unchanged. Actual (-ea and -da)
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

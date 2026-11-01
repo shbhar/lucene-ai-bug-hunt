@@ -1,12 +1,14 @@
 # MemoryIndex's StoredFields.document offers the visitor fields that have no stored value and asks needsField only once per field name instead of once per stored value, so LazyDocument fails with ArrayIndexOutOfBoundsException or silently loses values, and per-value NO/STOP decisions are ignored
 
-Bug LFV-745 · Area: memory / MemoryIndex stored fields (StoredFieldVisitor protocol) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-745 · Area: memory / MemoryIndex stored fields (StoredFieldVisitor protocol) · Priority: low · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-745.html](../../bugs/LFV-745.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You add a document with an indexed-only field body (TextField, Store.NO) and a stored field tag with two values t1, t2 to a MemoryIndex and read it through storedFields.document(0, visitor), with a visitor that records its needsField calls or with LazyDocument's lazy-loading pattern from TestLazyDocument, expecting what an IndexWriter index gives for the same document: one needsField(tag) per stored value, never a question about body, and the lazy values tag=t1, tag=t2. Instead MemoryIndex asks about body, which has no stored value, asks about tag only once and then delivers both values on that single YES, because its loop calls needsField once per field name before it checks whether the field has stored values. So LazyDocument's lazy body field throws ArrayIndexOutOfBoundsException when read and tag=t2 is silently missing (with -ea LazyDocument's own inverted assertion, LFV-697, throws instead), and a visitor that wants only the first value of tag gets both.
+You add a document with an indexed-only field body (TextField, Store.NO) and a stored field tag with two values t1, t2 to a MemoryIndex and read it through storedFields().document(0, visitor), with a visitor that records its needsField calls or with LazyDocument's lazy-loading pattern from TestLazyDocument, expecting what an IndexWriter index gives for the same document: one needsField(tag) per stored value, never a question about body, and the lazy values tag=t1, tag=t2. Instead MemoryIndex asks about body, which has no stored value, asks about tag only once and then delivers both values on that single YES, because its loop calls needsField once per field name before it checks whether the field has stored values. So LazyDocument's lazy body field throws ArrayIndexOutOfBoundsException when read and tag=t2 is silently missing (with -ea LazyDocument's own inverted assertion, LFV-697, throws instead), and a visitor that wants only the first value of tag gets both.
 
 The test shows that MemoryIndex's `StoredFields.document(int, StoredFieldVisitor)` asks `needsField` about a field with no stored value and only once per field name, not once per stored value.
 
@@ -22,7 +24,7 @@ Expected `[tag, tag]` (body Store.NO, tag stored twice; what an IndexWriter inde
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

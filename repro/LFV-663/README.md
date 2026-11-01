@@ -1,17 +1,17 @@
 # BrazilianStemmer throws away the result of its "logias" -&gt; "log" rule, so plural -logias nouns stay unstemmed and stop matching their singular
 
-Bug LFV-663 · Area: analysis-common / Brazilian Portuguese stemmer (BrazilianStemmer.step1; BrazilianStemFilter, BrazilianAnalyzer and the 'brazilianStem' factory) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-663 · Area: analysis-common / Brazilian Portuguese stemmer (BrazilianStemmer.step1; BrazilianStemFilter, BrazilianAnalyzer and the 'brazilianStem' factory) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index Brazilian Portuguese text with the stock BrazilianAnalyzer (or BrazilianStemFilter), one document says 'metodologia' and a query says 'metodologias'; you expect both words to stem to 'metodolog' and match, as the stemmer's own rule table says ('logias' in R2 is replaced by 'log', exactly like the singular 'logia'). Instead step1 calls replaceSuffix(CT, "logias", "log") without assigning the result and still returns true, which also makes stem skip step2 and step4, so the plural is indexed as the whole word 'metodologias' and the search finds 0 hits. Long -logias plurals such as metodologias, antropologias, terminologias, epistemologias, fenomenologias and odontologias are hit; shorter ones such as tecnologias, ideologias and biologias are not, because the rule does not fire for them and step2 stems them.
+You index Brazilian Portuguese text with the stock BrazilianAnalyzer (or BrazilianStemFilter), one document says 'metodologia' and a query says 'metodologias'; you expect both words to stem to 'metodolog' and match, as the stemmer's own rule table says ('logias' in R2 is replaced by 'log', exactly like the singular 'logia'). Instead step1 calls replaceSuffix(CT, "logias", "log") without assigning the result and still returns true, which also makes stem() skip step2 and step4, so the plural is indexed as the whole word 'metodologias' and the search finds 0 hits. Long -logias plurals such as metodologias, antropologias, terminologias, epistemologias, fenomenologias and odontologias are hit; shorter ones such as tecnologias, ideologias and biologias are not, because the rule does not fire for them and step2 stems them.
 
 ## Expected vs actual
 
 - Expected: You expect both words to stem to 'metodolog' and match, as the stemmer's own rule table says ('logias' in R2 is replaced by 'log', exactly like the singular 'logia').
-- Actual: Step1 calls replaceSuffix(CT, "logias", "log") without assigning the result and still returns true, which also makes stem skip step2 and step4, so the plural is indexed as the whole word 'metodologias' and the search finds 0 hits.
+- Actual: Step1 calls replaceSuffix(CT, "logias", "log") without assigning the result and still returns true, which also makes stem() skip step2 and step4, so the plural is indexed as the whole word 'metodologias' and the search finds 0 hits.
 
 ## Files
 
@@ -20,7 +20,7 @@ You index Brazilian Portuguese text with the stock BrazilianAnalyzer (or Brazili
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

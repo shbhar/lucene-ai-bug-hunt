@@ -1,8 +1,8 @@
 # Doc-values range queries with a skip index return wrong hits when a segment's values span more than Long.MAX_VALUE
 
-Bug LFV-044 · Area: codecs / doc values · Priority: high · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-044 · Area: codecs / doc values · Priority: high · Impact: silent wrong results · Novelty: known upstream
 
-Bug page: [../../bugs/LFV-044.html](../../bugs/LFV-044.html)
+Finding page: [../../bugs/LFV-044.html](../../bugs/LFV-044.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ You index numeric doc values with a skip index (NumericDocValuesField.indexedFie
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -47,11 +47,11 @@ java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=A
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-## Files shown on the bug page
+## Files shown on the finding page
 
 - [TestSkipIndexedDocValuesRangeWideSpan.java](TestSkipIndexedDocValuesRangeWideSpan.java)
 
-Formal models and scripts this bug's part of the hunt used: [../../models/study-simd-equivalence/](../../models/study-simd-equivalence/)
+Formal models and scripts this finding's part of the hunt used: [../../models/study-simd-equivalence/](../../models/study-simd-equivalence/)
 
 ## Feedback
 

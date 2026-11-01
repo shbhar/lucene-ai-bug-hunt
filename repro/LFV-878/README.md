@@ -1,8 +1,8 @@
 # HTMLStripCharFilter drops an unclosed '&lt;name' or '&lt;/name' when the input ends right after the name, but outputs the same text when any character follows it, so 'a &lt; b' indexes only 'a'
 
-Bug LFV-878 · Area: analysis / HTMLStripCharFilter (JFlex grammar: the %eof end-of-input switch for the start- and end-tag tail states; also the 'htmlStrip' char filter SPI) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-878 · Area: analysis / HTMLStripCharFilter (JFlex grammar: the %eof end-of-input switch for the start- and end-tag tail states; also the 'htmlStrip' char filter SPI) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-878.html](../../bugs/LFV-878.html)
+Finding page: [../../bugs/LFV-878.html](../../bugs/LFV-878.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: `a < b` -&gt; `a < b` (as `a < b ` -&gt; `a < b `); actual: `a ` (`exp
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -47,7 +47,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/htmlstrip-tag-open-name-class-vs-html-tokenizer-reference/](../../models/htmlstrip-tag-open-name-class-vs-html-tokenizer-reference/)
+Formal models and scripts this finding's part of the hunt used: [../../models/htmlstrip-tag-open-name-class-vs-html-tokenizer-reference/](../../models/htmlstrip-tag-open-name-class-vs-html-tokenizer-reference/)
 
 ## Feedback
 

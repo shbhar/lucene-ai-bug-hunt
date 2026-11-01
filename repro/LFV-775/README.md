@@ -1,8 +1,8 @@
 # UnifiedHighlighter cuts a stored value at maxLength UTF-16 units even between the two halves of a supplementary character (an emoji, a CJK Extension B ideograph), so the snippet can end in an unpaired high surrogate, for example '&lt;b&gt;Hello&lt;/b&gt; \uD83D'
 
-Bug LFV-775 · Area: highlighter / UnifiedHighlighter stored-value loading (LimitedStoredFieldVisitor maxLength cut) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-775 · Area: highlighter / UnifiedHighlighter stored-value loading (LimitedStoredFieldVisitor maxLength cut) · Priority: low · Impact: minor · Novelty: new
 
-Bug page: [../../bugs/LFV-775.html](../../bugs/LFV-775.html)
+Finding page: [../../bugs/LFV-775.html](../../bugs/LFV-775.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected a well-formed snippet (whole characters only; maxLength 6 gives `<b>Hel
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

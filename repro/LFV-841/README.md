@@ -1,6 +1,6 @@
 # On main, a 9.x/10.x int7/int4 scalar-quantized segment whose vectors are all identical (stored quantiles equal) is decoded with the min == max widening that #14049 added, not the quantizer that wrote it, so its vectors read 127 (int7) or 15 (int4) units lower in every dimension and exact matches score about 0 and rank last (unreleased, 11.0 only)
 
-Bug LFV-841 · Area: codecs / legacy scalar-quantized vectors (util/quantization ScalarQuantizer, backward-codecs Lucene99ScalarQuantizedVectorsReader) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-841 · Area: codecs / legacy scalar-quantized vectors (util/quantization ScalarQuantizer, backward-codecs Lucene99ScalarQuantizedVectorsReader) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -11,7 +11,7 @@ You index a field with the Lucene99 HNSW scalar-quantized format (int7, EUCLIDEA
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -21,7 +21,7 @@ You index a field with the Lucene99 HNSW scalar-quantized format (int7, EUCLIDEA
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -48,7 +48,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/legacy-int7-int4-scalar-quantized-scoring-fp-smt/](../../models/legacy-int7-int4-scalar-quantized-scoring-fp-smt/)
+Formal models and scripts this finding's part of the hunt used: [../../models/legacy-int7-int4-scalar-quantized-scoring-fp-smt/](../../models/legacy-int7-int4-scalar-quantized-scoring-fp-smt/)
 
 ## Feedback
 

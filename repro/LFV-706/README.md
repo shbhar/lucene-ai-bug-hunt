@@ -1,14 +1,14 @@
-# FSTCompletionLookup ignores exactMatchFirst=false for by-weight lookups after build and load, so an exact match is always ranked first
+# FSTCompletionLookup ignores exactMatchFirst=false for by-weight lookups after build() and load(), so an exact match is always ranked first
 
-Bug LFV-706 · Area: suggest / FST completion suggester (FSTCompletionLookup build/load exactMatchFirst wiring) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-706 · Area: suggest / FST completion suggester (FSTCompletionLookup build/load exactMatchFirst wiring) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-706.html](../../bugs/LFV-706.html)
+Finding page: [../../bugs/LFV-706.html](../../bugs/LFV-706.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build an FSTCompletionLookup(dir, "fst", 10, false) from star (weight 1), star wars (100) and start (50) and ask lookup("star", true, 3) for the most popular completions first. You expect [star wars/6, start/3, star/0], because the constructor javadoc says that with exactMatchFirst=false exact matches 'appear in the order of discretized weight and alphabetical within the bucket'. Instead you get [star/0, star wars/6, start/3], with no error, after build and equally after store and load: both paths create the internal by-weight FSTCompletion with its exact-first default, and the flag reaches only the alphabetical completion, where it changes nothing.
+You build an FSTCompletionLookup(dir, "fst", 10, false) from star (weight 1), star wars (100) and start (50) and ask lookup("star", true, 3) for the most popular completions first. You expect [star wars/6, start/3, star/0], because the constructor javadoc says that with exactMatchFirst=false exact matches 'appear in the order of discretized weight and alphabetical within the bucket'. Instead you get [star/0, star wars/6, start/3], with no error, after build() and equally after store() and load(): both paths create the internal by-weight FSTCompletion with its exact-first default, and the flag reaches only the alphabetical completion, where it changes nothing.
 
 The test shows that `FSTCompletionLookup(dir, "fst", 10, false)` still promotes the exact match in by-weight lookups after `build()`: for `star` (weight 1) and `star wars` (weight 100), `lookup("star", true, 2)` puts `star` first.
 
@@ -24,7 +24,7 @@ Expected `[star wars/5, star/0]` (order of discretized weight, as the `exactMatc
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

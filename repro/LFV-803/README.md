@@ -1,12 +1,12 @@
 # UnifiedHighlighter's re-analysis offset strategies decode every extracted query term as UTF-8, so a binary term (for example a binary StringField id reached with requireFieldMatch=false) makes highlighting throw
 
-Bug LFV-803 · Area: highlighter / UnifiedHighlighter re-analysis offset strategies (MemoryIndexOffsetStrategy, TokenStreamOffsetStrategy) · Priority: medium · Impact: crash · Novelty: known upstream
+Finding LFV-803 · Area: highlighter / UnifiedHighlighter re-analysis offset strategies (MemoryIndexOffsetStrategy, TokenStreamOffsetStrategy) · Priority: medium · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build UnifiedHighlighter.builder(null, analyzer).withFieldMatcher(f -&gt; true) (the documented requireFieldMatch=false switch) and call highlightWithoutSearcher("body", query, "hello world", 1) with query = SHOULD id:&lt;binary bytes 9F 12 FF 00 41&gt; + SHOULD body:hello, and expect "&lt;b&gt;hello&lt;/b&gt; world", because binary terms are documented Lucene input (StringField's BytesRef constructor), the id term can never occur in analyzed text, the byte-based POSTINGS and TERM_VECTORS offset sources do not throw on such a term, and the classic Highlighter and the default field matcher highlight the same query. Instead the call throws: the default MemoryIndexOffsetStrategy passes the raw term bytes to Automata.makeStringUnion, which is documented to take UTF-8 and throws IllegalArgumentException 'Invalid UTF8 header byte: 0x9f', and TokenStreamOffsetStrategy (withPassageRelevancyOverSpeed(false)) calls BytesRef.utf8ToString, which throws AssertionError with -ea and ArrayIndexOutOfBoundsException with -da. The same happens through highlight on a stored text field without offsets, and on a field with offsets when the query also has a prefix clause on it.
+You build UnifiedHighlighter.builder(null, analyzer).withFieldMatcher(f -&gt; true) (the documented requireFieldMatch=false switch) and call highlightWithoutSearcher("body", query, "hello world", 1) with query = SHOULD id:&lt;binary bytes 9F 12 FF 00 41&gt; + SHOULD body:hello, and expect "&lt;b&gt;hello&lt;/b&gt; world", because binary terms are documented Lucene input (StringField's BytesRef constructor), the id term can never occur in analyzed text, the byte-based POSTINGS and TERM_VECTORS offset sources do not throw on such a term, and the classic Highlighter and the default field matcher highlight the same query. Instead the call throws: the default MemoryIndexOffsetStrategy passes the raw term bytes to Automata.makeStringUnion, which is documented to take UTF-8 and throws IllegalArgumentException 'Invalid UTF8 header byte: 0x9f', and TokenStreamOffsetStrategy (withPassageRelevancyOverSpeed(false)) calls BytesRef.utf8ToString, which throws AssertionError with -ea and ArrayIndexOutOfBoundsException with -da. The same happens through highlight() on a stored text field without offsets, and on a field with offsets when the query also has a prefix clause on it.
 
 ## Expected vs actual
 
@@ -20,7 +20,7 @@ You build UnifiedHighlighter.builder(null, analyzer).withFieldMatcher(f -&gt; tr
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

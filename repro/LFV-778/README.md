@@ -1,8 +1,8 @@
 # SpatialStrategy.makeRecipDistanceValueSource takes zScaling from half the corner-to-corner great-circle distance of the query's bounding box, which goes the short way round the globe once a geo box is wider than 180 degrees of longitude, so edge scores fall far below the documented ~0.1 (0.0082 for rect(-170,170,-10,10), 0.0028 for a 5S-5N band of all longitudes; released since 4.0.0)
 
-Bug LFV-778 · Area: spatial-extras / SpatialStrategy recip-distance scoring (every strategy with a distance value source) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-778 · Area: spatial-extras / SpatialStrategy recip-distance scoring (every strategy with a distance value source) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-778.html](../../bugs/LFV-778.html)
+Finding page: [../../bugs/LFV-778.html](../../bugs/LFV-778.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: ~0.1 at the furthest edge (javadoc; 17 / 187 = 0.091, upstream toleran
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

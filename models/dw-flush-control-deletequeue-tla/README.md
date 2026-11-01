@@ -4,11 +4,11 @@ Tools: TLA+/TLC.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- A non-tragic exception during an NRT reopen or commit full flush aborts the DWPTs other threads filled during that flush, silently losing acknowledged documents and updates while the writer stays open (bug LFV-473; [repro](../../repro/LFV-473/))
-- IndexWriter.deleteAll misses a segment flush that another thread is already running, so documents added before deleteAll survive it and are committed (bug LFV-474; [repro](../../repro/LFV-474/))
-- tryDeleteDocument / tryUpdateDocValue running while commit flushes returns a sequence number above the commit's, yet its change is in that commit (bug LFV-471; [repro](../../repro/LFV-471/), [bug page](../../bugs/LFV-471.html))
+- A non-tragic exception during an NRT reopen or commit full flush aborts the DWPTs other threads filled during that flush, silently losing acknowledged documents and updates while the writer stays open (finding LFV-473; [repro](../../repro/LFV-473/))
+- IndexWriter.deleteAll misses a segment flush that another thread is already running, so documents added before deleteAll survive it and are committed (finding LFV-474; [repro](../../repro/LFV-474/))
+- tryDeleteDocument / tryUpdateDocValue running while commit() flushes returns a sequence number above the commit's, yet its change is in that commit (finding LFV-471; [repro](../../repro/LFV-471/), [finding page](../../bugs/LFV-471.html))
 
 ## Files
 
@@ -30,4 +30,4 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## How to run
 
-- TLA+ with TLC: `java -cp tla2tools.jar tlc2.TLC -config <Model>.cfg <Model>.tla` (a counterexample trace is the bug when the model encodes the current code).
+- TLA+ with TLC: `java -cp tla2tools.jar tlc2.TLC -config <Model>.cfg <Model>.tla` (a counterexample trace is the finding when the model encodes the current code).

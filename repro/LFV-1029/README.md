@@ -1,6 +1,6 @@
 # ContextSuggestField's class javadoc example calls new ContextSuggestField(name, "suggestion", Arrays.asList("context1", "context2"), 4), but the only constructor is (String name, String value, int weight, CharSequence... contexts), so the example has not compiled on any release since the class was added in 5.3.0 (documentation defect)
 
-Bug LFV-1029 · Area: suggest / document suggesters (ContextSuggestField class javadoc example) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-1029 · Area: suggest / document suggesters (ContextSuggestField class javadoc example) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -11,7 +11,7 @@ The ContextSuggestField javadoc shows how to add a suggestion with two contexts:
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -20,7 +20,7 @@ The ContextSuggestField javadoc shows how to add a suggestion with two contexts:
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

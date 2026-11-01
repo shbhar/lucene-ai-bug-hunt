@@ -1,14 +1,14 @@
-# ContextQuery gives an exact context's boost to any longer indexed context that starts with it (exact 'red' boosts a suggestion indexed under 'redwood') when that longer context is matched through a shorter prefix context or addAllContexts, so document-suggester hits get wrong scores and a wrong order
+# ContextQuery gives an exact context's boost to any longer indexed context that starts with it (exact 'red' boosts a suggestion indexed under 'redwood') when that longer context is matched through a shorter prefix context or addAllContexts(), so document-suggester hits get wrong scores and a wrong order
 
-Bug LFV-254 · Area: suggest / document (NRT) suggester (ContextQuery: ContextCompletionWeight.setNextMatch boost lookup over ContextSuggestField contexts) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-254 · Area: suggest / document (NRT) suggester (ContextQuery: ContextCompletionWeight.setNextMatch boost lookup over ContextSuggestField contexts) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-254.html](../../bugs/LFV-254.html)
+Finding page: [../../bugs/LFV-254.html](../../bugs/LFV-254.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index 'table lamp' (weight 5) under context 'redwood' and 'table cloth' (weight 4) under 'red' with ContextSuggestField, and query 'tab' with addAllContexts (or a prefix context 're') plus the exact context 'red' with boost 10; you expect 'table cloth' to score 4 x 10 = 40 and 'table lamp' its plain weight 5, because an exact context matches only an indexed context equal to it. Instead 'table lamp' scores 50 and ranks first: the boost lookup takes the longest query context whose characters equal the start of the indexed context and never checks that the indexed context ends there, so exact 'red' lends its boost to 'redwood'. Filtering is still right (exact 'red' alone does not return 'table lamp'); only scores and order are wrong.
+You index 'table lamp' (weight 5) under context 'redwood' and 'table cloth' (weight 4) under 'red' with ContextSuggestField, and query 'tab' with addAllContexts() (or a prefix context 're') plus the exact context 'red' with boost 10; you expect 'table cloth' to score 4 x 10 = 40 and 'table lamp' its plain weight 5, because an exact context matches only an indexed context equal to it. Instead 'table lamp' scores 50 and ranks first: the boost lookup takes the longest query context whose characters equal the start of the indexed context and never checks that the indexed context ends there, so exact 'red' lends its boost to 'redwood'. Filtering is still right (exact 'red' alone does not return 'table lamp'); only scores and order are wrong.
 
 The test shows that an exact ContextQuery context ('red', boost 10) lends its boost to a suggestion indexed under a longer context that starts with it ('redwood') when that suggestion is matched through addAllContexts().
 
@@ -24,7 +24,7 @@ Expected the 'lamp' suggestion (context 'redwood', weight 5) to score its plain 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

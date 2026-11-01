@@ -4,9 +4,9 @@ Tools: Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- NGramTokenizer and EdgeNGramTokenizer accept maxGram = Integer.MAX_VALUE, but their int buffer sizing wraps to a 1022-char read buffer and leaves the 16-char default term buffer, so the first text of 17 or more chars throws (ArrayIndexOutOfBoundsException up to 1021 chars, an unrelated IllegalArgumentException from 1022) (bug LFV-1007; [repro](../../repro/LFV-1007/))
+- NGramTokenizer and EdgeNGramTokenizer accept maxGram = Integer.MAX_VALUE, but their int buffer sizing wraps to a 1022-char read buffer and leaves the 16-char default term buffer, so the first text of 17 or more chars throws (ArrayIndexOutOfBoundsException up to 1021 chars, an unrelated IllegalArgumentException from 1022) (finding LFV-1007; [repro](../../repro/LFV-1007/), [finding page](../../bugs/LFV-1007.html))
 
 ## Files
 

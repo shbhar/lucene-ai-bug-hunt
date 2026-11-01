@@ -4,9 +4,9 @@ Tools: Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- SynonymQuery adds up boosted term frequencies in float in heap order, so identical documents can score differently and explain can differ from the hit score; with more than 2^24 occurrences in one field a score can exceed getMaxScore (bug LFV-272; [repro](../../repro/LFV-272/))
+- SynonymQuery adds up boosted term frequencies in float in heap order, so identical documents can score differently and explain() can differ from the hit score; with more than 2^24 occurrences in one field a score can exceed getMaxScore() (finding LFV-272; [repro](../../repro/LFV-272/), [finding page](../../bugs/LFV-272.html))
 
 ## Files
 

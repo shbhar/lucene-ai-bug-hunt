@@ -1,8 +1,8 @@
 # Geo3DDocValuesField.newDistanceSort and newOutsideDistanceSort with a maximum radius below about 10 km test each document's 21-bit decoded point, which lies metres off the planet surface, against the circle's nearly tangent plane: about half the documents inside the circle, even at its centre, get distance +Infinity and sort last, documents up to about 8 km away get finite distances, and inside documents get outside distances of up to the radius instead of 0.0
 
-Bug LFV-247 · Area: spatial3d / Geo3DDocValuesField distance sorts (Geo3DPointDistanceComparator, Geo3DPointOutsideDistanceComparator; GeoStandardCircle membership test on the decoded doc value) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-247 · Area: spatial3d / Geo3DDocValuesField distance sorts (Geo3DPointDistanceComparator, Geo3DPointOutsideDistanceComparator; GeoStandardCircle membership test on the decoded doc value) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-247.html](../../bugs/LFV-247.html)
+Finding page: [../../bugs/LFV-247.html](../../bugs/LFV-247.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: a finite distance near 0 m (the document is at the centre of the 1 km 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

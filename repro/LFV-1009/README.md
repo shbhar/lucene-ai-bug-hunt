@@ -1,12 +1,14 @@
-# FacetSetsField.create sizes its buffer from the first FacetSet's sizePackedBytes, so a list of custom variable-size facet sets (e.g. compressed, which the FacetSet javadoc and FacetSets.adoc allow) throws ArrayIndexOutOfBoundsException when a later set packs to more bytes than the first, and whether a document can be built depends only on the order of its sets
+# FacetSetsField.create sizes its buffer from the first FacetSet's sizePackedBytes(), so a list of custom variable-size facet sets (e.g. compressed, which the FacetSet javadoc and FacetSets.adoc allow) throws ArrayIndexOutOfBoundsException when a later set packs to more bytes than the first, and whether a document can be built depends only on the order of its sets
 
-Bug LFV-1009 · Area: facet / facet sets (FacetSetsField packing of custom FacetSet encodings) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-1009 · Area: facet / facet sets (FacetSetsField packing of custom FacetSet encodings) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-1009.html](../../bugs/LFV-1009.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You write a FacetSet subclass that compresses its value (one length byte plus the value's significant bytes, so sizePackedBytes is 2 for the value 7 and 7 for 2^40) with a matching FacetSetDecoder, and you expect FacetSetsField.create("f", set(7), set(2^40)) to work just like the same call with the two sets swapped. Instead create allocates 4 + the first set's sizePackedBytes times the number of sets (8 bytes) and then writes each set's own packed bytes (13 needed), so the second set's packValues throws ArrayIndexOutOfBoundsException 'Index 8 out of bounds for length 8'. With the larger set first the same two sets pack, index and count correctly.
+You write a FacetSet subclass that compresses its value (one length byte plus the value's significant bytes, so sizePackedBytes() is 2 for the value 7 and 7 for 2^40) with a matching FacetSetDecoder, and you expect FacetSetsField.create("f", set(7), set(2^40)) to work just like the same call with the two sets swapped. Instead create allocates 4 + the first set's sizePackedBytes() times the number of sets (8 bytes) and then writes each set's own packed bytes (13 needed), so the second set's packValues throws ArrayIndexOutOfBoundsException 'Index 8 out of bounds for length 8'. With the larger set first the same two sets pack, index and count correctly.
 
 The test shows that `FacetSetsField.create` sizes its buffer from the first set's `sizePackedBytes()`, so a custom variable-size `FacetSet` that packs larger than the first set overflows it.
 
@@ -22,7 +24,7 @@ Expected `create("f", set(7), set(2^40))` (2 and 7 packed bytes) to return a fie
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

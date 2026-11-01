@@ -1,8 +1,8 @@
-# MatchHighlighter.highlight(topDocs, q1, q2,...) silently drops the highlights of every field that only the second or a later query matches: each document keeps only the stored field values of the first query's MatchRegionRetriever, which loads just the fields that first query affects (regression in 10.0.0)
+# MatchHighlighter.highlight(topDocs, q1, q2, ...) silently drops the highlights of every field that only the second or a later query matches: each document keeps only the stored field values of the first query's MatchRegionRetriever, which loads just the fields that first query affects (regression in 10.0.0)
 
-Bug LFV-595 · Area: highlighter / matchhighlight: MatchHighlighter multi-query highlighting (DocHit field values on top of MatchRegionRetriever's per-query stored-field loading) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-595 · Area: highlighter / matchhighlight: MatchHighlighter multi-query highlighting (DocHit field values on top of MatchRegionRetriever's per-query stored-field loading) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-595.html](../../bugs/LFV-595.html)
+Finding page: [../../bugs/LFV-595.html](../../bugs/LFV-595.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -14,7 +14,7 @@ The test shows that `MatchHighlighter.highlight(topDocs, title:foo, body:bar)` o
 
 ## Expected vs actual
 
-Expected: `{title=[>foo<], body=[>bar<]}`; actual (-ea and -da): `{title=[>foo<]}`, because the DocHit keeps only the field values loaded by the first query's MatchRegionRetriever (MatchHighlighter.java:173,:242).
+Expected: `{title=[>foo<], body=[>bar<]}`; actual (-ea and -da): `{title=[>foo<]}`, because the DocHit keeps only the field values loaded by the first query's MatchRegionRetriever (MatchHighlighter.java:173, :242).
 
 ## Files
 
@@ -24,7 +24,7 @@ Expected: `{title=[>foo<], body=[>bar<]}`; actual (-ea and -da): `{title=[>foo<]
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,6 +1,6 @@
 # Flexible query parser: AbstractRangeQueryNode.toQueryString does not keep the 11.0 'can be parsed back' promise for quoted bounds that contain a space, ']' or '}' or for open bounds in processed trees, and an open point bound makes it throw IllegalArgumentException, which escapes StandardQueryParser.parse at the clause limit
 
-Bug LFV-355 · Area: queryparser / flexible (AbstractRangeQueryNode.toQueryString, PointQueryNode.getTermEscaped, the StandardSyntaxParser range lexer, the open-bound forms of OpenRangeQueryNodeProcessor and PointRangeQueryNodeProcessor, BooleanQueryNodeBuilder) · Priority: low · Impact: wrong error · Novelty: known upstream
+Finding LFV-355 · Area: queryparser / flexible (AbstractRangeQueryNode.toQueryString, PointQueryNode.getTermEscaped, the StandardSyntaxParser range lexer, the open-bound forms of OpenRangeQueryNodeProcessor and PointRangeQueryNodeProcessor, BooleanQueryNodeBuilder) · Priority: low · Impact: wrong error · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You parse a range such as f:["a b" TO c] or f:[a TO *] with the flexible Standar
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,8 +1,8 @@
 # Taxonomy facets: for a sub-path of a single-valued hierarchical dimension, FacetResult.value from getTopChildren/getAllChildren is the sum of the children, so documents labeled at the sub-path itself are left out, while getSpecificValue, drill-down and SortedSetDocValues faceting count them
 
-Bug LFV-727 · Area: facet / taxonomy facets (TaxonomyFacets#getTopChildrenForPath and #getAllChildren: FacetResult.value of a sub-path; FastTaxonomyFacetCounts, TaxonomyFacetFloatAssociations with a DoubleValuesSource) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-727 · Area: facet / taxonomy facets (TaxonomyFacets#getTopChildrenForPath and #getAllChildren: FacetResult.value of a sub-path; FastTaxonomyFacetCounts, TaxonomyFacetFloatAssociations with a DoubleValuesSource) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-727.html](../../bugs/LFV-727.html)
+Finding page: [../../bugs/LFV-727.html](../../bugs/LFV-727.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected `getTopChildren(10, "Publish Date", "2010").value` = 2 (both documents 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

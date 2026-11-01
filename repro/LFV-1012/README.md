@@ -1,12 +1,14 @@
-# Hunspell Dictionary throws a raw ArrayIndexOutOfBoundsException (or NullPointerException) instead of a descriptive error when a.dic entry uses an AM morphological alias number that the.aff file does not define, although the same mistake in the AF flag-alias table gets 'Bad flag alias number'
+# Hunspell Dictionary throws a raw ArrayIndexOutOfBoundsException (or NullPointerException) instead of a descriptive error when a .dic entry uses an AM morphological alias number that the .aff file does not define, although the same mistake in the AF flag-alias table gets 'Bad flag alias number'
 
-Bug LFV-1012 · Area: analysis-common / hunspell Dictionary parsing (AM morphological aliases) · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-1012 · Area: analysis-common / hunspell Dictionary parsing (AM morphological aliases) · Priority: low · Impact: wrong error · Novelty: new
+
+Finding page: [../../bugs/LFV-1012.html](../../bugs/LFV-1012.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You load a hunspell dictionary whose affix file has an AM table, for example 'AM 1' and 'AM po:noun', and whose.dic has an entry 'foo&lt;TAB&gt;2' that points at an alias the table does not define (or alias 0, or 'AM 2' with only one AM line). You expect a descriptive error, as for the same mistake in the flag-alias (AF) table, which gives IllegalArgumentException 'Bad flag alias number:2' (C Hunspell, the reference implementation, warns 'bad morph. alias index' and loads the word without morphological data). Instead every Dictionary constructor fails with java.lang.ArrayIndexOutOfBoundsException 'Index 1 out of bounds for length 1' (or NullPointerException 'Cannot invoke "String.isBlank" because "morphData" is null') from Dictionary.splitMorphData, which reads morphAliases[alias - 1] with no range check, and has done so since AM aliases were added in 4.10.0 (LUCENE-5778).
+You load a hunspell dictionary whose affix file has an AM table, for example 'AM 1' and 'AM po:noun', and whose .dic has an entry 'foo&lt;TAB&gt;2' that points at an alias the table does not define (or alias 0, or 'AM 2' with only one AM line). You expect a descriptive error, as for the same mistake in the flag-alias (AF) table, which gives IllegalArgumentException 'Bad flag alias number:2' (C Hunspell's source, the reference implementation, range-checks the index and keeps the word without morphological data; its 'bad morph. alias index' warning prints only in builds with HUNSPELL_WARNING_ON). Instead every Dictionary constructor fails with java.lang.ArrayIndexOutOfBoundsException 'Index 1 out of bounds for length 1' (or NullPointerException 'Cannot invoke "String.isBlank()" because "morphData" is null') from Dictionary.splitMorphData, which reads morphAliases[alias - 1] with no range check, and has done so since AM aliases were added in 4.10.0 (LUCENE-5778).
 
 The test shows that a hunspell `.dic` entry pointing at an AM morphological alias the `.aff` does not define (alias 2, table of 1) makes `Dictionary` fail with a raw `ArrayIndexOutOfBoundsException`.
 
@@ -22,7 +24,7 @@ Expected: the word loads or the load fails with a descriptive `ParseException`/`
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

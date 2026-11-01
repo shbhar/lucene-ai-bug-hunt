@@ -1,12 +1,12 @@
 # SimpleWKTShapeParser.parse throws StackOverflowError instead of a result or its declared ParseException when GEOMETRYCOLLECTIONs nest a few thousand levels deep, valid or unterminated (10,000 levels, about 210 KB of text, on the default thread stack of the test machine; every release since 7.6.0)
 
-Bug LFV-954 · Area: core / geo WKT parsing (SimpleWKTShapeParser) · Priority: unranked · Impact: wrong error · Novelty: known upstream
+Finding LFV-954 · Area: core / geo WKT parsing (SimpleWKTShapeParser) · Priority: unranked · Impact: wrong error · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You call SimpleWKTShapeParser.parse on a GEOMETRYCOLLECTION that holds a GEOMETRYCOLLECTION, and so on 10,000 levels deep (about 210 KB of valid WKT), or on the same text left unterminated, and expect the nested Object result, or the method's declared ParseException for bad or too-deep input. Instead java.lang.StackOverflowError escapes, because parseGeometry and parseGeometryCollection call each other once per nesting level with no depth limit and nothing turns the Error into a ParseException; the same unterminated text still gives ParseException at 5,000 levels. The caller has no limit it can set, and a plain length cap does not help, because about 42 KB already fails on a 512 KiB stack while real polygons are often longer than 200 KB.
+You call SimpleWKTShapeParser.parse on a GEOMETRYCOLLECTION that holds a GEOMETRYCOLLECTION, and so on 10,000 levels deep (about 210 KB of valid WKT), or on the same text left unterminated, and expect the nested Object[] result, or the method's declared ParseException for bad or too-deep input. Instead java.lang.StackOverflowError escapes, because parseGeometry and parseGeometryCollection call each other once per nesting level with no depth limit and nothing turns the Error into a ParseException; the same unterminated text still gives ParseException at 5,000 levels. The caller has no limit it can set, and a plain length cap does not help, because about 42 KB already fails on a 512 KiB stack while real polygons are often longer than 200 KB.
 
 ## Expected vs actual
 
@@ -20,7 +20,7 @@ You call SimpleWKTShapeParser.parse on a GEOMETRYCOLLECTION that holds a GEOMETR
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

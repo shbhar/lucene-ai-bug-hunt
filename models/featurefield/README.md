@@ -4,9 +4,9 @@ Tools: SMT-LIB (Z3/cvc5).
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- FeatureField.newSigmoidQuery (and the IntervalQuery sigmoid) return NaN scores when pivot^exp overflows or underflows a double, for pivot and exp values the factories accept (bug LFV-258; [repro](../../repro/LFV-258/))
+- FeatureField.newSigmoidQuery (and the IntervalQuery sigmoid) return NaN scores when pivot^exp overflows or underflows a double, for pivot and exp values the factories accept (finding LFV-258; [repro](../../repro/LFV-258/), [finding page](../../bugs/LFV-258.html))
 
 ## Files
 

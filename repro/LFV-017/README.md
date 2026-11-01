@@ -1,6 +1,6 @@
 # Data race on SegmentInfos.version between newSegmentName and checkpoint
 
-Bug LFV-017 · Area: index / IndexWriter NRT · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-017 · Area: index / IndexWriter NRT · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Several indexing threads allocate new segment names while the writer checkpoints
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
 - Recorded outcome of run 1 on Lucene main a9779ef3c193: 2 test(s) run, 2 failed (testAddIndexesRaceLowersVersionAndHidesChanges, testDwptCreationRaceLosesIncrements).
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 - Not runnable from this site as is: this repro also needs extra JVM setup (such as an instrumentation hook) that is not exported here; see the comments at the top of the source.
 - This repro reads private Lucene state by reflection (setAccessible), so it depends on internals that may change.

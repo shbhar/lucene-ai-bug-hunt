@@ -1,12 +1,14 @@
 # MultiDocValues norms view (also the merged reader passed to MergePolicy.OneMerge#reorder): advance(target) returns a document before target when target's segment has no norms for the field, so queries over that view can return duplicate or non-matching hits
 
-Bug LFV-142 · Area: index / MultiDocValues merged norms view (also the merged reader passed to MergePolicy.OneMerge#reorder) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-142 · Area: index / MultiDocValues merged norms view (also the merged reader passed to MergePolicy.OneMerge#reorder) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-142.html](../../bugs/LFV-142.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You read the norms of a multi-segment index as one merged iterator (MultiDocValues.getNormValues(reader, "body"), or LeafReader#getNormValues on the merged reader that IndexWriter hands to a custom OneMerge#reorder), where doc 0's segment has the text field "body", docs 1-2 sit in a segment without it and doc 3's segment has it again, and call advance(1) on a fresh iterator. You expect 3, the first document at or after the target that has a norm, as the DocIdSetIterator#advance contract says and as the merged numeric doc-values view of the same index returns. Instead advance(1) returns 0, a document before the target, because advance falls back to nextDoc before it records which segment comes next, so nextDoc restarts from the first segment; queries over that view inherit the backward step (FieldExistsQuery with intra-segment partitions returns [0, 0, 0, 3] instead of [0, 3], and a conjunction can return a document that fails one of its FILTER clauses).
+You read the norms of a multi-segment index as one merged iterator (MultiDocValues.getNormValues(reader, "body"), or LeafReader#getNormValues on the merged reader that IndexWriter hands to a custom OneMerge#reorder), where doc 0's segment has the text field "body", docs 1-2 sit in a segment without it and doc 3's segment has it again, and call advance(1) on a fresh iterator. You expect 3, the first document at or after the target that has a norm, as the DocIdSetIterator#advance contract says and as the merged numeric doc-values view of the same index returns. Instead advance(1) returns 0, a document before the target, because advance() falls back to nextDoc() before it records which segment comes next, so nextDoc() restarts from the first segment; queries over that view inherit the backward step (FieldExistsQuery with intra-segment partitions returns [0, 0, 0, 3] instead of [0, 3], and a conjunction can return a document that fails one of its FILTER clauses).
 
 The test shows that `MultiDocValues.getNormValues(reader, field).advance(target)` returns a document before the target when the target's segment has no norms for the field (3 segments: doc 0 has the field, doc 1 does not, doc 2 has it).
 
@@ -22,7 +24,7 @@ Expected `advance(1)` to return 2, the first document &gt;= 1 with a norm; actua
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

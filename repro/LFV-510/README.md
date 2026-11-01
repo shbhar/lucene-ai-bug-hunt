@@ -1,14 +1,14 @@
 # ProtectedTermFilterFactory does not pass its luceneMatchVersion to the filters it builds from wrappedFilters, so since 10.5 a wrapped truncate with prefixLength under a pinned pre-10.5 version truncates by code points instead of the legacy UTF-16 chars
 
-Bug LFV-510 · Area: analysis / common miscellaneous (ProtectedTermFilterFactory#populateInnerFilters: wrappedFilters factory construction; symptom in TruncateTokenFilterFactory prefixLength) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-510 · Area: analysis / common miscellaneous (ProtectedTermFilterFactory#populateInnerFilters: wrappedFilters factory construction; symptom in TruncateTokenFilterFactory prefixLength) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-510.html](../../bugs/LFV-510.html)
+Finding page: [../../bugs/LFV-510.html](../../bugs/LFV-510.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You configure ProtectedTermFilterFactory with wrappedFilters=truncate and truncate.prefixLength=4 and pin luceneMatchVersion to 10.4.0 (in the factory args, or through CustomAnalyzer.withDefaultMatchVersion), on Lucene 10.5 or later. You expect the wrapped truncate to keep the legacy behaviour that the pinned version selects for back-compat, the first 4 UTF-16 chars, as an unwrapped truncate and the equivalent when/endwhen form do under the same version. Instead populateInnerFilters builds the wrapped factory from the 'truncate.*' arguments only, so it runs at Version.LATEST and keeps 4 code points: the token 'ab😀😀cd' becomes 'ab😀😀' instead of 'ab😀', with no error.
+You configure ProtectedTermFilterFactory with wrappedFilters=truncate and truncate.prefixLength=4 and pin luceneMatchVersion to 10.4.0 (in the factory args, or through CustomAnalyzer.withDefaultMatchVersion), on Lucene 10.5 or later. You expect the wrapped truncate to keep the legacy behaviour that the pinned version selects for back-compat, the first 4 UTF-16 chars, as an unwrapped truncate and the equivalent when()/endwhen() form do under the same version. Instead populateInnerFilters builds the wrapped factory from the 'truncate.*' arguments only, so it runs at Version.LATEST and keeps 4 code points: the token 'ab😀😀cd' becomes 'ab😀😀' instead of 'ab😀', with no error.
 
 The test shows that `ProtectedTermFilterFactory` with `luceneMatchVersion=10.4.0`, `wrappedFilters=truncate` and `truncate.prefixLength=4` builds the wrapped truncate at `Version.LATEST`, so it truncates by code points instead of the legacy UTF-16 chars.
 
@@ -24,7 +24,7 @@ Expected the token `ab😀😀cd` to become `ab😀` (4 UTF-16 chars, the 10.4.0
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

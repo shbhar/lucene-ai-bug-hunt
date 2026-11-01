@@ -18,18 +18,19 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>IndexWriter accepts a stored string of 2^30 - 1 or more UTF-8 bytes of non-Latin-1 text (from about half of its own MAX_STORED_STRING_LENGTH up), but DataInput.readString can never decode it, so StoredFields#document, visitor-path merges and index-sorted flushes throw OutOfMemoryError</h1>
-<p class="facts small"><span>Bug LFV-172</span><span>Area: core store + index / stored string fields (DataInput.readString decode, IndexWriter.MAX_STORED_STRING_LENGTH check)</span><span>Priority: low</span><span>Impact: crash</span><span>Novelty: new</span></p>
+<p class="facts small"><span>Finding LFV-172</span><span>Area: core store + index / stored string fields (DataInput.readString decode, IndexWriter.MAX_STORED_STRING_LENGTH check)</span><span>Priority: low</span><span>Impact: crash</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-172.html">Finding page for LFV-172</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You store a text field of 357,913,941 CJK characters (1,073,741,823 UTF-8 bytes, about half of what IndexWriter&#x27;s own length check, MAX_STORED_STRING_LENGTH, allows) with the default codec, and IndexWriter accepts and commits it. You expect StoredFields#document to return it, as it does for a string one character shorter. Instead every read throws java.lang.OutOfMemoryError &#x27;UTF16 String size is 1073741823, should be less than 1073741823&#x27;, whatever the heap, because DataInput.readString decodes with new String(bytes, 0, length, UTF_8), which on JDK 9 and later sizes its UTF-16 buffer by the byte count and refuses 2^30 - 1 or more units; merges that copy the document through a visitor, and flushes of an index-sorted writer, throw the same Error and close IndexWriter.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect StoredFields#document to return it, as it does for a string one character shorter.</li><li><b>Actual:</b> Every read throws java.lang.OutOfMemoryError &#x27;UTF16 String size is 1073741823, should be less than 1073741823&#x27;, whatever the heap, because DataInput.readString decodes with new String(bytes, 0, length, UTF_8), which on JDK 9 and later sizes its UTF-16 buffer by the byte count and refuses 2^30 - 1 or more units; merges that copy the document through a visitor, and flushes of an index-sorted writer, throw the same Error and close IndexWriter.</li></ul>
+<ul><li><b>Expected:</b> <code>storedFields().document(0).get(&quot;f&quot;)</code> returns the 357,913,941-char string that was indexed and committed.</li><li><b>Actual:</b> <code>OutOfMemoryError: UTF16 String size is 1073741823, should be less than 1073741823</code> from <code>DataInput.readString</code>, with assertions on and off.</li></ul>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/codecs/lucene90/TestStoredStringOver1GiBUtf8.java"><code>src/org/apache/lucene/codecs/lucene90/TestStoredStringOver1GiBUtf8.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
 <li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
 <li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
+<li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
@@ -46,5 +47,6 @@ java -ea -esa -Xmx8g --add-modules jdk.incubator.vector --enable-native-access=A
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.codecs.lucene90.TestStoredStringOver1GiBUtf8</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/storedfields-compressing/index.html">storedfields-compressing</a></p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-30. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<h2>Files shown on the finding page</h2><ul><li><a href="TestStoredStringOver1GiBUtf8.java"><code>TestStoredStringOver1GiBUtf8.java</code></a></li></ul>
+<p>Formal models and scripts this finding's part of the hunt used: <a href="../../models/storedfields-compressing/index.html">storedfields-compressing</a></p>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-01. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

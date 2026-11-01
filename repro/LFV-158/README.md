@@ -1,14 +1,14 @@
 # StandardAnalyzer and the other JFlex-generated scanners (StandardTokenizer, UAX29URLEmailTokenizer, ClassicTokenizer, WikipediaTokenizer, HTMLStripCharFilter) silently index no tokens for a text value that ends in an unpaired high surrogate, such as a string cut inside an emoji; values longer than the scan buffer lose or split their last buffer window
 
-Bug LFV-158 · Area: analysis / StandardTokenizer and the other JFlex-generated scanners (zzRefill in both Lucene JFlex skeletons) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-158 · Area: analysis / StandardTokenizer and the other JFlex-generated scanners (zzRefill in both Lucene JFlex skeletons) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-158.html](../../bugs/LFV-158.html)
+Finding page: [../../bugs/LFV-158.html](../../bugs/LFV-158.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index a text field with StandardAnalyzer at default settings, and the value ends in an unpaired high surrogate, for example 'hello world' followed by U+D83D, which is what cutting a Java String inside an emoji, or decoding the JSON escape \ud83d, produces. You expect hello and world to be indexed and end to report the input length as the final offset, as happens when the same lone surrogate sits mid-text and as Lucene 7.6.0 did. Instead the scanner's refill reads the whole text, looks one char ahead for the missing low surrogate, hits end of input and reports 'no new input', so the scanner ends the stream without scanning what it just read: no tokens, final offset 0, and the document does not match title:hello; values longer than the 255-char buffer lose or split their last window instead.
+You index a text field with StandardAnalyzer at default settings, and the value ends in an unpaired high surrogate, for example 'hello world' followed by U+D83D, which is what cutting a Java String inside an emoji, or decoding the JSON escape \ud83d, produces. You expect hello and world to be indexed and end() to report the input length as the final offset, as happens when the same lone surrogate sits mid-text and as Lucene 7.6.0 did. Instead the scanner's refill reads the whole text, looks one char ahead for the missing low surrogate, hits end of input and reports 'no new input', so the scanner ends the stream without scanning what it just read: no tokens, final offset 0, and the document does not match title:hello; values longer than the 255-char buffer lose or split their last window instead.
 
 The test shows that `StandardAnalyzer` at default settings drops every token of `"hello world\uD83D"` (text ending in an unpaired high surrogate, e.g. a string cut inside an emoji).
 
@@ -24,7 +24,7 @@ Expected: tokens `[hello, world]` and final offset 12 (the input length). Actual
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

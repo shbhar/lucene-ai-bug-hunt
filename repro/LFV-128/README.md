@@ -1,17 +1,17 @@
-# Closing a clone or full-length slice of a multi-chunk MMapDirectory input nulls the MemorySegment it shares with the original and other clones, which then fail with NullPointerException
+# Closing a clone or full-length slice of a multi-chunk MMapDirectory input nulls the MemorySegment[] it shares with the original and other clones, which then fail with NullPointerException
 
-Bug LFV-128 · Area: store / MMapDirectory (MemorySegmentIndexInput clone, slice and close) · Priority: medium · Impact: crash · Novelty: known upstream
+Finding LFV-128 · Area: store / MMapDirectory (MemorySegmentIndexInput clone, slice and close) · Priority: medium · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You open a file with MMapDirectory that is larger than one mmap chunk, make a clone (or a slice that covers the whole file), close that clone and keep reading the original; you expect the original and the other clones to be unaffected, as they are for single-chunk files, for partial slices, for other directories and on 10.0.0. Instead the clone shares the original's array of memory segments and close fills that array with nulls, so the original's next access to another chunk throws NullPointerException, from then on the never-closed original reports AlreadyClosedException, and closing it afterwards leaves its arena and the file mapping open. Separately, reading a clone after the original was closed throws NullPointerException where the IndexInput#clone javadoc promises AlreadyClosedException.
+You open a file with MMapDirectory that is larger than one mmap chunk, make a clone (or a slice that covers the whole file), close that clone and keep reading the original; you expect the original and the other clones to be unaffected, as they are for single-chunk files, for partial slices, for other directories and on 10.0.0. Instead the clone shares the original's array of memory segments and close() fills that array with nulls, so the original's next access to another chunk throws NullPointerException, from then on the never-closed original reports AlreadyClosedException, and closing it afterwards leaves its arena and the file mapping open. Separately, reading a clone after the original was closed throws NullPointerException where the IndexInput#clone javadoc promises AlreadyClosedException.
 
 ## Expected vs actual
 
 - Expected: You expect the original and the other clones to be unaffected, as they are for single-chunk files, for partial slices, for other directories and on 10.0.0.
-- Actual: The clone shares the original's array of memory segments and close fills that array with nulls, so the original's next access to another chunk throws NullPointerException, from then on the never-closed original reports AlreadyClosedException, and closing it afterwards leaves its arena and the file mapping open.
+- Actual: The clone shares the original's array of memory segments and close() fills that array with nulls, so the original's next access to another chunk throws NullPointerException, from then on the never-closed original reports AlreadyClosedException, and closing it afterwards leaves its arena and the file mapping open.
 
 ## Files
 
@@ -22,7 +22,7 @@ You open a file with MMapDirectory that is larger than one mmap chunk, make a cl
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

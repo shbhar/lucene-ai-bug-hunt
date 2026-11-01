@@ -1,12 +1,12 @@
 # If Directory.rename(pending_segments_N, segments_N) throws after it took effect, the failed commit leaves the new segments_N in the index (SegmentInfos.finishCommit deletes only pending_segments_N), and IndexWriter then deletes files that this newest segments_N references, so DirectoryReader.open and a new IndexWriter fail until the file is removed by hand (every release since 5.0.0; the rename-branch residual of LUCENE-9477)
 
-Bug LFV-839 · Area: index / commit protocol failure cleanup (SegmentInfos.finishCommit, IndexWriter.finishCommit and rollback) · Priority: low · Impact: index unusable · Novelty: known upstream
+Finding LFV-839 · Area: index / commit protocol failure cleanup (SegmentInfos.finishCommit, IndexWriter.finishCommit and rollback) · Priority: low · Impact: index unusable · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You commit through a Directory whose rename(pending_segments_2, segments_2) creates segments_2 and then throws an IOException; commit throws, the writer stays open (the failure is not tragic), and you expect the index to still be the last good commit segments_1, which is what LUCENE-9477 made Lucene do when the directory sync right after the rename fails. Instead SegmentInfos.finishCommit deletes only pending_segments_2, so segments_2 stays in the directory unknown to the writer; as soon as a merge removes the segments it references (a merge that finishes during the commit's fsync, or any merge before the writer is closed or rolled back) the writer deletes their files, and DirectoryReader.open, and after a restart a new IndexWriter, fail with CorruptSegmentInfoException '_1.si cannot be read' although segments_1 and its files are intact. Without a merge, rollback or close deletes the failed commit's files before the stray segments_2 with no directory fsync in between, so a process kill or OS crash in that window leaves the same unopenable index.
+You commit through a Directory whose rename(pending_segments_2, segments_2) creates segments_2 and then throws an IOException; commit() throws, the writer stays open (the failure is not tragic), and you expect the index to still be the last good commit segments_1, which is what LUCENE-9477 made Lucene do when the directory sync right after the rename fails. Instead SegmentInfos.finishCommit deletes only pending_segments_2, so segments_2 stays in the directory unknown to the writer; as soon as a merge removes the segments it references (a merge that finishes during the commit's fsync, or any merge before the writer is closed or rolled back) the writer deletes their files, and DirectoryReader.open, and after a restart a new IndexWriter, fail with CorruptSegmentInfoException '_1.si cannot be read' although segments_1 and its files are intact. Without a merge, rollback() or close() deletes the failed commit's files before the stray segments_2 with no directory fsync in between, so a process kill or OS crash in that window leaves the same unopenable index.
 
 ## Expected vs actual
 
@@ -23,7 +23,7 @@ You commit through a Directory whose rename(pending_segments_2, segments_2) crea
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -51,7 +51,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/failed-commit-then-crash-durability-single-fault/](../../models/failed-commit-then-crash-durability-single-fault/)
+Formal models and scripts this finding's part of the hunt used: [../../models/failed-commit-then-crash-durability-single-fault/](../../models/failed-commit-then-crash-durability-single-fault/)
 
 ## Feedback
 

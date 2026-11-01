@@ -1,8 +1,8 @@
 # Kuromoji's DictionaryBuilder silently accepts a reading or pronunciation of 128 or more chars and stores its length in 7 bits, so the built system dictionary returns an empty or truncated reading and a garbage pronunciation (a too-long base form, by contrast, is rejected)
 
-Bug LFV-712 · Area: analysis / kuromoji system dictionary builder (ja.dict.TokenInfoDictionaryEntryWriter reading and pronunciation length bytes; TokenInfoMorphData decoding; custom dictionaries built with DictionaryBuilder) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-712 · Area: analysis / kuromoji system dictionary builder (ja.dict.TokenInfoDictionaryEntryWriter reading and pronunciation length bytes; TokenInfoMorphData decoding; custom dictionaries built with DictionaryBuilder) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-712.html](../../bugs/LFV-712.html)
+Finding page: [../../bugs/LFV-712.html](../../bugs/LFV-712.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected the build to reject the row or the 128-char reading to read back; actua
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

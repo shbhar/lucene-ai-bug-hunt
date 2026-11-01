@@ -1,6 +1,6 @@
 # MemoryAccountingBitsetCollector sizes each collector's bitset to the doc-id span of its slice, so under concurrent search a slice whose segments are not adjacent in doc-id order allocates, and charges to the memory tracker, bits for the segments that other slices search
 
-Bug LFV-348 · Area: misc / memory-accounting bitset collector (MemoryAccountingBitsetCollector, MemoryAccountingBitsetCollectorManager, CollectorMemoryTracker) under IndexSearcher slicing · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-348 · Area: misc / memory-accounting bitset collector (MemoryAccountingBitsetCollector, MemoryAccountingBitsetCollectorManager, CollectorMemoryTracker) under IndexSearcher slicing · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You search with MemoryAccountingBitsetCollectorManager and a CollectorMemoryTrac
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,7 +44,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/memory-bitset-collector-manager/](../../models/memory-bitset-collector-manager/)
+Formal models and scripts this finding's part of the hunt used: [../../models/memory-bitset-collector-manager/](../../models/memory-bitset-collector-manager/)
 
 ## Feedback
 

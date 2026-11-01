@@ -1,6 +1,8 @@
 # Flexible StandardQueryParser misses -0.0 documents for exclusive float/double bounds
 
-Bug LFV-059 · Area: queryparser / flexible · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-059 · Area: queryparser / flexible · Priority: low · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-059.html](../../bugs/LFV-059.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected: 1 hit, since FloatPoint ranges follow Float.compareTo (-0f &lt; 0f). A
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -50,7 +52,7 @@ The module(s) facet also need their third-party runtime jars; `./gradlew -p luce
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/study-bkd-points-proof/](../../models/study-bkd-points-proof/)
+Formal models and scripts this finding's part of the hunt used: [../../models/study-bkd-points-proof/](../../models/study-bkd-points-proof/)
 
 ## Feedback
 

@@ -1,8 +1,8 @@
 # Kuromoji completion suggester (JapaneseCompletionAnalyzer / JapaneseCompletionFilter, QUERY mode) suggests nothing while an input method shows a small tsu plus a pending c, j, f or v ('まっｃ' while typing maccha for 抹茶, 'ばっｊ' for bajji, 'すたっｆ' for sutaffu), because romaji_map.txt has the partial-input rows ッk..ッw but none for ッc, ッj, ッf or ッv, although its full rows double those letters (ッチャ ccha, ッジ jji, ッフ ffu, ッヴ vvu)
 
-Bug LFV-854 · Area: analysis / kuromoji completion (JapaneseCompletionFilter QUERY-mode handling of mid-IME composition; the partial-input rows of romaji_map.txt, read by KatakanaRomanizer) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-854 · Area: analysis / kuromoji completion (JapaneseCompletionFilter QUERY-mode handling of mid-IME composition; the partial-input rows of romaji_map.txt, read by KatakanaRomanizer) · Priority: low · Impact: minor · Novelty: new
 
-Bug page: [../../bugs/LFV-854.html](../../bugs/LFV-854.html)
+Finding page: [../../bugs/LFV-854.html](../../bugs/LFV-854.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected `macc` among the query-side tokens (as 'さっｋ' gives `sakk`); actua
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -49,7 +49,7 @@ The module(s) analysis-kuromoji also need their third-party runtime jars; `./gra
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/kuromoji-completion-romaji-map-vs-hepburn-kunrei-wapuro-tables/](../../models/kuromoji-completion-romaji-map-vs-hepburn-kunrei-wapuro-tables/)
+Formal models and scripts this finding's part of the hunt used: [../../models/kuromoji-completion-romaji-map-vs-hepburn-kunrei-wapuro-tables/](../../models/kuromoji-completion-romaji-map-vs-hepburn-kunrei-wapuro-tables/)
 
 ## Feedback
 

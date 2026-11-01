@@ -1,6 +1,6 @@
 # MultiIndexMergeScheduler is listed under Lucene 10.3.0 New Features as 'a production multi-tenant merge scheduler' and its javadoc says to create one instance per index, but the class is package-private, so application code cannot compile against it or construct it through supported means
 
-Bug LFV-885 · Area: core / index merge scheduling (MultiIndexMergeScheduler visibility) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-885 · Area: core / index merge scheduling (MultiIndexMergeScheduler visibility) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ Expected: the test compiles and passes, as with `new ConcurrentMergeScheduler()`
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

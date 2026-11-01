@@ -1,12 +1,14 @@
-# IndexWriter.forceMergeDeletes returns a MergeObserver that also tracks merges IndexWriter refused to register, so the observer never completes and await blocks forever
+# IndexWriter.forceMergeDeletes returns a MergeObserver that also tracks merges IndexWriter refused to register, so the observer never completes and await() blocks forever
 
-Bug LFV-207 · Area: index / IndexWriter forceMergeDeletes MergeObserver (registerMerge, MergePolicy.MergeObserver) · Priority: low · Impact: hang · Novelty: new
+Finding LFV-207 · Area: index / IndexWriter forceMergeDeletes MergeObserver (registerMerge, MergePolicy.MergeObserver) · Priority: low · Impact: hang · Novelty: new
+
+Finding page: [../../bugs/LFV-207.html](../../bugs/LFV-207.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You use LogDocMergePolicy or LogByteSizeMergePolicy (or a custom merge policy), call IndexWriter.forceMergeDeletes(false) while another merge is already running on one of the segments with deletes, and wait on the returned MergeObserver, whose javadoc says it lets you 'monitor merge progress and wait for completion'. IndexWriter refuses to register the conflicting forced-deletes merge (it only logs 'reject merge'), so that merge never runs, but it still puts the merge into the observer. The observer then reports 0 of 1 merges complete forever: await blocks forever even after the writer is closed, await(timeout) returns false, and the blocking forceMergeDeletes returns at once with an incomplete observer although its javadoc says 'merges will already be complete when it returns'.
+You use LogDocMergePolicy or LogByteSizeMergePolicy (or a custom merge policy), call IndexWriter.forceMergeDeletes(false) while another merge is already running on one of the segments with deletes, and wait on the returned MergeObserver, whose javadoc says it lets you 'monitor merge progress and wait for completion'. IndexWriter refuses to register the conflicting forced-deletes merge (it only logs 'reject merge'), so that merge never runs, but it still puts the merge into the observer. The observer then reports 0 of 1 merges complete forever: await() blocks forever even after the writer is closed, await(timeout) returns false, and the blocking forceMergeDeletes() returns at once with an incomplete observer although its javadoc says 'merges will already be complete when it returns'.
 
 The test shows that `IndexWriter.forceMergeDeletes()` (blocking) returns a `MergeObserver` that includes a merge IndexWriter refused to register because its segment is already being merged (`LogDocMergePolicy`, a held background `forceMerge(1, false)`), so that merge never runs or completes.
 
@@ -22,7 +24,7 @@ Expected `numCompletedMerges() == numMerges()` on return (javadoc: merges will a
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

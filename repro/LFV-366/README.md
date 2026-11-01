@@ -1,14 +1,14 @@
-# ShapeDocValues getCentroid returns (0, 0), far outside the shape's own bounding box, when the shape's total encoded length or area is zero (a line whose points coincide after encoding, or a polygon thinner than one encoding step)
+# ShapeDocValues getCentroid() returns (0, 0), far outside the shape's own bounding box, when the shape's total encoded length or area is zero (a line whose points coincide after encoding, or a polygon thinner than one encoding step)
 
-Bug LFV-366 · Area: document / shape doc values (ShapeDocValues centroid; LatLonShapeDocValuesField and XYShapeDocValuesField getCentroid) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-366 · Area: document / shape doc values (ShapeDocValues centroid; LatLonShapeDocValuesField and XYShapeDocValuesField getCentroid) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-366.html](../../bugs/LFV-366.html)
+Finding page: [../../bugs/LFV-366.html](../../bugs/LFV-366.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a doc-values shape with LatLonShape.createDocValueField or XYShape.createDocValueField and ask for its centroid; you expect getCentroid, documented as 'the centroid location for the geometry', to be a point of the shape, inside the bounding box that the same object returns. For a line whose points coincide after encoding (new Line({40, 40}, {-70, -70}), or two points closer than one encoding step) or a polygon thinner than one encoding step, Lucene returns Point(0.0, 0.0) instead, 7,500 km or more from the shape in these examples: the centroid is weighted by length or area, and when the total weight is zero the code skips the division and keeps the zero numerator. The other public factory, createDocValueField(name, createIndexableFields(name, line)), returns the real point for the same line.
+You build a doc-values shape with LatLonShape.createDocValueField or XYShape.createDocValueField and ask for its centroid; you expect getCentroid(), documented as 'the centroid location for the geometry', to be a point of the shape, inside the bounding box that the same object returns. For a line whose points coincide after encoding (new Line({40, 40}, {-70, -70}), or two points closer than one encoding step) or a polygon thinner than one encoding step, Lucene returns Point(0.0, 0.0) instead, 7,500 km or more from the shape in these examples: the centroid is weighted by length or area, and when the total weight is zero the code skips the division and keeps the zero numerator. The other public factory, createDocValueField(name, createIndexableFields(name, line)), returns the real point for the same line.
 
 The test shows that `LatLonShape.createDocValueField("f", new Line(new double[] {40, 40}, new double[] {-70, -70})).getCentroid()` returns (0, 0) for a line whose points coincide, because the length-weighted centroid skips the division when the total length is 0 (`TestShapeDocValuesRepeatedPointCentroid#testCentroidOfLineWithRepeatedPoint`).
 
@@ -24,7 +24,7 @@ Expected: (40, -70) within encoding error, the line's only point; actual: `latit
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

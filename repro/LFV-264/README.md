@@ -1,12 +1,14 @@
 # SearcherTaxonomyManager refresh calls t2.addSuppressed(t2), so when the taxonomy reopen fails and closing the just-reopened index reader also fails, maybeRefresh throws IllegalArgumentException ('Self-suppression not permitted') and the taxonomy failure is lost
 
-Bug LFV-264 · Area: facet / taxonomy (SearcherTaxonomyManager.refreshIfNeeded exception path) · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-264 · Area: facet / taxonomy (SearcherTaxonomyManager.refreshIfNeeded exception path) · Priority: low · Impact: wrong error · Novelty: new
+
+Finding page: [../../bugs/LFV-264.html](../../bugs/LFV-264.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You use SearcherTaxonomyManager, and one refresh hits two I/O failures at once: reopening the taxonomy fails, and closing the index reader that was just reopened also fails. You expect maybeRefresh to throw the taxonomy failure as an IOException, its documented contract, with the close failure attached as a suppressed exception. Instead it throws IllegalArgumentException('Self-suppression not permitted'), because the cleanup code calls t2.addSuppressed(t2) where t1.addSuppressed(t2) was meant, so the taxonomy failure is lost entirely and callers that catch IOException do not see it.
+You use SearcherTaxonomyManager, and one refresh hits two I/O failures at once: reopening the taxonomy fails, and closing the index reader that was just reopened also fails. You expect maybeRefresh() to throw the taxonomy failure as an IOException, its documented contract, with the close failure attached as a suppressed exception. Instead it throws IllegalArgumentException('Self-suppression not permitted'), because the cleanup code calls t2.addSuppressed(t2) where t1.addSuppressed(t2) was meant, so the taxonomy failure is lost entirely and callers that catch IOException do not see it.
 
 The test shows that when one SearcherTaxonomyManager refresh fails twice (the taxonomy reopen fails, then closing the just-reopened index reader fails), maybeRefreshBlocking throws the wrong exception because the cleanup calls `t2.addSuppressed(t2)`.
 
@@ -22,7 +24,7 @@ Expected the taxonomy's `IndexNotFoundException` (as upstream testExceptionDurin
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -47,7 +49,7 @@ The module(s) facet also need their third-party runtime jars; `./gradlew -p luce
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/nrt-reference-managers/](../../models/nrt-reference-managers/)
+Formal models and scripts this finding's part of the hunt used: [../../models/nrt-reference-managers/](../../models/nrt-reference-managers/)
 
 ## Feedback
 

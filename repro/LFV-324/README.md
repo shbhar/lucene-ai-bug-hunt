@@ -1,8 +1,8 @@
 # SortedSetDocValues faceting builds its facet tree from the byte order of the encoded paths, so a label or dimension name that equals a sibling's name followed by a character below U+001F (TAB, CR, LF, or the U+001E that FacetsConfig writes when it escapes U+001E/U+001F) moves a label's children under that sibling, or drops a whole dimension or one of its labels
 
-Bug LFV-324 · Area: facet / SortedSetDocValues faceting (DefaultSortedSetDocValuesReaderState: the per-dimension DimTree and OrdRange built from the field's ordinals in term order, shared by SortedSetDocValuesFacetCounts and ConcurrentSortedSetDocValuesFacetCounts) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-324 · Area: facet / SortedSetDocValues faceting (DefaultSortedSetDocValuesReaderState: the per-dimension DimTree and OrdRange built from the field's ordinals in term order, shared by SortedSetDocValuesFacetCounts and ConcurrentSortedSetDocValuesFacetCounts) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-324.html](../../bugs/LFV-324.html)
+Finding page: [../../bugs/LFV-324.html](../../bugs/LFV-324.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected `getTopChildren(10, "cat", "shoes")` to return value=1 with child red (
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

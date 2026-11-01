@@ -1,17 +1,19 @@
-# Luke: Search.nextPage after a full last page returns an empty page with offset 0 instead of Optional.empty when the hit total is a lower bound, so with default settings and more than 1,000 hits the Search tab ends on an empty page with 'previous' disabled
+# Luke: Search.nextPage() after a full last page returns an empty page with offset 0 instead of Optional.empty() when the hit total is a lower bound, so with default settings and more than 1,000 hits the Search tab ends on an empty page with 'previous' disabled
 
-Bug LFV-1035 · Area: luke / Search model paging session (SearchImpl.nextPage, SearchResults.of) behind the Luke Search tab · Priority: low · Impact: minor · Novelty: new
+Finding LFV-1035 · Area: luke / Search model paging session (SearchImpl.nextPage, SearchResults.of) behind the Luke Search tab · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-1035.html](../../bugs/LFV-1035.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You open an index in Luke, run a search that matches more than 1,000 documents with the default settings and click 'next' up to the last page; when that page is full (for example 2,000 hits), the shown total is a lower bound ('2000+'), so 'next' stays enabled, and you expect one more click to do nothing, as Search.nextPage's javadoc says ('search results, or empty if there are no more results'). Instead nextPage returns a page with no hits whose offset is 0: the results table empties, the range reads '1 - 0' and 'previous' is disabled, so the earlier pages can only be reached by running the search again. The cause is that nextPage moves its page counter before it knows the page exists and checks for the end only when the total is exact, and SearchResults.of sets the offset only inside its loop over the hits.
+You open an index in Luke, run a search that matches more than 1,000 documents with the default settings and click 'next' up to the last page; when that page is full (for example 2,000 hits), the shown total is a lower bound ('2000+'), so 'next' stays enabled, and you expect one more click to do nothing, as Search.nextPage's javadoc says ('search results, or empty if there are no more results'). Instead nextPage() returns a page with no hits whose offset is 0: the results table empties, the range reads '1 ~ 0' and 'previous' is disabled, so the earlier pages can only be reached by running the search again. The cause is that nextPage moves its page counter before it knows the page exists and checks for the end only when the total is exact, and SearchResults.of sets the offset only inside its loop over the hits.
 
 ## Expected vs actual
 
-- Expected: You expect one more click to do nothing, as Search.nextPage's javadoc says ('search results, or empty if there are no more results').
-- Actual: nextPage returns a page with no hits whose offset is 0: the results table empties, the range reads '1 - 0' and 'previous' is disabled, so the earlier pages can only be reached by running the search again.
+- Expected: The 101st `nextPage()` call, past page 101 (hits 1001-1010), returns `Optional.empty()`.
+- Actual: It returns a page with 0 hits and offset 0: `AssertionError: got a page: size=0 offset=0`, with assertions on and off.
 
 ## Files
 
@@ -20,7 +22,7 @@ You open an index in Luke, run a search that matches more than 1,000 documents w
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,6 +46,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) luke also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestNextPagePastLastPage.java](TestNextPagePastLastPage.java)
 
 ## Feedback
 

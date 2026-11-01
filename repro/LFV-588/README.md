@@ -1,6 +1,8 @@
 # QueryBuilder hands a token boost (BoostAttribute) above 1 or equal to 0 on a word that shares its position with a synonym straight to SynonymQuery, which throws IllegalArgumentException, so every query containing that word fails, while the same weight on a word without a synonym works
 
-Bug LFV-588 · Area: core / util QueryBuilder token boosts on stacked tokens (newSynonymQuery; BoostAttribute from DelimitedBoostTokenFilter and weighted synonyms; reached through the classic and simple query parsers) · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-588 · Area: core / util QueryBuilder token boosts on stacked tokens (newSynonymQuery; BoostAttribute from DelimitedBoostTokenFilter and weighted synonyms; reached through the classic and simple query parsers) · Priority: low · Impact: wrong error · Novelty: new
+
+Finding page: [../../bugs/LFV-588.html](../../bugs/LFV-588.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected: `createBooleanQuery("body", "leopard")` returns a query, as the same w
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

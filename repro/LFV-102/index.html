@@ -18,10 +18,10 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>CheckHits.checkTopScores (test framework) fails on correct minimum-should-match disjunctions because it walks the COMPLETE and TOP_SCORES two-phase approximations in lockstep</h1>
-<p class="facts small"><span>Bug LFV-102</span><span>Area: test-framework / search checkers (CheckHits)</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: new</span></p>
+<p class="facts small"><span>Finding LFV-102</span><span>Area: test-framework / search checkers (CheckHits)</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: new</span></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
-<p>In a test you call the test framework&#x27;s CheckHits.checkTopScores on a BooleanQuery of three term clauses with setMinimumNumberShouldMatch(2), for example (f:a f:b f:c)~2. You expect it to pass, because the query returns the same matching docs with the same scores in COMPLETE and TOP_SCORES mode (checked in the same test). Instead it throws AssertionError &#x27;expected:&lt;1&gt; but was:&lt;0&gt;&#x27; in CheckHits.doCheckMaxScores (CheckHits.java:751): the checker requires the two scorers&#x27; two-phase approximations, which only have to be supersets of the matches, to stop on the same docs, and the TOP_SCORES WANDScorer legitimately stops on doc 0 (it holds only &#x27;c&#x27;), which matches then rejects.</p>
+<p>In a test you call the test framework&#x27;s CheckHits.checkTopScores on a BooleanQuery of three term clauses with setMinimumNumberShouldMatch(2), for example (f:a f:b f:c)~2. You expect it to pass, because the query returns the same matching docs with the same scores in COMPLETE and TOP_SCORES mode (checked in the same test). Instead it throws AssertionError &#x27;expected:&lt;1&gt; but was:&lt;0&gt;&#x27; in CheckHits.doCheckMaxScores (CheckHits.java:751): the checker requires the two scorers&#x27; two-phase approximations, which only have to be supersets of the matches, to stop on the same docs, and the TOP_SCORES WANDScorer legitimately stops on doc 0 (it holds only &#x27;c&#x27;), which matches() then rejects.</p>
 <p>The test shows that the test-framework checker <code>CheckHits.checkTopScores</code> rejects the correct query <code>(f:a f:b f:c)~2</code> on a 2-doc index (doc 0 = &quot;c&quot;, doc 1 = &quot;a b&quot;), because it walks the COMPLETE and TOP_SCORES two-phase approximations in lockstep and the TOP_SCORES WANDScorer&#x27;s approximation also stops on doc 0.</p>
 <h2>Expected vs actual</h2>
 <p>Expected: the check passes (doc 1 is the only match, same score in both modes); actual (-ea and -da): AssertionError <code>expected:&lt;1&gt; but was:&lt;0&gt;</code> at CheckHits.java:751.</p>
@@ -30,7 +30,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </ul><h2>Run it</h2><ul>
 <li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
 <li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
+<li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
@@ -47,4 +47,4 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.search.TestCheckTopScoresMinShouldMatch</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-30. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-01. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

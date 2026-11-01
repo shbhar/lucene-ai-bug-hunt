@@ -1,12 +1,12 @@
-# AutomatonToTokenStream.toTokenStream throws ArrayIndexOutOfBoundsException ('Index 0 out of bounds for length 0') on a 0-state automaton, Lucene's standard empty-language value (Automata.makeEmpty, or an empty Operations result such as intersection("a", "b"))
+# AutomatonToTokenStream.toTokenStream throws ArrayIndexOutOfBoundsException ('Index 0 out of bounds for length 0') on a 0-state automaton, Lucene's standard empty-language value (Automata.makeEmpty(), or an empty Operations result such as intersection("a", "b"))
 
-Bug LFV-865 · Area: core / analysis: AutomatonToTokenStream (automaton to token-graph conversion) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-865 · Area: core / analysis: AutomatonToTokenStream (automaton to token-graph conversion) · Priority: low · Impact: crash · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You convert an automaton whose language is empty, for example Automata.makeEmpty or Operations.intersection(Automata.makeString("a"), Automata.makeString("b")), with AutomatonToTokenStream.toTokenStream, whose only stated precondition is a finite DAG. You expect a TokenStream with no tokens (what the same method already returns for Automata.makeEmptyString and for the same empty language written with one dead state) or at least a clear IllegalArgumentException. Instead it throws ArrayIndexOutOfBoundsException 'Index 0 out of bounds for length 0', because these automata have 0 states and the method reads indegree[0], the in-degree of the start state, without checking that a state exists.
+You convert an automaton whose language is empty, for example Automata.makeEmpty() or Operations.intersection(Automata.makeString("a"), Automata.makeString("b")), with AutomatonToTokenStream.toTokenStream, whose only stated precondition is a finite DAG. You expect a TokenStream with no tokens (what the same method already returns for Automata.makeEmptyString() and for the same empty language written with one dead state) or at least a clear IllegalArgumentException. Instead it throws ArrayIndexOutOfBoundsException 'Index 0 out of bounds for length 0', because these automata have 0 states and the method reads indegree[0], the in-degree of the start state, without checking that a state exists.
 
 The test shows that `AutomatonToTokenStream.toTokenStream(Automata.makeEmpty())` crashes on the 0-state empty-language automaton.
 
@@ -22,7 +22,7 @@ Expected: an empty TokenStream or an IllegalArgumentException; actual (-ea and -
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

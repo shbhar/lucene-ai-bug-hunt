@@ -1,12 +1,14 @@
 # Hunspell Dictionary cannot load SET ISO8859-10, or ISO8859-14 spelled any way except exactly "ISO8859-14" (UnsupportedCharsetException at load)
 
-Bug LFV-928 · Area: analysis / hunspell (Dictionary SET encoding lookup) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-928 · Area: analysis / hunspell (Dictionary SET encoding lookup) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-928.html](../../bugs/LFV-928.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You load a Hunspell dictionary whose affix file says SET ISO8859-10 (Latin-6, Nordic), a value the hunspell(5) man page lists among the possible SET values, or says ISO8859-14 (Latin-8, Celtic) spelled ISO-8859-14 or iso8859-14, and expect it to load: C Hunspell lower-cases the SET value and drops non-alphanumerics before its table lookup, and in Lucene every other listed ISO-8859 part loads in its hyphenated and lower-case spellings (ISO-8859-2, iso8859-2,...). Instead the Dictionary constructor throws java.nio.charset.UnsupportedCharsetException, because Dictionary.getDecoder uses Lucene's own ISO8859_14Decoder only for the exact string "ISO8859-14" and otherwise calls Charset.forName, and the JDK has no ISO-8859-10 or ISO-8859-14 charset under any name. Spellings that do load decode every letter byte correctly, so nothing is silently wrong; the dictionary is refused.
+You load a Hunspell dictionary whose affix file says SET ISO8859-10 (Latin-6, Nordic), a value the hunspell(5) man page lists among the possible SET values, or says ISO8859-14 (Latin-8, Celtic) spelled ISO-8859-14 or iso8859-14, and expect it to load: C Hunspell lower-cases the SET value and drops non-alphanumerics before its table lookup, and in Lucene every other listed ISO-8859 part loads in its hyphenated and lower-case spellings (ISO-8859-2, iso8859-2, ...). Instead the Dictionary constructor throws java.nio.charset.UnsupportedCharsetException, because Dictionary.getDecoder uses Lucene's own ISO8859_14Decoder only for the exact string "ISO8859-14" and otherwise calls Charset.forName, and the JDK has no ISO-8859-10 or ISO-8859-14 charset under any name. Spellings that do load decode every letter byte correctly, so nothing is silently wrong; the dictionary is refused.
 
 The test shows that a Hunspell `Dictionary` whose affix file says `SET ISO8859-10` (a value hunspell(5) lists) cannot be loaded.
 
@@ -22,7 +24,7 @@ Expected the dictionary to load (byte 0xBF read as U+014B); actual: the construc
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -45,7 +47,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/hunspell-set-encoding-names-vs-c-hunspell-reference/](../../models/hunspell-set-encoding-names-vs-c-hunspell-reference/)
+Formal models and scripts this finding's part of the hunt used: [../../models/hunspell-set-encoding-names-vs-c-hunspell-reference/](../../models/hunspell-set-encoding-names-vs-c-hunspell-reference/)
 
 ## Feedback
 

@@ -1,17 +1,17 @@
 # On main, CheckIndex's HNSW graph test reports valid segments written by Lucene 9.12.0-9.12.1 and 10.0.0-10.1.0 as broken ('has repeated neighbors'), because the check has no version gate
 
-Bug LFV-543 · Area: index / CheckIndex HNSW graph check · Priority: low · Impact: wrong error · Novelty: known upstream
+Finding LFV-543 · Area: index / CheckIndex HNSW graph check · Priority: low · Impact: wrong error · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You open, on Lucene main, an index that Lucene 9.12.0, 9.12.1, 10.0.0 or 10.1.0 wrote with the default codec, and run CheckIndex at level 2 or 3. You expect it to pass: main opens, reads, searches and merges the index correctly, and upstream calls repeated HNSW neighbours benign. Instead, when an old unmerged segment's graph lists the same neighbour twice (those releases' connectComponents step could add an existing link again, and their writers did not de-duplicate), CheckIndex reports 'has repeated neighbors': with failFast it throws CheckIndexException ('Segment... check failed'), otherwise it prints 'test: hnsw graphs.........ERROR', because the rule applies to every segment whatever version wrote it.
+You open, on Lucene main, an index that Lucene 9.12.0, 9.12.1, 10.0.0 or 10.1.0 wrote with the default codec, and run CheckIndex at level 2 or 3. You expect it to pass: main opens, reads, searches and merges the index correctly, and upstream calls repeated HNSW neighbours benign. Instead, when an old unmerged segment's graph lists the same neighbour twice (those releases' connectComponents step could add an existing link again, and their writers did not de-duplicate), CheckIndex reports 'has repeated neighbors': with failFast it throws CheckIndexException ('Segment ... check failed'), otherwise it prints 'test: hnsw graphs.........ERROR', because the rule applies to every segment whatever version wrote it.
 
 ## Expected vs actual
 
 - Expected: You expect it to pass: main opens, reads, searches and merges the index correctly, and upstream calls repeated HNSW neighbours benign.
-- Actual: When an old unmerged segment's graph lists the same neighbour twice (those releases' connectComponents step could add an existing link again, and their writers did not de-duplicate), CheckIndex reports 'has repeated neighbors': with failFast it throws CheckIndexException ('Segment... check failed'), otherwise it prints 'test: hnsw graphs.........ERROR', because the rule applies to every segment whatever version wrote it.
+- Actual: When an old unmerged segment's graph lists the same neighbour twice (those releases' connectComponents step could add an existing link again, and their writers did not de-duplicate), CheckIndex reports 'has repeated neighbors': with failFast it throws CheckIndexException ('Segment ... check failed'), otherwise it prints 'test: hnsw graphs.........ERROR', because the rule applies to every segment whatever version wrote it.
 
 ## Files
 
@@ -23,7 +23,7 @@ You open, on Lucene main, an index that Lucene 9.12.0, 9.12.1, 10.0.0 or 10.1.0 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
 - Fixtures: the test reads repeated-neighbors.9.12.0.zip, repeated-neighbors.10.0.0.zip and repeated-neighbors.10.1.0.zip, indexes of 1,000 one-dimensional vectors written by those releases whose HNSW graphs list a neighbour twice, from its package on the class path. This site ships no binary index files, so the recipe first makes them with fixture-src/DupGen3.java and each release's lucene-core jar (Maven Central): it tries seeds 0 to 99 and keeps the first index with a repeated neighbour, and the zips go to src/, which the run puts on the class path; without them every test fails for another reason.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

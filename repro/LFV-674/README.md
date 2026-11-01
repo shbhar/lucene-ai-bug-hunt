@@ -1,12 +1,14 @@
-# Geo3dDistanceCalculator.within returns the opposite of 'distance &lt;= limit' for every finite distance, so the default distance calculator of the Geo3d spatial context answers every within call backwards
+# Geo3dDistanceCalculator.within returns the opposite of 'distance &lt;= limit' for every finite distance, so the default distance calculator of the Geo3d spatial context answers every within() call backwards
 
-Bug LFV-674 · Area: spatial-extras / spatial4j bridge to spatial3d (Geo3dDistanceCalculator.within, the default DistanceCalculator that Geo3dSpatialContextFactory installs) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-674 · Area: spatial-extras / spatial4j bridge to spatial3d (Geo3dDistanceCalculator.within, the default DistanceCalculator that Geo3dSpatialContextFactory installs) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-674.html](../../bugs/LFV-674.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You create a spatial context with Geo3dSpatialContextFactory and ask its distance calculator whether the point (1, 0) is within 10 degrees of (0, 0), with ctx.getDistCalc.within(from, 1, 0, 10), and expect true: distance returns 1.0 degree, and the spatial4j DistanceCalculator contract says within is true when the distance is &lt;= the limit. Instead it returns false, and within(from, 50, 0, 10) returns true although the distance is 50 degrees. The method body is 'return (distance &lt; distance(from, toX, toY));', the exact negation of the contract, so every answer with a finite distance is inverted, including within(p, p, 0).
+You create a spatial context with Geo3dSpatialContextFactory and ask its distance calculator whether the point (1, 0) is within 10 degrees of (0, 0), with ctx.getDistCalc().within(from, 1, 0, 10), and expect true: distance() returns 1.0 degree, and the spatial4j DistanceCalculator contract says within() is true when the distance is &lt;= the limit. Instead it returns false, and within(from, 50, 0, 10) returns true although the distance is 50 degrees. The method body is 'return (distance &lt; distance(from, toX, toY));', the exact negation of the contract, so every answer with a finite distance is inverted, including within(p, p, 0).
 
 The test shows that `Geo3dDistanceCalculator.within`, the default `DistanceCalculator` of a Geo3d spatial context, returns the opposite of spatial4j's "distance &lt;= limit" contract.
 
@@ -22,7 +24,7 @@ Expected: `within((0, 0), 1, 0, 10)` is true, because the point is 1 degree away
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

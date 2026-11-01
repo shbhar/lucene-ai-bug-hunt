@@ -1,14 +1,14 @@
 # FunctionScoreQuery's block-max bound multiplies by the wrapped query's no-score max score (0 for a TermQuery), so a BooleanQuery that contains it can drop the true top hits
 
-Bug LFV-211 · Area: queries / FunctionScoreQuery block-max pruning (#16431) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-211 · Area: queries / FunctionScoreQuery block-max pruning (#16431) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-211.html](../../bugs/LFV-211.html)
+Finding page: [../../bugs/LFV-211.html](../../bugs/LFV-211.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index a popularity field with a skip index (NumericDocValuesField.indexedField("popularity", v)) and search BooleanQuery(SHOULD FunctionScoreQuery(TermQuery(body:a), DoubleValuesSource.fromLongField("popularity")), SHOULD TermQuery(body:b)) for the top hit, expecting the same hit as an exhaustive search, because the function query scores each matching document by its popularity value. Instead, with 5,000 documents that all match body:a, where only doc 4999 has popularity 100 (all others 1) and only doc 0 matches body:b, TOP_SCORES and the plain IndexSearcher.search(q, 1) return doc 0 (score 4.69) instead of doc 4999 (score 100). The cause is that the scorer's getMaxScore returns innerMaxScore * valueMaxScore * boost, where innerMaxScore is the max score of the wrapped TermQuery, which FunctionScoreQuery itself weighted without scores (so it reports 0), although score is value * boost and never reads the wrapped score; every block therefore reports a bound of 0, and MaxScoreBulkScorer stops scoring documents that only the function clause makes competitive.
+You index a popularity field with a skip index (NumericDocValuesField.indexedField("popularity", v)) and search BooleanQuery(SHOULD FunctionScoreQuery(TermQuery(body:a), DoubleValuesSource.fromLongField("popularity")), SHOULD TermQuery(body:b)) for the top hit, expecting the same hit as an exhaustive search, because the function query scores each matching document by its popularity value. Instead, with 5,000 documents that all match body:a, where only doc 4999 has popularity 100 (all others 1) and only doc 0 matches body:b, TOP_SCORES and the plain IndexSearcher.search(q, 1) return doc 0 (score 4.69) instead of doc 4999 (score 100). The cause is that the scorer's getMaxScore returns innerMaxScore * valueMaxScore * boost, where innerMaxScore is the max score of the wrapped TermQuery, which FunctionScoreQuery itself weighted without scores (so it reports 0), although score() is value * boost and never reads the wrapped score; every block therefore reports a bound of 0, and MaxScoreBulkScorer stops scoring documents that only the function clause makes competitive.
 
 The test shows that `BooleanQuery(SHOULD FunctionScoreQuery(TermQuery(body:a), fromLongField("popularity")), SHOULD TermQuery(body:b))` over a skip-indexed popularity field (`NumericDocValuesField.indexedField`) returns the wrong top hit from the default `IndexSearcher.search(query, 1)`. The cause is that the function clause's block-max bound is the wrapped no-score TermQuery's max score of 0 times the value bound.
 
@@ -24,7 +24,7 @@ Expected: doc 4096 (popularity 100, score 100). Actual on main with -ea and with
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -47,7 +47,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/function-queries-bmw/](../../models/function-queries-bmw/)
+Formal models and scripts this finding's part of the hunt used: [../../models/function-queries-bmw/](../../models/function-queries-bmw/)
 
 ## Feedback
 

@@ -1,8 +1,8 @@
 # Polygon2D.intersectsLine/intersectsTriangle never test the query polygon's hole edges, so LatLonShape/XYShape INTERSECTS misses, and DISJOINT matches, a line or polygon whose vertices all lie in holes but which crosses the polygon between them
 
-Bug LFV-698 · Area: geo / shape queries (Polygon2D intersectsLine/intersectsTriangle; LatLonShape and XYShape INTERSECTS and DISJOINT with a query polygon that has holes) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-698 · Area: geo / shape queries (Polygon2D intersectsLine/intersectsTriangle; LatLonShape and XYShape INTERSECTS and DISJOINT with a query polygon that has holes) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-698.html](../../bugs/LFV-698.html)
+Finding page: [../../bugs/LFV-698.html](../../bugs/LFV-698.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected count 1 for the line (2,5)-(8,5) against the square [0,10]^2 minus [1,3
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

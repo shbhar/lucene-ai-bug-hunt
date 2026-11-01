@@ -1,14 +1,14 @@
 # Hunspell rejects, cannot stem and does not generate twofold-suffix words (a second suffix allowed by the first suffix's continuation class) when either suffix class has cross product N, although cross product only governs prefix+suffix combinations: with 'SFX S 0 st/E', 'SFX E N 2' (en, e) and raich/SE, spell("raichsten") is false; the real Luxembourgish dictionary rejects räichsten
 
-Bug LFV-641 · Area: analysis / hunspell (Stemmer affix stripping: Hunspell.spell, getRoots, analyzeSimpleWord, Stemmer.stem, HunspellStemFilter; WordFormGenerator.getAllWordForms) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-641 · Area: analysis / hunspell (Stemmer affix stripping: Hunspell.spell, getRoots, analyzeSimpleWord, Stemmer.stem, HunspellStemFilter; WordFormGenerator.getAllWordForms) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-641.html](../../bugs/LFV-641.html)
+Finding page: [../../bugs/LFV-641.html](../../bugs/LFV-641.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You load a Hunspell dictionary with a twofold suffix, where the first suffix's continuation class allows a second suffix (for example 'SFX S Y 1 / SFX S 0 st/E.', 'SFX E N 2 / SFX E 0 en. / SFX E 0 e.' and the entry raich/SE), and spell-check or stem raichsten. You expect it to be accepted and stemmed to raich: hunspell(5) defines the cross-product field only as the 'permission to combine prefixes and suffixes', no prefix is involved, and C Hunspell accepts the word with N as with Y. Instead Lucene rejects raichsten and raichste, returns no stems and leaves them out of getAllWordForms("raich"), because Stemmer.applyAffix (Stemmer.java:621), Stemmer.isAffixCompatible (:564) and WordFormGenerator.expand (:251) follow a suffix+suffix chain only when the suffix classes are cross product Y; the real Luxembourgish dictionary shows the same for räichsten, räichste, räichstem and räichster.
+You load a Hunspell dictionary with a twofold suffix, where the first suffix's continuation class allows a second suffix (for example 'SFX S Y 1 / SFX S 0 st/E .', 'SFX E N 2 / SFX E 0 en . / SFX E 0 e .' and the entry raich/SE), and spell-check or stem raichsten. You expect it to be accepted and stemmed to raich: hunspell(5) defines the cross-product field only as the 'permission to combine prefixes and suffixes', no prefix is involved, and C Hunspell accepts the word with N as with Y. Instead Lucene rejects raichsten and raichste, returns no stems and leaves them out of getAllWordForms("raich"), because Stemmer.applyAffix (Stemmer.java:621), Stemmer.isAffixCompatible (:564) and WordFormGenerator.expand (:251) follow a suffix+suffix chain only when the suffix classes are cross product Y; the real Luxembourgish dictionary shows the same for räichsten, räichste, räichstem and räichster.
 
 The test shows that with the hunspell(5) twofold-suffix example (drink/X, `SFX X 0 able/Y`, `SFX Y 0 s`) and cross product N on class Y, `Hunspell.spell("drinkables")` is false, although cross product only governs prefix+suffix combinations.
 
@@ -24,7 +24,7 @@ Expected `spell("drinkables")` true (as with `SFX Y Y`); actual false, with `-ea
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -47,7 +47,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/hunspell-wordform-generator-munch-differential/](../../models/hunspell-wordform-generator-munch-differential/)
+Formal models and scripts this finding's part of the hunt used: [../../models/hunspell-wordform-generator-munch-differential/](../../models/hunspell-wordform-generator-munch-differential/)
 
 ## Feedback
 

@@ -1,17 +1,17 @@
 # BufferedIndexInput.refill marks its buffer as filled before readInternal succeeds, so after a failed read the next reads of the same input return up to one buffer of stale bytes instead of re-reading or throwing (regression of LUCENE-1262 since 8.6.0)
 
-Bug LFV-492 · Area: store / BufferedIndexInput (NIOFSDirectory, misc RAFDirectory, BufferedIndexInput.wrap; surfaces through CodecUtil.checkFooter and stored-fields reads) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-492 · Area: store / BufferedIndexInput (NIOFSDirectory, misc RAFDirectory, BufferedIndexInput.wrap; surfaces through CodecUtil.checkFooter and stored-fields reads) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You read an index through NIOFSDirectory (or any BufferedIndexInput), one read fails with an IOException, for example a transient storage error, and the same input is read again, by your retry or by Lucene's own CodecUtil.checkFooter(in, priorException). You expect the next read to re-read the failed region or to throw again. Instead, since 8.6.0 refill has already marked the buffer as holding the new region before readInternal failed, so the next reads silently return up to one buffer of bytes from the previous region (or zeros), and one transient failure while opening a healthy index makes DirectoryReader.open report it as corrupt.
+You read an index through NIOFSDirectory (or any BufferedIndexInput), one read fails with an IOException, for example a transient storage error, and the same input is read again, by your retry or by Lucene's own CodecUtil.checkFooter(in, priorException). You expect the next read to re-read the failed region or to throw again. Instead, since 8.6.0 refill() has already marked the buffer as holding the new region before readInternal failed, so the next reads silently return up to one buffer of bytes from the previous region (or zeros), and one transient failure while opening a healthy index makes DirectoryReader.open report it as corrupt.
 
 ## Expected vs actual
 
 - Expected: You expect the next read to re-read the failed region or to throw again.
-- Actual: Since 8.6.0 refill has already marked the buffer as holding the new region before readInternal failed, so the next reads silently return up to one buffer of bytes from the previous region (or zeros), and one transient failure while opening a healthy index makes DirectoryReader.open report it as corrupt.
+- Actual: Since 8.6.0 refill() has already marked the buffer as holding the new region before readInternal failed, so the next reads silently return up to one buffer of bytes from the previous region (or zeros), and one transient failure while opening a healthy index makes DirectoryReader.open report it as corrupt.
 
 ## Files
 
@@ -22,7 +22,7 @@ You read an index through NIOFSDirectory (or any BufferedIndexInput), one read f
 ## Run it
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -51,7 +51,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/store-cross-impl-differential/](../../models/store-cross-impl-differential/)
+Formal models and scripts this finding's part of the hunt used: [../../models/store-cross-impl-differential/](../../models/store-cross-impl-differential/)
 
 ## Feedback
 

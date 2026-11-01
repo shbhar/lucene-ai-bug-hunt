@@ -1,14 +1,14 @@
-# OpenNLPSentenceBreakIterator on text that starts with whitespace: a backward walk with previous returns a non-boundary and then throws ArrayIndexOutOfBoundsException, and following at an offset inside the leading whitespace throws StackOverflowError, because setText keeps the sentence detector's whitespace-trimmed first sentence start while first and next use the text's begin index
+# OpenNLPSentenceBreakIterator on text that starts with whitespace: a backward walk with previous() returns a non-boundary and then throws ArrayIndexOutOfBoundsException, and following() at an offset inside the leading whitespace throws StackOverflowError, because setText keeps the sentence detector's whitespace-trimmed first sentence start while first() and next() use the text's begin index
 
-Bug LFV-623 · Area: analysis-opennlp / OpenNLPSentenceBreakIterator (public java.text.BreakIterator over OpenNLP sentence spans: setText, previous, following, moveToSentenceAt) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-623 · Area: analysis-opennlp / OpenNLPSentenceBreakIterator (public java.text.BreakIterator over OpenNLP sentence spans: setText, previous, following, moveToSentenceAt) · Priority: low · Impact: crash · Novelty: new
 
-Bug page: [../../bugs/LFV-623.html](../../bugs/LFV-623.html)
+Finding page: [../../bugs/LFV-623.html](../../bugs/LFV-623.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You create an OpenNLPSentenceBreakIterator, give it a text that starts with whitespace, for example ' Sentence number 1 has 6 words. Sentence number 2, 5 words.', and walk it backward with last/previous (the reverse loop shown in the BreakIterator javadoc), expecting the forward boundaries [0, 33, 60] in reverse order and then DONE. Instead previous returns 2, which is not a boundary, and the next previous throws ArrayIndexOutOfBoundsException (Index -1); following(0) on a one-sentence text with leading whitespace recurses until StackOverflowError. The OpenNLP sentence detector trims whitespace from its spans and setText stores those starts unchanged, so the first stored sentence start lies after the begin index that first and next treat as the first boundary.
+You create an OpenNLPSentenceBreakIterator, give it a text that starts with whitespace, for example ' Sentence number 1 has 6 words. Sentence number 2, 5 words.', and walk it backward with last()/previous() (the reverse loop shown in the BreakIterator javadoc), expecting the forward boundaries [0, 33, 60] in reverse order and then DONE. Instead previous() returns 2, which is not a boundary, and the next previous() throws ArrayIndexOutOfBoundsException (Index -1); following(0) on a one-sentence text with leading whitespace recurses until StackOverflowError. The OpenNLP sentence detector trims whitespace from its spans and setText stores those starts unchanged, so the first stored sentence start lies after the begin index that first() and next() treat as the first boundary.
 
 The test shows that OpenNLPSentenceBreakIterator.following(0) on a one-sentence text that starts with two spaces recurses until StackOverflowError.
 
@@ -24,7 +24,7 @@ Expected: text.length() or DONE (DONE is what the class returns without the lead
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

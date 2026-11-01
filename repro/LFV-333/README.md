@@ -1,8 +1,8 @@
 # MemoryIndex ignores TermFrequencyAttribute, so FeatureField values and custom term frequencies are indexed as frequency 1 and their postings frequencies, term statistics, norms and scores differ from IndexWriter's (Lucene Monitor's single-document matching included)
 
-Bug LFV-333 · Area: memory / MemoryIndex term inversion (custom term frequencies: FeatureField, TermFrequencyAttribute streams, DOCS_AND_CUSTOM_FREQS); reached in-tree through monitor single-document batches · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-333 · Area: memory / MemoryIndex term inversion (custom term frequencies: FeatureField, TermFrequencyAttribute streams, DOCS_AND_CUSTOM_FREQS); reached in-tree through monitor single-document batches · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-333.html](../../bugs/LFV-333.html)
+Finding page: [../../bugs/LFV-333.html](../../bugs/LFV-333.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: `mi.search(...)` returns the feature value `10.0` (as a one-document I
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

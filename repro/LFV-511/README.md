@@ -1,6 +1,6 @@
 # Grouping starts its running maxScore at Float.MIN_VALUE (the smallest positive float), so TopGroups.maxScore and GroupDocs.maxScore report 1.4E-45 instead of 0 when every hit scores 0, and since 10.5.0 (#15873) TopGroupsCollector.getTopGroups reports 1.4E-45 instead of NaN when no scores were computed
 
-Bug LFV-511 · Area: grouping / max-score reporting (TopGroupsCollector, BlockGroupingCollector) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-511 · Area: grouping / max-score reporting (TopGroupsCollector, BlockGroupingCollector) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You run a grouped search whose hits all score 0, for example a BooleanQuery with
 ## Run it
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

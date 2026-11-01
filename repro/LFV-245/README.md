@@ -1,6 +1,8 @@
 # An NRT replica's merge pre-copy callback (ReplicaNode.launchPreCopyMerge) synchronizes on itself instead of the ReplicaNode, so a primary change that lands while it installs the merged files leaves the old primary's pre-copied merged files pending and on disk
 
-Bug LFV-245 · Area: replicator / NRT segment replication (ReplicaNode.launchPreCopyMerge merge pre-copy, ReplicaNode.newNRTPoint) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-245 · Area: replicator / NRT segment replication (ReplicaNode.launchPreCopyMerge merge pre-copy, ReplicaNode.newNRTPoint) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-245.html](../../bugs/LFV-245.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected: after the switch to primaryGen 2 the old primary's pre-copied files ar
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

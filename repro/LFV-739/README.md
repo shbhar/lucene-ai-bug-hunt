@@ -1,12 +1,12 @@
-# UAX29URLEmailTokenizer ends a URL token at the first $ + ! * ' or, in the URL path, although both RFCs its grammar cites allow these characters there, so URLs such as https://en.wikipedia.org/wiki/Python_(programming_language) or http://example.com/a+b/c are split
+# UAX29URLEmailTokenizer ends a URL token at the first $ + ! * ' ( ) or , in the URL path, although both RFCs its grammar cites allow these characters there, so URLs such as https://en.wikipedia.org/wiki/Python_(programming_language) or http://example.com/a+b/c are split
 
-Bug LFV-739 · Area: analysis / UAX29URLEmailTokenizer JFlex URL rules (path segments of http(s), scheme-less, ftp and file URLs; analysis-common) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-739 · Area: analysis / UAX29URLEmailTokenizer JFlex URL rules (path segments of http(s), scheme-less, ftp and file URLs; analysis-common) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You run text such as 'see https://en.wikipedia.org/wiki/Python_(programming_language) now' or 'http://example.com/a+b/c' through UAX29URLEmailTokenizer, whose javadoc says URLs are 'tokenized according to the relevant RFCs', and expect each URL as one &lt;URL&gt; token, because RFC 3986 (sub-delims are allowed in path segments) and RFC 1738 (its 'safe' and 'extra' characters are allowed in hsegment and fsegment) both allow $ + ! * ' and, in a path. Instead the &lt;URL&gt; token stops right before the first such character ('https://en.wikipedia.org/wiki/Python_', then 'programming_language' as a word; 'http://example.com/a', then 'b' and 'c'), because the grammar's two path-segment rules use RFC 3986's narrow 'unreserved' set inside rules shaped after RFC 1738, so these characters are rejected under either RFC. The same characters in the query, fragment or userinfo stay inside the URL token, and nothing reports an error.
+You run text such as 'see https://en.wikipedia.org/wiki/Python_(programming_language) now' or 'http://example.com/a+b/c' through UAX29URLEmailTokenizer, whose javadoc says URLs are 'tokenized according to the relevant RFCs', and expect each URL as one &lt;URL&gt; token, because RFC 3986 (sub-delims are allowed in path segments) and RFC 1738 (its 'safe' and 'extra' characters are allowed in hsegment and fsegment) both allow $ + ! * ' ( ) and , in a path. Instead the &lt;URL&gt; token stops right before the first such character ('https://en.wikipedia.org/wiki/Python_', then 'programming_language' as a word; 'http://example.com/a', then 'b' and 'c'), because the grammar's two path-segment rules use RFC 3986's narrow 'unreserved' set inside rules shaped after RFC 1738, so these characters are rejected under either RFC. The same characters in the query, fragment or userinfo stay inside the URL token, and nothing reports an error.
 
 ## Expected vs actual
 
@@ -20,7 +20,7 @@ You run text such as 'see https://en.wikipedia.org/wiki/Python_(programming_lang
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

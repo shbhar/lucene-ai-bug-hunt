@@ -1,17 +1,17 @@
 # SimplePatternTokenizer's String constructors do not determinize the regexp (and ignore determinizeWorkLimit), so valid patterns such as ab|ac or http|https throw 'please determinize the incoming automaton first'
 
-Bug LFV-526 · Area: analysis-common / pattern tokenizers (SimplePatternTokenizer String constructors) · Priority: medium · Impact: crash · Novelty: known upstream
+Finding LFV-526 · Area: analysis-common / pattern tokenizers (SimplePatternTokenizer String constructors) · Priority: medium · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a tokenizer with new SimplePatternTokenizer("ab|ac") (or the three-argument String constructor with a determinizeWorkLimit) and expect a working tokenizer for any valid RegExp, as the constructors' javadoc ('See RegExp for the accepted syntax'), the sibling SimplePatternSplitTokenizer and both factories give you. Instead the constructor throws IllegalArgumentException('please determinize the incoming automaton first'): it passes new RegExp(regexp).toAutomaton unchanged to the Automaton constructor, which rejects non-deterministic automata, and since Lucene 10.0 (LUCENE-10010) RegExp no longer determinizes its result. The determinizeWorkLimit argument is never used.
+You build a tokenizer with new SimplePatternTokenizer("ab|ac") (or the three-argument String constructor with a determinizeWorkLimit) and expect a working tokenizer for any valid RegExp, as the constructors' javadoc ('See RegExp for the accepted syntax'), the sibling SimplePatternSplitTokenizer and both factories give you. Instead the constructor throws IllegalArgumentException('please determinize the incoming automaton first'): it passes new RegExp(regexp).toAutomaton() unchanged to the Automaton constructor, which rejects non-deterministic automata, and since Lucene 10.0 (LUCENE-10010) RegExp no longer determinizes its result. The determinizeWorkLimit argument is never used.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: The constructor throws IllegalArgumentException('please determinize the incoming automaton first'): it passes new RegExp(regexp).toAutomaton unchanged to the Automaton constructor, which rejects non-deterministic automata, and since Lucene 10.0 (LUCENE-10010) RegExp no longer determinizes its result.
+- Actual: The constructor throws IllegalArgumentException('please determinize the incoming automaton first'): it passes new RegExp(regexp).toAutomaton() unchanged to the Automaton constructor, which rejects non-deterministic automata, and since Lucene 10.0 (LUCENE-10010) RegExp no longer determinizes its result.
 
 ## Files
 
@@ -20,7 +20,7 @@ You build a tokenizer with new SimplePatternTokenizer("ab|ac") (or the three-arg
 ## Run it
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

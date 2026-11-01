@@ -1,8 +1,8 @@
 # Tessellator rejects a valid polygon whose holes touch the outer ring and each other at single vertices with 'Unable to Tessellate shape', because #15739 made the reflex-vertex test in isLocallyInside inclusive ('&lt;= 0'): a regression in 10.5.0 (10.4.0 accepts the polygon)
 
-Bug LFV-755 · Area: geo / Tessellator hole elimination (polygon indexing for LatLonShape and XYShape) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-755 · Area: geo / Tessellator hole elimination (polygon indexing for LatLonShape and XYShape) · Priority: low · Impact: crash · Novelty: new
 
-Bug page: [../../bugs/LFV-755.html](../../bugs/LFV-755.html)
+Finding page: [../../bugs/LFV-755.html](../../bugs/LFV-755.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected the polygon to be tessellated; actual on main: `IllegalArgumentExceptio
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

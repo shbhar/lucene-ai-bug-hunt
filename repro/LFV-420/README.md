@@ -1,12 +1,12 @@
 # Merging into a Lucene104 scalar-quantized FLOAT32 vector field that does not use COSINE centers the merge source's own vector arrays in place, so IndexWriter.addIndexes changes a source that keeps its arrays (MemoryIndex, FloatVectorValues.fromFloats) and can store wrong full-precision vectors or wrong quantized codes
 
-Bug LFV-420 · Area: codecs / quantized vector formats merge (Lucene104 scalar-quantized, Lucene102 binary-quantized) with index / addIndexes through SlowCodecReaderWrapper and memory / MemoryIndex · Priority: medium · Impact: data corruption · Novelty: known upstream
+Finding LFV-420 · Area: codecs / quantized vector formats merge (Lucene104 scalar-quantized, Lucene102 binary-quantized) with index / addIndexes through SlowCodecReaderWrapper and memory / MemoryIndex · Priority: medium · Impact: data corruption · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index a FLOAT32 field with Lucene104ScalarQuantizedVectorsFormat and EUCLIDEAN, DOT_PRODUCT or MAXIMUM_INNER_PRODUCT by calling IndexWriter.addIndexes(SlowCodecReaderWrapper.wrap(...)) on a MemoryIndex, or on a FilterLeafReader that serves new vectors from your own list through FloatVectorValues.fromFloats, and you expect the merge only to read its source, as it does for COSINE fields and for the older Lucene99 scalar-quantized formats. Instead the quantizer subtracts the merged centroid from the source's own arrays: afterwards the MemoryIndex vector {1,2,3,4} reads back as {0,0,0,0} when it is the only vector, and as {1.5,0.75,-2,1.5} when merged together with a second source holding {-2,0.5,7,1}, a second addIndexes of it stores that centered vector as the full-precision vector, and your list holds centered vectors. When two documents share one float in a single addIndexes, the second is quantized from the already-centered array, so it scores 0.160 against 0.066 for its identical copies (exact 0.066) and ranks first.
+You index a FLOAT32 field with Lucene104ScalarQuantizedVectorsFormat and EUCLIDEAN, DOT_PRODUCT or MAXIMUM_INNER_PRODUCT by calling IndexWriter.addIndexes(SlowCodecReaderWrapper.wrap(...)) on a MemoryIndex, or on a FilterLeafReader that serves new vectors from your own list through FloatVectorValues.fromFloats, and you expect the merge only to read its source, as it does for COSINE fields and for the older Lucene99 scalar-quantized formats. Instead the quantizer subtracts the merged centroid from the source's own arrays: afterwards the MemoryIndex vector {1,2,3,4} reads back as {0,0,0,0} when it is the only vector, and as {1.5,0.75,-2,1.5} when merged together with a second source holding {-2,0.5,7,1}, a second addIndexes of it stores that centered vector as the full-precision vector, and your list holds centered vectors. When two documents share one float[] in a single addIndexes, the second is quantized from the already-centered array, so it scores 0.160 against 0.066 for its identical copies (exact 0.066) and ranks first.
 
 ## Expected vs actual
 
@@ -23,7 +23,7 @@ You index a FLOAT32 field with Lucene104ScalarQuantizedVectorsFormat and EUCLIDE
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

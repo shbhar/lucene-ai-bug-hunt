@@ -1,17 +1,17 @@
 # ComplexPhraseQueryParser: a phrase whose contents reduce to one clause that is not a bare term or multi-term query ("the beat*" with a stop-word analyzer, "+john", "john^2") parses, but searching it throws IllegalArgumentException instead of returning hits
 
-Bug LFV-704 · Area: queryparser / complexPhrase: ComplexPhraseQueryParser (ComplexPhraseQuery.rewrite building a SpanNearQuery) · Priority: medium · Impact: crash · Novelty: known upstream
+Finding LFV-704 · Area: queryparser / complexPhrase: ComplexPhraseQueryParser (ComplexPhraseQuery.rewrite building a SpanNearQuery) · Priority: medium · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You parse a quoted phrase such as "the beat*" with ComplexPhraseQueryParser and an analyzer that removes the stop word 'the', or "+john", or "john^2", and search with it; single-clause complex phrases are supported ("beat*" and "john" work, upstream testSingleTermPhrase) and interior boosts are ignored by design (TestComplexPhraseQuery testBoosts), so you expect the hits of "beat*" or "john". Instead parse succeeds and IndexSearcher.search throws IllegalArgumentException: when the contents are a one-clause BooleanQuery, ComplexPhraseQuery.rewrite builds a one-clause SpanNearQuery (ComplexPhraseQueryParser.java:331-333), which SpanNearQuery documents as invalid ('at least 2' clauses, SpanNearQuery.java:115), and ConjunctionSpans throws 'Less than 2 subSpans.size:1'; when the contents are a lone BoostQuery, rewrite throws 'Unknown query type "org.apache.lucene.search.BoostQuery" found in phrase query string' (:270-277).
+You parse a quoted phrase such as "the beat*" with ComplexPhraseQueryParser and an analyzer that removes the stop word 'the', or "+john", or "john^2", and search with it; single-clause complex phrases are supported ("beat*" and "john" work, upstream testSingleTermPhrase) and interior boosts are ignored by design (TestComplexPhraseQuery testBoosts), so you expect the hits of "beat*" or "john". Instead parse() succeeds and IndexSearcher.search throws IllegalArgumentException: when the contents are a one-clause BooleanQuery, ComplexPhraseQuery.rewrite builds a one-clause SpanNearQuery (ComplexPhraseQueryParser.java:331-333), which SpanNearQuery documents as invalid ('at least 2' clauses, SpanNearQuery.java:115), and ConjunctionSpans throws 'Less than 2 subSpans.size():1'; when the contents are a lone BoostQuery, rewrite throws 'Unknown query type "org.apache.lucene.search.BoostQuery" found in phrase query string' (:270-277).
 
 ## Expected vs actual
 
 - Expected: You expect the hits of "beat*" or "john".
-- Actual: parse succeeds and IndexSearcher.search throws IllegalArgumentException: when the contents are a one-clause BooleanQuery, ComplexPhraseQuery.rewrite builds a one-clause SpanNearQuery (ComplexPhraseQueryParser.java:331-333), which SpanNearQuery documents as invalid ('at least 2' clauses, SpanNearQuery.java:115), and ConjunctionSpans throws 'Less than 2 subSpans.size:1'; when the contents are a lone BoostQuery, rewrite throws 'Unknown query type "org.apache.lucene.search.BoostQuery" found in phrase query string' (:270-277).
+- Actual: parse() succeeds and IndexSearcher.search throws IllegalArgumentException: when the contents are a one-clause BooleanQuery, ComplexPhraseQuery.rewrite builds a one-clause SpanNearQuery (ComplexPhraseQueryParser.java:331-333), which SpanNearQuery documents as invalid ('at least 2' clauses, SpanNearQuery.java:115), and ConjunctionSpans throws 'Less than 2 subSpans.size():1'; when the contents are a lone BoostQuery, rewrite throws 'Unknown query type "org.apache.lucene.search.BoostQuery" found in phrase query string' (:270-277).
 
 ## Files
 
@@ -20,7 +20,7 @@ You parse a quoted phrase such as "the beat*" with ComplexPhraseQueryParser and 
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

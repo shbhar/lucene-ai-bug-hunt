@@ -1,8 +1,8 @@
 # DateRangePrefixTree.parseCalendar (and parseShape) rejects day 32 but accepts a day that its month does not have (2014-11-31, 2014-02-30, 2013-02-29) and silently rolls it into the next month, so the range [2014-11-01 TO 2014-11-31] also matches December 1st
 
-Bug LFV-619 · Area: spatial-extras / prefix trees (DateRangePrefixTree date parsing: parseCalendar, also reached through NumberRangePrefixTree.parseShape for single dates and range bounds) · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-619 · Area: spatial-extras / prefix trees (DateRangePrefixTree date parsing: parseCalendar, also reached through NumberRangePrefixTree.parseShape for single dates and range bounds) · Priority: low · Impact: wrong error · Novelty: new
 
-Bug page: [../../bugs/LFV-619.html](../../bugs/LFV-619.html)
+Finding page: [../../bugs/LFV-619.html](../../bugs/LFV-619.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: `ParseException` for `2014-11-31` (as for `2014-11-32`); actual: parse
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

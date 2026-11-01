@@ -1,18 +1,18 @@
 # MultiPassIndexSplitter.split never closes the IndexWriter it opened on an output when addIndexes throws, so that output directory stays write-locked and every later IndexWriter or split into it in the same JVM fails with LockObtainFailedException until the JVM restarts
 
-Bug LFV-554 · Area: misc / index tools (MultiPassIndexSplitter.split, failure cleanup) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-554 · Area: misc / index tools (MultiPassIndexSplitter.split, failure cleanup) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You split an index with MultiPassIndexSplitter.split, the split throws while it writes one of the output parts (for example the disk fills up, a file of the source index is corrupted, or the source index was created by the previous major version), and you then retry the split or open an IndexWriter on that output directory in the same JVM. You expect this to work once the cause is gone, because the failed split should close the IndexWriter it opened on the output. Instead split calls close only after addIndexes succeeds, so the writer, which the caller cannot reach, keeps the output's write lock, and every later IndexWriter or split into that directory throws LockObtainFailedException 'Lock held by this virtual machine' until the JVM restarts.
+You split an index with MultiPassIndexSplitter.split, the split throws while it writes one of the output parts (for example the disk fills up, a file of the source index is corrupted, or the source index was created by the previous major version), and you then retry the split or open an IndexWriter on that output directory in the same JVM. You expect this to work once the cause is gone, because the failed split should close the IndexWriter it opened on the output. Instead split() calls close() only after addIndexes succeeds, so the writer, which the caller cannot reach, keeps the output's write lock, and every later IndexWriter or split into that directory throws LockObtainFailedException 'Lock held by this virtual machine' until the JVM restarts.
 
 The test shows that when `IndexWriter#addIndexes` throws inside `MultiPassIndexSplitter.split` (here because the source index was created by the previous major version), split() does not close the IndexWriter it opened on the output, so the output stays write-locked.
 
 ## Expected vs actual
 
-Expected a new `IndexWriter` on out1 to open after the failed split; actual: `LockObtainFailedException` "lock instance already obtained... write.lock", with `-ea` and `-da`.
+Expected a new `IndexWriter` on out1 to open after the failed split; actual: `LockObtainFailedException` "lock instance already obtained ... write.lock", with `-ea` and `-da`.
 
 ## Files
 
@@ -22,7 +22,7 @@ Expected a new `IndexWriter` on out1 to open after the failed split; actual: `Lo
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

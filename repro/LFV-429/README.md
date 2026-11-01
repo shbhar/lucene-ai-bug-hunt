@@ -1,8 +1,8 @@
 # Reordering merges (BPReorderingMergePolicy) silently break document blocks written before Lucene 9.9, because IndexWriter's reorder guard reads the unrecorded LeafMetaData#hasBlocks flag as 'no blocks'
 
-Bug LFV-429 · Area: index / IndexWriter merge-time reordering (OneMerge#reorder guard; misc BPReorderingMergePolicy) · Priority: low · Impact: data corruption · Novelty: new
+Finding LFV-429 · Area: index / IndexWriter merge-time reordering (OneMerge#reorder guard; misc BPReorderingMergePolicy) · Priority: low · Impact: data corruption · Novelty: new
 
-Bug page: [../../bugs/LFV-429.html](../../bugs/LFV-429.html)
+Finding page: [../../bugs/LFV-429.html](../../bugs/LFV-429.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -26,7 +26,7 @@ Expected the merged segment's docs, in pairs, to be the blocks `[c0p0, c1p1, c2p
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - Fixture: the test reads blocks.9.8.0.zip, an index of 3 blocks (a child and its parent) in 2 segments written by Lucene 9.8.0, from its package on the class path. This site ships no binary index files, so the recipe first makes it with fixture-src/MakePre99BlockIndex.java and lucene-core-9.8.0.jar (Maven Central) and puts it in src/, which the run puts on the class path; without it the test fails for another reason.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

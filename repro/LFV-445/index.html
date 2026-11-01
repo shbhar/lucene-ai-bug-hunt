@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ICUTokenizer loses a supplementary character (an emoji, a CJK Extension B ideograph) whose surrogate pair straddles the end of its 4096-char read chunk in text with no whitespace, because refill cuts the pair in half (LFV-445)</title><style>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ICUTokenizer loses a supplementary character (an emoji, a CJK Extension B ideograph) whose surrogate pair straddles the end of its 4096-char read chunk in text with no whitespace, because refill() cuts the pair in half (LFV-445)</title><style>
 :root{--fg:#1d2329;--dim:#5a6570;--line:#d8dee4;--bg:#fff;--soft:#f5f7f9;--link:#0b5cad}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
 font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
@@ -17,12 +17,12 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 .scroll{overflow-x:auto}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
-</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>ICUTokenizer loses a supplementary character (an emoji, a CJK Extension B ideograph) whose surrogate pair straddles the end of its 4096-char read chunk in text with no whitespace, because refill cuts the pair in half</h1>
-<p class="facts small"><span>Bug LFV-445</span><span>Area: analysis / ICU (ICUTokenizer chunked buffer refill; ICUTokenizerFactory &#x27;icu&#x27;)</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
-<p><a href="../../bugs/LFV-445.html">Bug page for LFV-445</a></p>
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>ICUTokenizer loses a supplementary character (an emoji, a CJK Extension B ideograph) whose surrogate pair straddles the end of its 4096-char read chunk in text with no whitespace, because refill() cuts the pair in half</h1>
+<p class="facts small"><span>Finding LFV-445</span><span>Area: analysis / ICU (ICUTokenizer chunked buffer refill; ICUTokenizerFactory &#x27;icu&#x27;)</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-445.html">Finding page for LFV-445</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
-<p>You index a long Chinese paragraph with no spaces or line breaks through the stock ICUTokenizer, and it contains an emoji or a rare ideograph such as U+20000; you expect that character to be a token wherever it falls, as it is one position earlier or later. Instead, when its first UTF-16 half is the last char of the tokenizer&#x27;s 4096-char read chunk, refill gives the word breaker a chunk that ends in a lone high surrogate and starts the next chunk with the lone low surrogate; both halves get rule status 0 and are skipped, so the character is in no token. A TermQuery for it finds 0 documents instead of 1, with no error.</p>
+<p>You index a long Chinese paragraph with no spaces or line breaks through the stock ICUTokenizer, and it contains an emoji or a rare ideograph such as U+20000; you expect that character to be a token wherever it falls, as it is one position earlier or later. Instead, when its first UTF-16 half is the last char of the tokenizer&#x27;s 4096-char read chunk, refill() gives the word breaker a chunk that ends in a lone high surrogate and starts the next chunk with the lone low surrogate; both halves get rule status 0 and are skipped, so the character is in no token. A TermQuery for it finds 0 documents instead of 1, with no error.</p>
 <p>The test shows that ICUTokenizer drops U+20000 when its high surrogate is the last char (char 4095) of a whitespace-free 4096-char read chunk, because refill() splits the surrogate pair.</p>
 <h2>Expected vs actual</h2>
 <p>Expected U+20000 to be 1 token (as at any other position); actual 0 tokens.</p>
@@ -31,7 +31,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </ul><h2>Run it</h2><ul>
 <li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
 <li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
+<li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
@@ -50,4 +50,4 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.analysis.icu.segmentation.TestICUTokenizerRefillSurrogatePair</code></pre>
 <p class="small">The module(s) analysis-icu also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-30. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-01. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

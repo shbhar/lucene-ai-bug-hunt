@@ -1,6 +1,6 @@
 # Classic Highlighter turns the position holes of an exact PhraseQuery or MultiPhraseQuery (for example from removed stop words) into SpanNearQuery slop, so it highlights nearby pairs that do not match and can miss the occurrence that does
 
-Bug LFV-827 · Area: highlighter / original Highlighter, QueryScorer and WeightedSpanTermExtractor (phrase-to-span conversion) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-827 · Area: highlighter / original Highlighter, QueryScorer and WeightedSpanTermExtractor (phrase-to-span conversion) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You index 'rock roll rock and roll' with a stop-word analyzer, search for the ph
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

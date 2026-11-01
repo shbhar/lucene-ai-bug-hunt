@@ -1,8 +1,8 @@
 # JoinUtil's single-valued term and numeric joins treat a 'from' document without a join value as if it had the empty term or the number 0, so they also return the 'to' document whose key is empty or 0 and add the value-less documents' scores to it (since 4.0.0)
 
-Bug LFV-766 · Area: join / JoinUtil query-time join (single-valued term and numeric collectors) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-766 · Area: join / JoinUtil query-time join (single-valued term and numeric collectors) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-766.html](../../bugs/LFV-766.html)
+Finding page: [../../bugs/LFV-766.html](../../bugs/LFV-766.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -10,7 +10,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You join orders to customers with JoinUtil.createJoinQuery("customer", false, "id", fromQuery, searcher, scoreMode), or the numeric overload with Integer.class, where fromQuery matches two orders and only one of them has a customer key, and expect only that order's customer back, because the javadoc returns the to-documents that 'have the same terms' as the matching from-documents. Instead the order without a key is collected as if its key were the empty term (term join) or 0 (numeric join), so the customer whose id is "" or 0 is returned too, in every ScoreMode, and a real customer 0 also gets the key-less order's score (Max 5.0 instead of 1.0). The same call with multipleValuesPerDocument=true on the same single-valued field, and the global-ordinals join, return the correct answer.
 
-The test shows that a single-valued numeric `JoinUtil.createJoinQuery(..., multipleValuesPerDocument=false,..., Integer.class,...)` treats an order with no customer key as if its key were 0, so it also returns customer 0.
+The test shows that a single-valued numeric `JoinUtil.createJoinQuery(..., multipleValuesPerDocument=false, ..., Integer.class, ...)` treats an order with no customer key as if its key were 0, so it also returns customer 0.
 
 ## Expected vs actual
 
@@ -24,7 +24,7 @@ Expected: only customer 7 (the one order that has a key points to it). Actual: c
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

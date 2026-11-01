@@ -1,8 +1,8 @@
 # JoinUtil's numeric join on Float or Double throws 'values are out of order' when the from side has two or more distinct negative values
 
-Bug LFV-217 · Area: join / JoinUtil numeric (point-based) query-time join · Priority: medium · Impact: crash · Novelty: new
+Finding LFV-217 · Area: join / JoinUtil numeric (point-based) query-time join · Priority: medium · Impact: crash · Novelty: new
 
-Bug page: [../../bugs/LFV-217.html](../../bugs/LFV-217.html)
+Finding page: [../../bugs/LFV-217.html](../../bugs/LFV-217.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: a join query that counts the 2 documents with FloatPoint -1 and -2. Ac
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

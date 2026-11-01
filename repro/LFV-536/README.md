@@ -1,6 +1,6 @@
 # ConcatenateGraphFilter, its factory and CompletionAnalyzer misdocument maxGraphExpansions: the javadoc promises a TooComplexToDeterminizeException when the token graph has more than maxGraphExpansions paths (and 'no limit on graph expansions' for CompletionAnalyzer's 1- and 3-argument constructors), but the code silently keeps the first maxGraphExpansions paths (default 10000) and also uses the same value as the determinize work limit, so it can throw for a graph with fewer paths than the limit (documentation defect; the truncation is intended)
 
-Bug LFV-536 · Area: analysis-common / ConcatenateGraphFilter and ConcatenateGraphFilterFactory (maxGraphExpansions javadoc); also suggest / CompletionAnalyzer · Priority: low · Impact: minor · Novelty: new
+Finding LFV-536 · Area: analysis-common / ConcatenateGraphFilter and ConcatenateGraphFilterFactory (maxGraphExpansions javadoc); also suggest / CompletionAnalyzer · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ Expected (javadoc): `TooComplexToDeterminizeException`. Actual: no exception; th
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,6 +1,6 @@
 # AutomatonToTokenStream.toTokenStream silently requires every state to be reachable from state 0, which its javadoc does not say, and rejects an acyclic automaton with an unreachable state with a false 'Cycle found in automaton' / 'Start node has incoming edges, creating cycle' message (documentation and error-message defect; the restriction itself was stated at design time)
 
-Bug LFV-868 · Area: core / analysis: AutomatonToTokenStream (automaton to token-graph conversion) · Priority: low · Impact: wrong error · Novelty: known upstream
+Finding LFV-868 · Area: core / analysis: AutomatonToTokenStream (automaton to token-graph conversion) · Priority: low · Impact: wrong error · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You build a finite acyclic automaton with one extra state that nothing leads to,
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

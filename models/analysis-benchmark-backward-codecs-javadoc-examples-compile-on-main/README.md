@@ -4,10 +4,10 @@ Tools: Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- The org.apache.lucene.analysis.compound package overview's three code examples do not compile on any release since 4.0.0: they call HyphenationCompoundWordTokenFilter.getHyphenationTree(Reader), WhitespaceTokenizer(Reader) and the String dictionary constructors of both decompounding filters, all removed; their loop never calls reset, and the page's output table shows per-part offsets that the filters stopped emitting in 4.4.0 (documentation defect) (bug LFV-1041; [repro](../../repro/LFV-1041/))
-- The benchmark quality package overview's TREC sample calls qrun.execute, a 4-argument QualityBenchmark.execute that no release has ever had (maxResults moved to setMaxResults(int) in LUCENE-1116, before 2.3.0, the package's first release), so the sample has not compiled in any release (documentation defect) (bug LFV-1040; [repro](../../repro/LFV-1040/))
+- The org.apache.lucene.analysis.compound package overview's three code examples do not compile on any release since 4.0.0: they call HyphenationCompoundWordTokenFilter.getHyphenationTree(Reader), WhitespaceTokenizer(Reader) and the String[] dictionary constructors of both decompounding filters, all removed; their loop never calls reset(), and the page's output table shows per-part offsets that the filters stopped emitting in 4.4.0 (documentation defect) (finding LFV-1041; [repro](../../repro/LFV-1041/))
+- The benchmark quality package overview's TREC sample calls qrun.execute(maxResults, judge, submitLog, logger), a 4-argument QualityBenchmark.execute that no release has ever had (maxResults moved to setMaxResults(int) in LUCENE-1116, before 2.3.0, the package's first release), so the sample has not compiled in any release (documentation defect) (finding LFV-1040; [repro](../../repro/LFV-1040/))
 
 ## Files
 

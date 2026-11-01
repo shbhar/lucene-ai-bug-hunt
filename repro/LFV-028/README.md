@@ -1,12 +1,14 @@
-# A boost beyond Float.MAX_VALUE parses to Infinity and both query parsers throw IllegalArgumentException
+# A boost too large for a float parses to Infinity and both query parsers throw IllegalArgumentException
 
-Bug LFV-028 · Area: queryparser / classic and flexible · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-028 · Area: queryparser / classic and flexible · Priority: low · Impact: wrong error · Novelty: new
+
+Finding page: [../../bugs/LFV-028.html](../../bugs/LFV-028.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You parse a query whose boost literal is larger than Float.MAX_VALUE with the classic or flexible query parser. You expect a parse error or a usable boost. Instead the boost parses to Infinity and BoostQuery's finite check throws IllegalArgumentException out of parse.
+You parse a query whose boost literal is too large for a float (2^128 - 2^103 or more, which takes 39 digits) with the classic or flexible query parser. You expect a parse error or a usable boost. Instead the boost parses to Infinity and BoostQuery's finite check throws IllegalArgumentException out of parse().
 
 The test shows that the classic `QueryParser` lets `IllegalArgumentException` escape `parse()` for a boost literal above `Float.MAX_VALUE` (`a^` + 39 nines).
 
@@ -22,7 +24,7 @@ Expected: `ParseException` (parse's declared failure). Actual: `IllegalArgumentE
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

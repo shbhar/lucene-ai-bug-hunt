@@ -1,6 +1,8 @@
 # ConfusionMatrixGenerator never cancels a classification that exceeded its 5 s limit, so later documents queue behind it on the single worker thread and are also counted as timed out
 
-Bug LFV-633 · Area: classification / ConfusionMatrixGenerator (classifier evaluation utility) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-633 · Area: classification / ConfusionMatrixGenerator (classifier evaluation utility) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-633.html](../../bugs/LFV-633.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ With doc 0 stuck and doc 1 instant, expected `getNumberOfEvaluatedDocs() == 1`; 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

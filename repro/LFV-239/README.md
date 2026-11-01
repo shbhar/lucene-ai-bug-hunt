@@ -1,6 +1,8 @@
 # With an executor, block grouping's TopGroups.maxScore includes groups that are not returned, so it changes with the index slicing (and with groupOffset &gt; 0 it counts the skipped groups); regression in 10.5.0
 
-Bug LFV-239 · Area: grouping / block grouping (TopGroups.mergeBlockGroups and BlockGroupingCollectorManager.reduce; GroupingSearch(Query groupEndDocs) on a searcher with an executor) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-239 · Area: grouping / block grouping (TopGroups.mergeBlockGroups and BlockGroupingCollectorManager.reduce; GroupingSearch(Query groupEndDocs) on a searcher with an executor) · Priority: low · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-239.html](../../bugs/LFV-239.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected: the same maxScore with and without an executor (1.0, the only returned
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

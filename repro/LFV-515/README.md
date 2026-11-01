@@ -1,12 +1,12 @@
 # UnifiedHighlighter with WEIGHT_MATCHES (the default) and a field matcher that accepts other fields (requireFieldMatch=false) highlights nothing in a hit whose query has a required clause on another field, because the matcher's remap evaluates that clause against the highlighted field's terms
 
-Bug LFV-515 · Area: highlighter / UnifiedHighlighter WEIGHT_MATCHES path (FieldOffsetStrategy field-matcher remap) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-515 · Area: highlighter / UnifiedHighlighter WEIGHT_MATCHES path (FieldOffsetStrategy field-matcher remap) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index a document with text 'red shirt sale', title 'summer collection' and the keyword status 'active', search +title:summer +text:shirt (or +text:shirt #status:active), and highlight 'text' with UnifiedHighlighter.builder(searcher, analyzer).withFieldMatcher(f -&gt; true).build. You expect 'red &lt;b&gt;shirt&lt;/b&gt; sale', which the default field matcher and the same matcher with withWeightMatches(false) both return. Instead you get 'red shirt sale' with no highlight, because the WEIGHT_MATCHES path makes every accepted field read the highlighted field's terms, so the required clause on title (or status) finds no 'summer' ('active') in text, Weight#matches of the whole query is null, and the highlighter treats the hit as not matching.
+You index a document with text 'red shirt sale', title 'summer collection' and the keyword status 'active', search +title:summer +text:shirt (or +text:shirt #status:active), and highlight 'text' with UnifiedHighlighter.builder(searcher, analyzer).withFieldMatcher(f -&gt; true).build(). You expect 'red &lt;b&gt;shirt&lt;/b&gt; sale', which the default field matcher and the same matcher with withWeightMatches(false) both return. Instead you get 'red shirt sale' with no highlight, because the WEIGHT_MATCHES path makes every accepted field read the highlighted field's terms, so the required clause on title (or status) finds no 'summer' ('active') in text, Weight#matches of the whole query is null, and the highlighter treats the hit as not matching.
 
 ## Expected vs actual
 
@@ -20,7 +20,7 @@ You index a document with text 'red shirt sale', title 'summer collection' and t
 ## Run it
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

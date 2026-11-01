@@ -1,6 +1,8 @@
 # AnalyzingInfixSuggester, WFSTCompletionLookup and FreeTextSuggester allocate storage for num results before they know how many suggestions match, so lookup(key, false, Integer.MAX_VALUE) on an 8-entry suggester throws instead of returning the 8 suggestions, and a large num allocates memory in proportion to num
 
-Bug LFV-1004 · Area: suggest / Lookup.lookup result sizing (AnalyzingInfixSuggester, WFSTCompletionLookup, FreeTextSuggester) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-1004 · Area: suggest / Lookup.lookup result sizing (AnalyzingInfixSuggester, WFSTCompletionLookup, FreeTextSuggester) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-1004.html](../../bugs/LFV-1004.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected the 1 suggestion (num is documented as a maximum). Actual: `OutOfMemory
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

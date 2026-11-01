@@ -1,12 +1,14 @@
 # TopGroups.merge throws NegativeArraySizeException when docOffset + docTopN overflows int, for example docOffset = 1 with docTopN = Integer.MAX_VALUE ('all remaining documents'), although docOffset 0 with the same docTopN works
 
-Bug LFV-960 · Area: grouping / TopGroups.merge (merging second-pass grouped results across shards or slices) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-960 · Area: grouping / TopGroups.merge (merging second-pass grouped results across shards or slices) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-960.html](../../bugs/LFV-960.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You merge two shards' second-pass grouping results with TopGroups.merge(shardTopGroups, groupSort, docSort, 1, Integer.MAX_VALUE,...) to get every document after the first in each group, and expect the same groups as with docTopN = 10 on the same small data, just as docOffset 0 with docTopN = Integer.MAX_VALUE already gives. Instead merge throws NegativeArraySizeException: -2147483648: it passes the int sum docOffset + docTopN to TopDocs.merge, the sum wraps negative, and TopDocs.mergeAux sizes its result array with it. Every pair with docOffset + docTopN &gt;= 2^31 fails, for relevance and field order within groups; a sum of 2^31 - 1 still works.
+You merge two shards' second-pass grouping results with TopGroups.merge(shardTopGroups, groupSort, docSort, 1, Integer.MAX_VALUE, ...) to get every document after the first in each group, and expect the same groups as with docTopN = 10 on the same small data, just as docOffset 0 with docTopN = Integer.MAX_VALUE already gives. Instead merge throws NegativeArraySizeException: -2147483648: it passes the int sum docOffset + docTopN to TopDocs.merge, the sum wraps negative, and TopDocs.mergeAux sizes its result array with it. Every pair with docOffset + docTopN &gt;= 2^31 fails, for relevance and field order within groups; a sum of 2^31 - 1 still works.
 
 The test shows that `TopGroups.merge` of two hand-built shard results with docOffset 1 and docTopN Integer.MAX_VALUE overflows the int sum docOffset + docTopN.
 
@@ -22,7 +24,7 @@ Expected group g's second document (1 ScoreDoc); actual `NegativeArraySizeExcept
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -46,7 +48,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/grouping-offset-plus-limit-overflow/](../../models/grouping-offset-plus-limit-overflow/)
+Formal models and scripts this finding's part of the hunt used: [../../models/grouping-offset-plus-limit-overflow/](../../models/grouping-offset-plus-limit-overflow/)
 
 ## Feedback
 

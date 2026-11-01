@@ -18,8 +18,8 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>Reordering merges (BPReorderingMergePolicy) silently break document blocks written before Lucene 9.9, because IndexWriter&#x27;s reorder guard reads the unrecorded LeafMetaData#hasBlocks flag as &#x27;no blocks&#x27;</h1>
-<p class="facts small"><span>Bug LFV-429</span><span>Area: index / IndexWriter merge-time reordering (OneMerge#reorder guard; misc BPReorderingMergePolicy)</span><span>Priority: low</span><span>Impact: data corruption</span><span>Novelty: new</span></p>
-<p><a href="../../bugs/LFV-429.html">Bug page for LFV-429</a></p>
+<p class="facts small"><span>Finding LFV-429</span><span>Area: index / IndexWriter merge-time reordering (OneMerge#reorder guard; misc BPReorderingMergePolicy)</span><span>Priority: low</span><span>Impact: data corruption</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-429.html">Finding page for LFV-429</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You have an index with document blocks (children followed by their parent, added with IndexWriter#addDocuments) that was written by Lucene 9.8 or earlier, open it with a current Lucene, and force-merge it through BPReorderingMergePolicy. You expect the merge to leave the blocks alone, because since 9.11 IndexWriter lets a merge reorder documents only when there are no blocks or a parent field identifies them, and such an old index cannot have a parent field. Instead the guard trusts LeafMetaData#hasBlocks, which was never recorded before 9.9 and reads false for those segments, so the reorderer renumbers the documents one by one and interleaves the blocks, with no exception and a clean CheckIndex, while the same documents written by 9.9.2 are left intact.</p>
@@ -33,7 +33,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
 <li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>Fixture: the test reads blocks.9.8.0.zip, an index of 3 blocks (a child and its parent) in 2 segments written by Lucene 9.8.0, from its package on the class path. This site ships no binary index files, so the recipe first makes it with fixture-src/MakePre99BlockIndex.java and lucene-core-9.8.0.jar (Maven Central) and puts it in src/, which the run puts on the class path; without it the test fails for another reason.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
+<li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
@@ -57,4 +57,4 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      -cp &quot;classes:src:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.misc.index.TestReorderPre99Blocks</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-30. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-01. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

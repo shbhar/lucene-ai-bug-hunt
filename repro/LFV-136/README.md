@@ -1,12 +1,12 @@
-# MultiDocValues numeric, binary and norms views throw NullPointerException from advance after advanceExact landed on a segment without the field
+# MultiDocValues numeric, binary and norms views throw NullPointerException from advance() after advanceExact() landed on a segment without the field
 
-Bug LFV-136 · Area: index / MultiDocValues merged numeric, binary and norms doc-values views (also the merged reader passed to MergePolicy.OneMerge#reorder) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-136 · Area: index / MultiDocValues merged numeric, binary and norms doc-values views (also the merged reader passed to MergePolicy.OneMerge#reorder) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You read a merged doc-values view over an index with several segments (MultiDocValues.getNumericValues, getBinaryValues or getNormValues, or the merged reader that IndexWriter hands to a custom OneMerge#reorder), call advanceExact(0), which returns false because doc 0's segment has no values for the field, and then call advance(1). You expect advance(1) to return the next document that has a value (doc 2 in the repro), as the sorted-numeric view of the same index and the per-segment codec iterators do. Instead it throws NullPointerException ('this.currentValues is null'): advanceExact stored a null per-segment iterator for the segment without the field, and advance assumes that iterator is non-null as long as the target stays in the same segment.
+You read a merged doc-values view over an index with several segments (MultiDocValues.getNumericValues, getBinaryValues or getNormValues, or the merged reader that IndexWriter hands to a custom OneMerge#reorder), call advanceExact(0), which returns false because doc 0's segment has no values for the field, and then call advance(1). You expect advance(1) to return the next document that has a value (doc 2 in the repro), as the sorted-numeric view of the same index and the per-segment codec iterators do. Instead it throws NullPointerException ('this.currentValues is null'): advanceExact stored a null per-segment iterator for the segment without the field, and advance() assumes that iterator is non-null as long as the target stays in the same segment.
 
 The test shows that on the MultiDocValues numeric view over 2 segments, advance(1) right after advanceExact(0) returned false (doc 0's segment has no values for the field) throws NullPointerException.
 
@@ -22,7 +22,7 @@ Expected: advance(1) returns 2, the next doc with a value. Actual (-ea and -da):
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

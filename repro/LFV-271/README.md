@@ -1,6 +1,8 @@
 # GeoPath.computeDistance with DistanceStyle.LINEAR_SQUARED or NORMAL_SQUARED on a path of width &gt; 0 (GeoStandardPath) returns the fourth power of the distance instead of its square for points inside a path segment, because the segment's result is converted back from aggregation form twice (regression since 9.5.0)
 
-Bug LFV-271 · Area: spatial3d / geom path distances (GeoStandardPath component tree: PathSegment, BaseSegmentEndpoint, PathNode; DistanceStyle aggregation forms) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-271 · Area: spatial3d / geom path distances (GeoStandardPath component tree: PathSegment, BaseSegmentEndpoint, PathNode; DistanceStyle aggregation forms) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-271.html](../../bugs/LFV-271.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected: LINEAR^2 = 0.0896. Actual (-ea and -da): 0.00803 = LINEAR^4, the resul
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

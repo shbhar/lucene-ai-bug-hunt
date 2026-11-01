@@ -1,14 +1,14 @@
-# DrillDownQuery.clone shares the per-dimension BooleanQuery.Builder objects with the original, so adding a value to a dimension both copies already constrain changes what the other copy matches (released since 4.7.0)
+# DrillDownQuery.clone() shares the per-dimension BooleanQuery.Builder objects with the original, so adding a value to a dimension both copies already constrain changes what the other copy matches (released since 4.7.0)
 
-Bug LFV-367 · Area: facet / DrillDownQuery (clone and the per-dimension BooleanQuery.Builder state) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-367 · Area: facet / DrillDownQuery (clone() and the per-dimension BooleanQuery.Builder state) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-367.html](../../bugs/LFV-367.html)
+Finding page: [../../bugs/LFV-367.html](../../bugs/LFV-367.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a DrillDownQuery that restricts color=red, call clone, and add color=blue to the clone (or to the original), expecting the copy you did not touch to keep matching only red, as clone and the upstream testClone imply. Instead both copies match red OR blue: the clone shares each dimension's internal BooleanQuery.Builder with its source, and add on an existing dimension appends a SHOULD clause to that shared builder in place. Since 9.0 a copy that was already searched keeps a cached snapshot and shows the leaked value only after its own dimension changes again (then 3 hits where 2 are correct), and the two copies stay equals with the same hashCode while they match different documents.
+You build a DrillDownQuery that restricts color=red, call clone(), and add color=blue to the clone (or to the original), expecting the copy you did not touch to keep matching only red, as clone() and the upstream testClone imply. Instead both copies match red OR blue: the clone shares each dimension's internal BooleanQuery.Builder with its source, and add() on an existing dimension appends a SHOULD clause to that shared builder in place. Since 9.0 a copy that was already searched keeps a cached snapshot and shows the leaked value only after its own dimension changes again (then 3 hits where 2 are correct), and the two copies stay equals() with the same hashCode while they match different documents.
 
 The test shows that `DrillDownQuery.clone()` shares the per-dimension `BooleanQuery.Builder` with the original, so adding `color=blue` to the clone also widens the original.
 
@@ -24,7 +24,7 @@ Expected: the original (`color=red`) still matches 1 of the 2 documents. Actual:
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

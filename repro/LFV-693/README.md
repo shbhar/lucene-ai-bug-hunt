@@ -1,14 +1,14 @@
 # Stempel: running Optimizer or Optimizer2 on an already merge-reduced trie silently corrupts it, because Optimizer.optimize remaps references to rows it has not placed yet to row 0
 
-Bug LFV-693 · Area: analysis-stempel / egothor stemmer trie reductions (Optimizer, Optimizer2; Compile tool, Trie.reduce) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-693 · Area: analysis-stempel / egothor stemmer trie reductions (Optimizer, Optimizer2; Compile tool, Trie.reduce) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-693.html](../../bugs/LFV-693.html)
+Finding page: [../../bugs/LFV-693.html](../../bugs/LFV-693.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a stempel table with the Compile tool and a method string that has two merge passes (for example '-M22' or '-0ME22'), or you call reduce(new Optimizer2) (or Optimizer) on a table that a merge pass already reduced, such as a loaded table; Optimizer2's javadoc says its row joining keeps the stemmer able to 'recognize words for which the original trie was built', so the training words should keep their stems, as they do after one pass. Instead the second pass silently corrupts the trie: two Optimizer2 passes over the one-word trie {aab -&gt; Da} lose its only entry, Compile '-22' stems every training form of a small table to null and '-M22' leaves every form unstemmed (while '-2' and '-M2' are correct), and one more Optimizer2 pass over the bundled Polish table changes 8,356 of 21,147 keys whose whole path is stored. The cause is Optimizer.optimize (inherited by Optimizer2): it walks the rows from the highest index down and remaps every child reference through a remap array that is still 0 for rows it has not placed yet, which is only correct when every child has a higher index than its parent; a freshly built trie has that property, but the output of a merge pass does not (shared rows, self-loops, pre-order renumbering).
+You build a stempel table with the Compile tool and a method string that has two merge passes (for example '-M22' or '-0ME22'), or you call reduce(new Optimizer2()) (or Optimizer) on a table that a merge pass already reduced, such as a loaded table; Optimizer2's javadoc says its row joining keeps the stemmer able to 'recognize words for which the original trie was built', so the training words should keep their stems, as they do after one pass. Instead the second pass silently corrupts the trie: two Optimizer2 passes over the one-word trie {aab -&gt; Da} lose its only entry, Compile '-22' stems every training form of a small table to null and '-M22' leaves every form unstemmed (while '-2' and '-M2' are correct), and one more Optimizer2 pass over the bundled Polish table changes 8,356 of 21,147 keys whose whole path is stored. The cause is Optimizer.optimize (inherited by Optimizer2): it walks the rows from the highest index down and remaps every child reference through a remap[] array that is still 0 for rows it has not placed yet, which is only correct when every child has a higher index than its parent; a freshly built trie has that property, but the output of a merge pass does not (shared rows, self-loops, pre-order renumbering).
 
 two Optimizer2 passes over the one-word backward trie {aab -&gt; Da} (MultiTrie2, public API) lose the word's patch; a second merge pass on an already merge-reduced trie corrupts it.
 
@@ -24,7 +24,7 @@ Expected getLastOnPath("aab") = "Da" (Optimizer2 keeps the words the trie was bu
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

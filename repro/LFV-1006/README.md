@@ -1,14 +1,14 @@
-# A hunspell Dictionary load that fails with the offline sorting of the Dictionary(Directory,...) constructors leaves its temp IndexOutput open (regression since 9.9.0, #12834): through HunspellStemFilterFactory every failed inform keeps a file descriptor on the deleted temp file until GC, and with a caller-supplied tempDir the temp file also stays behind
+# A hunspell Dictionary load that fails with the offline sorting of the Dictionary(Directory, ...) constructors leaves its temp IndexOutput open (regression since 9.9.0, #12834): through HunspellStemFilterFactory every failed inform() keeps a file descriptor on the deleted temp file until GC, and with a caller-supplied tempDir the temp file also stays behind
 
-Bug LFV-1006 · Area: analysis-common / hunspell Dictionary loading (SortingStrategy.offline, HunspellStemFilterFactory) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-1006 · Area: analysis-common / hunspell Dictionary loading (SortingStrategy.offline, HunspellStemFilterFactory) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You load a hunspell Dictionary with a temp Directory (or through HunspellStemFilterFactory) and the load fails while the.dic entries are being written to the offline-sort temp file, for example because the.dic InputStream throws an IOException, which the constructor documents, or a write to the temp directory fails; you expect the failed constructor to close and delete the temp file it created, as it does on success and at the neighbouring steps. Instead Dictionary calls sortingStrategy.start, which opens the temp IndexOutput, and then mergeDictionaries(...) with no failure handling, so the output stays open: MockDirectoryWrapper refuses to close ('there are still 1 open files: {dictionary_dat_0.tmp=1}'), and 10 failed HunspellStemFilterFactory.inform calls leave 10 descriptors open on deleted hunspell_dat_0.tmp files until GC. The open handle is a regression from #12834 (9.9.0), which moved the entry writer out of its try-with-resources; the closed temp file that the direct constructor leaves in a caller-supplied tempDir is older (6.0.0).
+You load a hunspell Dictionary with a temp Directory (or through HunspellStemFilterFactory) and the load fails while the .dic entries are being written to the offline-sort temp file, for example because the .dic InputStream throws an IOException, which the constructor documents, or a write to the temp directory fails; you expect the failed constructor to close and delete the temp file it created, as it does on success and at the neighbouring steps. Instead Dictionary calls sortingStrategy.start(), which opens the temp IndexOutput, and then mergeDictionaries(...) with no failure handling, so the output stays open: MockDirectoryWrapper refuses to close ('there are still 1 open files: {dictionary_dat_0.tmp=1}'), and 10 failed HunspellStemFilterFactory.inform() calls leave 10 descriptors open on deleted hunspell_dat_0.tmp files until GC. The open handle is a regression from #12834 (9.9.0), which moved the entry writer out of its try-with-resources; the closed temp file that the direct constructor leaves in a caller-supplied tempDir is older (6.0.0).
 
-The test shows (LFV-1006, regression since 9.9.0) that a hunspell `Dictionary(Directory,...)` load whose.dic stream throws IOException leaves the offline-sort temp IndexOutput open in tempDir.
+The test shows (LFV-1006, regression since 9.9.0) that a hunspell `Dictionary(Directory, ...)` load whose .dic stream throws IOException leaves the offline-sort temp IndexOutput open in tempDir.
 
 ## Expected vs actual
 
@@ -22,7 +22,7 @@ Expected: after the failed constructor, the temp directory closes cleanly; actua
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -45,7 +45,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/analysis-loaders-release-streams-and-temp-files-on-failure/](../../models/analysis-loaders-release-streams-and-temp-files-on-failure/)
+Formal models and scripts this finding's part of the hunt used: [../../models/analysis-loaders-release-streams-and-temp-files-on-failure/](../../models/analysis-loaders-release-streams-and-temp-files-on-failure/)
 
 ## Feedback
 

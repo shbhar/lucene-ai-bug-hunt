@@ -1,6 +1,6 @@
 # TaskExecutor.invokeAll, which runs concurrent IndexSearcher searches, throws IllegalArgumentException 'Self-suppression not permitted' instead of the tasks' exception, and can return while a started task is still running, when two tasks fail with the same exception object, because IOUtils.useOrSuppress calls addSuppressed without an identity check
 
-Bug LFV-564 · Area: core / search TaskExecutor (concurrent task failure path; util IOUtils.useOrSuppress) · Priority: low · Impact: wrong error · Novelty: known upstream
+Finding LFV-564 · Area: core / search TaskExecutor (concurrent task failure path; util IOUtils.useOrSuppress) · Priority: low · Impact: wrong error · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You run a concurrent search (an IndexSearcher with an executor, or TaskExecutor.
 ## Run it
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

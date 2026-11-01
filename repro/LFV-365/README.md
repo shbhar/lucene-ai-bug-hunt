@@ -1,17 +1,17 @@
-# NRTCachingDirectory.createOutput does not throw FileAlreadyExistsException when the name already exists in its other home (RAM cache vs wrapped directory), so the file ends up in both homes: deleteFile then leaves the other copy listed and readable, and close fails and, with assertions disabled, loses the file
+# NRTCachingDirectory.createOutput does not throw FileAlreadyExistsException when the name already exists in its other home (RAM cache vs wrapped directory), so the file ends up in both homes: deleteFile then leaves the other copy listed and readable, and close() fails and, with assertions disabled, loses the file
 
-Bug LFV-365 · Area: store / NRTCachingDirectory (Directory write-once contract) · Priority: low · Impact: wrong error · Novelty: known upstream
+Finding LFV-365 · Area: store / NRTCachingDirectory (Directory write-once contract) · Priority: low · Impact: wrong error · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You wrap a directory in NRTCachingDirectory, write a file with IOContext.DEFAULT (it goes to the wrapped directory), and then call createOutput again for the same name with a small flush context (which goes to the RAM cache), or the other way round. You expect FileAlreadyExistsException, which the Directory contract requires for any existing name. Instead the second create succeeds and the name lives in both homes, so deleteFile removes only the cached copy while the other copy stays listed and readable (in the order above, with the older content), and close fails (an AssertionError with -ea; with -da, on 9.0.0 and later, a FileAlreadyExistsException, after which the file is in neither home).
+You wrap a directory in NRTCachingDirectory, write a file with IOContext.DEFAULT (it goes to the wrapped directory), and then call createOutput again for the same name with a small flush context (which goes to the RAM cache), or the other way round. You expect FileAlreadyExistsException, which the Directory contract requires for any existing name. Instead the second create succeeds and the name lives in both homes, so deleteFile removes only the cached copy while the other copy stays listed and readable (in the order above, with the older content), and close() fails (an AssertionError with -ea; with -da, on 9.0.0 and later, a FileAlreadyExistsException, after which the file is in neither home).
 
 ## Expected vs actual
 
 - Expected: You expect FileAlreadyExistsException, which the Directory contract requires for any existing name.
-- Actual: The second create succeeds and the name lives in both homes, so deleteFile removes only the cached copy while the other copy stays listed and readable (in the order above, with the older content), and close fails (an AssertionError with -ea; with -da, on 9.0.0 and later, a FileAlreadyExistsException, after which the file is in neither home).
+- Actual: The second create succeeds and the name lives in both homes, so deleteFile removes only the cached copy while the other copy stays listed and readable (in the order above, with the older content), and close() fails (an AssertionError with -ea; with -da, on 9.0.0 and later, a FileAlreadyExistsException, after which the file is in neither home).
 
 ## Files
 
@@ -21,7 +21,7 @@ You wrap a directory in NRTCachingDirectory, write a file with IOContext.DEFAULT
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

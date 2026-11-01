@@ -1,8 +1,8 @@
 # Classic QueryParser and flexible StandardQueryParser: a TAB, LF, CR or U+3000 next to a range bound inside [..] or {..} becomes part of the bound, because RANGE_GOOP excludes only U+0020 although both grammars declare these characters as whitespace and skip them in the Range state; such ranges fail to parse or, when the character touches a bracket, silently change their bounds
 
-Bug LFV-845 · Area: queryparser / classic and flexible standard grammars (Range lexical state, RANGE_GOOP token) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-845 · Area: queryparser / classic and flexible standard grammars (Range lexical state, RANGE_GOOP token) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-845.html](../../bugs/LFV-845.html)
+Finding page: [../../bugs/LFV-845.html](../../bugs/LFV-845.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected `date:[<LF>20200101 TO 20201231<LF>]` to parse like `date:[20200101 TO 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

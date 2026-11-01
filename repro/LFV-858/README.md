@@ -1,8 +1,8 @@
 # Classic Highlighter's SimpleSpanFragmenter splits a phrase match across fragments when two phrases overlap, when a longer phrase shares a shorter one's start (the result then depends on clause order), or when the phrase starts on stacked synonyms: it protects only the first span that starts at the current position, skips the span lookup while it waits for a span to end, and never sees a span that starts on a token the Highlighter does not show it
 
-Bug LFV-858 · Area: highlighter / classic Highlighter fragmenting (SimpleSpanFragmenter.isNewFragment; Highlighter.getBestTextFragments) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-858 · Area: highlighter / classic Highlighter fragmenting (SimpleSpanFragmenter.isNewFragment; Highlighter.getBestTextFragments) · Priority: low · Impact: minor · Novelty: new
 
-Bug page: [../../bugs/LFV-858.html](../../bugs/LFV-858.html)
+Finding page: [../../bugs/LFV-858.html](../../bugs/LFV-858.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected the best fragment to hold &lt;B&gt;New&lt;/B&gt; &lt;B&gt;York&lt;/B&gt
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

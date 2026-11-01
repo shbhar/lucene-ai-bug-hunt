@@ -1,17 +1,17 @@
-# ParentsChildrenBlockJoinQuery.rewrite drops a custom scoreCombiner, so hits are silently scored parent + child whenever the parent or child query rewrites
+# ParentsChildrenBlockJoinQuery.rewrite() drops a custom scoreCombiner, so hits are silently scored parent + child whenever the parent or child query rewrites
 
-Bug LFV-218 · Area: join / block join (ParentsChildrenBlockJoinQuery#rewrite, custom scoreCombiner) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-218 · Area: join / block join (ParentsChildrenBlockJoinQuery#rewrite, custom scoreCombiner) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a ParentsChildrenBlockJoinQuery with a custom scoreCombiner, for example (p, c) -&gt; p * c, and expect every returned child hit to be scored with it, as the constructor documents ('Function to combine parent and child scores'). That is what happens when neither sub-query needs a rewrite, but when the parent or child query rewrites (a one-clause BooleanQuery, a PrefixQuery, BoostQuery(q, 1f),...), rewrite rebuilds the join query with the 4-argument constructor, which installs Float::sum, so the hit silently scores parent + child (5 instead of 6 for parent score 2 and child score 3). The same documents match; only their scores, their order and explain change.
+You build a ParentsChildrenBlockJoinQuery with a custom scoreCombiner, for example (p, c) -&gt; p * c, and expect every returned child hit to be scored with it, as the constructor documents ('Function to combine parent and child scores'). That is what happens when neither sub-query needs a rewrite, but when the parent or child query rewrites (a one-clause BooleanQuery, a PrefixQuery, BoostQuery(q, 1f), ...), rewrite() rebuilds the join query with the 4-argument constructor, which installs Float::sum, so the hit silently scores parent + child (5 instead of 6 for parent score 2 and child score 3). The same documents match; only their scores, their order and explain() change.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -21,7 +21,7 @@ You build a ParentsChildrenBlockJoinQuery with a custom scoreCombiner, for examp
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

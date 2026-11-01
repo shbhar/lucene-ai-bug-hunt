@@ -1,6 +1,6 @@
 # Since 9.12.0 the default postings writer stores the byte length of a level-1 block's competitive impacts in a signed short, so with a custom Similarity whose norms do not fit in a byte, a term with 8,192 or more postings in one segment (4,096 before 10.4) can need more than 32,767 bytes: flush fails an assertion with -ea, and with -da the segment is written but that term's postings then throw on every read or are read back wrong
 
-Bug LFV-183 · Area: codecs / postings writer and reader (Lucene104 level-1 skip data, ImpactLength; the same field in the Lucene912, Lucene101 and Lucene103 formats) · Priority: medium · Impact: data corruption · Novelty: known upstream
+Finding LFV-183 · Area: codecs / postings writer and reader (Lucene104 level-1 skip data, ImpactLength; the same field in the Lucene912, Lucene101 and Lucene103 formats) · Priority: medium · Impact: data corruption · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You index with the default codec and a custom Similarity whose norm is the field
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -43,7 +43,7 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/postings-lucene104/](../../models/postings-lucene104/)
+Formal models and scripts this finding's part of the hunt used: [../../models/postings-lucene104/](../../models/postings-lucene104/)
 
 ## Feedback
 

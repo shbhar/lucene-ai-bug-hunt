@@ -1,6 +1,8 @@
 # ByteBuffersDirectory.rename ends with a leftover unconditional files.remove(source), so a file that another thread creates (createOutput) or renames onto the source name while the rename runs is silently deleted, although that thread's call returned normally
 
-Bug LFV-836 · Area: store / ByteBuffersDirectory (rename vs. a concurrent createOutput or rename onto the source name) · Priority: low · Impact: data corruption · Novelty: new
+Finding LFV-836 · Area: store / ByteBuffersDirectory (rename vs. a concurrent createOutput or rename onto the source name) · Priority: low · Impact: data corruption · Novelty: new
+
+Finding page: [../../bugs/LFV-836.html](../../bugs/LFV-836.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected listAll() = [a, b] (nobody deleted the new 'a'). Actual: [b].
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 - This repro reads private Lucene state by reflection (setAccessible), so it depends on internals that may change.
 
@@ -45,7 +47,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/bytebuffers-output-block-expansion-recycler-and-view-aliasing/](../../models/bytebuffers-output-block-expansion-recycler-and-view-aliasing/)
+Formal models and scripts this finding's part of the hunt used: [../../models/bytebuffers-output-block-expansion-recycler-and-view-aliasing/](../../models/bytebuffers-output-block-expansion-recycler-and-view-aliasing/)
 
 ## Feedback
 

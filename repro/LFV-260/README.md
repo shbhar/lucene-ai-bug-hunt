@@ -1,12 +1,14 @@
-# An NRT replica's commit can store in VERSION_KEY the version of a newer NRT point installed during its fsync, so the commit claims a version ahead of the SegmentInfos it holds
+# An NRT replica's commit() can store in VERSION_KEY the version of a newer NRT point installed during its fsync, so the commit claims a version ahead of the SegmentInfos it holds
 
-Bug LFV-260 · Area: replicator / NRT segment replication (ReplicaNode.commit commit user data, PrimaryNode.getLastCommitVersion) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-260 · Area: replicator / NRT segment replication (ReplicaNode.commit commit user data, PrimaryNode.getLastCommitVersion) · Priority: low · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-260.html](../../bugs/LFV-260.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You run Lucene's NRT segment replication and call commit on a replica while the primary keeps publishing NRT points, and during the commit's fsync the replica installs a newer point (version 5, documents [d1, d2]). You expect the commit's VERSION_KEY to name the version whose content it holds (version 3, [d1]), or at worst an older one, because the module uses that value as the place to resume replaying operations and PrimaryNode.commit accepts only a lagging value ('replaying more ops than necessary'). Instead commit writes the SegmentInfos it captured before the fsync (version 3) but reads VERSION_KEY from the searcher that is current after it (5), so a primary started on that commit reports getLastCommitVersion=5 while it holds only d1, and a replay from version 5 skips d2.
+You run Lucene's NRT segment replication and call commit() on a replica while the primary keeps publishing NRT points, and during the commit's fsync the replica installs a newer point (version 5, documents [d1, d2]). You expect the commit's VERSION_KEY to name the version whose content it holds (version 3, [d1]), or at worst an older one, because the module uses that value as the place to resume replaying operations and PrimaryNode.commit accepts only a lagging value ('replaying more ops than necessary'). Instead commit() writes the SegmentInfos it captured before the fsync (version 3) but reads VERSION_KEY from the searcher that is current after it (5), so a primary started on that commit reports getLastCommitVersion()=5 while it holds only d1, and a replay from version 5 skips d2.
 
 The test shows that `ReplicaNode.commit()` stores in `VERSION_KEY` the version of a newer NRT point installed while the commit fsyncs, not the version of the SegmentInfos it commits.
 
@@ -22,7 +24,7 @@ Expected `VERSION_KEY` = the committed SegmentInfos version 3; actual: 5 (`expec
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

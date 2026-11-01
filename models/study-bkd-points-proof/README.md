@@ -4,13 +4,11 @@ Tools: Dafny, Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- PointInSetQuery silently misses most matches on selectively indexed points (fewer index dimensions than data dimensions) (bug LFV-006; [repro](../../repro/LFV-006/), [bug page](../../bugs/LFV-006.html))
-- Sandbox HistogramCollector counts deleted documents for a PointRangeQuery (bug LFV-078; [repro](../../repro/LFV-078/))
-- Flexible StandardQueryParser: an exclusive int/long point bound at MAX/MIN wraps around, so the query matches every document with the field instead of none (bug LFV-050; [repro](../../repro/LFV-050/))
-- Flexible StandardQueryParser misses -0.0 documents for exclusive float/double bounds (bug LFV-059; [repro](../../repro/LFV-059/))
-- Sandbox histogram collector drops counts for values near Long.MAX_VALUE (bug LFV-051; [repro](../../repro/LFV-051/))
+- PointInSetQuery silently misses most matches on selectively indexed points (fewer index dimensions than data dimensions) (finding LFV-006; [repro](../../repro/LFV-006/), [finding page](../../bugs/LFV-006.html))
+- Flexible StandardQueryParser: an exclusive int/long point bound at MAX/MIN wraps around, so the query matches every document with the field instead of none (finding LFV-050; [repro](../../repro/LFV-050/), [finding page](../../bugs/LFV-050.html))
+- Flexible StandardQueryParser misses -0.0 documents for exclusive float/double bounds (finding LFV-059; [repro](../../repro/LFV-059/), [finding page](../../bugs/LFV-059.html))
 
 ## Files
 

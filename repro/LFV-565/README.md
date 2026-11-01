@@ -1,8 +1,8 @@
 # SmartChineseAnalyzer.normalize only lower-cases, but indexing folds full-width Latin letters and digits to half-width (in the tokenizer's SegTokenFilter), so full-width prefix, wildcard, regexp, range and fuzzy terms from the query parsers miss documents that the same word as a term query finds
 
-Bug LFV-565 · Area: analysis-smartcn / language analyzers (SmartChineseAnalyzer normalization: Analyzer#normalize vs the width and case folding inside HMMChineseTokenizer's SegTokenFilter, used by the query parsers for multi-term queries) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-565 · Area: analysis-smartcn / language analyzers (SmartChineseAnalyzer normalization: Analyzer#normalize vs the width and case folding inside HMMChineseTokenizer's SegTokenFilter, used by the query parsers for multi-term queries) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-565.html](../../bugs/LFV-565.html)
+Finding page: [../../bugs/LFV-565.html](../../bugs/LFV-565.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: `normalize` returns the indexed term `abc`. Actual: `ａｂｃ`.
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

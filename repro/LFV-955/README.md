@@ -1,6 +1,8 @@
 # DocAndScoreQuery.createDocAndScoreQuery (public on main since #16686) keeps repeated doc ids: a document listed twice is counted and returned twice, and a repeated first document of a segment is iterated by the previous segment as doc id == maxDoc (a deleted or MUST_NOT-excluded document comes back, or a search with deletions or a doc-values sort throws)
 
-Bug LFV-955 · Area: search / kNN query execution (DocAndScoreQuery public factory, new in 11.0 via #16686; Weight#count and DocIdSetIterator contracts) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-955 · Area: search / kNN query execution (DocAndScoreQuery public factory, new in 11.0 via #16686; Weight#count and DocIdSetIterator contracts) · Priority: low · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-955.html](../../bugs/LFV-955.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected segment 0 (doc 0 only) to match nothing for topK = [1, 1, 2]; actual: i
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,7 +46,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/docandscorequery-public-factory-count-and-iterator-contracts/](../../models/docandscorequery-public-factory-count-and-iterator-contracts/)
+Formal models and scripts this finding's part of the hunt used: [../../models/docandscorequery-public-factory-count-and-iterator-contracts/](../../models/docandscorequery-public-factory-count-and-iterator-contracts/)
 
 ## Feedback
 

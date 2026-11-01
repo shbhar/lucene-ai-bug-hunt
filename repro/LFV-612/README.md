@@ -1,8 +1,8 @@
-# NumberRangePrefixTreeStrategy with setPointsOnly(true): an Intersects query for a date or number unit coarser than full precision (a year, month, day,...) matches no documents
+# NumberRangePrefixTreeStrategy with setPointsOnly(true): an Intersects query for a date or number unit coarser than full precision (a year, month, day, ...) matches no documents
 
-Bug LFV-612 · Area: spatial-extras / prefix-tree strategies (NumberRangePrefixTreeStrategy over DateRangePrefixTree or a custom NumberRangePrefixTree; the pointsOnly TermQuery shortcut in RecursivePrefixTreeStrategy.makeGridShapeIntersectsQuery) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-612 · Area: spatial-extras / prefix-tree strategies (NumberRangePrefixTreeStrategy over DateRangePrefixTree or a custom NumberRangePrefixTree; the pointsOnly TermQuery shortcut in RecursivePrefixTreeStrategy.makeGridShapeIntersectsQuery) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-612.html](../../bugs/LFV-612.html)
+Finding page: [../../bugs/LFV-612.html](../../bugs/LFV-612.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ One document indexed at 2014-10-23T21:22:33.159; Intersects('2014-10'): expected
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

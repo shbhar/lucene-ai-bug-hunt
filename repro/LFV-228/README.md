@@ -1,17 +1,17 @@
 # SoftDeletesRetentionMergePolicy.numDeletesToMerge counts a soft-deleted-then-hard-deleted document as retained although merges drop it, so merge selection under-counts reclaimable deletes and forceMergeDeletes can leave the hard-deleted document in place
 
-Bug LFV-228 · Area: index / merge policy (SoftDeletesRetentionMergePolicy.numDeletesToMerge, soft deletes) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-228 · Area: index / merge policy (SoftDeletesRetentionMergePolicy.numDeletesToMerge, soft deletes) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You enable soft deletes with SoftDeletesRetentionMergePolicy and a retention query that keeps soft-deleted documents, soft-delete a document (it is kept as history), commit, and later hard-delete the same document with deleteDocuments. You expect what MergePolicy.numDeletesToMerge promises, 'the number of deletes that a merge would claim', and since LUCENE-8381 IndexWriter does drop such a hard-deleted document in a merge even though the retention query matches it. Instead the policy subtracts every deleted document that has the soft-delete field and matches the retention query, hard-deleted or not, so in the repro it reports 0 where forceMerge(1) drops 1, and forceMergeDeletes leaves a segment with 1 of its 4 documents hard-deleted (25%, above TieredMergePolicy's 10% threshold) untouched.
+You enable soft deletes with SoftDeletesRetentionMergePolicy and a retention query that keeps soft-deleted documents, soft-delete a document (it is kept as history), commit, and later hard-delete the same document with deleteDocuments. You expect what MergePolicy.numDeletesToMerge promises, 'the number of deletes that a merge would claim', and since LUCENE-8381 IndexWriter does drop such a hard-deleted document in a merge even though the retention query matches it. Instead the policy subtracts every deleted document that has the soft-delete field and matches the retention query, hard-deleted or not, so in the repro it reports 0 where forceMerge(1) drops 1, and forceMergeDeletes() leaves a segment with 1 of its 4 documents hard-deleted (25%, above TieredMergePolicy's 10% threshold) untouched.
 
 ## Expected vs actual
 
 - Expected: You expect what MergePolicy.numDeletesToMerge promises, 'the number of deletes that a merge would claim', and since LUCENE-8381 IndexWriter does drop such a hard-deleted document in a merge even though the retention query matches it.
-- Actual: The policy subtracts every deleted document that has the soft-delete field and matches the retention query, hard-deleted or not, so in the repro it reports 0 where forceMerge(1) drops 1, and forceMergeDeletes leaves a segment with 1 of its 4 documents hard-deleted (25%, above TieredMergePolicy's 10% threshold) untouched.
+- Actual: The policy subtracts every deleted document that has the soft-delete field and matches the retention query, hard-deleted or not, so in the repro it reports 0 where forceMerge(1) drops 1, and forceMergeDeletes() leaves a segment with 1 of its 4 documents hard-deleted (25%, above TieredMergePolicy's 10% threshold) untouched.
 
 ## Files
 
@@ -21,7 +21,7 @@ You enable soft deletes with SoftDeletesRetentionMergePolicy and a retention que
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

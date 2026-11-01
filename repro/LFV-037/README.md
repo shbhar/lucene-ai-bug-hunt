@@ -1,6 +1,6 @@
 # MMapDirectory loses shared-arena grouping when a closing arena removes a newer live arena
 
-Bug LFV-037 · Area: store / MMapDirectory · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-037 · Area: store / MMapDirectory · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks. Maintainer triage: Fixed, triaged by Uwe Schindler (Lucene PMC) on 2026-10-28 (https://lists.apache.org/thread/qhqk32y1ot85rrm8t6m9x62brlv6pjdy). Uwe Schindler said it looks very relevant: Uwe had long felt something was wrong with shared arenas, and Gianluca Graziadei had privately reported a closely related problem. #16931 (Chris Hegarty) fixed it on main, merged on 2026-10-29. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ Expected: the open after A1 closed shares the open arena A2 (63 permits left). A
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

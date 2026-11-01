@@ -1,6 +1,6 @@
 # SimpleQueryParser.parse throws StackOverflowError on deeply nested parentheses, because parseSubQuery and consumeSubQuery recurse once per '(' with no depth bound, although the parser is meant to do its best with any human-entered text
 
-Bug LFV-924 · Area: queryparser / simple (SimpleQueryParser.parseSubQuery / consumeSubQuery recursion) · Priority: low · Impact: wrong error · Novelty: known upstream
+Finding LFV-924 · Area: queryparser / simple (SimpleQueryParser.parseSubQuery / consumeSubQuery recursion) · Priority: low · Impact: wrong error · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You give SimpleQueryParser, the parser meant for raw human-entered text, a query
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

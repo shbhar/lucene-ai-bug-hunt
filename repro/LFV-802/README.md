@@ -1,12 +1,14 @@
 # IndexWriter#tryUpdateDocValue does not validate the doc id: an id outside [0, maxDoc) returns success and silently updates or soft-deletes a different document, or commits a doc-values entry for a nonexistent document that a merge shifts onto other documents
 
-Bug LFV-802 · Area: index / IndexWriter tryUpdateDocValue (tryModifyDocument doc-id validation, doc-values update buffer) · Priority: low · Impact: data corruption · Novelty: new
+Finding LFV-802 · Area: index / IndexWriter tryUpdateDocValue (tryModifyDocument doc-id validation, doc-values update buffer) · Priority: low · Impact: data corruption · Novelty: new
+
+Finding page: [../../bugs/LFV-802.html](../../bugs/LFV-802.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You call IndexWriter#tryUpdateDocValue with an NRT reader and a doc id outside [0, reader.maxDoc), for example 8 or 9 on an 8-document reader, 12 on a 10-document reader, or -1 on a 4-document leaf reader. You expect the call to be rejected, as the same reader rejects such an id ('docID must be &gt;= 0 and &lt; maxDoc', IllegalArgumentException), or at least to leave every other document alone. Instead, with assertions disabled (and for the negative leaf-reader id even with them enabled) it returns a sequence number &gt; 0, which the javadoc says means the update succeeded, and writes the value to or soft-deletes a different live document (8 -&gt; doc 0, 9 -&gt; doc 1, -1 -&gt; doc 3), or commits a doc-values entry for nonexistent doc 12 that CheckIndex accepts and that forceMerge turns into every document of the next segment carrying its predecessor's value (b0=777, b1=1000,..., b9=1008; 1009 is lost).
+You call IndexWriter#tryUpdateDocValue with an NRT reader and a doc id outside [0, reader.maxDoc()), for example 8 or 9 on an 8-document reader, 12 on a 10-document reader, or -1 on a 4-document leaf reader. You expect the call to be rejected, as the same reader rejects such an id ('docID must be &gt;= 0 and &lt; maxDoc', IllegalArgumentException), or at least to leave every other document alone. Instead, with assertions disabled (and for the negative leaf-reader id even with them enabled) it returns a sequence number &gt; 0, which the javadoc says means the update succeeded, and writes the value to or soft-deletes a different live document (8 -&gt; doc 0, 9 -&gt; doc 1, -1 -&gt; doc 3), or commits a doc-values entry for nonexistent doc 12 that CheckIndex accepts and that forceMerge turns into every document of the next segment carrying its predecessor's value (b0=777, b1=1000, ..., b9=1008; 1009 is lost).
 
 The test shows that IndexWriter#tryUpdateDocValue on a 4-doc NRT leaf reader with docID -1 reports success and updates a different document.
 
@@ -22,7 +24,7 @@ Expected: docID -1 is rejected or changes nothing (doc 3 keeps v=3); actual: it 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

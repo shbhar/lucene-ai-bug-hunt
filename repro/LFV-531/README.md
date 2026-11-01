@@ -1,6 +1,8 @@
 # MultiPassIndexSplitter's round-robin split loses or duplicates the last few documents of an index at about IndexWriter.MAX_DOCS for most part counts of 145 or more, because its int test (j + numParts - i) % numParts overflows
 
-Bug LFV-531 · Area: misc / index tools (MultiPassIndexSplitter.split, round-robin mode) · Priority: low · Impact: data corruption · Novelty: new
+Finding LFV-531 · Area: misc / index tools (MultiPassIndexSplitter.split, round-robin mode) · Priority: low · Impact: data corruption · Novelty: new
+
+Finding page: [../../bugs/LFV-531.html](../../bugs/LFV-531.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -10,8 +12,8 @@ You split an index of IndexWriter.MAX_DOCS (2,147,483,519) documents with MultiP
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The parts hold 2,147,483,527 documents in total: documents 2,147,483,511..518 belong to parts 16..23 but are also copied into parts 0..7, and with 149 parts documents 2,147,483,509..518 end up in no part at all; nothing reports an error.
+- Expected: Part 0 holds the 14,810,232 documents j with j % 145 == 0, and the test passes.
+- Actual: `numDocs of round-robin part 0 of 145 expected:<14810232> but was:<14810233>`, with assertions on and off: doc 2,147,483,511 of part 16 is in part 0 too.
 
 ## Files
 
@@ -20,7 +22,7 @@ You split an index of IndexWriter.MAX_DOCS (2,147,483,519) documents with MultiP
 ## Run it
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- How to read the outcome: a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -42,7 +44,11 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/misc-reorder-split/](../../models/misc-reorder-split/)
+## Files shown on the finding page
+
+- [TestMultiPassIndexSplitterRoundRobinOverflow.java](TestMultiPassIndexSplitterRoundRobinOverflow.java)
+
+Formal models and scripts this finding's part of the hunt used: [../../models/misc-reorder-split/](../../models/misc-reorder-split/)
 
 ## Feedback
 

@@ -4,9 +4,9 @@ Tools: Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- BM25Similarity/StableTflSimilarity k3 query-term saturation is skipped for duplicate SHOULD clauses when 2 &lt;= minimumNumberShouldMatch &lt; number of SHOULD clauses (bug LFV-103; [repro](../../repro/LFV-103/))
+- BM25Similarity/StableTflSimilarity k3 query-term saturation is skipped for duplicate SHOULD clauses when 2 &lt;= minimumNumberShouldMatch &lt; number of SHOULD clauses (finding LFV-103; [repro](../../repro/LFV-103/), [finding page](../../bugs/LFV-103.html))
 
 ## Files
 

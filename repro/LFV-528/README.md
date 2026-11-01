@@ -1,14 +1,14 @@
 # ShingleFilter with minShingleSize &gt;= 3 ends the token stream early when a hole (for example a removed stop word) is near the end, so the last word(s) are never output as unigrams and are missing from the index ('a cup of tea' loses 'tea'; 'the cat' yields no token at all)
 
-Bug LFV-528 · Area: analysis-common / shingle (ShingleFilter, ShingleFilterFactory, ShingleAnalyzerWrapper) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-528 · Area: analysis-common / shingle (ShingleFilter, ShingleFilterFactory, ShingleAnalyzerWrapper) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-528.html](../../bugs/LFV-528.html)
+Finding page: [../../bugs/LFV-528.html](../../bugs/LFV-528.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index 'a cup of tea' with WhitespaceTokenizer, StopFilter{a, of, the} and ShingleFilter(min 3, max 3) with unigrams on (the default), and expect every real word to be indexed as a unigram, because the javadoc says unigrams 'are always output, regardless of whether any shingles are available' and that the unigram option 'is independent of the min shingle size'. Instead, when the window starts with the filler left by the removed stop word, incrementToken skips the all-filler unigram, finds fewer than minShingleSize positions left for a shingle and returns false, which ends the stream although 'tea' is still in its window: 'tea' is never indexed and TermQuery(tea) finds 0 documents. With min 4 up to two trailing words are lost, a value such as 'the cat' yields no token at all, and nothing throws, with assertions on or off.
+You index 'a cup of tea' with WhitespaceTokenizer, StopFilter{a, of, the} and ShingleFilter(min 3, max 3) with unigrams on (the default), and expect every real word to be indexed as a unigram, because the javadoc says unigrams 'are always output, regardless of whether any shingles are available' and that the unigram option 'is independent of the min shingle size'. Instead, when the window starts with the filler left by the removed stop word, incrementToken() skips the all-filler unigram, finds fewer than minShingleSize positions left for a shingle and returns false, which ends the stream although 'tea' is still in its window: 'tea' is never indexed and TermQuery(tea) finds 0 documents. With min 4 up to two trailing words are lost, a value such as 'the cat' yields no token at all, and nothing throws, with assertions on or off.
 
 The test shows that ShingleFilter(3, 3) with unigrams on ends the stream early after a removed stop word, so "the cat" yields no token at all.
 
@@ -24,7 +24,7 @@ Expected: [cat] (the javadoc says unigrams are always output, even when no shing
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

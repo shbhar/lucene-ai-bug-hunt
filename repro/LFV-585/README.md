@@ -1,6 +1,6 @@
 # DirectIODirectory's inputs never override IndexInput#isEfficientFor, so the #16883/#16905 input sharing lets merges of NRT-open segments skip direct I/O and lets later sequential search reads go through the merge's direct-I/O input
 
-Bug LFV-585 · Area: misc / store: DirectIODirectory x core codecs merge-time re-open (the IndexInput#isEfficientFor gate in Lucene99FlatVectorsReader and Lucene90CompressingStoredFieldsReader, #16883/#16905) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-585 · Area: misc / store: DirectIODirectory x core codecs merge-time re-open (the IndexInput#isEfficientFor gate in Lucene99FlatVectorsReader and Lucene90CompressingStoredFieldsReader, #16883/#16905) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You open an index with DirectIODirectory over the default MMapDirectory, keep an
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

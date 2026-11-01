@@ -1,14 +1,14 @@
 # BpVectorReorderer's in-place command-line reorder commits an empty or partial index over the original when reordering fails
 
-Bug LFV-1022 · Area: misc / index: BpVectorReorderer command line (main -> reorderIndexDirectory, an in-place rewrite through an OpenMode.CREATE IndexWriter and addIndexes) · Priority: medium · Impact: data corruption · Novelty: new
+Finding LFV-1022 · Area: misc / index: BpVectorReorderer command line (main -> reorderIndexDirectory, an in-place rewrite through an OpenMode.CREATE IndexWriter and addIndexes) · Priority: medium · Impact: data corruption · Novelty: new
 
-Bug page: [../../bugs/LFV-1022.html](../../bugs/LFV-1022.html)
+Finding page: [../../bugs/LFV-1022.html](../../bugs/LFV-1022.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You run BpVectorReorderer's command line (main(path, field), which calls reorderIndexDirectory) to renumber the documents of an existing index in place, and expect that if the reorder fails you get the exception and the index still holds all its documents. Instead, when computing a doc map or addIndexes throws (for example the documented NotEnoughRAMException), the try-with-resources around the OpenMode.CREATE IndexWriter closes it, close commits by default, and the new commit holds only the segments rewritten before the failure, while the original commit and its files are deleted. A 10-document index ends with 0 documents, and through main with default options an index created by Lucene 9.x or 10.x, or one with a soft-deletes or parent field, is wiped to 0 documents.
+You run BpVectorReorderer's command line (main(path, field), which calls reorderIndexDirectory) to renumber the documents of an existing index in place, and expect that if the reorder fails you get the exception and the index still holds all its documents. Instead, when computing a doc map or addIndexes throws (for example the documented NotEnoughRAMException), the try-with-resources around the OpenMode.CREATE IndexWriter closes it, close() commits by default, and the new commit holds only the segments rewritten before the failure, while the original commit and its files are deleted. A 10-document index ends with 0 documents, and through main() with default options an index created by Lucene 9.x or 10.x, or one with a soft-deletes or parent field, is wiped to 0 documents.
 
 ## Expected vs actual
 
@@ -22,7 +22,7 @@ You run BpVectorReorderer's command line (main(path, field), which calls reorder
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -45,7 +45,7 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-## Files shown on the bug page
+## Files shown on the finding page
 
 - [TestBpVectorReorderFailureKeepsIndex.java](TestBpVectorReorderFailureKeepsIndex.java)
 

@@ -1,8 +1,8 @@
 # GroupingSearch ignores setIncludeMaxScore for doc-block grouping: with field-only group and within-group sorts, TopGroups.maxScore and every GroupDocs.maxScore are NaN, while two-pass grouping with the same settings reports the real max scores (since 8.0.0)
 
-Bug LFV-881 · Area: grouping / GroupingSearch doc-block path (BlockGroupingCollectorManager score mode) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-881 · Area: grouping / GroupingSearch doc-block path (BlockGroupingCollectorManager score mode) · Priority: low · Impact: minor · Novelty: new
 
-Bug page: [../../bugs/LFV-881.html](../../bugs/LFV-881.html)
+Finding page: [../../bugs/LFV-881.html](../../bugs/LFV-881.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: the matching document's score 1.0 (`MatchAllDocsQuery`, one one-docume
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

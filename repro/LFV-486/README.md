@@ -1,6 +1,6 @@
 # BPIndexReorderer leaks the forward index's term-ids temp input when opening the start-offsets temp file (or building the ForwardIndex) fails, so a failed BP reordering merge leaves an input on a deleted temp file open after IndexWriter and the Directory are closed
 
-Bug LFV-486 · Area: misc / BP reordering (BPIndexReorderer forward index; merge-time reordering through BPReorderingMergePolicy) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-486 · Area: misc / BP reordering (BPIndexReorderer forward index; merge-time reordering through BPReorderingMergePolicy) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ Expected 0 open temp inputs after the failed call; actual 1 (`expected:<0> but w
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

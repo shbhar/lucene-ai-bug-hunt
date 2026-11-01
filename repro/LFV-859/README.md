@@ -1,6 +1,6 @@
 # Classic Highlighter's SimpleSpanFragmenter splits a short phrase match across two fragments because its position counter lags the real token positions: the Highlighter never shows it the first token or tokens that overlap the previous one, so the phrase is recognised one or more words late and getBestFragment can return only half of it
 
-Bug LFV-859 · Area: highlighter / classic Highlighter fragmenting (SimpleSpanFragmenter.isNewFragment position counter; Highlighter.getBestTextFragments) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-859 · Area: highlighter / classic Highlighter fragmenting (SimpleSpanFragmenter.isNewFragment position counter; Highlighter.getBestTextFragments) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You highlight 'Lucene is a search library written in Java' with the classic High
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

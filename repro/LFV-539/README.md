@@ -1,8 +1,8 @@
 # TaxonomyFacetFloatAssociations with a DoubleValuesSource reports a too-high LabelAndValue.count for every label that has matching documents below it in a hierarchical dimension, because FloatTaxonomyFacets rolls the counts up again at every ancestor level (values are right; every release since 9.11.0)
 
-Bug LFV-539 · Area: facet / taxonomy association facets (TaxonomyFacetFloatAssociations value-source path, FloatTaxonomyFacets#updateValueFromRollup count roll-up) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-539 · Area: facet / taxonomy association facets (TaxonomyFacetFloatAssociations value-source path, FloatTaxonomyFacets#updateValueFromRollup count roll-up) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-539.html](../../bugs/LFV-539.html)
+Finding page: [../../bugs/LFV-539.html](../../bugs/LFV-539.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected `LabelAndValue.count` of d/a = 1 (one document under it). Actual: 2, be
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

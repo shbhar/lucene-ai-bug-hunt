@@ -1,14 +1,14 @@
-# CachingCollectorManager (new in 10.6.0) does not document that it is single-use: reused for a second search, replay replays the hits of both searches and one earlier overflow keeps isCached false
+# CachingCollectorManager (new in 10.6.0) does not document that it is single-use: reused for a second search, replay() replays the hits of both searches and one earlier overflow keeps isCached() false
 
-Bug LFV-907 · Area: search / CachingCollectorManager lifecycle (documentation; new public API in 10.6.0) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-907 · Area: search / CachingCollectorManager lifecycle (documentation; new public API in 10.6.0) · Priority: low · Impact: minor · Novelty: new
 
-Bug page: [../../bugs/LFV-907.html](../../bugs/LFV-907.html)
+Finding page: [../../bugs/LFV-907.html](../../bugs/LFV-907.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You wrap a reusable CollectorManager in a CachingCollectorManager, run a search with it, then run a second search with the same instance and call isCached and replay(secondPassManager), the workflow the class javadoc shows for one search. Nothing in its javadoc says an instance serves only one search, unlike TopScoreDocCollectorManager and TopFieldCollectorManager, which say 'a new collectorManager should be created for each search due to its internal states', while Lucene's stated norm (TotalHitCountCollectorManager) is that managers are generally reusable. Instead the manager keeps the per-slice caches of every search in one list that is never cleared, so replay returns the hits of both searches (the repro: [0..9] instead of the second search's [3..9]) and one earlier overflow makes isCached false for every later search, with no error.
+You wrap a reusable CollectorManager in a CachingCollectorManager, run a search with it, then run a second search with the same instance and call isCached() and replay(secondPassManager), the workflow the class javadoc shows for one search. Nothing in its javadoc says an instance serves only one search, unlike TopScoreDocCollectorManager and TopFieldCollectorManager, which say 'a new collectorManager should be created for each search due to its internal states', while Lucene's stated norm (TotalHitCountCollectorManager) is that managers are generally reusable. Instead the manager keeps the per-slice caches of every search in one list that is never cleared, so replay() returns the hits of both searches (the repro: [0..9] instead of the second search's [3..9]) and one earlier overflow makes isCached() false for every later search, with no error.
 
 The test shows (LFV-907, documentation defect) that a `CachingCollectorManager` used for two searches replays the hits of both searches, because it never clears its per-slice cache list; its javadoc does not say an instance serves one search.
 
@@ -24,7 +24,7 @@ Expected (after searching MatchAllDocsQuery twice over one document with a state
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

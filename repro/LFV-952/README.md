@@ -1,12 +1,14 @@
 # Polygon.fromGeoJSON keeps a full key-path String alive at every nesting level, so its heap use grows with nesting depth times key length: a valid 750 KB GeoJSON Feature (900 nested arrays under one long property key), or a 1 MB one (1,000 nested objects with 1,000-char keys), runs out of a 512 MiB heap (every release since 6.2.0)
 
-Bug LFV-952 · Area: core / geo GeoJSON parsing (Polygon.fromGeoJSON, SimpleGeoJSONPolygonParser) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-952 · Area: core / geo GeoJSON parsing (Polygon.fromGeoJSON, SimpleGeoJSONPolygonParser) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-952.html](../../bugs/LFV-952.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You call Polygon.fromGeoJSON on a valid GeoJSON Feature whose properties hold one member with a very long key (about 745,000 chars) above 900 nested arrays, or 1,000 nested objects each under a 1,000-char key (about 1 MB of text), and expect the polygon back. Instead the call fails with OutOfMemoryError: Java heap space in a 512 MiB heap, because SimpleGeoJSONPolygonParser builds a new full key path (path + "." + key, path + ".") for every nesting level and each recursive frame keeps its copy alive, so live memory grows with depth times path length, although the parser only ever compares the path with five short constants and a "crs" prefix. The same text as a string value, or the same nesting under a short key, parses fine, so neither a size cap nor a usual depth cap protects the caller.
+You call Polygon.fromGeoJSON on a valid GeoJSON Feature whose properties hold one member with a very long key (about 745,000 chars) above 900 nested arrays, or 1,000 nested objects each under a 1,000-char key (about 1 MB of text), and expect the polygon back. Instead the call fails with OutOfMemoryError: Java heap space in a 512 MiB heap, because SimpleGeoJSONPolygonParser builds a new full key path (path + "." + key, path + ".[]") for every nesting level and each recursive frame keeps its copy alive, so live memory grows with depth times path length, although the parser only ever compares the path with five short constants and a "crs" prefix. The same text as a string value, or the same nesting under a short key, parses fine, so neither a size cap nor a usual depth cap protects the caller.
 
 The test shows that `Polygon.fromGeoJSON` runs out of memory on a valid ~750 KB GeoJSON Feature whose properties hold one 750,000-char key over 900 nested arrays, because `SimpleGeoJSONPolygonParser` keeps a full `path + ".[]"` copy alive at every nesting level (memory ~ depth x key length).
 
@@ -22,7 +24,7 @@ Expected: the one polygon is returned. Actual: `OutOfMemoryError: Java heap spac
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,7 +46,7 @@ java -ea -esa -Xmx512m --add-modules jdk.incubator.vector --enable-native-access
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/geo-text-parsers-deep-nesting-vm-errors-siblings-of-16423/](../../models/geo-text-parsers-deep-nesting-vm-errors-siblings-of-16423/)
+Formal models and scripts this finding's part of the hunt used: [../../models/geo-text-parsers-deep-nesting-vm-errors-siblings-of-16423/](../../models/geo-text-parsers-deep-nesting-vm-errors-siblings-of-16423/)
 
 ## Feedback
 

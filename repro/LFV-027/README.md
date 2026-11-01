@@ -1,12 +1,14 @@
 # Flexible StandardQueryParser throws NumberFormatException on a fractional phrase slop
 
-Bug LFV-027 · Area: queryparser / flexible · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-027 · Area: queryparser / flexible · Priority: low · Impact: wrong error · Novelty: new
+
+Finding page: [../../bugs/LFV-027.html](../../bugs/LFV-027.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You parse a phrase with a fractional slop such as "a b"~30.5 with the flexible StandardQueryParser. You expect it to be accepted, as 9.0.0 did by truncating the slop to 30, or rejected with a parse error. Instead, since 9.1.0, parse throws NumberFormatException.
+You parse a phrase with a fractional slop such as "a b"~30.5 with the flexible StandardQueryParser. You expect it to be accepted, as 9.0.0 did by truncating the slop to 30, or rejected with a parse error. Instead, since 9.1.0, parse() throws NumberFormatException.
 
 The test shows that the flexible `StandardQueryParser` lets a `NumberFormatException` escape `parse()` for the phrase slop in `"a b"~30.5` (`StandardSyntaxParser.parseInt` calls `Integer.parseInt` on a `NUMBER` token that may contain a fraction).
 
@@ -22,7 +24,7 @@ Expected a Query (9.0.0 truncated the slop to 30) or a `QueryNodeException`, the
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

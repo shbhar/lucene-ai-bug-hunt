@@ -1,14 +1,14 @@
-# DoubleValuesSourceRescorer.rescore passes null scores to a DoubleValuesSource whose needsScores is true, so rescoring with DoubleValuesSource.SCORES, an expression that reads _score or a FunctionScoreQuery.boostByValue source throws (AssertionError with -ea; NullPointerException or a misleading 'Unrecognized variable (_score)' RuntimeException with -da), while explain on the same input returns normally
+# DoubleValuesSourceRescorer.rescore passes null scores to a DoubleValuesSource whose needsScores() is true, so rescoring with DoubleValuesSource.SCORES, an expression that reads _score or a FunctionScoreQuery.boostByValue source throws (AssertionError with -ea; NullPointerException or a misleading 'Unrecognized variable (_score)' RuntimeException with -da), while explain() on the same input returns normally
 
-Bug LFV-334 · Area: core / search: DoubleValuesSourceRescorer.rescore and explain (score-dependent DoubleValuesSource) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-334 · Area: core / search: DoubleValuesSourceRescorer.rescore and explain (score-dependent DoubleValuesSource) · Priority: low · Impact: crash · Novelty: new
 
-Bug page: [../../bugs/LFV-334.html](../../bugs/LFV-334.html)
+Finding page: [../../bugs/LFV-334.html](../../bugs/LFV-334.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You subclass DoubleValuesSourceRescorer to re-rank first-pass hits with a source that uses the query score, for example DoubleValuesSource.SCORES or the expression '_score * 2' with _score bound to SCORES, and expect rescore to work as it does for any other source: the constructor accepts any DoubleValuesSource and documents no restriction. Instead rescore calls source.getValues(ctx, null) for every source (DoubleValuesSourceRescorer.java:73), although DoubleValuesSource#getValues allows a null scores argument only when needsScores is false and the SCORES javadoc says callers must not pass null, so it throws on the first hit: an AssertionError with -ea, and with -da a NullPointerException at line 74 or, for the expression, RuntimeException 'Unrecognized variable (_score) referenced in expression (_score * 2).'. explain for the same rescorer, source and document returns a normal explanation, because it passes a placeholder 'DoubleValuesSource was not initialized with query scores' explanation instead of scores.
+You subclass DoubleValuesSourceRescorer to re-rank first-pass hits with a source that uses the query score, for example DoubleValuesSource.SCORES or the expression '_score * 2' with _score bound to SCORES, and expect rescore() to work as it does for any other source: the constructor accepts any DoubleValuesSource and documents no restriction. Instead rescore() calls source.getValues(ctx, null) for every source (DoubleValuesSourceRescorer.java:73), although DoubleValuesSource#getValues allows a null scores argument only when needsScores() is false and the SCORES javadoc says callers must not pass null, so it throws on the first hit: an AssertionError with -ea, and with -da a NullPointerException at line 74 or, for the expression, RuntimeException 'Unrecognized variable (_score) referenced in expression (_score * 2).'. explain() for the same rescorer, source and document returns a normal explanation, because it passes a placeholder 'DoubleValuesSource was not initialized with query scores' explanation instead of scores.
 
 The test shows that `DoubleValuesSourceRescorer.rescore` with `DoubleValuesSource.SCORES` calls `getValues(ctx, null)` on a source whose `needsScores()` is true and fails on the first hit (one empty doc, MatchAllDocsQuery first pass).
 
@@ -24,7 +24,7 @@ Expected: rescored hits (or an IllegalArgumentException rejecting the source); a
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,14 +1,14 @@
-# SoraniAnalyzer, LatvianAnalyzer and GalicianAnalyzer load the '#' comment lines of their bundled stopwords.txt as stop words: 60 of the 122 entries of SoraniAnalyzer.getDefaultStopSet, 9 of 170 for Latvian (including a bare '#') and 1 of 161 for Galician are comment text
+# SoraniAnalyzer, LatvianAnalyzer and GalicianAnalyzer load the '#' comment lines of their bundled stopwords.txt as stop words: 60 of the 122 entries of SoraniAnalyzer.getDefaultStopSet(), 9 of 170 for Latvian (including a bare '#') and 1 of 161 for Galician are comment text
 
-Bug LFV-703 · Area: analysis-common / language analyzers (default stop sets of SoraniAnalyzer, LatvianAnalyzer and GalicianAnalyzer; choice of WordlistLoader overload) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-703 · Area: analysis-common / language analyzers (default stop sets of SoraniAnalyzer, LatvianAnalyzer and GalicianAnalyzer; choice of WordlistLoader overload) · Priority: low · Impact: minor · Novelty: new
 
-Bug page: [../../bugs/LFV-703.html](../../bugs/LFV-703.html)
+Finding page: [../../bugs/LFV-703.html](../../bugs/LFV-703.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You call SoraniAnalyzer.getDefaultStopSet, LatvianAnalyzer.getDefaultStopSet or GalicianAnalyzer.getDefaultStopSet, documented as 'the default stop words set' built from the analyzer's bundled 'File containing default Kurdish/Latvian/Galician stopwords', and expect the stop words of that file; its '#' lines are comments, the format that about two dozen sibling analyzers load with the '#' comment marker and that StopFilterFactory's default 'wordset' format skips. Instead the three analyzers load the file with WordlistLoader.getWordSet(InputStream), which 'adds every line as an entry', so 60 of Sorani's 122 entries, 9 of Latvian's 170 (including a bare '#') and 1 of Galician's 161 are comment text such as '# set of kurdish stopwords', '# and' or '# galican stopwords'. The stock analyzers' tokens do not change, but code that lists, counts or reuses these sets sees the comments, and with a WhitespaceTokenizer the Latvian set removes a standalone '#' token ('lucene # search' gives [lucene, search]).
+You call SoraniAnalyzer.getDefaultStopSet(), LatvianAnalyzer.getDefaultStopSet() or GalicianAnalyzer.getDefaultStopSet(), documented as 'the default stop words set' built from the analyzer's bundled 'File containing default Kurdish/Latvian/Galician stopwords', and expect the stop words of that file; its '#' lines are comments, the format that about two dozen sibling analyzers load with the '#' comment marker and that StopFilterFactory's default 'wordset' format skips. Instead the three analyzers load the file with WordlistLoader.getWordSet(InputStream), which 'adds every line as an entry', so 60 of Sorani's 122 entries, 9 of Latvian's 170 (including a bare '#') and 1 of Galician's 161 are comment text such as '# set of kurdish stopwords', '# and' or '# galican stopwords'. The stock analyzers' tokens do not change, but code that lists, counts or reuses these sets sees the comments, and with a WhitespaceTokenizer the Latvian set removes a standalone '#' token ('lucene # search' gives [lucene, search]).
 
 The test shows that SoraniAnalyzer, LatvianAnalyzer and GalicianAnalyzer.getDefaultStopSet() contain the '#' comment lines of their bundled stopwords.txt as stop words.
 
@@ -24,7 +24,7 @@ Expected no entry starting with '#'; actual 60, 9 and 1 such entries (`expected:
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

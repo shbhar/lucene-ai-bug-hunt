@@ -1,8 +1,8 @@
 # ThaiCharFilter tests its multi-character rules (double Sara E, decomposed Sara Am, tone mark before an above/below vowel) on the raw look-ahead characters, before its own zero-width removal and deduplication have run on them, so a zero-width character or a repeated tone mark inside such a pattern leaves the anomaly in the output and the default ThaiAnalyzer merges the word with its neighbours
 
-Bug LFV-876 · Area: analysis-common / Thai (ThaiCharFilter.read single-pass look-ahead; the 'thai' char filter factory and the default ThaiAnalyzer as consumers; new in 10.6.0) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-876 · Area: analysis-common / Thai (ThaiCharFilter.read single-pass look-ahead; the 'thai' char filter factory and the default ThaiAnalyzer as consumers; new in 10.6.0) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-876.html](../../bugs/LFV-876.html)
+Finding page: [../../bugs/LFV-876.html](../../bugs/LFV-876.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected `ท\u0E35\u0E48` (ที่); actual `ท\u0E48\u0E35` (JUnit: `expect
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

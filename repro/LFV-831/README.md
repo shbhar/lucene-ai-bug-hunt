@@ -1,6 +1,6 @@
 # Document suggester: which equal-score copies of one suggestion are returned depends on n (top-2 [2, 1] is not a prefix of top-3 [2, 0, 1]), because NRTSuggesterBuilder numbers the copies in java.util.PriorityQueue heap order instead of doc-id order
 
-Bug LFV-831 · Area: suggest / document (NRT) suggester (NRTSuggesterBuilder.finishTerm dedup bytes; NRTSuggester top-n search through Util.TopNSearcher; TopSuggestDocsCollector tie order) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-831 · Area: suggest / document (NRT) suggester (NRTSuggesterBuilder.finishTerm dedup bytes; NRTSuggester top-n search through Util.TopNSearcher; TopSuggestDocsCollector tie order) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -11,7 +11,7 @@ You index three documents with the same suggestion 'c' and weights 1, 1 and 2 in
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -20,7 +20,7 @@ You index three documents with the same suggestion 'c' and weights 1, 1 and 2 in
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,14 +1,14 @@
-# RepeatingIntervalsSource's iterator computes width with the sign inverted (start - end + 1 per repeated sub-interval), so when Intervals.ordered/unordered repeat a sub-source wider than one position (for example the same phrase twice) gaps is over-reported, maxgaps drops real matches and Weight#matches disagrees with the scorer
+# RepeatingIntervalsSource's iterator computes width() with the sign inverted (start - end + 1 per repeated sub-interval), so when Intervals.ordered/unordered repeat a sub-source wider than one position (for example the same phrase twice) gaps() is over-reported, maxgaps drops real matches and Weight#matches disagrees with the scorer
 
-Bug LFV-306 · Area: queries / intervals (Intervals.ordered/unordered with equal sub-sources: RepeatingIntervalsSource, maxgaps) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-306 · Area: queries / intervals (Intervals.ordered/unordered with equal sub-sources: RepeatingIntervalsSource, maxgaps) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-306.html](../../bugs/LFV-306.html)
+Finding page: [../../bugs/LFV-306.html](../../bugs/LFV-306.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You search with an interval query that repeats a multi-word piece, for example maxgaps(0, ordered(phrase(new, york), phrase(new, york))) on the text 'new york new york', and expect a match because the two phrases sit back to back with no gap. Instead it finds nothing: Lucene turns equal sub-sources into a RepeatingIntervalsSource whose iterator adds start - end + 1 instead of end - start + 1 for each copy, so width is 0 instead of 4, gaps is 4 instead of 0, and maxgaps rejects the interval. The Matches path of the same class uses the right formula, so Weight#matches returns a match for the very document the scorer rejected; repeats of single words are unaffected because their start equals their end.
+You search with an interval query that repeats a multi-word piece, for example maxgaps(0, ordered(phrase(new, york), phrase(new, york))) on the text 'new york new york', and expect a match because the two phrases sit back to back with no gap. Instead it finds nothing: Lucene turns equal sub-sources into a RepeatingIntervalsSource whose iterator adds start - end + 1 instead of end - start + 1 for each copy, so width() is 0 instead of 4, gaps() is 4 instead of 0, and maxgaps rejects the interval. The Matches path of the same class uses the right formula, so Weight#matches returns a match for the very document the scorer rejected; repeats of single words are unaffected because their start equals their end.
 
 The test shows that maxgaps(0, unordered(phrase(new, york), phrase(new, york))) misses "new york new york". RepeatingIntervalsSource's iterator sums start - end + 1 per repeated copy, so width() is 0 and gaps() is 4.
 
@@ -24,7 +24,7 @@ Expected 1 hit (the two phrases are back to back, 0 gaps); actual 0 (`expected:<
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

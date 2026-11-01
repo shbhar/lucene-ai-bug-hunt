@@ -1,12 +1,14 @@
 # CompositeVerifyQuery.visit reports the whole query as a leaf and never visits the index query it rewrites and executes, so QueryVisitor term collection misses the index query's terms and IndexSearcher's cumulative maxClauseCount check does not count its clauses
 
-Bug LFV-951 · Area: spatial-extras / composite: CompositeVerifyQuery (Query#visit; consumers: QueryVisitor.termCollector and other visit-based term extraction, IndexSearcher's cumulative clause limit) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-951 · Area: spatial-extras / composite: CompositeVerifyQuery (Query#visit; consumers: QueryVisitor.termCollector and other visit-based term extraction, IndexSearcher's cumulative clause limit) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-951.html](../../bugs/LFV-951.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You wrap your own index query, for example TermQuery(body:a) or a 20-clause DisjunctionMaxQuery, in new CompositeVerifyQuery(indexQuery, shapePredicate), then collect its terms with QueryVisitor.termCollector or search it after IndexSearcher.setMaxClauseCount(8). You expect [body:a] and an IndexSearcher.TooManyNestedClauses error, because Query#visit is documented to 'recurse through the query tree, visiting any child queries', the wrapper rewrites its index query and runs it as the approximation that every hit must match, and the same 20 clauses as a bare query or as a sibling FILTER clause are rejected. Instead CompositeVerifyQuery.visit only calls visitor.visitLeaf(this): termCollector returns and the clause check counts the whole query as one clause, so the over-limit query runs (its hits are correct).
+You wrap your own index query, for example TermQuery(body:a) or a 20-clause DisjunctionMaxQuery, in new CompositeVerifyQuery(indexQuery, shapePredicate), then collect its terms with QueryVisitor.termCollector or search it after IndexSearcher.setMaxClauseCount(8). You expect [body:a] and an IndexSearcher.TooManyNestedClauses error, because Query#visit is documented to 'recurse through the query tree, visiting any child queries', the wrapper rewrites its index query and runs it as the approximation that every hit must match, and the same 20 clauses as a bare query or as a sibling FILTER clause are rejected. Instead CompositeVerifyQuery.visit only calls visitor.visitLeaf(this): termCollector returns [] and the clause check counts the whole query as one clause, so the over-limit query runs (its hits are correct).
 
 The test shows that CompositeVerifyQuery.visit calls only visitor.visitLeaf(this) and never visits the index query that it rewrites and runs, so QueryVisitor.termCollector misses that query's terms.
 
@@ -22,7 +24,7 @@ Expected `[body:a]` for CompositeVerifyQuery(TermQuery(body:a), predicate); actu
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

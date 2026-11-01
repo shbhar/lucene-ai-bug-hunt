@@ -4,10 +4,10 @@ Tools: Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- ScorerUtil.minRequiredScore returns NaN when the minimum competitive score is +Infinity, so block-max conjunctions and MaxScore disjunctions drop documents that score +Infinity (bug LFV-104; [repro](../../repro/LFV-104/))
-- WANDScorer mishandles a minimum competitive score of +Infinity: an assertion fails with -ea, and with -da it prunes documents that score +Infinity (bug LFV-113; [repro](../../repro/LFV-113/))
+- ScorerUtil.minRequiredScore returns NaN when the minimum competitive score is +Infinity, so block-max conjunctions and MaxScore disjunctions drop documents that score +Infinity (finding LFV-104; [repro](../../repro/LFV-104/), [finding page](../../bugs/LFV-104.html))
+- WANDScorer mishandles a minimum competitive score of +Infinity: an assertion fails with -ea, and with -da it prunes documents that score +Infinity (finding LFV-113; [repro](../../repro/LFV-113/), [finding page](../../bugs/LFV-113.html))
 
 ## Files
 

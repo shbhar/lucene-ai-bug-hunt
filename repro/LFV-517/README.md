@@ -1,8 +1,8 @@
 # ConcatenateGraphFilter treats a custom tokenSeparator as its internal one-byte separator label: an ASCII separator is doubled wherever it already occurs inside a token ('e-mail' becomes 'e--mail'), and a non-ASCII separator fails an assertion with -ea or is written as one truncated byte with -da (U+2013 becomes U+0013, U+00B7 a lone 0xB7 byte, i.e. invalid UTF-8)
 
-Bug LFV-517 · Area: analysis-common / ConcatenateGraphFilter and ConcatenateGraphFilterFactory (custom tokenSeparator) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-517 · Area: analysis-common / ConcatenateGraphFilter and ConcatenateGraphFilterFactory (custom tokenSeparator) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-517.html](../../bugs/LFV-517.html)
+Finding page: [../../bugs/LFV-517.html](../../bugs/LFV-517.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: the term bytes are the UTF-8 of `new–york`, `[6e 65 77 e2 80 93 79 6
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

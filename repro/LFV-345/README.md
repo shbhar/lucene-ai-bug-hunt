@@ -1,14 +1,16 @@
-# Hunspell Dictionary throws NullPointerException instead of a parse error when a REP, MAP, ICONV/OCONV, COMPOUNDRULE, BREAK or CHECKCOMPOUNDPATTERN table at the end of the.aff file has fewer lines than its count
+# Hunspell Dictionary throws NullPointerException instead of a parse error when a REP, MAP, ICONV/OCONV, COMPOUNDRULE, BREAK or CHECKCOMPOUNDPATTERN table at the end of the .aff file has fewer lines than its count
 
-Bug LFV-345 · Area: analysis / hunspell (Dictionary affix-file parsing) · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-345 · Area: analysis / hunspell (Dictionary affix-file parsing) · Priority: low · Impact: wrong error · Novelty: new
+
+Finding page: [../../bugs/LFV-345.html](../../bugs/LFV-345.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You load a hunspell dictionary whose.aff file ends with a REP, MAP, ICONV/OCONV, COMPOUNDRULE, BREAK or CHECKCOMPOUNDPATTERN table that announces more lines than it holds (for example 'REP 2' followed by a single REP line, as a cut-off download or a careless hand edit leaves it), and expect the parse error that the Dictionary constructors document (ParseException), which is what Lucene already throws for a PFX/SFX table cut short ('Premature end of rules') and, since 10.2.0, what the tolerateRepRuleCountMismatches javadoc promises for a wrong REP count by default. Instead the parser passes the null that readLine returns at end of file straight into a string method and throws NullPointerException ('Cannot invoke "String.split(String)" because "line" is null'), with no directive or line number, which also bypasses HunspellStemFilterFactory's 'Unable to load hunspell data!' wrapping of ParseException. The file is refused either way; only the error is wrong.
+You load a hunspell dictionary whose .aff file ends with a REP, MAP, ICONV/OCONV, COMPOUNDRULE, BREAK or CHECKCOMPOUNDPATTERN table that announces more lines than it holds (for example 'REP 2' followed by a single REP line, as a cut-off download or a careless hand edit leaves it), and expect the parse error that the Dictionary constructors document (ParseException), which is what Lucene already throws for a PFX/SFX table cut short ('Premature end of rules') and, since 10.2.0, what the tolerateRepRuleCountMismatches() javadoc promises for a wrong REP count by default. Instead the parser passes the null that readLine() returns at end of file straight into a string method and throws NullPointerException ('Cannot invoke "String.split(String)" because "line" is null'), with no directive or line number, which also bypasses HunspellStemFilterFactory's 'Unable to load hunspell data!' wrapping of ParseException. The file is refused either way; only the error is wrong.
 
-The test shows that hunspell `Dictionary` built from an.aff file that ends in `REP 2` followed by only one `REP a b` line fails with a NullPointerException.
+The test shows that hunspell `Dictionary` built from an .aff file that ends in `REP 2` followed by only one `REP a b` line fails with a NullPointerException.
 
 ## Expected vs actual
 
@@ -22,7 +24,7 @@ Expected: `ParseException` (`tolerateRepRuleCountMismatches()` is false by defau
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

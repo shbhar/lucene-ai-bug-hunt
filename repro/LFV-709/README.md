@@ -1,6 +1,6 @@
 # smartcn: the double-hashing step of BigramDictionary (AbstractDictionary.hash2, an operator-precedence slip) is 0 for some Chinese word + ASCII or Latin-1 punctuation pairs, so each such bigram lookup re-reads one slot 402,136 times (about 0.7 ms instead of about 0.1 us) and SmartChineseAnalyzer analyzes ordinary prose 2-7x slower and text dense in such pairs 67x-174x slower, with unchanged tokens
 
-Bug LFV-709 · Area: analysis-smartcn / HHMM segmenter bigram dictionary (BigramDictionary.getBigramItemIndex, AbstractDictionary.hash2; reached through SmartChineseAnalyzer and HMMChineseTokenizer) · Priority: medium · Impact: minor · Novelty: known upstream
+Finding LFV-709 · Area: analysis-smartcn / HHMM segmenter bigram dictionary (BigramDictionary.getBigramItemIndex, AbstractDictionary.hash2; reached through SmartChineseAnalyzer and HMMChineseTokenizer) · Priority: medium · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You analyze Chinese text written with ASCII punctuation, for example '我们要�
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -43,7 +43,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/smartcn-hhmm-segmentation-reference/](../../models/smartcn-hhmm-segmentation-reference/)
+Formal models and scripts this finding's part of the hunt used: [../../models/smartcn-hhmm-segmentation-reference/](../../models/smartcn-hhmm-segmentation-reference/)
 
 ## Feedback
 

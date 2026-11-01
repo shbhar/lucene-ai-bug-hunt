@@ -1,17 +1,17 @@
-# SortRescorer (and Expression#getRescorer) never rewrites its Sort against the searcher, unlike IndexSearcher#search(Query, int, Sort): sorts that need a rewrite throw, and a legacy query function sort silently uses the default Similarity
+# SortRescorer (and Expression#getRescorer) never rewrites its Sort against the searcher, unlike IndexSearcher#search(Query, int, Sort): sorts that need a rewrite throw, and a legacy query() function sort silently uses the default Similarity
 
-Bug LFV-815 · Area: search / rescoring (SortRescorer; expressions ExpressionRescorer inherits it) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-815 · Area: search / rescoring (SortRescorer; expressions ExpressionRescorer inherits it) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You rescore the top hits with new SortRescorer(sort) or expression.getRescorer(bindings) and expect the same order and sort values that IndexSearcher#search(query, n, sort) gives for the same Sort on the same searcher, because DoubleValuesSource tells clients to rewrite against the searcher and IndexSearcher does that for sorted searches. Instead SortRescorer builds its collector from the Sort as given (SortRescorer.java:48-49): for a sort on new QueryValueSource(q, 0).asDoubleValuesSource on a ClassicSimilarity searcher the hits come back in BM25 order with BM25 values (doc0=0.1468, doc1=0.1246 instead of doc1=1.0, doc0=0.894), and ValueSource sort fields or fromQuery sorts throw. Passing sort.rewrite(searcher) inside rescore fixes every case.
+You rescore the top hits with new SortRescorer(sort) or expression.getRescorer(bindings) and expect the same order and sort values that IndexSearcher#search(query, n, sort) gives for the same Sort on the same searcher, because DoubleValuesSource tells clients to rewrite against the searcher and IndexSearcher does that for sorted searches. Instead SortRescorer builds its collector from the Sort as given (SortRescorer.java:48-49): for a sort on new QueryValueSource(q, 0).asDoubleValuesSource() on a ClassicSimilarity searcher the hits come back in BM25 order with BM25 values (doc0=0.1468, doc1=0.1246 instead of doc1=1.0, doc0=0.894), and ValueSource sort fields or fromQuery sorts throw. Passing sort.rewrite(searcher) inside rescore() fixes every case.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: SortRescorer builds its collector from the Sort as given (SortRescorer.java:48-49): for a sort on new QueryValueSource(q, 0).asDoubleValuesSource on a ClassicSimilarity searcher the hits come back in BM25 order with BM25 values (doc0=0.1468, doc1=0.1246 instead of doc1=1.0, doc0=0.894), and ValueSource sort fields or fromQuery sorts throw.
+- Actual: SortRescorer builds its collector from the Sort as given (SortRescorer.java:48-49): for a sort on new QueryValueSource(q, 0).asDoubleValuesSource() on a ClassicSimilarity searcher the hits come back in BM25 order with BM25 values (doc0=0.1468, doc1=0.1246 instead of doc1=1.0, doc0=0.894), and ValueSource sort fields or fromQuery sorts throw.
 
 ## Files
 
@@ -20,7 +20,7 @@ You rescore the top hits with new SortRescorer(sort) or expression.getRescorer(b
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

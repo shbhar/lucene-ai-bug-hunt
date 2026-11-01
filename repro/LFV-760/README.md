@@ -1,8 +1,8 @@
 # With an index sort, a document whose sort field is indexed without doc values (for example only as a StringField) is accepted by addDocument, and the next flush throws IllegalStateException and closes the IndexWriter, losing every uncommitted document (since 8.6.0)
 
-Bug LFV-760 · Area: index / index sorting (IndexingChain index-sort field validation and flush-time sort) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-760 · Area: index / index sorting (IndexingChain index-sort field validation and flush-time sort) · Priority: low · Impact: crash · Novelty: new
 
-Bug page: [../../bugs/LFV-760.html](../../bugs/LFV-760.html)
+Finding page: [../../bugs/LFV-760.html](../../bugs/LFV-760.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected `addDocument` to reject the document or the commit to succeed; actual o
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,8 +1,8 @@
 # DirectoryTaxonomyWriter indexes a facet label that contains an unpaired surrogate a second time, under a new ordinal, once its writer cache has been filled from the taxonomy index, because the cache compares the label's Java string while the index stores its UTF-8 term with the surrogate replaced by U+FFFD; the taxonomy then holds two categories with one path and facet counts for that value are split
 
-Bug LFV-541 · Area: facet / taxonomy writer (DirectoryTaxonomyWriter category identity: writer cache key vs taxonomy index term, perhapsFillCache) · Priority: low · Impact: data corruption · Novelty: new
+Finding LFV-541 · Area: facet / taxonomy writer (DirectoryTaxonomyWriter category identity: writer cache key vs taxonomy index term, perhapsFillCache) · Priority: low · Impact: data corruption · Novelty: new
 
-Bug page: [../../bugs/LFV-541.html](../../bugs/LFV-541.html)
+Finding page: [../../bugs/LFV-541.html](../../bugs/LFV-541.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected, per `TaxonomyWriter.addCategory` ("If the category was already present
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

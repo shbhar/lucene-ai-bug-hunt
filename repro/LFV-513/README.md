@@ -1,17 +1,17 @@
-# ConcurrentQueryLoader workers exit at the first exception from Monitor.register and are never replaced, so once every worker is gone add blocks forever and close never gets to report the IOException
+# ConcurrentQueryLoader workers exit at the first exception from Monitor.register and are never replaced, so once every worker is gone add() blocks forever and close() never gets to report the IOException
 
-Bug LFV-513 · Area: monitor / bulk query loading (ConcurrentQueryLoader worker error handling) · Priority: low · Impact: hang · Novelty: known upstream
+Finding LFV-513 · Area: monitor / bulk query loading (ConcurrentQueryLoader worker error handling) · Priority: low · Impact: hang · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You bulk-load standing queries into a Monitor with the documented pattern, loader.add(q) in a loop inside try-with-resources, and Monitor.register fails inside the loader's worker threads, for example because the query index cannot fsync or create a file. You expect the load to stop and close to throw the IOException, which the loader records for exactly that purpose. Instead each worker leaves its loop at its first failure and is never replaced, so once every worker is gone nothing drains the bounded queue: the next add calls block in LinkedBlockingQueue.put forever, close is never reached and the error is never reported (repro: 1 worker, queue size 4, one simulated fsync failure; add is still blocked 30 s later).
+You bulk-load standing queries into a Monitor with the documented pattern, loader.add(q) in a loop inside try-with-resources, and Monitor.register fails inside the loader's worker threads, for example because the query index cannot fsync or create a file. You expect the load to stop and close() to throw the IOException, which the loader records for exactly that purpose. Instead each worker leaves its loop at its first failure and is never replaced, so once every worker is gone nothing drains the bounded queue: the next add() calls block in LinkedBlockingQueue.put forever, close() is never reached and the error is never reported (repro: 1 worker, queue size 4, one simulated fsync failure; add() is still blocked 30 s later).
 
 ## Expected vs actual
 
-- Expected: You expect the load to stop and close to throw the IOException, which the loader records for exactly that purpose.
-- Actual: Each worker leaves its loop at its first failure and is never replaced, so once every worker is gone nothing drains the bounded queue: the next add calls block in LinkedBlockingQueue.put forever, close is never reached and the error is never reported (repro: 1 worker, queue size 4, one simulated fsync failure; add is still blocked 30 s later).
+- Expected: You expect the load to stop and close() to throw the IOException, which the loader records for exactly that purpose.
+- Actual: Each worker leaves its loop at its first failure and is never replaced, so once every worker is gone nothing drains the bounded queue: the next add() calls block in LinkedBlockingQueue.put forever, close() is never reached and the error is never reported (repro: 1 worker, queue size 4, one simulated fsync failure; add() is still blocked 30 s later).
 
 ## Files
 
@@ -20,7 +20,7 @@ You bulk-load standing queries into a Monitor with the documented pattern, loade
 ## Run it
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

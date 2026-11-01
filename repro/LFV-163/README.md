@@ -1,6 +1,6 @@
 # Lucene90StoredFieldsFormat (the default codec's stored fields) documents a per-document limit of 2^31 - 2^14 bytes, but the format it delegates to documents and enforces 2^31 - chunkSize (chunks of 81,920 / 491,520 bytes), so a document just below the stated limit can fail with ArithmeticException and close IndexWriter (documentation defect: the javadoc value has been stale since the chunks grew past 16 KiB)
 
-Bug LFV-163 · Area: codecs / stored fields (Lucene90StoredFieldsFormat javadoc vs Lucene90CompressingStoredFieldsFormat) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-163 · Area: codecs / stored fields (Lucene90StoredFieldsFormat javadoc vs Lucene90CompressingStoredFieldsFormat) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -11,7 +11,7 @@ You read the default codec's stored-fields documentation (Lucene90StoredFieldsFo
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -21,7 +21,7 @@ You read the default codec's stored-fields documentation (Lucene90StoredFieldsFo
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -43,7 +43,7 @@ java -ea -esa -Xmx8g --add-modules jdk.incubator.vector --enable-native-access=A
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/storedfields-compressing/](../../models/storedfields-compressing/)
+Formal models and scripts this finding's part of the hunt used: [../../models/storedfields-compressing/](../../models/storedfields-compressing/)
 
 ## Feedback
 

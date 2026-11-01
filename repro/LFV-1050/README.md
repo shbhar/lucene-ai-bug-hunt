@@ -1,19 +1,19 @@
 # With an index sort and a parent field, a document that IndexWriter rejects (a documented, non-aborting IllegalArgumentException) as the last document of an in-memory segment that holds a document block makes the next flush throw ArrayIndexOutOfBoundsException 'Index 2147483647' and close IndexWriter, losing every uncommitted document (since 9.10.0)
 
-Bug LFV-1050 · Area: index / index sorting with document blocks (IndexingChain flush-time sort, DocumentsWriterPerThread non-aborting rejection) · Priority: medium · Impact: crash · Novelty: new
+Finding LFV-1050 · Area: index / index sorting with document blocks (IndexingChain flush-time sort, DocumentsWriterPerThread non-aborting rejection) · Priority: medium · Impact: crash · Novelty: new
 
-Bug page: [../../bugs/LFV-1050.html](../../bugs/LFV-1050.html)
+Finding page: [../../bugs/LFV-1050.html](../../bugs/LFV-1050.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You configure an index sort and a parent field, add a block (a child and its parent) with addDocuments, then add one document that IndexWriter rejects with IllegalArgumentException because a field's doc-values type conflicts with the block's, and call commit. You expect the rejected document simply not to be added and the commit to keep the two block documents, as it does without a parent field (upstream test testFlushAfterInconsistentSchema). Instead commit throws ArrayIndexOutOfBoundsException 'Index 2147483647 out of bounds for length 3' from the flush-time sort, IndexWriter closes itself and both block documents are lost.
+You configure an index sort and a parent field, add a block (a child and its parent) with addDocuments, then add one document that IndexWriter rejects with IllegalArgumentException because a field's doc-values type conflicts with the block's, and call commit(). You expect the rejected document simply not to be added and the commit to keep the two block documents, as it does without a parent field (upstream test testFlushAfterInconsistentSchema). Instead commit() throws ArrayIndexOutOfBoundsException 'Index 2147483647 out of bounds for length 3' from the flush-time sort, IndexWriter closes itself and both block documents are lost.
 
 ## Expected vs actual
 
-- Expected: `commit` succeeds and the index holds the 2 block documents.
-- Actual: `commit` throws `ArrayIndexOutOfBoundsException: Index 2147483647 out of bounds for length 3`; the writer closes itself and nothing is committed.
+- Expected: `commit()` succeeds and the index holds the 2 block documents.
+- Actual: `commit()` throws `ArrayIndexOutOfBoundsException: Index 2147483647 out of bounds for length 3`; the writer closes itself and nothing is committed.
 
 ## Files
 
@@ -22,7 +22,7 @@ You configure an index sort and a parent field, add a block (a child and its par
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,7 +44,7 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-## Files shown on the bug page
+## Files shown on the finding page
 
 - [TestIndexSortRejectedLastDocument.java](TestIndexSortRejectedLastDocument.java)
 

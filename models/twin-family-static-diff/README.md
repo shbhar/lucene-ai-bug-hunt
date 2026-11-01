@@ -4,9 +4,9 @@ Tools: Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- MutableValueFloat and MutableValueDouble equals compare with ==, so a NaN value is not equal to itself and grouping by a float or double function puts NaN documents into empty groups (released versions) or throws IllegalArgumentException (main) (bug LFV-427; [repro](../../repro/LFV-427/))
+- MutableValueFloat and MutableValueDouble equals() compare with ==, so a NaN value is not equal to itself and grouping by a float or double function puts NaN documents into empty groups (4.0.0 to 10.5.2) or throws IllegalArgumentException (main and, by reading, 10.6.0) (finding LFV-427; [repro](../../repro/LFV-427/))
 
 ## Files
 

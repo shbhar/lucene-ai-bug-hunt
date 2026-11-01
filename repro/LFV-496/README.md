@@ -1,17 +1,17 @@
-# CustomSeparatorBreakIterator is off by one next to the separator: following(p) skips the break right after a separator at p, preceding(p) returns p itself, a leading separator is not a break and a trailing one makes next return the end twice, so UnifiedHighlighter passages built on it start or end one segment off
+# CustomSeparatorBreakIterator is off by one next to the separator: following(p) skips the break right after a separator at p, preceding(p) returns p itself, a leading separator is not a break and a trailing one makes next() return the end twice, so UnifiedHighlighter passages built on it start or end one segment off
 
-Bug LFV-496 · Area: highlighter / UnifiedHighlighter break iterators (CustomSeparatorBreakIterator, alone or as the base of LengthGoalBreakIterator) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-496 · Area: highlighter / UnifiedHighlighter break iterators (CustomSeparatorBreakIterator, alone or as the base of LengthGoalBreakIterator) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You give the UnifiedHighlighter a CustomSeparatorBreakIterator('.'), alone or inside LengthGoalBreakIterator, and expect passages to start and end at the breaks its own next reports, just after each '.'. Instead following and preceding are off by one next to the separator: on 'Aa bb. Cc dd. Ee ff' (breaks 0, 6, 13, 19) following(5) returns 13 instead of 6 and preceding(13) returns 13 instead of 6, so a min-length-6 summary is 'Aa bb. Cc dd.' instead of 'Aa bb.' and the phrase 'dd ee' is shown as '&lt;b&gt;dd. Ee&lt;/b&gt; ff' instead of ' Cc &lt;b&gt;dd. Ee&lt;/b&gt; ff'. Nothing throws and the match is still highlighted; only the snippet boundary moves by one segment.
+You give the UnifiedHighlighter a CustomSeparatorBreakIterator('.'), alone or inside LengthGoalBreakIterator, and expect passages to start and end at the breaks its own next() reports, just after each '.'. Instead following() and preceding() are off by one next to the separator: on 'Aa bb. Cc dd. Ee ff' (breaks 0, 6, 13, 19) following(5) returns 13 instead of 6 and preceding(13) returns 13 instead of 6, so a min-length-6 summary is 'Aa bb. Cc dd.' instead of 'Aa bb.' and the phrase 'dd ee' is shown as '&lt;b&gt;dd. Ee&lt;/b&gt; ff' instead of ' Cc &lt;b&gt;dd. Ee&lt;/b&gt; ff'. Nothing throws and the match is still highlighted; only the snippet boundary moves by one segment.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: following and preceding are off by one next to the separator: on 'Aa bb.
+- Actual: following() and preceding() are off by one next to the separator: on 'Aa bb.
 
 ## Files
 
@@ -20,7 +20,7 @@ You give the UnifiedHighlighter a CustomSeparatorBreakIterator('.'), alone or in
 ## Run it
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

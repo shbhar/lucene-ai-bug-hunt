@@ -1,6 +1,8 @@
-# UsageTrackingQueryCachingPolicy(historySize) with historySize &gt;= 715,827,883: FrequencyTrackingRingBuffer's IntBag sizes its hash table as maxSize * 3 / 2 in int, the product overflows to a 2-slot table, and the second distinct query recorded by onUse loops forever while holding the policy's monitor (assertions disabled; with -ea the constructor throws AssertionError instead) (since 5.0.0)
+# UsageTrackingQueryCachingPolicy(historySize) with historySize 715,827,883 to 1,431,655,767: FrequencyTrackingRingBuffer's IntBag sizes its hash table as maxSize * 3 / 2 in int, the product overflows to a 2-slot table, and the second distinct query recorded by onUse loops forever while holding the policy's monitor (larger sizes overflow too, to a table no larger than the history; assertions disabled; with -ea the constructor throws AssertionError instead) (since 5.0.0)
 
-Bug LFV-888 · Area: search / query caching policy (UsageTrackingQueryCachingPolicy over util FrequencyTrackingRingBuffer) · Priority: low · Impact: hang · Novelty: new
+Finding LFV-888 · Area: search / query caching policy (UsageTrackingQueryCachingPolicy over util FrequencyTrackingRingBuffer) · Priority: low · Impact: hang · Novelty: new
+
+Finding page: [../../bugs/LFV-888.html](../../bugs/LFV-888.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -10,8 +12,8 @@ You create new UsageTrackingQueryCachingPolicy(715_827_883) (the same int overfl
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The constructor succeeds (with assertions disabled), the first query is recorded, and the second distinct query loops forever inside onUse while holding the policy's lock, so that search hangs and every other search thread that uses the policy blocks.
+- Expected: `new UsageTrackingQueryCachingPolicy(715_827_883)` throws `IllegalArgumentException`, or both `onUse` calls return.
+- Actual: Assertions off: `onUse must return ==> execution timed out after 30000 ms`, stuck in `FrequencyTrackingRingBuffer$IntBag.add` (line 137); assertions on: a bare `AssertionError` in the constructor.
 
 ## Files
 
@@ -20,7 +22,7 @@ You create new UsageTrackingQueryCachingPolicy(715_827_883) (the same int overfl
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- How to read the outcome: a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -40,6 +42,10 @@ java -da -dsa -Dtests.asserts=false -Xmx4g --add-modules jdk.incubator.vector --
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestUsageTrackingPolicyHugeHistory.java](TestUsageTrackingPolicyHugeHistory.java)
 
 ## Feedback
 

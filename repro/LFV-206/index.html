@@ -18,19 +18,19 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>Polygon2D.containsLine/containsTriangle accept a segment or triangle whose vertices lie on the boundary of a non-convex polygon even when it passes outside between them, so LatLonShape/XYShape WITHIN queries return false positives</h1>
-<p class="facts small"><span>Bug LFV-206</span><span>Area: geo / shape queries (Polygon2D containsLine/containsTriangle, LatLonShape and XYShape WITHIN)</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: known upstream</span></p>
+<p class="facts small"><span>Finding LFV-206</span><span>Area: geo / shape queries (Polygon2D containsLine/containsTriangle, LatLonShape and XYShape WITHIN)</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: known upstream</span></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index a line or polygon whose corner points lie exactly on the boundary of a non-convex (dented) query polygon, for example a road between two corners of a district, and search for shapes WITHIN that polygon; you expect only shapes that lie inside it. Polygon2D.containsLine/containsTriangle accept a segment or triangle when every vertex is contained, with boundary points counting as inside, and no polygon edge crosses it strictly; that shortcut is only valid for convex polygons, so a segment that cuts across a dent between two boundary points, or a triangle that fills the dent and lies completely outside, is reported as contained. The WITHIN query returns those documents with no error (repro: for the polygon (0,0),(4,0),(4,4),(2,1),(0,4), WITHIN returns the indexed segment (0,4)-(4,4) and the indexed notch triangle (0,4),(4,4),(2,1) although (2,4) and (2,3) are outside the polygon).</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect only shapes that lie inside it.</li><li><b>Actual:</b> While the bug is present the test fails; the failure message states expected against actual.</li></ul>
+<ul><li><b>Expected:</b> You expect only shapes that lie inside it.</li><li><b>Actual:</b> While the reported behaviour is present the test fails; the failure message states expected against actual.</li></ul>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/document/TestPolygonWithinSharedVertices.java"><code>src/org/apache/lucene/document/TestPolygonWithinSharedVertices.java</code></a> <span class="dim">(JUnit test)</span></li>
 <li><a href="src/WithinSharedVerticesMain.java"><code>src/WithinSharedVerticesMain.java</code></a> <span class="dim">(main() class)</span></li>
 </ul><h2>Run it</h2><ul>
 <li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
 <li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.</li>
+<li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
@@ -51,4 +51,4 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; WithinSharedVerticesMain</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-30. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-01. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

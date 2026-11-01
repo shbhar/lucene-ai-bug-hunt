@@ -1,12 +1,12 @@
 # An IOException late in a doc-values update write leaves IndexWriter open but inconsistent: published update files are never checkpointed and get deleted while still referenced, and a failed pooled-reader re-open silently drops the update
 
-Bug LFV-110 · Area: index / IndexWriter doc-values update write path (ReadersAndUpdates.writeFieldUpdates, the checkpoint after writeReaderPool, IndexFileDeleter reference counts) · Priority: medium · Impact: data corruption · Novelty: known upstream
+Finding LFV-110 · Area: index / IndexWriter doc-values update write path (ReadersAndUpdates.writeFieldUpdates, the checkpoint after writeReaderPool, IndexFileDeleter reference counts) · Priority: medium · Impact: data corruption · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You update a doc-values field (updateNumericDocValue, updateBinaryDocValue, or a soft delete) and open an NRT reader, flush or commit, and the doc-values update write throws a non-tragic IOException after the new files were already published into the segment's SegmentCommitInfo (re-opening the writer's pooled segment reader fails, or a second segment's update write in the same batch fails); the writer stays open (isOpen true, no tragic exception) and you keep using it. You expect the acknowledged update to reach the next NRT reader and commit, and every file the writer's SegmentInfos references to stay on disk, as in 6.x and as the since-deleted test testNoLostDeletesOrUpdates required. Instead the writer skips its IndexFileDeleter checkpoint and keeps a stale pooled reader whose pending update was already pruned: in releases (and on main with maxDocValuesOverlays=0) the next update rewrites the column from that stale reader and a later commit succeeds with the update reverted (doc 0 = 0 instead of 100, no exception), while with overlays (main's default) or on the partial-batch path the writer later deletes the published files and NRT opens or commits fail with NoSuchFileException.
+You update a doc-values field (updateNumericDocValue, updateBinaryDocValue, or a soft delete) and open an NRT reader, flush or commit, and the doc-values update write throws a non-tragic IOException after the new files were already published into the segment's SegmentCommitInfo (re-opening the writer's pooled segment reader fails, or a second segment's update write in the same batch fails); the writer stays open (isOpen() true, no tragic exception) and you keep using it. You expect the acknowledged update to reach the next NRT reader and commit, and every file the writer's SegmentInfos references to stay on disk, as in 6.x and as the since-deleted test testNoLostDeletesOrUpdates required. Instead the writer skips its IndexFileDeleter checkpoint and keeps a stale pooled reader whose pending update was already pruned: in releases (and on main with maxDocValuesOverlays=0) the next update rewrites the column from that stale reader and a later commit succeeds with the update reverted (doc 0 = 0 instead of 100, no exception), while with overlays (main's default) or on the partial-batch path the writer later deletes the published files and NRT opens or commits fail with NoSuchFileException.
 
 ## Expected vs actual
 
@@ -22,7 +22,7 @@ You update a doc-values field (updateNumericDocValue, updateBinaryDocValue, or a
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

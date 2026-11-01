@@ -1,6 +1,6 @@
 # SimpleBindings rebuilds an Expression binding on every reference, so building the source of bindings that share sub-expressions creates one ExpressionValueSource per path (exponential in the depth of sharing)
 
-Bug LFV-899 · Area: expressions / SimpleBindings binding resolution (add(String, Expression), getDoubleValuesSource) and the ExpressionValueSource constructor · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-899 · Area: expressions / SimpleBindings binding resolution (add(String, Expression), getDoubleValuesSource) and the ExpressionValueSource constructor · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You bind named expressions that use each other with SimpleBindings.add(String, E
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

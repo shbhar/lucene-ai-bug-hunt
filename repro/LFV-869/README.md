@@ -1,12 +1,14 @@
 # AutomatonToTokenStream casts each transition label to char, so a label above U+FFFF becomes a different character (U+10400 comes out as U+0400, U+1F600 as U+F600, U+10000 as a NUL char)
 
-Bug LFV-869 · Area: core / analysis: AutomatonToTokenStream (automaton to token-graph conversion) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-869 · Area: core / analysis: AutomatonToTokenStream (automaton to token-graph conversion) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-869.html](../../bugs/LFV-869.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build an automaton with Lucene's standard code-point constructors, for example Automata.makeString("\uD801\uDC00") (U+10400) or new RegExp("a" + an emoji).toAutomaton, and convert it with AutomatonToTokenStream.toTokenStream, whose javadoc says the stream releases the automaton's edges as tokens. You expect the token for the edge labelled U+10400 to be that character (the surrogate pair D801 DC00). Instead incrementToken appends (char) label, which keeps only the low 16 bits, so the token is U+0400 (a Cyrillic letter), U+1F600 becomes the private-use U+F600 and U+10000 becomes a NUL char, silently.
+You build an automaton with Lucene's standard code-point constructors, for example Automata.makeString("\uD801\uDC00") (U+10400) or new RegExp("a" + an emoji).toAutomaton(), and convert it with AutomatonToTokenStream.toTokenStream, whose javadoc says the stream releases the automaton's edges as tokens. You expect the token for the edge labelled U+10400 to be that character (the surrogate pair D801 DC00). Instead incrementToken appends (char) label, which keeps only the low 16 bits, so the token is U+0400 (a Cyrillic letter), U+1F600 becomes the private-use U+F600 and U+10000 becomes a NUL char, silently.
 
 The test shows that AutomatonToTokenStream.toTokenStream(Automata.makeString(U+10400)) emits the edge label cast to char (TestAutomatonToTokenStreamSupplementaryLabel#testSupplementaryLabel).
 
@@ -22,7 +24,7 @@ Expected token text U+10400 (the label); actual U+0400 (its low 16 bits), with -
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

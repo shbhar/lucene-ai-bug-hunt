@@ -1,8 +1,8 @@
 # Intervals.analyzedText keeps only the first of the tokens stacked at a position whenever the analyzed text is a token graph (a multi-word synonym or a WordDelimiterGraphFilter catenation elsewhere in the text), so interval queries silently miss documents, even documents with exactly the query words (AssertionError under -ea)
 
-Bug LFV-457 · Area: queries / intervals (Intervals.analyzedText: IntervalBuilder.analyzeGraph; flexible StandardQueryParser fn: interval functions) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-457 · Area: queries / intervals (Intervals.analyzedText: IntervalBuilder.analyzeGraph; flexible StandardQueryParser fn: interval functions) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-457.html](../../bugs/LFV-457.html)
+Finding page: [../../bugs/LFV-457.html](../../bugs/LFV-457.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected 1 hit; actual 0 hits with -da (`or(BLOCK(wi,fi,canine),BLOCK(wifi,canin
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

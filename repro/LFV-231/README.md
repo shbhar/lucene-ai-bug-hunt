@@ -1,8 +1,8 @@
 # ThaiRepeatFilter gives the repeated word the offsets of a deleted character or of the following markup instead of the Maiyamok's, when a CharFilter removed characters right after the Maiyamok (a zero-width space in the default ThaiAnalyzer, a closing tag with HTMLStripCharFilter)
 
-Bug LFV-231 · Area: analysis / Thai (ThaiRepeatFilter offset split; ThaiAnalyzer with ThaiCharFilter, or a custom chain with HTMLStripCharFilter) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-231 · Area: analysis / Thai (ThaiRepeatFilter offset split; ThaiAnalyzer with ThaiCharFilter, or a custom chain with HTMLStripCharFilter) · Priority: low · Impact: minor · Novelty: new
 
-Bug page: [../../bugs/LFV-231.html](../../bugs/LFV-231.html)
+Finding page: [../../bugs/LFV-231.html](../../bugs/LFV-231.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: the repeated token's span contains the Maiyamok at offset 4. Actual: o
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

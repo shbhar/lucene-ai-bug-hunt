@@ -1,14 +1,14 @@
-# UnifiedHighlighter re-analysis under the default WEIGHT_MATCHES flag builds its MemoryIndex without payloads, so payload-checking queries get missing or extra highlights or make highlight throw IllegalArgumentException
+# UnifiedHighlighter re-analysis under the default WEIGHT_MATCHES flag builds its MemoryIndex without payloads, so payload-checking queries get missing or extra highlights or make highlight() throw IllegalArgumentException
 
-Bug LFV-268 · Area: highlighter / UnifiedHighlighter re-analysis offset source (MemoryIndexOffsetStrategy under WEIGHT_MATCHES) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-268 · Area: highlighter / UnifiedHighlighter re-analysis offset source (MemoryIndexOffsetStrategy under WEIGHT_MATCHES) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-268.html](../../bugs/LFV-268.html)
+Finding page: [../../bugs/LFV-268.html](../../bugs/LFV-268.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index a field whose tokens carry payloads as a plain TextField (no offsets), search with SpanPayloadCheckQuery or with IntervalQuery(Intervals.term(term, payloadFilter)), which matches the document, and highlight the hit with the UnifiedHighlighter on its default flags. You expect the snippet the highlighter gives with offsets in postings or with WEIGHT_MATCHES off, 'both terms. only &lt;b&gt;terms&lt;/b&gt;.' for a check on the second 'terms'. Instead re-analysis builds its one-document MemoryIndex without payloads (MemoryIndexOffsetStrategy stores payloads only when the span PhraseHelper is position-sensitive, and WEIGHT_MATCHES replaces that helper with PhraseHelper.NONE), so Weight#matches on that copy finds nothing and the snippet is 'both terms. only terms.', while the interval query makes highlight throw IllegalArgumentException 'Cannot create a payload-filtered iterator over field body because it has no indexed payloads'.
+You index a field whose tokens carry payloads as a plain TextField (no offsets), search with SpanPayloadCheckQuery or with IntervalQuery(Intervals.term(term, payloadFilter)), which matches the document, and highlight the hit with the UnifiedHighlighter on its default flags. You expect the snippet the highlighter gives with offsets in postings or with WEIGHT_MATCHES off, 'both terms. only &lt;b&gt;terms&lt;/b&gt;.' for a check on the second 'terms'. Instead re-analysis builds its one-document MemoryIndex without payloads (MemoryIndexOffsetStrategy stores payloads only when the span PhraseHelper is position-sensitive, and WEIGHT_MATCHES replaces that helper with PhraseHelper.NONE), so Weight#matches on that copy finds nothing and the snippet is 'both terms. only terms.', while the interval query makes highlight() throw IllegalArgumentException 'Cannot create a payload-filtered iterator over field body because it has no indexed payloads'.
 
 The test shows that the UnifiedHighlighter on its default flags (WEIGHT_MATCHES) re-analyzes a positions-only field without payloads, so a matching SpanPayloadCheckQuery gets no highlight.
 
@@ -24,7 +24,7 @@ Expected "&lt;b&gt;word&lt;/b&gt;" (the token "word" has payload "pos: 0" and is
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

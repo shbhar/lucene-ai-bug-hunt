@@ -1,8 +1,8 @@
 # SerbianAnalyzer.normalize only lower-cases and skips SerbianNormalizationFilter (Cyrillic to Latin, diacritics removed), so prefix, wildcard, fuzzy, regexp and range queries typed in Cyrillic or with č ć š ž đ miss the indexed terms
 
-Bug LFV-534 · Area: analysis-common / language analyzers (SerbianAnalyzer.normalize, used by the query parsers for multi-term queries) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-534 · Area: analysis-common / language analyzers (SerbianAnalyzer.normalize, used by the query parsers for multi-term queries) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-534.html](../../bugs/LFV-534.html)
+Finding page: [../../bugs/LFV-534.html](../../bugs/LFV-534.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: `normalize("f", "Ђак")` = `djak` (the indexed term); actual: `ђа�
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

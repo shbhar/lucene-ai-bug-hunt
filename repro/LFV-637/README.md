@@ -1,12 +1,14 @@
-# Monitor's ParallelMatcher starts blocking worker tasks in its constructor that only finish releases: a Monitor#match that fails before finish (an exception such as TooManyClauses from the presearcher, or a rejected submit) leaves its workers parked on the executor forever, and an executor that runs a worker on the calling thread (CallerRunsPolicy on a saturated pool) makes Monitor#match hang
+# Monitor's ParallelMatcher starts blocking worker tasks in its constructor that only finish() releases: a Monitor#match that fails before finish() (an exception such as TooManyClauses from the presearcher, or a rejected submit) leaves its workers parked on the executor forever, and an executor that runs a worker on the calling thread (CallerRunsPolicy on a saturated pool) makes Monitor#match hang
 
-Bug LFV-637 · Area: monitor / ParallelMatcher worker lifecycle (Monitor#match) · Priority: low · Impact: hang · Novelty: new
+Finding LFV-637 · Area: monitor / ParallelMatcher worker lifecycle (Monitor#match) · Priority: low · Impact: hang · Novelty: new
+
+Finding page: [../../bugs/LFV-637.html](../../bugs/LFV-637.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You match documents with Monitor#match using ParallelMatcher.factory(executor, matcher, threads), for example on Executors.newFixedThreadPool(threads), and you expect what the default serial matcher does: Monitor#match returns the matches or throws, and leaves nothing running on your executor. Instead the ParallelMatcher constructor submits `threads` workers that only finish can release, so when the match throws before finish (here IndexSearcher.TooManyClauses from the presearcher for a document with terms in 1,025 fields used by registered queries, the same exception the serial matcher throws) the workers stay parked forever and the next valid match on the same pool never returns. A rejected submit leaks the already-accepted workers the same way, and with CallerRunsPolicy on a saturated pool the calling thread runs a worker itself and Monitor#match never returns.
+You match documents with Monitor#match using ParallelMatcher.factory(executor, matcher, threads), for example on Executors.newFixedThreadPool(threads), and you expect what the default serial matcher does: Monitor#match returns the matches or throws, and leaves nothing running on your executor. Instead the ParallelMatcher constructor submits `threads` workers that only finish() can release, so when the match throws before finish() (here IndexSearcher.TooManyClauses from the presearcher for a document with terms in 1,025 fields used by registered queries, the same exception the serial matcher throws) the workers stay parked forever and the next valid match on the same pool never returns. A rejected submit leaks the already-accepted workers the same way, and with CallerRunsPolicy on a saturated pool the calling thread runs a worker itself and Monitor#match never returns.
 
 The test shows that a Monitor#match with ParallelMatcher that throws after the matcher is created (TooManyClauses for a document with terms in 1,025 query fields) leaves the constructor's worker blocked in queue.take() on the caller's 1-thread pool.
 
@@ -22,7 +24,7 @@ Expected: the match throws and the pool terminates after shutdown(). Actual (-ea
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -47,7 +49,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/executor-pluggable-behaviour-sweep/](../../models/executor-pluggable-behaviour-sweep/)
+Formal models and scripts this finding's part of the hunt used: [../../models/executor-pluggable-behaviour-sweep/](../../models/executor-pluggable-behaviour-sweep/)
 
 ## Feedback
 

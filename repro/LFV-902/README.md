@@ -1,12 +1,14 @@
 # LMDirichletSimilarity accepts mu = 0, but then every document scores 0: log(1 + tf/(mu*P)) + log(mu/(dl+mu)) becomes +Infinity + -Infinity = NaN, and the 'score &gt; 0' clamp turns NaN into 0
 
-Bug LFV-902 · Area: search / similarities (LMDirichletSimilarity) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-902 · Area: search / similarities (LMDirichletSimilarity) · Priority: low · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-902.html](../../bugs/LFV-902.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You configure LMDirichletSimilarity with mu = 0, which both constructors accept ('must be a non-negative finite value') and which upstream's TestLMDirichletSimilarity uses as its 'minimum value'. You expect documents that contain the query term more often than the collection model predicts to get a positive score and be ranked, as they are for every mu &gt; 0 down to Float.MIN_VALUE, where the score already equals its finite mu -&gt; 0 limit log(tf/(dl*P)). Instead score computes log(1 + tf/0) + log(0/dl) = +Infinity + -Infinity = NaN, the 'score &gt; 0 ? score: 0' clamp returns 0.0, and every hit scores 0.0, so the best match can come back last; explain shows 'Infinity = term weight' and '-Infinity = document norm' under a 0.0 total.
+You configure LMDirichletSimilarity with mu = 0, which both constructors accept ('must be a non-negative finite value') and which upstream's TestLMDirichletSimilarity uses as its 'minimum value'. You expect documents that contain the query term more often than the collection model predicts to get a positive score and be ranked, as they are for every mu &gt; 0 down to Float.MIN_VALUE, where the score already equals its finite mu -&gt; 0 limit log(tf/(dl*P)). Instead score() computes log(1 + tf/0) + log(0/dl) = +Infinity + -Infinity = NaN, the 'score &gt; 0 ? score : 0' clamp returns 0.0, and every hit scores 0.0, so the best match can come back last; explain() shows 'Infinity = term weight' and '-Infinity = document norm' under a 0.0 total.
 
 The test shows that with `new LMDirichletSimilarity(0f)` (accepted, "non-negative finite"), a TermQuery hit that is far above the collection model scores 0 (`TestLMDirichletMuZero#testMuZeroScoresBestMatchAboveZero`, 3 documents).
 
@@ -22,7 +24,7 @@ Expected: doc "a" (tf/dl = 1, P = 3/8) scores &gt; 0. Actual: 0.0, because log(1
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,7 +46,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/lmdirichlet-mu-zero-limit-and-multisimilarity-norm-combsum/](../../models/lmdirichlet-mu-zero-limit-and-multisimilarity-norm-combsum/)
+Formal models and scripts this finding's part of the hunt used: [../../models/lmdirichlet-mu-zero-limit-and-multisimilarity-norm-combsum/](../../models/lmdirichlet-mu-zero-limit-and-multisimilarity-norm-combsum/)
 
 ## Feedback
 

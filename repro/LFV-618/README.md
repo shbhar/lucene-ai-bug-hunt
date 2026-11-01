@@ -1,12 +1,14 @@
-# MultiPassIndexSplitter builds every output part with a bare IndexWriterConfig and accepts no config, so it cannot split any index that uses soft deletes (7.4.0+) or has a parent field (9.10.0+): split and its command line throw IllegalArgumentException before any part gets a document
+# MultiPassIndexSplitter builds every output part with a bare IndexWriterConfig and accepts no config, so it cannot split any index that uses soft deletes (7.4.0+) or has a parent field (9.10.0+): split() and its command line throw IllegalArgumentException before any part gets a document
 
-Bug LFV-618 · Area: misc / index tools (MultiPassIndexSplitter.split, output IndexWriterConfig); IndexWriter.addIndexes field-role checks · Priority: low · Impact: minor · Novelty: new
+Finding LFV-618 · Area: misc / index tools (MultiPassIndexSplitter.split, output IndexWriterConfig); IndexWriter.addIndexes field-role checks · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-618.html](../../bugs/LFV-618.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You split an index with MultiPassIndexSplitter, for example one written with IndexWriterConfig#setSoftDeletesField("soft") and a single softUpdateDocument call, or one written with IndexWriterConfig#setParentField("_parent"), and expect it to split like any other index: the split javadoc says the source 'can have deletions, can have multiple segments (or multiple readers)', and the only documented limitation is that document blocks may be broken up. Instead split opens every part's IndexWriter with new IndexWriterConfig(null), which names no soft-deletes or parent field and cannot be replaced by the caller, so IndexWriter.addIndexes rejects the input's field infos with IllegalArgumentException ('this index has [soft] as soft-deletes already but soft-deletes field is not configured in IWC', or 'can't add field [_parent] as parent document field; this IndexWriter has no parent document field configured') and nothing is split.
+You split an index with MultiPassIndexSplitter, for example one written with IndexWriterConfig#setSoftDeletesField("soft") and a single softUpdateDocument call, or one written with IndexWriterConfig#setParentField("_parent"), and expect it to split like any other index: the split() javadoc says the source 'can have deletions, can have multiple segments (or multiple readers)', and the only documented limitation is that document blocks may be broken up. Instead split() opens every part's IndexWriter with new IndexWriterConfig(null), which names no soft-deletes or parent field and cannot be replaced by the caller, so IndexWriter.addIndexes rejects the input's field infos with IllegalArgumentException ('this index has [soft] as soft-deletes already but soft-deletes field is not configured in IWC', or 'can't add field [_parent] as parent document field; this IndexWriter has no parent document field configured') and nothing is split.
 
 The test shows that `MultiPassIndexSplitter.split` cannot split an index that uses soft deletes: each part's writer gets a bare `IndexWriterConfig`, so `addIndexes` rejects the input's soft-deletes field.
 
@@ -22,7 +24,7 @@ Expected the 2 live documents (one `softUpdateDocument` under `setSoftDeletesFie
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,18 +1,18 @@
 # Test framework: AssertingLeafCollector's DocIdStream wrapper ignores upTo in forEach(int upTo, IOIntConsumer) and passes every remaining doc to the consumer, so a collector that reads a stream in bounded steps under AssertingIndexSearcher (the default of LuceneTestCase.newSearcher) gets wrong per-step results with -da and a spurious 'exhausted' AssertionError on its next legal call with -ea
 
-Bug LFV-664 · Area: test-framework / search: AssertingLeafCollector DocIdStream wrapper (AssertingIndexSearcher, bulk collection) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-664 · Area: test-framework / search: AssertingLeafCollector DocIdStream wrapper (AssertingIndexSearcher, bulk collection) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-In a Lucene test you search with LuceneTestCase.newSearcher (an AssertingIndexSearcher) and a collector whose collect(DocIdStream) first calls stream.forEach(5, consumer) and then stream.count for the rest, which the DocIdStream javadoc allows ('up to the given upTo exclusive... It is not possible to iterate these doc IDs again later on'). You expect the split a plain IndexSearcher gives: docs 0-4 in the first step and docs 5-9 counted afterwards. Instead the test framework's wrapper calls the wrapped stream's unbounded forEach, so the first step also receives docs 5-9 and the second step gets nothing (with -da), and with -ea the nested wrapper then rejects the legal count with AssertionError 'exhausted'.
+In a Lucene test you search with LuceneTestCase.newSearcher (an AssertingIndexSearcher) and a collector whose collect(DocIdStream) first calls stream.forEach(5, consumer) and then stream.count() for the rest, which the DocIdStream javadoc allows ('up to the given upTo exclusive ... It is not possible to iterate these doc IDs again later on'). You expect the split a plain IndexSearcher gives: docs 0-4 in the first step and docs 5-9 counted afterwards. Instead the test framework's wrapper calls the wrapped stream's unbounded forEach, so the first step also receives docs 5-9 and the second step gets nothing (with -da), and with -ea the nested wrapper then rejects the legal count() with AssertionError 'exhausted'.
 
 The test shows that the test framework's `AssertingLeafCollector` wraps a DocIdStream, and the wrapper's `forEach(int upTo, consumer)` ignores `upTo`, so it passes every remaining doc to the consumer.
 
 ## Expected vs actual
 
-Expected: `forEach(5,...)` over docs 0-9 sees `[0, 1, 2, 3, 4]`. Actual on main with -ea and with -da: `[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]`.
+Expected: `forEach(5, ...)` over docs 0-9 sees `[0, 1, 2, 3, 4]`. Actual on main with -ea and with -da: `[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]`.
 
 ## Files
 
@@ -22,7 +22,7 @@ Expected: `forEach(5,...)` over docs 0-9 sees `[0, 1, 2, 3, 4]`. Actual on main 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,12 +1,12 @@
 # GetTermInfo.getTermInfo opens a DirectoryReader on the caller's Directory and never closes it, so every call leaks that reader's open index files (file descriptors or memory mappings)
 
-Bug LFV-624 · Area: misc / index tools (GetTermInfo command-line helper) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-624 · Area: misc / index tools (GetTermInfo command-line helper) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You call GetTermInfo.getTermInfo(dir, term) from Java to print a term's document frequency and total term frequency, and expect it to release the index files it opened, as its sibling HighFreqTerms.main does for its reader. Instead it opens a DirectoryReader, prints the two numbers and returns without closing the reader, which the caller never sees and so cannot close. Every call leaves that reader's files open, and closing the Directory does not release them: Lucene's own MockDirectoryWrapper then refuses to close ('cannot close: there are still 1 open files: {_0.cfs=1}'), and 20 calls left 40 descriptors (NIOFS) or 40 mappings (mmap, still there after System.gc) where a caller-closed reader leaves 0.
+You call GetTermInfo.getTermInfo(dir, term) from Java to print a term's document frequency and total term frequency, and expect it to release the index files it opened, as its sibling HighFreqTerms.main does for its reader. Instead it opens a DirectoryReader, prints the two numbers and returns without closing the reader, which the caller never sees and so cannot close. Every call leaves that reader's files open, and closing the Directory does not release them: Lucene's own MockDirectoryWrapper then refuses to close ('cannot close: there are still 1 open files: {_0.cfs=1}'), and 20 calls left 40 descriptors (NIOFS) or 40 mappings (mmap, still there after System.gc()) where a caller-closed reader leaves 0.
 
 ## Expected vs actual
 
@@ -20,7 +20,7 @@ You call GetTermInfo.getTermInfo(dir, term) from Java to print a term's document
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

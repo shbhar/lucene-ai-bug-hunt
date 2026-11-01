@@ -1,17 +1,17 @@
-# SearcherTaxonomyManager.acquire spins forever at 100% CPU, instead of throwing the LUCENE-5436 IllegalStateException, when the current pair's taxonomy reader was closed outside the manager
+# SearcherTaxonomyManager.acquire() spins forever at 100% CPU, instead of throwing the LUCENE-5436 IllegalStateException, when the current pair's taxonomy reader was closed outside the manager
 
-Bug LFV-250 · Area: facet / taxonomy (SearcherTaxonomyManager.getRefCount and tryIncRef; the misuse guard in core ReferenceManager.acquire) · Priority: low · Impact: hang · Novelty: known upstream
+Finding LFV-250 · Area: facet / taxonomy (SearcherTaxonomyManager.getRefCount and tryIncRef; the misuse guard in core ReferenceManager.acquire) · Priority: low · Impact: hang · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You use SearcherTaxonomyManager and, through a bug in your own code, call decRef or close on the taxonomy reader of a pair you acquired (for example by wrapping pair.taxonomyReader in try-with-resources), then release the pair as usual. Since LUCENE-5436 (4.7.0) the next acquire is meant to detect such an outside reference-count change and throw IllegalStateException, which is what SearcherManager and the index-reader half of the same pair do. Instead acquire retries forever in a busy loop, because SearcherTaxonomyManager.getRefCount reports only the index reader's count, so the guard never sees that the taxonomy reader is closed; only closing the manager ends the loop, with AlreadyClosedException.
+You use SearcherTaxonomyManager and, through a bug in your own code, call decRef() or close() on the taxonomy reader of a pair you acquired (for example by wrapping pair.taxonomyReader() in try-with-resources), then release the pair as usual. Since LUCENE-5436 (4.7.0) the next acquire() is meant to detect such an outside reference-count change and throw IllegalStateException, which is what SearcherManager and the index-reader half of the same pair do. Instead acquire() retries forever in a busy loop, because SearcherTaxonomyManager.getRefCount reports only the index reader's count, so the guard never sees that the taxonomy reader is closed; only closing the manager ends the loop, with AlreadyClosedException.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: acquire retries forever in a busy loop, because SearcherTaxonomyManager.getRefCount reports only the index reader's count, so the guard never sees that the taxonomy reader is closed; only closing the manager ends the loop, with AlreadyClosedException.
+- Actual: acquire() retries forever in a busy loop, because SearcherTaxonomyManager.getRefCount reports only the index reader's count, so the guard never sees that the taxonomy reader is closed; only closing the manager ends the loop, with AlreadyClosedException.
 
 ## Files
 
@@ -22,7 +22,7 @@ You use SearcherTaxonomyManager and, through a bug in your own code, call decRef
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -51,7 +51,7 @@ The module(s) facet also need their third-party runtime jars; `./gradlew -p luce
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/nrt-reference-managers/](../../models/nrt-reference-managers/)
+Formal models and scripts this finding's part of the hunt used: [../../models/nrt-reference-managers/](../../models/nrt-reference-managers/)
 
 ## Feedback
 

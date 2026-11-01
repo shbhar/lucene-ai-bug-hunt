@@ -1,17 +1,17 @@
 # ByteBuffersDataInput readShort/readInt/readLong throw IndexOutOfBoundsException instead of EOFException on a read past the end of input longer than one block (ByteBuffersDirectory files over 1 KiB)
 
-Bug LFV-476 · Area: store / ByteBuffersDataInput sequential reads (ByteBuffersDirectory, ByteBuffersIndexInput, NRTCachingDirectory RAM tier) · Priority: low · Impact: wrong error · Novelty: known upstream
+Finding LFV-476 · Area: store / ByteBuffersDataInput sequential reads (ByteBuffersDirectory, ByteBuffersIndexInput, NRTCachingDirectory RAM tier) · Priority: low · Impact: wrong error · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You write a file of more than 1 KiB to a ByteBuffersDirectory (say 1,030 bytes), seek to 2 bytes before the end and call readInt, and expect an EOFException: readByte and readBytes of the same input throw it, NIOFSDirectory and MMapDirectory throw it for the same bytes, and BaseDirectoryTestCase#testIntsUnderflow requires it of every Directory. Instead readInt throws an unchecked IndexOutOfBoundsException (at the exact end of a 2,048-byte input an ArrayIndexOutOfBoundsException), and readShort, readLong, readShorts and readInts do the same, while a file that fits in the first 1 KiB block still gives EOFException. The cause is the fast path added in 9.0.0 (LUCENE-10149): it checks the read against the block size (blockOffset + width &lt;= blockMask), not against the end of the data in the last block, and reads with an absolute ByteBuffer get whose exception nothing translates.
+You write a file of more than 1 KiB to a ByteBuffersDirectory (say 1,030 bytes), seek to 2 bytes before the end and call readInt(), and expect an EOFException: readByte() and readBytes() of the same input throw it, NIOFSDirectory and MMapDirectory throw it for the same bytes, and BaseDirectoryTestCase#testIntsUnderflow requires it of every Directory. Instead readInt() throws an unchecked IndexOutOfBoundsException (at the exact end of a 2,048-byte input an ArrayIndexOutOfBoundsException), and readShort, readLong, readShorts and readInts do the same, while a file that fits in the first 1 KiB block still gives EOFException. The cause is the fast path added in 9.0.0 (LUCENE-10149): it checks the read against the block size (blockOffset + width &lt;= blockMask), not against the end of the data in the last block, and reads with an absolute ByteBuffer get whose exception nothing translates.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: readInt throws an unchecked IndexOutOfBoundsException (at the exact end of a 2,048-byte input an ArrayIndexOutOfBoundsException), and readShort, readLong, readShorts and readInts do the same, while a file that fits in the first 1 KiB block still gives EOFException.
+- Actual: readInt() throws an unchecked IndexOutOfBoundsException (at the exact end of a 2,048-byte input an ArrayIndexOutOfBoundsException), and readShort, readLong, readShorts and readInts do the same, while a file that fits in the first 1 KiB block still gives EOFException.
 
 ## Files
 
@@ -21,7 +21,7 @@ You write a file of more than 1 KiB to a ByteBuffersDirectory (say 1,030 bytes),
 ## Run it
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

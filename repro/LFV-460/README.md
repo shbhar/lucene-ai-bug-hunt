@@ -1,12 +1,14 @@
 # IndexWriter#hasDeletions ignores committed soft deletes in segments the writer has not pooled, so a writer reopened on an index whose only deletions are soft deletes (or one that took such segments through addIndexes(Directory)) answers false, and true once an NRT reader is opened
 
-Bug LFV-460 · Area: index / IndexWriter statistics (soft deletes) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-460 · Area: index / IndexWriter statistics (soft deletes) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-460.html](../../bugs/LFV-460.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You configure a soft-deletes field, soft-delete a document (softUpdateDocument, or updateDocValues on that field), commit, close, and open a new IndexWriter on the index; you expect hasDeletions to return true, because its javadoc says 'Returns true if this index has deletions', IndexWriterConfig#setSoftDeletesField says a soft-deleted document 'is treated as if it has been hard-deleted through the IndexWriter API', and the same writer's getDocStats reports maxDoc 3 and numDocs 2. Instead it returns false, with -ea and -da, until DirectoryReader.open(writer) puts the segment into the reader pool; after that the same call on the unchanged index returns true. The loop over committed segments uses SegmentCommitInfo#hasDeletions (delGen != -1, hard deletes only), while the buffered and pooled branches of the same method count soft deletes; the one-line fix is info.getDelCount(softDeletesEnabled) &gt; 0.
+You configure a soft-deletes field, soft-delete a document (softUpdateDocument, or updateDocValues on that field), commit, close, and open a new IndexWriter on the index; you expect hasDeletions() to return true, because its javadoc says 'Returns true if this index has deletions', IndexWriterConfig#setSoftDeletesField says a soft-deleted document 'is treated as if it has been hard-deleted through the IndexWriter API', and the same writer's getDocStats() counts the deleted document (maxDoc 2 and numDocs 1 in the repro). Instead it returns false, with -ea and -da, until DirectoryReader.open(writer) puts the segment into the reader pool; after that the same call on the unchanged index returns true. The loop over committed segments uses SegmentCommitInfo#hasDeletions() (delGen != -1, hard deletes only), while the buffered and pooled branches of the same method count soft deletes; the one-line fix is info.getDelCount(softDeletesEnabled) &gt; 0.
 
 The test shows that with a soft-deletes field, a document soft-deleted by `softUpdateDocument` and committed makes a newly opened `IndexWriter` answer `hasDeletions() == false`, while the same writer's `getDocStats()` counts the deleted document.
 
@@ -22,7 +24,7 @@ Expected `true` (getDocStats maxDoc=2, numDocs=1); actual `false` (`expected:<tr
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

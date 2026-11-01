@@ -1,17 +1,17 @@
 # Tessellator bridges a later hole across an earlier hole when the earlier hole touches the outer ring at a vertex where an outer edge and a hole edge are collinear: after filterPoints drops the straight-run copy of that vertex, fetchHoleBridge breaks an equal-x ray tie at it by ring order, so LatLonShape and XYShape match points inside the hole (depends on the outer ring's start vertex)
 
-Bug LFV-796 · Area: geo / Tessellator hole elimination (polygon indexing for LatLonShape and XYShape) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-796 · Area: geo / Tessellator hole elimination (polygon indexing for LatLonShape and XYShape) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index a valid polygon with LatLonShape or XYShape whose clockwise outer ring (2,3) (2,5) (4,4) (5,0) (0,0) has a counter-clockwise hole A (2,3) (1,1) (2,1), which touches the ring only at V=(2,3) where the outer edge (2,5)-(2,3) and the hole edge (2,3)-(2,1) lie on the line x = 2, and a second hole B (3,3) (4,2) (4,3) that touches nothing, and you expect the triangles to cover the polygon minus both holes (area 12.5). After hole A is merged at V, the filterPoints pass that eliminateHoles runs after every hole (Tessellator.java:347) drops the copy of V on that straight run; hole B's leftward ray from (3,3) then hits two edges exactly at V, and fetchHoleBridge keeps whichever comes first in ring order (the strict 'x &gt; qx' at:549), so with the ring written from (2,3) hole B is bridged to (0,0) straight across hole A. The triangles then cover hole A (total area 16.0), the point (1.75,1.5) inside hole A matches INTERSECTS and misses DISJOINT, and the strict path rejects the polygon as self-intersecting; the other four ring starts are exact on main (on 8.2.0-9.12.2 and 10.0.0-10.3.2 the failing start is (2,5) instead).
+You index a valid polygon with LatLonShape or XYShape whose clockwise outer ring (2,3) (2,5) (4,4) (5,0) (0,0) has a counter-clockwise hole A (2,3) (1,1) (2,1), which touches the ring only at V=(2,3) where the outer edge (2,5)-(2,3) and the hole edge (2,3)-(2,1) lie on the line x = 2, and a second hole B (3,3) (4,2) (4,3) that touches nothing, and you expect the triangles to cover the polygon minus both holes (area 12.5). After hole A is merged at V, the filterPoints pass that eliminateHoles runs after every hole (Tessellator.java:347) drops the copy of V on that straight run; hole B's leftward ray from (3,3) then hits two edges exactly at V, and fetchHoleBridge keeps whichever comes first in ring order (the strict 'x &gt; qx' at :549), so with the ring written from (2,3) hole B is bridged to (0,0) straight across hole A. The triangles then cover hole A (total area 16.0), the point (1.75,1.5) inside hole A matches INTERSECTS and misses DISJOINT, and the strict path rejects the polygon as self-intersecting; the other four ring starts are exact on main (on 8.2.0-9.12.2 and 10.0.0-10.3.2 the failing start is (2,5) instead).
 
 ## Expected vs actual
 
 - Expected: You expect the triangles to cover the polygon minus both holes (area 12.5).
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -20,7 +20,7 @@ You index a valid polygon with LatLonShape or XYShape whose clockwise outer ring
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

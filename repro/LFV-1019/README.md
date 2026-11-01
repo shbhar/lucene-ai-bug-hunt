@@ -1,6 +1,6 @@
 # geo.Circle's class javadoc 'Example usage' calls LatLonShape.newDistanceQuery("location", circle), but the only overload is newDistanceQuery(String, QueryRelation, Circle...), so the example has not compiled on any release since #14534 added it in 10.3.0 (documentation defect)
 
-Bug LFV-1019 · Area: core / geo (Circle class javadoc example) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-1019 · Area: core / geo (Circle class javadoc example) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -11,7 +11,7 @@ The javadoc of org.apache.lucene.geo.Circle shows 'Example usage': make a circle
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -20,7 +20,7 @@ The javadoc of org.apache.lucene.geo.Circle shows 'Example usage': make a circle
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

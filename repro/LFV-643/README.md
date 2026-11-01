@@ -1,14 +1,14 @@
 # IndexWriter.updateBinaryDocValue and updateDocValues(Term, BinaryDocValuesField) keep the caller's BytesRef without copying it, so documents still buffered in RAM get the bytes that BytesRef holds at the writer's next document or flush instead of the value passed to the call (every release since 4.8.0)
 
-Bug LFV-643 · Area: index / IndexWriter doc-values updates (BinaryDocValuesUpdate, DocumentsWriterDeleteQueue slices, FieldUpdatesBuffer) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-643 · Area: index / IndexWriter doc-values updates (BinaryDocValuesUpdate, DocumentsWriterDeleteQueue slices, FieldUpdatesBuffer) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-643.html](../../bugs/LFV-643.html)
+Finding page: [../../bugs/LFV-643.html](../../bugs/LFV-643.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You call IndexWriter.updateBinaryDocValue(term, field, value), or updateDocValues(term, binaryDocValuesField), and afterwards reuse or change that BytesRef, for example one BytesRefBuilder scratch for a loop of updates or a BinaryDocValues.binaryValue taken from another reader; each document should get the value it was passed. Documents in flushed segments do, but documents still buffered in RAM get whatever bytes the BytesRef holds when the writer next adds a document or flushes, so a loop over one scratch buffer gives every buffered target the last value. The wrong value is committed silently: no exception, CheckIndex is clean, and the outcome depends on whether the target document had already been flushed.
+You call IndexWriter.updateBinaryDocValue(term, field, value), or updateDocValues(term, binaryDocValuesField), and afterwards reuse or change that BytesRef, for example one BytesRefBuilder scratch for a loop of updates or a BinaryDocValues.binaryValue() taken from another reader; each document should get the value it was passed. Documents in flushed segments do, but documents still buffered in RAM get whatever bytes the BytesRef holds when the writer next adds a document or flushes, so a loop over one scratch buffer gives every buffered target the last value. The wrong value is committed silently: no exception, CheckIndex is clean, and the outcome depends on whether the target document had already been flushed.
 
 The test shows that IndexWriter.updateBinaryDocValue keeps the caller's BytesRef, so a buffered document updated through a reused BytesRefBuilder gets the scratch's later bytes instead of the value passed to its call.
 
@@ -24,7 +24,7 @@ Expected doc 0 to hold `new0` after commit; actual: `new1` (`expected:<new[0]> b
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

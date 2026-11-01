@@ -1,6 +1,8 @@
-# LongRange/DoubleRange#getQuery(fastMatchQuery,...) range queries report themselves as a leaf in visit and never visit their fast-match query, so IndexSearcher's maxClauseCount check never counts the fast-match query
+# LongRange/DoubleRange#getQuery(fastMatchQuery, ...) range queries report themselves as a leaf in visit() and never visit their fast-match query, so IndexSearcher's maxClauseCount check never counts the fast-match query
 
-Bug LFV-917 · Area: facet / range queries (LongRange/DoubleRange ValueSourceQuery and MultiValueSourceQuery QueryVisitor traversal; consumers: IndexSearcher's cumulative clause limit, QueryVisitor.termCollector, RamUsageEstimator.sizeOf(Query)) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-917 · Area: facet / range queries (LongRange/DoubleRange ValueSourceQuery and MultiValueSourceQuery QueryVisitor traversal; consumers: IndexSearcher's cumulative clause limit, QueryVisitor.termCollector, RamUsageEstimator.sizeOf(Query)) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-917.html](../../bugs/LFV-917.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected `IndexSearcher.TooManyNestedClauses`; actual: the search runs with no e
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

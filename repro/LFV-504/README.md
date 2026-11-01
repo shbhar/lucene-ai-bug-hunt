@@ -1,14 +1,14 @@
 # DirectIOIndexInput.fill moves filePos to the next block, and clears the buffer, before its EOF check and before the channel read succeeds, so after a read that threw, a legal seek or the next read on the same input returns bytes of another file position or a spurious EOFException (since 9.0.0)
 
-Bug LFV-504 · Area: misc / store: DirectIODirectory (DirectIOIndexInput.fill and seek) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-504 · Area: misc / store: DirectIODirectory (DirectIOIndexInput.fill and seek) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-504.html](../../bugs/LFV-504.html)
+Finding page: [../../bugs/LFV-504.html](../../bugs/LFV-504.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You read a file through the misc DirectIODirectory, one read on an input throws (an EOFException because it asked for more bytes than are left, or an IOException from a transient storage error), and you then seek back to a legal position, or simply read again, on the same input. You expect the bytes at the file pointer, or another exception (after the same read-past-EOF sequences MMapDirectory returns the right bytes). Instead fill had already moved its window position (filePos) to the next block, and on the read path cleared the buffer, before it threw, so the next reads silently return bytes of a different position of the same file (or throw EOFException at a legal position) while getFilePointer reports the requested one.
+You read a file through the misc DirectIODirectory, one read on an input throws (an EOFException because it asked for more bytes than are left, or an IOException from a transient storage error), and you then seek back to a legal position, or simply read again, on the same input. You expect the bytes at the file pointer, or another exception (after the same read-past-EOF sequences MMapDirectory returns the right bytes). Instead fill() had already moved its window position (filePos) to the next block, and on the read path cleared the buffer, before it threw, so the next reads silently return bytes of a different position of the same file (or throw EOFException at a legal position) while getFilePointer() reports the requested one.
 
 The test shows that after a readBytes past EOF on a DirectIODirectory input, a legal seek lands in a stale buffer (fill() moved filePos before its EOF check threw), so the next read silently returns a byte of another file position.
 
@@ -24,7 +24,7 @@ Expected: `readByte()` after `seek(block + 1)` returns the byte at position bloc
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

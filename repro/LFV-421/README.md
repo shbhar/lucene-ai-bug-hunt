@@ -1,6 +1,6 @@
 # BpVectorReorderer scales a zero DOT_PRODUCT/COSINE centroid by 1/sqrt(0), so a split whose vectors cancel out gets a NaN centroid: with assertions on, reordering fails and a reordering merge closes the IndexWriter; with assertions off, that split is silently not refined
 
-Bug LFV-421 · Area: misc / BP merge-time reordering (BpVectorReorderer centroid arithmetic) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-421 · Area: misc / BP merge-time reordering (BpVectorReorderer centroid arithmetic) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ Expected a DocMap; actual with `-ea`: `AssertionError: not finite: NaN from <[1.
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

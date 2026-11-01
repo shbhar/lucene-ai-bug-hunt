@@ -1,14 +1,14 @@
-# Hunspell Dictionary with FLAG UTF-8 and an 8-bit SET other than ISO8859-1 silently merges UTF-8 flags that share a lead byte, so spell and the stemmer accept forms the dictionary forbids (some SET values fail to load instead)
+# Hunspell Dictionary with FLAG UTF-8 and an 8-bit SET other than ISO8859-1 silently merges UTF-8 flags that share a lead byte, so spell() and the stemmer accept forms the dictionary forbids (some SET values fail to load instead)
 
-Bug LFV-932 · Area: analysis / hunspell (Dictionary FLAG UTF-8 parsing under the SET encoding) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-932 · Area: analysis / hunspell (Dictionary FLAG UTF-8 parsing under the SET encoding) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-932.html](../../bugs/LFV-932.html)
+Finding page: [../../bugs/LFV-932.html](../../bugs/LFV-932.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You load a Hunspell dictionary whose affix file says FLAG UTF-8 (flags are UTF-8 characters) and SET ISO8859-2, KOI8-R, microsoft-cp1251 or another 8-bit encoding except ISO8859-1, with two suffix classes whose flags are, say, U+00E1 and U+00E2, and expect what C Hunspell 1.3.2 and 1.7.2 do on the same bytes: a word that carries only the first flag takes only the first suffix. Instead Lucene reads the flags from text already decoded with the SET charset, so each 2-byte flag becomes two characters and an affix rule keeps only the first one, the shared lead byte: both classes merge, spell accepts the forbidden forms (kote, lasa in the repro) and the stemmer returns kot for kote, with no error. Only no SET, SET ISO8859-1 and SET UTF-8 work; ISO8859-14 merges too (its decoder reports ISO-8859-1 as its charset, and the re-encode turns remapped flag bytes into '?'), and with ISO8859-3, -6 or -8 the load throws UnmappableCharacterException because a flag byte is unassigned in that charset.
+You load a Hunspell dictionary whose affix file says FLAG UTF-8 (flags are UTF-8 characters) and SET ISO8859-2, KOI8-R, microsoft-cp1251 or another 8-bit encoding except ISO8859-1, with two suffix classes whose flags are, say, U+00E1 and U+00E2, and expect what C Hunspell 1.3.2 and 1.7.2 do on the same bytes: a word that carries only the first flag takes only the first suffix. Instead Lucene reads the flags from text already decoded with the SET charset, so each 2-byte flag becomes two characters and an affix rule keeps only the first one, the shared lead byte: both classes merge, spell() accepts the forbidden forms (kote, lasa in the repro) and the stemmer returns kot for kote, with no error. Only no SET, SET ISO8859-1 and SET UTF-8 work; ISO8859-14 merges too (its decoder reports ISO-8859-1 as its charset, and the re-encode turns remapped flag bytes into '?'), and with ISO8859-3, -6 or -8 the load throws UnmappableCharacterException because a flag byte is unassigned in that charset.
 
 The test shows that with `SET ISO8859-2` and `FLAG UTF-8`, the suffix classes U+00E1 (`-a`) and U+00E2 (`-e`) share the UTF-8 lead byte 0xC3; Lucene parses flags from ISO8859-2-decoded text, so both affix flags become that lead byte and `kot/á` takes the `-e` suffix too.
 
@@ -24,7 +24,7 @@ Expected `spell("kote")` false, as C Hunspell answers (kot has only flag U+00E1)
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

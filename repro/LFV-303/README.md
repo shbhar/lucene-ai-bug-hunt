@@ -1,14 +1,14 @@
 # Multi-valued range facet counts drop matches when a document's values do not arrive in ascending order (custom MultiLongValuesSource/MultiDoubleValuesSource, or raw-bit doubles with two or more negative values): LongRangeCounter.addMultiValued assumes sorted values
 
-Bug LFV-303 · Area: facet / range facet counts (LongRangeCounter multi-valued path, exclusive and overlapping counters) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-303 · Area: facet / range facet counts (LongRangeCounter multi-valued path, exclusive and overlapping counters) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-303.html](../../bugs/LFV-303.html)
+Finding page: [../../bugs/LFV-303.html](../../bugs/LFV-303.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You compute range facet counts over a multi-valued source, for example the distances from the user to each of a document's locations computed by your own MultiDoubleValuesSource, or doubles stored as raw bits in a SortedNumeric field and read with fromDoubleField or the DoubleRangeFacetCounts(String,...) constructor. You expect each range to count every document that has at least one value in it, which is exactly what the range's own drill-down query finds. Instead, when a document's values arrive in descending order (a custom source in its natural order, or raw-bit doubles whenever the document has two or more negative values), the counter skips every later value that sorts below an interval it already counted for that document, so a document with distances {3.0, 0.5} is missing from '&lt; 1 km' and '&lt; 2 km'.
+You compute range facet counts over a multi-valued source, for example the distances from the user to each of a document's locations computed by your own MultiDoubleValuesSource, or doubles stored as raw bits in a SortedNumeric field and read with fromDoubleField or the DoubleRangeFacetCounts(String, ...) constructor. You expect each range to count every document that has at least one value in it, which is exactly what the range's own drill-down query finds. Instead, when a document's values arrive in descending order (a custom source in its natural order, or raw-bit doubles whenever the document has two or more negative values), the counter skips every later value that sorts below an interval it already counted for that document, so a document with distances {3.0, 0.5} is missing from '&lt; 1 km' and '&lt; 2 km'.
 
 The test shows that LongRangeFacetCounts drops a match when a custom MultiLongValuesSource gives one doc the values {30, 5} (not ascending): LongRangeCounter.addMultiValued skips 5 after counting 30.
 
@@ -24,7 +24,7 @@ Expected count 1 for range [0, 10) (the range's own drill-down query finds the d
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

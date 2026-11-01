@@ -1,6 +1,8 @@
 # ToParentBlockJoinSortField on a STRING field with max-child selection and childMissingValue=STRING_LAST throws IndexOutOfBoundsException when a parent has children both with and without the field
 
-Bug LFV-223 · Area: join / ToParentBlockJoinSortField string sort (ToParentDocValues missing-child ordinals, since #15727) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-223 · Area: join / ToParentBlockJoinSortField string sort (ToParentDocValues missing-child ordinals, since #15727) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-223.html](../../bugs/LFV-223.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected the search to return the parent (1 hit); actual: `IndexOutOfBoundsExcep
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

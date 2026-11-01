@@ -1,8 +1,8 @@
 # BPIndexReorderer assumes every segment ends with a parent document: once a segment ends with child documents that have no parent after them, each BP reordering merge in which that segment comes last throws and closes the IndexWriter
 
-Bug LFV-417 · Area: misc / BP merge-time reordering (BPIndexReorderer with document blocks) · Priority: medium · Impact: index unusable · Novelty: new
+Finding LFV-417 · Area: misc / BP merge-time reordering (BPIndexReorderer with document blocks) · Priority: medium · Impact: index unusable · Novelty: new
 
-Bug page: [../../bugs/LFV-417.html](../../bugs/LFV-417.html)
+Finding page: [../../bugs/LFV-417.html](../../bugs/LFV-417.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -14,7 +14,7 @@ The test shows that with setParentField and BPReorderingMergePolicy(BPIndexReord
 
 ## Expected vs actual
 
-Expected: forceMerge(1) succeeds; actual: it throws (AssertionError at BPIndexReorderer.java:329 with -ea, ArrayIndexOutOfBoundsException "Index 65 out of bounds for length 65" at:377 with -da) and closes the writer.
+Expected: forceMerge(1) succeeds; actual: it throws (AssertionError at BPIndexReorderer.java:329 with -ea, ArrayIndexOutOfBoundsException "Index 65 out of bounds for length 65" at :377 with -da) and closes the writer.
 
 ## Files
 
@@ -24,7 +24,7 @@ Expected: forceMerge(1) succeeds; actual: it throws (AssertionError at BPIndexRe
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

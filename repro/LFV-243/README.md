@@ -1,14 +1,14 @@
 # DocValuesRewriteMethod's Weight#matches looks the matched terms up in the postings, so on a doc-values-only field it returns null for every hit of newSlowSetQuery or any DOC_VALUES_REWRITE query (highlights are silently lost, and a MUST_NOT clause of this kind fails open in Weight#matches)
 
-Bug LFV-243 · Area: core / search: MultiTermQuery rewrite methods (DocValuesRewriteMethod, DOC_VALUES_REWRITE) and the Matches API (Weight#matches) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-243 · Area: core / search: MultiTermQuery rewrite methods (DocValuesRewriteMethod, DOC_VALUES_REWRITE) and the Matches API (Weight#matches) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-243.html](../../bugs/LFV-243.html)
+Finding page: [../../bugs/LFV-243.html](../../bugs/LFV-243.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You keep a keyword field as doc values only, filter on it with SortedSetDocValuesField.newSlowSetQuery or a PrefixQuery with DOC_VALUES_REWRITE (DocValuesRewriteMethod says it 'can be used to perform these queries against an unindexed docvalues field'), and expect Weight#matches to return non-null Matches (MATCH_WITH_NO_TERMS) for every hit, as its javadoc promises for DocValues queries and as newSlowExactQuery on the same field does. Instead matches looks the matched terms up in the field's postings, which do not exist, so it returns null for every hit; for +body:fruit #tags:(banana) the UnifiedHighlighter with default settings returns 'a ripe fruit in a basket' with no highlighted term, while the same query with newSlowRangeQuery as the filter highlights '&lt;b&gt;fruit&lt;/b&gt;'. As a MUST_NOT clause the same null makes Weight#matches non-null for documents the clause excludes; hits, counts and scores stay correct.
+You keep a keyword field as doc values only, filter on it with SortedSetDocValuesField.newSlowSetQuery or a PrefixQuery with DOC_VALUES_REWRITE (DocValuesRewriteMethod says it 'can be used to perform these queries against an unindexed docvalues field'), and expect Weight#matches to return non-null Matches (MATCH_WITH_NO_TERMS) for every hit, as its javadoc promises for DocValues queries and as newSlowExactQuery on the same field does. Instead matches() looks the matched terms up in the field's postings, which do not exist, so it returns null for every hit; for +body:fruit #tags:(banana) the UnifiedHighlighter with default settings returns 'a ripe fruit in a basket' with no highlighted term, while the same query with newSlowRangeQuery as the filter highlights '&lt;b&gt;fruit&lt;/b&gt;'. As a MUST_NOT clause the same null makes Weight#matches non-null for documents the clause excludes; hits, counts and scores stay correct.
 
 The test shows that `Weight#matches` of `SortedSetDocValuesField.newSlowSetQuery` (DOC_VALUES_REWRITE) on a doc-values-only field returns null for a hit, because it looks the term up in postings that do not exist.
 
@@ -24,7 +24,7 @@ Expected non-null Matches (MATCH_WITH_NO_TERMS, per the Weight#matches javadoc) 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

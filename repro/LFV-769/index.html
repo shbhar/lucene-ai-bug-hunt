@@ -18,18 +18,19 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>Monitor.match can throw NullPointerException while queries are being registered (or while a read-only Monitor refreshes), because QueryIndex keeps its per-reader term filters in a plain HashMap that the searcher refresh and reader-close listeners modify while match threads read it without a lock</h1>
-<p class="facts small"><span>Bug LFV-769</span><span>Area: monitor / QueryIndex term-filter map (searcher refresh vs concurrent match, writable and read-only Monitor)</span><span>Priority: low</span><span>Impact: crash</span><span>Novelty: new</span></p>
+<p class="facts small"><span>Finding LFV-769</span><span>Area: monitor / QueryIndex term-filter map (searcher refresh vs concurrent match, writable and read-only Monitor)</span><span>Priority: low</span><span>Impact: crash</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-769.html">Finding page for LFV-769</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You share one Monitor between threads: some threads call Monitor.match on documents while another registers new queries, and each register commits and opens a new query-index searcher, which the Monitor&#x27;s design for searches during commits allows. You expect every match of a valid document to return its matching queries. Instead, when the internal map from searcher to term filter (a plain java.util.HashMap) grows, a concurrent match can look up its own searcher&#x27;s entry and get null, and Monitor.match throws NullPointerException from TermFilteredPresearcher.buildQuery; the read-only Monitor fails the same way while its refresh runs.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect every match of a valid document to return its matching queries.</li><li><b>Actual:</b> When the internal map from searcher to term filter (a plain java.util.HashMap) grows, a concurrent match can look up its own searcher&#x27;s entry and get null, and Monitor.match throws NullPointerException from TermFilteredPresearcher.buildQuery; the read-only Monitor fails the same way while its refresh runs.</li></ul>
+<ul><li><b>Expected:</b> No <code>Monitor.match</code> call throws while another thread registers queries.</li><li><b>Actual:</b> <code>NullPointerException: ... &quot;this.val$termAcceptor&quot; is null</code> at <code>TermFilteredPresearcher.java:122</code>, thrown out of <code>Monitor.match</code>, with assertions on and off.</li></ul>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/monitor/TestMonitorTermFilterMapRace.java"><code>src/org/apache/lucene/monitor/TestMonitorTermFilterMapRace.java</code></a> <span class="dim">(JUnit test)</span></li>
 <li><a href="src/org/apache/lucene/monitor/TestReadonlyMonitorTermFilterMapRace.java"><code>src/org/apache/lucene/monitor/TestReadonlyMonitorTermFilterMapRace.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
 <li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
+<li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
@@ -54,4 +55,5 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.monitor.TestReadonlyMonitorTermFilterMapRace</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-30. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<h2>Files shown on the finding page</h2><ul><li><a href="TestMonitorMatchDuringRegister.java"><code>TestMonitorMatchDuringRegister.java</code></a></li></ul>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-01. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

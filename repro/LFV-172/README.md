@@ -1,6 +1,8 @@
 # IndexWriter accepts a stored string of 2^30 - 1 or more UTF-8 bytes of non-Latin-1 text (from about half of its own MAX_STORED_STRING_LENGTH up), but DataInput.readString can never decode it, so StoredFields#document, visitor-path merges and index-sorted flushes throw OutOfMemoryError
 
-Bug LFV-172 · Area: core store + index / stored string fields (DataInput.readString decode, IndexWriter.MAX_STORED_STRING_LENGTH check) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-172 · Area: core store + index / stored string fields (DataInput.readString decode, IndexWriter.MAX_STORED_STRING_LENGTH check) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-172.html](../../bugs/LFV-172.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -10,8 +12,8 @@ You store a text field of 357,913,941 CJK characters (1,073,741,823 UTF-8 bytes,
 
 ## Expected vs actual
 
-- Expected: You expect StoredFields#document to return it, as it does for a string one character shorter.
-- Actual: Every read throws java.lang.OutOfMemoryError 'UTF16 String size is 1073741823, should be less than 1073741823', whatever the heap, because DataInput.readString decodes with new String(bytes, 0, length, UTF_8), which on JDK 9 and later sizes its UTF-16 buffer by the byte count and refuses 2^30 - 1 or more units; merges that copy the document through a visitor, and flushes of an index-sorted writer, throw the same Error and close IndexWriter.
+- Expected: `storedFields().document(0).get("f")` returns the 357,913,941-char string that was indexed and committed.
+- Actual: `OutOfMemoryError: UTF16 String size is 1073741823, should be less than 1073741823` from `DataInput.readString`, with assertions on and off.
 
 ## Files
 
@@ -21,7 +23,7 @@ You store a text field of 357,913,941 CJK characters (1,073,741,823 UTF-8 bytes,
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -43,7 +45,11 @@ java -ea -esa -Xmx8g --add-modules jdk.incubator.vector --enable-native-access=A
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/storedfields-compressing/](../../models/storedfields-compressing/)
+## Files shown on the finding page
+
+- [TestStoredStringOver1GiBUtf8.java](TestStoredStringOver1GiBUtf8.java)
+
+Formal models and scripts this finding's part of the hunt used: [../../models/storedfields-compressing/](../../models/storedfields-compressing/)
 
 ## Feedback
 

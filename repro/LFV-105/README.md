@@ -1,14 +1,14 @@
 # IndexingChain.invertTerm adds 2 to the field length for each single-term (InvertableType.BINARY) value, so untokenized DOCS_AND_FREQS fields with norms get double the norm and a lower BM25 score
 
-Bug LFV-105 · Area: index / indexing chain (single-term BINARY inversion, norms) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-105 · Area: index / indexing chain (single-term BINARY inversion, norms) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-105.html](../../bugs/LFV-105.html)
+Finding page: [../../bugs/LFV-105.html](../../bugs/LFV-105.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index one value in an untokenized field whose FieldType has DOCS_AND_FREQS and norms enabled, once through a plain Field (TokenStream inversion) and once through the single-term path (a Field subclass whose invertableType returns BINARY, or an IndexWriter#addBatch BinaryColumn or DictionaryColumn). You expect the same field length and norm, 1 per value, because FieldInvertState#getLength is the 'total number of terms in this field' and a BINARY value is documented as a single value with term frequency one. Instead IndexingChain.invertTerm adds 2 to the length for every value, so the norm is 2 (2k for k values) and the BM25 score of the identical document drops (0.082873434 to 0.058813408 in the repro), while the postings still record freq 1 per value.
+You index one value in an untokenized field whose FieldType has DOCS_AND_FREQS and norms enabled, once through a plain Field (TokenStream inversion) and once through the single-term path (a Field subclass whose invertableType() returns BINARY, or an IndexWriter#addBatch BinaryColumn or DictionaryColumn). You expect the same field length and norm, 1 per value, because FieldInvertState#getLength is the 'total number of terms in this field' and a BINARY value is documented as a single value with term frequency one. Instead IndexingChain.invertTerm adds 2 to the length for every value, so the norm is 2 (2k for k values) and the BM25 score of the identical document drops (0.082873434 to 0.058813408 in the repro), while the postings still record freq 1 per value.
 
 The test shows that one value of an untokenized `DOCS_AND_FREQS` field with norms, indexed through a `Field` whose `invertableType()` is `BINARY`, gets field length 2 in `IndexingChain.invertTerm`, so its BM25 norm is 2.
 
@@ -24,7 +24,7 @@ Expected norm 1 (one term, as `FieldInvertState#getLength` and the `InvertableTy
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

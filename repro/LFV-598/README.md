@@ -1,14 +1,14 @@
 # DelimitedPayloadTokenFilterFactory creates one instance of a custom PayloadEncoder class and hands it to every filter it creates, so all threads using the analyzer share it, and nothing documents that a custom encoder must be thread-safe: an encoder that reuses its BytesRef silently stores other documents' payloads during ordinary concurrent indexing, and one whose payloads vary in length makes the next flush throw and the IndexWriter close itself
 
-Bug LFV-598 · Area: analysis / analysis-common payloads (DelimitedPayloadTokenFilterFactory, PayloadEncoder, DelimitedPayloadTokenFilter) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-598 · Area: analysis / analysis-common payloads (DelimitedPayloadTokenFilterFactory, PayloadEncoder, DelimitedPayloadTokenFilter) · Priority: low · Impact: minor · Novelty: new
 
-Bug page: [../../bugs/LFV-598.html](../../bugs/LFV-598.html)
+Finding page: [../../bugs/LFV-598.html](../../bugs/LFV-598.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You configure DelimitedPayloadTokenFilterFactory with your own PayloadEncoder class whose encode reuses one BytesRef, which is correct inside any single token stream because PayloadAttributeImpl deep-copies payloads, and you index from four threads; you expect every document to keep its own payload, as it does when each filter gets its own encoder through the public constructor. Instead the factory creates the encoder once in inform and passes that one instance to every filter in create, so the per-thread analyzer components share it and another thread's encode overwrites a payload before the indexer reads it: on main, 384 to 7,153 of 20,000 documents end up with another document's payload, with no exception. PayloadEncoder, the factory and the analysis-factory javadocs say nothing about the encoder being shared or needing to be thread-safe, while the sibling PhoneticFilterFactory creates its class-loaded encoder per filter for exactly this reason.
+You configure DelimitedPayloadTokenFilterFactory with your own PayloadEncoder class whose encode() reuses one BytesRef, which is correct inside any single token stream because PayloadAttributeImpl deep-copies payloads, and you index from four threads; you expect every document to keep its own payload, as it does when each filter gets its own encoder through the public constructor. Instead the factory creates the encoder once in inform() and passes that one instance to every filter in create(), so the per-thread analyzer components share it and another thread's encode() overwrites a payload before the indexer reads it: on main, 384 to 7,153 of 20,000 documents end up with another document's payload, with no exception. PayloadEncoder, the factory and the analysis-factory javadocs say nothing about the encoder being shared or needing to be thread-safe, while the sibling PhoneticFilterFactory creates its class-loaded encoder per filter for exactly this reason.
 
 The test shows that two filters created by one `DelimitedPayloadTokenFilterFactory` (as an Analyzer creates one per thread) share the one custom `PayloadEncoder` instance made in `inform()`, so an encoder that reuses its BytesRef lets filter b overwrite filter a's payload.
 
@@ -24,7 +24,7 @@ Expected: a's token `x|1.0` keeps payload 1.0 after b reads `y|2.0`. Actual: `pa
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

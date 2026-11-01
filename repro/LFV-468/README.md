@@ -1,6 +1,6 @@
 # The flat scalar-quantized vectors format (Lucene104ScalarQuantizedVectorsFormat) accepts BYTE vector fields but its byte search is a no-op, so unfiltered byte kNN and byte similarity queries return no hits
 
-Bug LFV-468 · Area: codecs / vectors (flat scalar-quantized format: byte kNN and byte similarity search) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-468 · Area: codecs / vectors (flat scalar-quantized format: byte kNN and byte similarity search) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -23,7 +23,7 @@ You index a BYTE vector field with Lucene104ScalarQuantizedVectorsFormat, a regi
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

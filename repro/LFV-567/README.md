@@ -1,12 +1,12 @@
-# FunctionQuery, FunctionRangeQuery and ValueSource sort fields share one non-thread-safe context map across the slices of an executor search, and scale (ScaleFloatFunction) writes to it during the search, so when that write grows the map the search throws NullPointerException or silently returns different scores
+# FunctionQuery, FunctionRangeQuery and ValueSource sort fields share one non-thread-safe context map across the slices of an executor search, and scale() (ScaleFloatFunction) writes to it during the search, so when that write grows the map the search throws NullPointerException or silently returns different scores
 
-Bug LFV-567 · Area: queries / function queries (ValueSource context map under concurrent search) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-567 · Area: queries / function queries (ValueSource context map under concurrent search) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You search with a FunctionQuery (or FunctionRangeQuery, or a sort by ValueSource.getSortField) whose function uses scale together with about twenty context-storing sources such as query, on an IndexSearcher built with an executor, and expect the same hits and scores as on a searcher without one, because IndexSearcher is documented as completely thread safe. Instead all slices share the Weight's one IdentityHashMap context (documented 'non-threadsafe'), ScaleFloatFunction.getValues puts its min/max entry into it from the slice threads, and when that put resizes the map other slices miss entries such as "searcher". The search then throws NullPointerException, or, on a searcher with a non-default Similarity, QueryValueSource silently rebuilds its weight with the default Similarity and the scores and top hits change.
+You search with a FunctionQuery (or FunctionRangeQuery, or a sort by ValueSource.getSortField) whose function uses scale() together with about twenty context-storing sources such as query(), on an IndexSearcher built with an executor, and expect the same hits and scores as on a searcher without one, because IndexSearcher is documented as completely thread safe. Instead all slices share the Weight's one IdentityHashMap context (documented 'non-threadsafe'), ScaleFloatFunction.getValues puts its min/max entry into it from the slice threads, and when that put resizes the map other slices miss entries such as "searcher". The search then throws NullPointerException, or, on a searcher with a non-default Similarity, QueryValueSource silently rebuilds its weight with the default Similarity and the scores and top hits change.
 
 ## Expected vs actual
 
@@ -21,7 +21,7 @@ You search with a FunctionQuery (or FunctionRangeQuery, or a sort by ValueSource
 ## Run it
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

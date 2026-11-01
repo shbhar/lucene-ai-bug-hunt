@@ -1,8 +1,8 @@
 # SharedTermsUniformSplit merges silently drop the postings of fields that a source segment stored under another postings format or another shared-terms group (after a per-field postings mapping change, or addIndexes from an index with another mapping), because STUniformSplitTermsWriter.merge reads only the shared-terms block of the first field with terms in each source segment
 
-Bug LFV-249 · Area: codecs / SharedTermsUniformSplit postings format (STUniformSplitTermsWriter.merge under PerFieldPostingsFormat and PerFieldMergeState) · Priority: medium · Impact: data corruption · Novelty: new
+Finding LFV-249 · Area: codecs / SharedTermsUniformSplit postings format (STUniformSplitTermsWriter.merge under PerFieldPostingsFormat and PerFieldMergeState) · Priority: medium · Impact: data corruption · Novelty: new
 
-Bug page: [../../bugs/LFV-249.html](../../bugs/LFV-249.html)
+Finding page: [../../bugs/LFV-249.html](../../bugs/LFV-249.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected `docFreq(b:b1)` to be 1 after `forceMerge(1)`; actual 0 (`expected:<1> 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

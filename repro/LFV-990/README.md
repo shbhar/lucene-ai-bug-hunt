@@ -1,8 +1,8 @@
-# FileDictionary(InputStream) and PlainTextDictionary(Path/InputStream) decode the file as UTF-8 themselves but keep a leading byte order mark, so the file's first entry carries an invisible U+FEFF: prefix suggesters never suggest it and SpellChecker.exist does not find it
+# FileDictionary(InputStream) and PlainTextDictionary(Path/InputStream) decode the file as UTF-8 themselves but keep a leading byte order mark, so the file's first entry carries an invisible U+FEFF: prefix suggesters never suggest it and SpellChecker.exist() does not find it
 
-Bug LFV-990 · Area: suggest / text-file dictionaries (FileDictionary feeding Lookup.build, PlainTextDictionary feeding SpellChecker.indexDictionary) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-990 · Area: suggest / text-file dictionaries (FileDictionary feeding Lookup.build, PlainTextDictionary feeding SpellChecker.indexDictionary) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-990.html](../../bugs/LFV-990.html)
+Finding page: [../../bugs/LFV-990.html](../../bugs/LFV-990.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected the first entry of EF BB BF `foo<TAB>5` to be `foo` (`[66 6f 6f]`); act
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

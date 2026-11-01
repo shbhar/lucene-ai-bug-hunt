@@ -1,6 +1,6 @@
 # QueryAutoStopWordAnalyzer inherits its delegate's reuse strategy although its analysis chain differs per field, so with a stock delegate (GLOBAL_REUSE_STRATEGY) the chain built for the first field a thread analyses is reused for every other field: one field's stop words drop another field's query terms and a field's own stop words are kept (since 4.5.0)
 
-Bug LFV-594 · Area: analysis / QueryAutoStopWordAnalyzer (analysis-common query package; AnalyzerWrapper reuse strategy, Analyzer.ReuseStrategy) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-594 · Area: analysis / QueryAutoStopWordAnalyzer (analysis-common query package; AnalyzerWrapper reuse strategy, Analyzer.ReuseStrategy) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ You wrap a stock analyzer such as StandardAnalyzer in QueryAutoStopWordAnalyzer,
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

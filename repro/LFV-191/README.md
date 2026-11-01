@@ -1,12 +1,14 @@
 # IndexSplitter.split publishes a durable commit in the destination index without fsyncing the segment files it copied, so an OS crash or power loss soon after a split can leave a destination whose newest commit references empty files and cannot be opened
 
-Bug LFV-191 · Area: misc / index tools (IndexSplitter.split, SegmentInfos.commit durability) · Priority: low · Impact: index unusable · Novelty: new
+Finding LFV-191 · Area: misc / index tools (IndexSplitter.split, SegmentInfos.commit durability) · Priority: low · Impact: index unusable · Novelty: new
+
+Finding page: [../../bugs/LFV-191.html](../../bugs/LFV-191.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You copy segments into a new index with IndexSplitter (new IndexSplitter(src).split(dest, segments), or the command line 'IndexSplitter &lt;src&gt; &lt;dest&gt; &lt;segments&gt;'), and the machine crashes or loses power shortly after the call returns. You expect what every Lucene commit is built for (Directory.sync javadoc: Lucene syncs files 'to prevent a machine/OS crash from corrupting the index'; IndexWriter.commit syncs all referenced files first): the destination's commit only references files whose bytes are on stable storage. Instead split copies the segment files with Files.copy and never fsyncs them, and SegmentInfos.commit then fsyncs only the new segments_N and the directory, so the commit and the copied file names can survive the crash while the copied.si,.cfs and.cfe data does not, and opening the destination fails (CorruptSegmentInfoException on _1.si on main, CorruptIndexException on 10.5.2 and 9.12.3, in the simulated post-crash state).
+You copy segments into a new index with IndexSplitter (new IndexSplitter(src).split(dest, segments), or the command line 'IndexSplitter &lt;src&gt; &lt;dest&gt; &lt;segments&gt;'), and the machine crashes or loses power shortly after the call returns. You expect what every Lucene commit is built for (Directory.sync javadoc: Lucene syncs files 'to prevent a machine/OS crash from corrupting the index'; IndexWriter.commit syncs all referenced files first): the destination's commit only references files whose bytes are on stable storage. Instead split() copies the segment files with Files.copy and never fsyncs them, and SegmentInfos.commit then fsyncs only the new segments_N and the directory, so the commit and the copied file names can survive the crash while the copied .si, .cfs and .cfe data does not, and opening the destination fails (CorruptSegmentInfoException on _1.si on main, CorruptIndexException on 10.5.2 and 9.12.3, in the simulated post-crash state).
 
 The test shows that `IndexSplitter.split` publishes a commit in the destination without fsyncing the segment files it copied (only `pending_segments_N` and the directory are forced).
 
@@ -22,7 +24,7 @@ Expected: every file the split's commit references has been fsynced (Directory.s
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

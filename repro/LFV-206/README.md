@@ -1,6 +1,6 @@
 # Polygon2D.containsLine/containsTriangle accept a segment or triangle whose vertices lie on the boundary of a non-convex polygon even when it passes outside between them, so LatLonShape/XYShape WITHIN queries return false positives
 
-Bug LFV-206 · Area: geo / shape queries (Polygon2D containsLine/containsTriangle, LatLonShape and XYShape WITHIN) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-206 · Area: geo / shape queries (Polygon2D containsLine/containsTriangle, LatLonShape and XYShape WITHIN) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -11,7 +11,7 @@ You index a line or polygon whose corner points lie exactly on the boundary of a
 ## Expected vs actual
 
 - Expected: You expect only shapes that lie inside it.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -22,7 +22,7 @@ You index a line or polygon whose corner points lie exactly on the boundary of a
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

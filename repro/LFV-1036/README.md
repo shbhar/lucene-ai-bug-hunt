@@ -1,17 +1,19 @@
 # Luke: a sorted search ignores exactHitsCount, so a sorted Search-tab query with more than 1,000 hits shows a lower-bound total ('1001+ hits') although the Sort tab forces 'exact hits count' on
 
-Bug LFV-1036 · Area: luke / Search model, sorted search (SearchImpl.search) behind the Luke Search tab · Priority: low · Impact: minor · Novelty: new
+Finding LFV-1036 · Area: luke / Search model, sorted search (SearchImpl.search) behind the Luke Search tab · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-1036.html](../../bugs/LFV-1036.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You open an index in Luke, pick a sort field in the Sort tab (Luke then ticks and greys out 'exact hits count') and run a search that matches more than 1,000 documents; you expect the exact total, as the javadoc of the Sort overload of Search.search promises ('if set to true, the exact total hits count is returned'). Instead Luke shows a lower bound such as '1001+ hits', and there is no way to get the exact count of a sorted search. The cause is that SearchImpl.search passes exactHitsCount only to the unsorted collector; the sorted branch calls IndexSearcher.searchAfter(after, query, pageSize, sort), which counts exactly only up to 1,000 hits.
+You open an index in Luke, pick a sort field in the Sort tab (Luke then ticks and greys out 'exact hits count') and run a search that matches more than 1,000 documents; you expect the exact total, as the javadoc of the Sort overload of Search.search promises ('if set to true, the exact total hits count is returned'). Instead Luke shows a lower bound such as '1001+ hits', and there is no way to get the exact count of a sorted search. The cause is that SearchImpl.search() passes exactHitsCount only to the unsorted collector; the sorted branch calls IndexSearcher.searchAfter(after, query, pageSize, sort), which counts exactly only up to 1,000 hits.
 
 ## Expected vs actual
 
-- Expected: You expect the exact total, as the javadoc of the Sort overload of Search.search promises ('if set to true, the exact total hits count is returned').
-- Actual: Luke shows a lower bound such as '1001+ hits', and there is no way to get the exact count of a sorted search.
+- Expected: `TotalHits(1001, EQUAL_TO)`, shown in Luke as "1001 hits".
+- Actual: `AssertionError: expected:<1001 hits> but was:<1001+ hits>`, with assertions on and off, on main and 10.6.0.
 
 ## Files
 
@@ -20,7 +22,7 @@ You open an index in Luke, pick a sort field in the Sort tab (Luke then ticks an
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,6 +46,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) luke also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestSortedSearchExactHitsCount.java](TestSortedSearchExactHitsCount.java)
 
 ## Feedback
 

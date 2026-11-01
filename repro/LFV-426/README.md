@@ -1,6 +1,8 @@
 # XYDocValuesField.newDistanceSort accepts a NaN or infinite origin although its javadoc promises IllegalArgumentException for invalid coordinates (the LatLon twin and every other XY entry point reject such values); with a NaN origin, documents without a location sort first instead of last
 
-Bug LFV-426 · Area: core / document: XY distance sort (XYDocValuesField.newDistanceSort, XYPointSortField, XYPointDistanceComparator) · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-426 · Area: core / document: XY distance sort (XYDocValuesField.newDistanceSort, XYPointSortField, XYPointDistanceComparator) · Priority: low · Impact: wrong error · Novelty: new
+
+Finding page: [../../bugs/LFV-426.html](../../bugs/LFV-426.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected IllegalArgumentException from `newDistanceSort("p", Float.NaN, 0f)`; ac
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

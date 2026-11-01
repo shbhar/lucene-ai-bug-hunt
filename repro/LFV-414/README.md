@@ -1,17 +1,17 @@
-# LongRangeGroupSelector and DoubleRangeGroupSelector load their per-segment values only in setScorer, so grouping with score-less caching returns wrong groups (8.6.0-10.5.2) or throws NullPointerException (main), and DistinctValuesCollector with a range value selector always throws NullPointerException
+# LongRangeGroupSelector and DoubleRangeGroupSelector load their per-segment values only in setScorer, so grouping with score-less caching returns wrong groups (8.6.0-10.5.2) or throws NullPointerException (10.6.0 by reading, and main), and DistinctValuesCollector with a range value selector always throws NullPointerException
 
-Bug LFV-414 · Area: grouping / range group selectors (LongRangeGroupSelector, DoubleRangeGroupSelector) on scorer-less collection paths: the GroupingSearch score-less cache replay and the DistinctValuesCollector value selector · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-414 · Area: grouping / range group selectors (LongRangeGroupSelector, DoubleRangeGroupSelector) on scorer-less collection paths: the GroupingSearch score-less cache replay and the DistinctValuesCollector value selector · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You group a two-segment index (prices 5, 15, 25 | 35, 45, 55) into price ranges with GroupingSearch and new LongRangeGroupSelector(price, new LongRangeFactory(0, 20, 60)), sort by a field, and turn on the documented second-pass cache without scores, setCaching(100, false); you expect the same groups as without the cache: LongRange(0, 20) -&gt; docs 0, 1, LongRange(20, 40) -&gt; 2, 3, LongRange(40, 60) -&gt; 4, 5. Instead every release from 8.6.0 to 10.5.2 returns LongRange(0, 20) -&gt; none, LongRange(20, 40) -&gt; 0, 3 and LongRange(40, 60) -&gt; 1, 2, 4, 5 with no error (the first segment's documents are grouped by the second segment's prices), main throws NullPointerException, and DistinctValuesCollector with a range selector as its value selector throws NullPointerException in every version; DoubleRangeGroupSelector behaves the same. The cause is that both range selectors fetch their per-segment values only in setScorer, while the score-less cache replay and DistinctValuesCollector's per-group collector call setNextReader and advanceTo on the selector but never setScorer.
+You group a two-segment index (prices 5, 15, 25 | 35, 45, 55) into price ranges with GroupingSearch and new LongRangeGroupSelector(price, new LongRangeFactory(0, 20, 60)), sort by a field, and turn on the documented second-pass cache without scores, setCaching(100, false); you expect the same groups as without the cache: LongRange(0, 20) -&gt; docs 0, 1, LongRange(20, 40) -&gt; 2, 3, LongRange(40, 60) -&gt; 4, 5. Instead every release from 8.6.0 to 10.5.2 returns LongRange(0, 20) -&gt; none, LongRange(20, 40) -&gt; 0, 3 and LongRange(40, 60) -&gt; 1, 2, 4, 5 with no error (the first segment's documents are grouped by the second segment's prices), 10.6.0 (by reading) and main throw NullPointerException, and DistinctValuesCollector with a range selector as its value selector throws NullPointerException in every version; DoubleRangeGroupSelector behaves the same. The cause is that both range selectors fetch their per-segment values only in setScorer(), while the score-less cache replay and DistinctValuesCollector's per-group collector call setNextReader and advanceTo on the selector but never setScorer.
 
 ## Expected vs actual
 
 - Expected: You expect the same groups as without the cache: LongRange(0, 20) -&gt; docs 0, 1, LongRange(20, 40) -&gt; 2, 3, LongRange(40, 60) -&gt; 4, 5.
-- Actual: Every release from 8.6.0 to 10.5.2 returns LongRange(0, 20) -&gt; none, LongRange(20, 40) -&gt; 0, 3 and LongRange(40, 60) -&gt; 1, 2, 4, 5 with no error (the first segment's documents are grouped by the second segment's prices), main throws NullPointerException, and DistinctValuesCollector with a range selector as its value selector throws NullPointerException in every version; DoubleRangeGroupSelector behaves the same.
+- Actual: Every release from 8.6.0 to 10.5.2 returns LongRange(0, 20) -&gt; none, LongRange(20, 40) -&gt; 0, 3 and LongRange(40, 60) -&gt; 1, 2, 4, 5 with no error (the first segment's documents are grouped by the second segment's prices), 10.6.0 (by reading) and main throw NullPointerException, and DistinctValuesCollector with a range selector as its value selector throws NullPointerException in every version; DoubleRangeGroupSelector behaves the same.
 
 ## Files
 
@@ -24,7 +24,7 @@ You group a two-segment index (prices 5, 15, 25 | 35, 45, 55) into price ranges 
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,12 +1,14 @@
 # Intervals.atLeast accepts minShouldMatch 0 (also from query text such as fn:atLeast(0 a b)), and the query then throws NullPointerException or ArrayIndexOutOfBoundsException on every non-empty segment it searches instead of being rejected as an invalid argument
 
-Bug LFV-469 · Area: queries / intervals (Intervals.atLeast: MinimumShouldMatchIntervalsSource); queryparser / flexible StandardQueryParser fn:atLeast · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-469 · Area: queries / intervals (Intervals.atLeast: MinimumShouldMatchIntervalsSource); queryparser / flexible StandardQueryParser fn:atLeast · Priority: low · Impact: wrong error · Novelty: new
+
+Finding page: [../../bugs/LFV-469.html](../../bugs/LFV-469.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build Intervals.atLeast(0, Intervals.term("a"), Intervals.term("b")), or parse 'fn:atLeast(0 a b)' with the flexible StandardQueryParser, and search an index that contains 'a b c'. You expect the 0 to be rejected with an IllegalArgumentException when the query is built (the same factory already handles a count equal to or larger than the number of sources), or else a search that runs. Instead the query is accepted and every search with it throws: NullPointerException in MinimumShouldMatchIntervalIterator.nextInterval, because top of its empty, capacity-0 queue is null, or ArrayIndexOutOfBoundsException from an empty DisiPriorityQueue on a segment that holds none of the terms.
+You build Intervals.atLeast(0, Intervals.term("a"), Intervals.term("b")), or parse 'fn:atLeast(0 a b)' with the flexible StandardQueryParser, and search an index that contains 'a b c'. You expect the 0 to be rejected with an IllegalArgumentException when the query is built (the same factory already handles a count equal to or larger than the number of sources), or else a search that runs. Instead the query is accepted and every search with it throws: NullPointerException in MinimumShouldMatchIntervalIterator.nextInterval, because top() of its empty, capacity-0 queue is null, or ArrayIndexOutOfBoundsException from an empty DisiPriorityQueue on a segment that holds none of the terms.
 
 The test shows that `Intervals.atLeast(0, term("a"), term("b"))` is accepted, and that counting it over a one-document index ("a b c") throws an internal NullPointerException.
 
@@ -22,7 +24,7 @@ Expected: 0 rejected when the source is built (IllegalArgumentException), or a s
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

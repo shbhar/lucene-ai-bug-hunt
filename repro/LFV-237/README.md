@@ -1,14 +1,14 @@
-# KnnVectorValues.fromDISI's advance leaves index stale, so on Lucene 10 sparse byte vectors in segments written by Lucene 9.4 read back as zeros or as another document's vector
+# KnnVectorValues.fromDISI's advance() leaves index() stale, so on Lucene 10 sparse byte vectors in segments written by Lucene 9.4 read back as zeros or as another document's vector
 
-Bug LFV-237 · Area: index / vector values iteration (KnnVectorValues.fromDISI) with backward-codecs / Lucene 9.4 sparse byte vector reader · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-237 · Area: index / vector values iteration (KnnVectorValues.fromDISI) with backward-codecs / Lucene 9.4 sparse byte vector reader · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-237.html](../../bugs/LFV-237.html)
+Finding page: [../../bugs/LFV-237.html](../../bugs/LFV-237.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You open, on Lucene 10, an index whose segment was written by Lucene 9.4.2 with a byte vector field that only some documents have, move the field's iterator to a document with advance(doc) and read vectorValue(iterator.index), which is what ByteKnnVectorFieldSource does, and expect that document's own vector, because DocIndexIterator.index is documented as the ordinal of the current document and DocIdSetIterator.advance must behave like repeated nextDoc calls. Instead every document that has a vector reads as all zeros: the iterator that KnnVectorValues.fromDISI builds, which this one reader returns, counts the ordinal only in nextDoc, and its advance moves to the document without moving the ordinal, so index stays at -1 (the reader then hands back its never-filled buffer); after earlier nextDoc calls, index is an earlier document's ordinal and the read returns that document's vector. Lucene 9.x reads the same index correctly; the defect came with the 10.0 vector-values API change #13779.
+You open, on Lucene 10, an index whose segment was written by Lucene 9.4.2 with a byte vector field that only some documents have, move the field's iterator to a document with advance(doc) and read vectorValue(iterator.index()), which is what ByteKnnVectorFieldSource does, and expect that document's own vector, because DocIndexIterator.index() is documented as the ordinal of the current document and DocIdSetIterator.advance() must behave like repeated nextDoc() calls. Instead every document that has a vector reads as all zeros: the iterator that KnnVectorValues.fromDISI builds, which this one reader returns, counts the ordinal only in nextDoc(), and its advance() moves to the document without moving the ordinal, so index() stays at -1 (the reader then hands back its never-filled buffer); after earlier nextDoc() calls, index() is an earlier document's ordinal and the read returns that document's vector. Lucene 9.x reads the same index correctly; the defect came with the 10.0 vector-values API change #13779.
 
 The test shows that on main, a sparse byte vector in a segment written by Lucene 9.4.2 reads back as zeros when the iterator is positioned with `advance(doc)` and the vector is read with `vectorValue(iterator.index())` (`KnnVectorValues.fromDISI`'s `advance()` leaves `index()` at -1).
 
@@ -24,7 +24,7 @@ Expected doc 1's vector `[1, 2]`; actual `[0, 0]` (`expected:<[[1, 2]]> but was:
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

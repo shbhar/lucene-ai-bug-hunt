@@ -1,8 +1,8 @@
 # Tessellator: when three or more holes meet at one vertex P, maybeMergeHoleWithSharedVertices joins the hole whose left-most vertex is P to the first copy of P in ring order (since #15700) even when the hole lies outside that copy's wedge, so LatLonShape and XYShape reject a valid polygon with 'Unable to Tessellate shape' depending on the order of its holes; upstream's own LUCENE-9400 test polygon is rejected in 3 of its 6 hole orders (regression in 10.4.0)
 
-Bug LFV-762 · Area: geo / Tessellator hole elimination (polygon indexing for LatLonShape and XYShape) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-762 · Area: geo / Tessellator hole elimination (polygon indexing for LatLonShape and XYShape) · Priority: low · Impact: crash · Novelty: new
 
-Bug page: [../../bugs/LFV-762.html](../../bugs/LFV-762.html)
+Finding page: [../../bugs/LFV-762.html](../../bugs/LFV-762.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected the polygon to index as with the original hole order; actual `IllegalAr
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

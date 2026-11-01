@@ -1,6 +1,8 @@
 # Flexible query parser: QueryParserHelper.setQueryNodeProcessor(null) throws NullPointerException, although its javadoc says null is allowed and means no query-node processing (StandardQueryParser and PrecedenceQueryParser inherit the setter; every release since 2.9.0)
 
-Bug LFV-968 · Area: queryparser / flexible core (QueryParserHelper; inherited by StandardQueryParser and PrecedenceQueryParser) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-968 · Area: queryparser / flexible core (QueryParserHelper; inherited by StandardQueryParser and PrecedenceQueryParser) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-968.html](../../bugs/LFV-968.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected the call to return and `parse("Foo", "f")` to give the unprocessed `Ter
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

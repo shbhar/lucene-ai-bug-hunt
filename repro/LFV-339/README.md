@@ -1,12 +1,14 @@
 # IndexMergeTool's '--' end-of-options branch compares Strings with ==, so a command-line '--' is rejected as an unrecognized option, and if the branch ever fires it leaves '--' as the target path
 
-Bug LFV-339 · Area: misc / IndexMergeTool command-line tool (option parsing) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-339 · Area: misc / IndexMergeTool command-line tool (option parsing) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-339.html](../../bugs/LFV-339.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You run the IndexMergeTool command line with '--' before the paths, for example 'IndexMergeTool -- -merged src1 src2', and expect the parser's dedicated '--' branch (IndexMergeTool.java:61) to end option parsing, as the usual command-line convention says, so that '-merged' is taken as the target directory. Instead the branch compares the argument with == against the literal "--", which is never true for a command-line argument, so '--' falls through to the option switch and the tool stops with "unrecognized option: '--'" and exit code 2 without merging anything. The branch is also wrong when it does fire (only when Java code passes the literal "--" to main): it stops without skipping the '--', so '--' becomes the merged-index path and the intended target is read as the first source index.
+You run the IndexMergeTool command line with '--' before the paths, for example 'IndexMergeTool -- -merged src1 src2', and expect the parser's dedicated '--' branch (IndexMergeTool.java:61) to end option parsing, as the usual command-line convention says, so that '-merged' is taken as the target directory. Instead the branch compares the argument with == against the literal "--", which is never true for a command-line argument, so '--' falls through to the option switch and the tool stops with "unrecognized option: '--'" and exit code 2 without merging anything. The branch is also wrong when it does fire (only when Java code passes the literal "--" to main()): it stops without skipping the '--', so '--' becomes the merged-index path and the intended target is read as the first source index.
 
 The test shows that IndexMergeTool's option parser does not treat a command-line `--` as the end of the options, because it compares the argument with `==` (and would also forget to skip it).
 
@@ -22,7 +24,7 @@ Expected `Options.parse({"--", "target", "s1", "s2"})` (with a non-interned `"--
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -4,9 +4,9 @@ Tools: SMT-LIB (Z3/cvc5), Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- LatLonPoint.newDistanceFeatureQuery can skip a competitive document under top-k pruning: computeMaxDistance returns the lower end of its 1 m binary search, and the pruning box built from that radius adds only a 7 cm pad (bug LFV-379; [repro](../../repro/LFV-379/))
+- LatLonPoint.newDistanceFeatureQuery can skip a competitive document under top-k pruning: computeMaxDistance returns the lower end of its 1 m binary search, and the pruning box built from that radius adds only a 7 cm pad (finding LFV-379; [repro](../../repro/LFV-379/), [finding page](../../bugs/LFV-379.html))
 
 ## Files
 

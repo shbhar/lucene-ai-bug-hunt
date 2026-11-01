@@ -1,14 +1,14 @@
 # Stempel's Row.store writes the count of all cells but skips the empty ones, so a stemmer table reduced with Gener (Compile method letter G) fails to load with EOFException or loads misaligned and gives wrong stems
 
-Bug LFV-694 · Area: analysis/stempel / egothor stemmer table serialization (Row.store vs Row(DataInput); Gener, Compile 'G', StempelStemmer.load) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-694 · Area: analysis/stempel / egothor stemmer table serialization (Row.store vs Row(DataInput); Gener, Compile 'G', StempelStemmer.load) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-694.html](../../bugs/LFV-694.html)
+Finding page: [../../bugs/LFV-694.html](../../bugs/LFV-694.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You compile a stemmer table with the stempel Compile tool using a method string that contains G (Gener, the reduction that drops infrequent commands), or reduce a trie with Gener and store it, and expect StempelStemmer.load to read the table back and stem like the trie that was stored. Instead Row.store writes the number of all cells of a row and then skips the empty cells (no command and no reference) that Gener leaves behind, so Row(DataInput) reads too many cell records and runs into the next row: usually load fails with java.io.EOFException (Compile -0ME2G, -0M2G and -0MEG on an 11-lemma Polish table, -EG on a 20-line table, the bundled table reduced with Gener, which then has 38,322 empty cells), and sometimes the table loads without error but answers wrongly (Compile G on a 4-line dictionary: for 'walked' the expected patch is Db and the loaded table gives null). Writing getCells, the existing count of the non-empty cells, fixes it in one line and changes no byte of any table without empty cells, such as the bundled table and every table compiled without G.
+You compile a stemmer table with the stempel Compile tool using a method string that contains G (Gener, the reduction that drops infrequent commands), or reduce a trie with Gener and store it, and expect StempelStemmer.load to read the table back and stem like the trie that was stored. Instead Row.store writes the number of all cells of a row and then skips the empty cells (no command and no reference) that Gener leaves behind, so Row(DataInput) reads too many cell records and runs into the next row: usually load fails with java.io.EOFException (Compile -0ME2G, -0M2G and -0MEG on an 11-lemma Polish table, -EG on a 20-line table, the bundled table reduced with Gener, which then has 38,322 empty cells), and sometimes the table loads without error but answers wrongly (Compile G on a 4-line dictionary: for 'walked' the expected patch is Db and the loaded table gives null). Writing getCells(), the existing count of the non-empty cells, fixes it in one line and changes no byte of any table without empty cells, such as the bundled table and every table compiled without G.
 
 The test shows that Row.store writes the count of all cells but skips an emptied cell (the state Gener leaves), so the next stored row reads back misaligned.
 
@@ -24,7 +24,7 @@ Expected getCmd('x') == 3 for the second of two rows read back with Row(DataInpu
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

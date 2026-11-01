@@ -1,17 +1,17 @@
 # TaxonomyMergeUtils.merge (OrdinalMappingLeafReader) does not re-map the facet ordinals stored in the index field chosen by an overridden FacetsConfig#getDefaultDimConfig, so merged documents silently point at other categories
 
-Bug LFV-722 · Area: facet / taxonomy (TaxonomyMergeUtils.merge, OrdinalMappingLeafReader; FacetsConfig default DimConfig) · Priority: medium · Impact: data corruption · Novelty: known upstream
+Finding LFV-722 · Area: facet / taxonomy (TaxonomyMergeUtils.merge, OrdinalMappingLeafReader; FacetsConfig default DimConfig) · Priority: medium · Impact: data corruption · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You subclass FacetsConfig so that getDefaultDimConfig puts every unconfigured dimension into the index field myfacets, index color/red into a destination index and size/large into a source index (each with its own taxonomy), and merge the source in with TaxonomyMergeUtils.merge, passing that FacetsConfig. You expect facet counts over myfacets to show color: red=1 and size: large=1, as they do when the same field is set with setIndexFieldName. Instead the merged document keeps its source ordinal, which in the destination taxonomy is color/red, so color shows red=2 and size is missing, with no error, because OrdinalMappingLeafReader re-maps only the fields of getDimConfigs plus the static DEFAULT_DIM_CONFIG field $facets, not the config's own default field.
+You subclass FacetsConfig so that getDefaultDimConfig() puts every unconfigured dimension into the index field myfacets, index color/red into a destination index and size/large into a source index (each with its own taxonomy), and merge the source in with TaxonomyMergeUtils.merge, passing that FacetsConfig. You expect facet counts over myfacets to show color: red=1 and size: large=1, as they do when the same field is set with setIndexFieldName. Instead the merged document keeps its source ordinal, which in the destination taxonomy is color/red, so color shows red=2 and size is missing, with no error, because OrdinalMappingLeafReader re-maps only the fields of getDimConfigs() plus the static DEFAULT_DIM_CONFIG field $facets, not the config's own default field.
 
 ## Expected vs actual
 
 - Expected: You expect facet counts over myfacets to show color: red=1 and size: large=1, as they do when the same field is set with setIndexFieldName.
-- Actual: The merged document keeps its source ordinal, which in the destination taxonomy is color/red, so color shows red=2 and size is missing, with no error, because OrdinalMappingLeafReader re-maps only the fields of getDimConfigs plus the static DEFAULT_DIM_CONFIG field $facets, not the config's own default field.
+- Actual: The merged document keeps its source ordinal, which in the destination taxonomy is color/red, so color shows red=2 and size is missing, with no error, because OrdinalMappingLeafReader re-maps only the fields of getDimConfigs() plus the static DEFAULT_DIM_CONFIG field $facets, not the config's own default field.
 
 ## Files
 
@@ -20,7 +20,7 @@ You subclass FacetsConfig so that getDefaultDimConfig puts every unconfigured di
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

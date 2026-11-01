@@ -1,6 +1,6 @@
 # XYPolygon evaluates its winding sum in float, so valid polygons with large finite coordinates (differences of about 1.8e19 or more) can get the wrong winding order, and XYShape rejects them as 'Unable to Tessellate shape'
 
-Bug LFV-219 · Area: geo / XY shapes (XYPolygon winding order, Tessellator.tessellate(XYPolygon), XYShape.createIndexableFields and createDocValueField) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-219 · Area: geo / XY shapes (XYPolygon winding order, Tessellator.tessellate(XYPolygon), XYShape.createIndexableFields and createDocValueField) · Priority: low · Impact: crash · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ Expected: the scaled triangle indexes as it does at scale 1. Actual: `IllegalArg
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

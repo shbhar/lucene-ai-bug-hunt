@@ -1,12 +1,14 @@
-# SegmentOrder.fromSort(numeric sort).reorder(reader) throws NullPointerException when a leaf's getCoreCacheHelper returns null, which LeafReader documents as legal (ParallelCompositeReader over two or more readers, SortingCodecReader or MemoryIndex leaves, content-altering FilterLeafReaders)
+# SegmentOrder.fromSort(numeric sort).reorder(reader) throws NullPointerException when a leaf's getCoreCacheHelper() returns null, which LeafReader documents as legal (ParallelCompositeReader over two or more readers, SortingCodecReader or MemoryIndex leaves, content-altering FilterLeafReaders)
 
-Bug LFV-296 · Area: core / index: SegmentOrder (query-time segment re-ordering) and leaf core cache helpers · Priority: low · Impact: crash · Novelty: new
+Finding LFV-296 · Area: core / index: SegmentOrder (query-time segment re-ordering) and leaf core cache helpers · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-296.html](../../bugs/LFV-296.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You call SegmentOrder.fromSort(new Sort(new SortField("f", SortField.Type.LONG, true))).reorder(reader) to visit the segments with the highest f values first, on a reader whose leaves do not support caching, for example a ParallelCompositeReader over two DirectoryReaders with two segments each. You expect a re-ordered view, because reorder accepts any IndexReader and LeafReader#getCoreCacheHelper documents null as a legal return value ('not suited for caching') that other consumers such as LRUQueryCache and QueryBitSetProducer simply skip. Instead reorder throws NullPointerException at SegmentOrder.java:137, where the leaf comparator's memo calls reader.getCoreCacheHelper.getKey without a null check.
+You call SegmentOrder.fromSort(new Sort(new SortField("f", SortField.Type.LONG, true))).reorder(reader) to visit the segments with the highest f values first, on a reader whose leaves do not support caching, for example a ParallelCompositeReader over two DirectoryReaders with two segments each. You expect a re-ordered view, because reorder() accepts any IndexReader and LeafReader#getCoreCacheHelper documents null as a legal return value ('not suited for caching') that other consumers such as LRUQueryCache and QueryBitSetProducer simply skip. Instead reorder() throws NullPointerException at SegmentOrder.java:137, where the leaf comparator's memo calls reader.getCoreCacheHelper().getKey() without a null check.
 
 The test shows that `SegmentOrder.fromSort(LONG sort on f, descending).reorder(reader)` on a MultiReader over two MemoryIndex readers throws NullPointerException; their leaves return null from `getCoreCacheHelper()`, which LeafReader documents as legal.
 
@@ -22,7 +24,7 @@ Expected: a reordered view with the f=2 leaf first; actual (-ea and -da): NPE at
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

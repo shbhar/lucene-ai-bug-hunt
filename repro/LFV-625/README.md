@@ -1,6 +1,6 @@
 # A new IndexWriter cannot open while a non-index file in the index directory is pending deletion, because IndexFileDeleter parses that file's name as a segment name (AssertionError 'wtf? file=...' with -ea; NumberFormatException with -da for names such as app-notes.txt)
 
-Bug LFV-625 · Area: index / IndexFileDeleter start-up (inflateGens) with FSDirectory pending deletions · Priority: low · Impact: crash · Novelty: known upstream
+Finding LFV-625 · Area: index / IndexFileDeleter start-up (inflateGens) with FSDirectory pending deletions · Priority: low · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You keep a file of your own in the index directory (or let PersistentSnapshotDel
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

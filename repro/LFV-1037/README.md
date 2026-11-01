@@ -1,14 +1,14 @@
 # SortField(STRING_VAL), SortedSetSortField and KeywordField.newSortField accept a missing value other than STRING_FIRST/STRING_LAST and silently treat it as STRING_FIRST; as an index sort the value is lost when the segment is written, so a new IndexWriter with the same config refuses the index ('cannot change previous indexSort')
 
-Bug LFV-1037 · Area: search / sorting (SortField STRING_VAL, SortedSetSortField and KeywordField.newSortField missing values; index sorting) · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-1037 · Area: search / sorting (SortField STRING_VAL, SortedSetSortField and KeywordField.newSortField missing values; index sorting) · Priority: low · Impact: wrong error · Novelty: new
 
-Bug page: [../../bugs/LFV-1037.html](../../bugs/LFV-1037.html)
+Finding page: [../../bugs/LFV-1037.html](../../bugs/LFV-1037.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a string sort with a missing value that is not STRING_FIRST or STRING_LAST, for example new SortedSetSortField("tag", false, SortedSetSelector.Type.MIN, "zzz") or the same through KeywordField.newSortField, much as you would give a numeric sort field a substitute value. You expect an IllegalArgumentException when the sort field is built, as new SortField(f, Type.STRING, false, "zzz") throws and as the removed setMissingValue threw for these sorts too. Instead the value is accepted (getMissingValue and toString report it) but every comparator treats it as STRING_FIRST, so documents without a value silently sort first; and if the sort is the index sort, the segment is written without the value, so the next new IndexWriter with the very same config refuses the index with 'cannot change previous indexSort'.
+You build a string sort with a missing value that is not STRING_FIRST or STRING_LAST, for example new SortedSetSortField("tag", false, SortedSetSelector.Type.MIN, "zzz") or the same through KeywordField.newSortField, much as you would give a numeric sort field a substitute value. You expect an IllegalArgumentException when the sort field is built, as new SortField(f, Type.STRING, false, "zzz") throws and as the removed setMissingValue threw for these sorts too. Instead the value is accepted (getMissingValue() and toString() report it) but every comparator treats it as STRING_FIRST, so documents without a value silently sort first; and if the sort is the index sort, the segment is written without the value, so the next new IndexWriter with the very same config refuses the index with 'cannot change previous indexSort'.
 
 ## Expected vs actual
 
@@ -22,7 +22,7 @@ You build a string sort with a missing value that is not STRING_FIRST or STRING_
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,7 +44,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-## Files shown on the bug page
+## Files shown on the finding page
 
 - [TestStringSortMissingValue.java](TestStringSortMissingValue.java)
 - [StepsProbe.java](StepsProbe.java)

@@ -1,12 +1,12 @@
 # Geo3dShapeFactory.pointXYZ(x, y, z) and the Geo3d builders' pointXYZ read longitude, latitude and a third value as geocentric Cartesian x, y, z, so 3-coordinate points, lines and multi-points land somewhere else (pointXYZ(30, 10, 0) becomes lon 18.43, lat 0) and polygons with z = 0 are rejected as 'all points are coplanar' (since 7.1.0)
 
-Bug LFV-679 · Area: spatial-extras / spatial4j bridge to spatial3d (Geo3dShapeFactory.pointXYZ and Geo3dPointBuilder.pointXYZ, which the line, polygon, hole and multi-point builders share), reached through the public spatial4j ShapeFactory / PointsBuilder API and spatial4j's GeoJSON reader in the Geo3d spatial context · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-679 · Area: spatial-extras / spatial4j bridge to spatial3d (Geo3dShapeFactory.pointXYZ and Geo3dPointBuilder.pointXYZ, which the line, polygon, hole and multi-point builders share), reached through the public spatial4j ShapeFactory / PointsBuilder API and spatial4j's GeoJSON reader in the Geo3d spatial context · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You use the Geo3d spatial context and build a point from longitude 30, latitude 10 and an elevation of 0, with ShapeFactory.pointXYZ(30, 10, 0) or by reading the GeoJSON position [30, 10, 0], and expect the point (30, 10), which is what spatial4j's own factory returns and what its contract implies (pointXYZ is pointXY plus a third dimension that an implementation may ignore or reject). Instead you get longitude 18.43, latitude 0: Geo3dShapeFactory.pointXYZ and the builders' shared Geo3dPointBuilder.pointXYZ hand the three numbers to spatial3d's new GeoPoint(x, y, z), which reads them as a geocentric Cartesian vector, so points, lines and multi-points built this way silently land elsewhere (a multi-point relates DISJOINT to its own vertex) and a polygon whose vertices all have z = 0 is rejected with InvalidShapeException 'Invalid polygon, all points are coplanar'.
+You use the Geo3d spatial context and build a point from longitude 30, latitude 10 and an elevation of 0, with ShapeFactory.pointXYZ(30, 10, 0) or by reading the GeoJSON position [30, 10, 0], and expect the point (30, 10), which is what spatial4j's own factory returns and what its contract implies (pointXYZ is pointXY plus a third dimension that an implementation may ignore or reject). Instead you get longitude 18.43, latitude 0: Geo3dShapeFactory.pointXYZ and the builders' shared Geo3dPointBuilder.pointXYZ hand the three numbers to spatial3d's new GeoPoint(x, y, z), which reads them as a geocentric Cartesian vector, so points, lines and multi-points built this way silently land elsewhere (a multi-point relates DISJOINT to its own vertex) and a polygon whose vertices all have z = 0 is rejected with InvalidShapeException 'Invalid polygon, all points are coplanar'. The reviewer of the original change had noted that these x, y, z are longitude, latitude and a user-defined value, 'not geo-centric coordinates', but the code was committed unchanged in 2017.
 
 ## Expected vs actual
 
@@ -21,7 +21,7 @@ You use the Geo3d spatial context and build a point from longitude 30, latitude 
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

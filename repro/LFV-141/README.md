@@ -1,6 +1,8 @@
 # Doc-values range queries from *RangeDocValuesField.newSlowIntersectsQuery base equals/hashCode on the caller's min/max arrays but match the bounds copied at construction, so queries built from reused arrays compare equal while matching different ranges
 
-Bug LFV-141 · Area: document / range-field doc-values queries (Int/Long/Float/DoubleRangeSlowRangeQuery) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-141 · Area: document / range-field doc-values queries (Int/Long/Float/DoubleRangeSlowRangeQuery) · Priority: low · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-141.html](../../bugs/LFV-141.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected: `[0,3] OR [5,6]` counts the one doc with range `[5,10]` (1); actual: 0
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

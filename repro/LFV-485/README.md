@@ -1,17 +1,17 @@
 # CharArraySet.unmodifiableSet / CharArrayMap.unmodifiableMap share the backing table but copy its size, so after the backing set grows the view reports a stale size, sees only some additions, and can loop forever on an absent key
 
-Bug LFV-485 · Area: analysis / CharArraySet and CharArrayMap unmodifiable views (stop-word, keyword and protected-word sets) · Priority: low · Impact: hang · Novelty: known upstream
+Finding LFV-485 · Area: analysis / CharArraySet and CharArrayMap unmodifiable views (stop-word, keyword and protected-word sets) · Priority: low · Impact: hang · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You create a small CharArraySet (new CharArraySet(0, true)), add "the", hand out CharArraySet.unmodifiableSet(set) as a read-only view, as its javadoc suggests, and keep adding stop words to the original. You expect the view to be a consistent set, either a live view whose size and contents follow the original or a snapshot, and in any case a contains that returns. Instead the view shares the original's hash-table arrays but copied its size, so after one more add it reports size 1 while it iterates 2 words, after the original rehashes it sees only some of the later words, and once the original's 8-slot table takes its 8th word the view keeps that full table and contains of any word not in the set (and a StopFilter or StandardAnalyzer over the view analysing "lucene") never returns.
+You create a small CharArraySet (new CharArraySet(0, true)), add "the", hand out CharArraySet.unmodifiableSet(set) as a read-only view, as its javadoc suggests, and keep adding stop words to the original. You expect the view to be a consistent set, either a live view whose size and contents follow the original or a snapshot, and in any case a contains() that returns. Instead the view shares the original's hash-table arrays but copied its size, so after one more add it reports size() 1 while it iterates 2 words, after the original rehashes it sees only some of the later words, and once the original's 8-slot table takes its 8th word the view keeps that full table and contains() of any word not in the set (and a StopFilter or StandardAnalyzer over the view analysing "lucene") never returns.
 
 ## Expected vs actual
 
-- Expected: You expect the view to be a consistent set, either a live view whose size and contents follow the original or a snapshot, and in any case a contains that returns.
-- Actual: The view shares the original's hash-table arrays but copied its size, so after one more add it reports size 1 while it iterates 2 words, after the original rehashes it sees only some of the later words, and once the original's 8-slot table takes its 8th word the view keeps that full table and contains of any word not in the set (and a StopFilter or StandardAnalyzer over the view analysing "lucene") never returns.
+- Expected: You expect the view to be a consistent set, either a live view whose size and contents follow the original or a snapshot, and in any case a contains() that returns.
+- Actual: The view shares the original's hash-table arrays but copied its size, so after one more add it reports size() 1 while it iterates 2 words, after the original rehashes it sees only some of the later words, and once the original's 8-slot table takes its 8th word the view keeps that full table and contains() of any word not in the set (and a StopFilter or StandardAnalyzer over the view analysing "lucene") never returns.
 
 ## Files
 
@@ -20,7 +20,7 @@ You create a small CharArraySet (new CharArraySet(0, true)), add "the", hand out
 ## Run it
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

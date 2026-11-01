@@ -1,8 +1,8 @@
 # GeoExactCircle.computeOutsideDistance never measures the slice end points where two of its approximation slices meet, so a point outside whose nearest edge point is such a joint gets +Infinity or the distance to the far side of the circle: on WGS84 every point due north or due south of the centre, at any radius; on the sphere a point 0.001 rad due west of a 1e-4 rad exact circle gets 0.0012
 
-Bug LFV-737 · Area: spatial3d / geom exact-circle outside distance (GeoExactCircle.outsideDistance, reached through GeoCircleFactory.makeExactGeoCircle and GeoOutsideDistance.computeOutsideDistance) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-737 · Area: spatial3d / geom exact-circle outside distance (GeoExactCircle.outsideDistance, reached through GeoCircleFactory.makeExactGeoCircle and GeoOutsideDistance.computeOutsideDistance) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-737.html](../../bugs/LFV-737.html)
+Finding page: [../../bugs/LFV-737.html](../../bugs/LFV-737.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: about 0.009558, the ARC distance from (0.41, 0.2) to the circle's nort
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

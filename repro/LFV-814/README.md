@@ -1,6 +1,6 @@
-# FacetsCollectorManager#search/searchAfter with a Sort and DrillSideways#search(..., Sort,...) never call Sort#rewrite(searcher), so a query-dependent sort returns a different hit order than IndexSearcher#search(query, n, sort) or throws
+# FacetsCollectorManager#search/searchAfter with a Sort and DrillSideways#search(..., Sort, ...) never call Sort#rewrite(searcher), so a query-dependent sort returns a different hit order than IndexSearcher#search(query, n, sort) or throws
 
-Bug LFV-814 · Area: facet / sorted-search helpers (FacetsCollectorManager static search/searchAfter, DrillSideways sorted search) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-814 · Area: facet / sorted-search helpers (FacetsCollectorManager static search/searchAfter, DrillSideways sorted search) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You run a faceted search with FacetsCollectorManager.search(searcher, query, n, 
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

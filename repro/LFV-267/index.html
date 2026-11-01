@@ -18,7 +18,7 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>TopDocs.merge with a custom tie breaker fails an assertion (only with -ea) when the tie breaker returns 0 for tied hits from two different shards at the same rank</h1>
-<p class="facts small"><span>Bug LFV-267</span><span>Area: search / TopDocs.merge tie breaking (score and Sort merges with a custom tie breaker)</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: known upstream</span></p>
+<p class="facts small"><span>Finding LFV-267</span><span>Area: search / TopDocs.merge tie breaking (score and Sort merges with a custom tie breaker)</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: known upstream</span></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You merge per-shard results with TopDocs.merge(start, topN, shardHits, tieBreaker), or the Sort overload, and pass a valid Comparator&lt;ScoreDoc&gt; tie breaker that ignores the shard, for example one that compares doc ids only; two shards each have a hit with the same score (or sort value) at the same rank and the same local doc id. You expect both hits back, since the method accepts any custom tie breaker and its helper documents that a 0 from the tie breaker falls back to hit indices. Instead, with assertions enabled, the merge throws AssertionError at TopDocs.java:88 (&#x27;assert first.hitIndex != second.hitIndex&#x27;), because that check assumes a tie can only come from the same shard while the merge queue only ever compares hits of different shards; with -da both hits are returned.</p>
@@ -29,7 +29,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </ul><h2>Run it</h2><ul>
 <li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
 <li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
+<li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
@@ -46,5 +46,5 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.search.TestTopDocsMergeTieBreakerAcrossShards</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/priorityqueue-topdocs-merge/index.html">priorityqueue-topdocs-merge</a></p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-30. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<p>Formal models and scripts this finding's part of the hunt used: <a href="../../models/priorityqueue-topdocs-merge/index.html">priorityqueue-topdocs-merge</a></p>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-01. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

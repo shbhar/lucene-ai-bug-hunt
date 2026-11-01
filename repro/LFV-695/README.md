@@ -1,12 +1,14 @@
 # Since 10.0.0 IndexRearranger keeps only the analyzer from the IndexWriterConfig it is given, so the rearranged index loses the configured codec and index sort, OpenMode.CREATE is ignored, and an index with a soft-deletes or parent field cannot be rearranged
 
-Bug LFV-695 · Area: misc / index tools (IndexRearranger.execute: writer configs of the rearrange pass and the apply-deletes pass) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-695 · Area: misc / index tools (IndexRearranger.execute: writer configs of the rearrange pass and the apply-deletes pass) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-695.html](../../bugs/LFV-695.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You rearrange an index with IndexRearranger and pass an IndexWriterConfig that sets, for example, a codec, an index sort, OpenMode.CREATE or a soft-deletes field, and expect the rearranged index to be written and opened with those settings, as it was from 8.9.0 through 9.12.3. Instead, since 10.0.0 execute builds both of its writers with new IndexWriterConfig(config.getAnalyzer) and sets only NoMergePolicy, so the output silently uses the default codec and has no index sort, a second run with OpenMode.CREATE appends and fails with IllegalStateException ('Document selector... has matched more than 1 segments'), and an input with a soft-deletes or parent field fails with IllegalArgumentException ('soft-deletes field is not configured in IWC', 'this IndexWriter has no parent document field configured').
+You rearrange an index with IndexRearranger and pass an IndexWriterConfig that sets, for example, a codec, an index sort, OpenMode.CREATE or a soft-deletes field, and expect the rearranged index to be written and opened with those settings, as it was from 8.9.0 through 9.12.3. Instead, since 10.0.0 execute() builds both of its writers with new IndexWriterConfig(config.getAnalyzer()) and sets only NoMergePolicy, so the output silently uses the default codec and has no index sort, a second run with OpenMode.CREATE appends and fails with IllegalStateException ('Document selector ... has matched more than 1 segments'), and an input with a soft-deletes or parent field fails with IllegalArgumentException ('soft-deletes field is not configured in IWC', 'this IndexWriter has no parent document field configured').
 
 The test shows that `IndexRearranger.execute()` drops the index sort of the `IndexWriterConfig` it is given (since 10.0.0 it builds its writers with `new IndexWriterConfig(config.getAnalyzer())`).
 
@@ -22,7 +24,7 @@ Expected the rearranged segment's index sort `<long: "ord">` (the config's sort)
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

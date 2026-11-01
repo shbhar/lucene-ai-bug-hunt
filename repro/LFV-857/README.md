@@ -1,8 +1,8 @@
 # Since 9.0 the utr30.nrm build passes gennorm2 its inputs sorted by file name, so the standard NFKC data overrides Lucene's own UTR#30 folding tables and ICUFoldingFilter turns spacing accents such as ´ ¨ ¯ ¸ into a space inside the term instead of removing them, while ` and ^ are still removed
 
-Bug LFV-857 · Area: analysis / icu (ICUFoldingFilter UTR#30 folding data: the gennorm2 input order of the utr30.nrm regeneration step in lucene/analysis/icu/build.gradle, and the shipped utr30.nrm) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-857 · Area: analysis / icu (ICUFoldingFilter UTR#30 folding data: the gennorm2 input order of the utr30.nrm regeneration step in lucene/analysis/icu/build.gradle, and the shipped utr30.nrm) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-857.html](../../bugs/LFV-857.html)
+Finding page: [../../bugs/LFV-857.html](../../bugs/LFV-857.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -14,7 +14,7 @@ You normalize a keyword field with ICUFoldingFilter and index 'O´Brien' (an acu
 
 ## Expected vs actual
 
-Expected: `a´b` -&gt; `ab`; actual: `a b` (`term 0 expected:<a[]b> but was:<ab>`), with `-ea` and `-da`.
+Expected: `a´b` -&gt; `ab`; actual: `a b` (`term 0 expected:<a[]b> but was:<a[ ]b>`), with `-ea` and `-da`.
 
 ## Files
 
@@ -24,7 +24,7 @@ Expected: `a´b` -&gt; `ab`; actual: `a b` (`term 0 expected:<a[]b> but was:<ab>
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,14 +1,14 @@
-# TieredMergePolicy.setMaxMergedSegmentMB(0), a value the setter accepts, makes commit, close and forceMergeDeletes throw once a segment has enough deletes: the doFindMerges candidate loop never admits a segment, so the merge candidate is empty (AssertionError with -ea, IndexOutOfBoundsException with -da); a regression since 7.5.0
+# TieredMergePolicy.setMaxMergedSegmentMB(0), a value the setter accepts, makes commit(), close() and forceMergeDeletes() throw once a segment has enough deletes: the doFindMerges candidate loop never admits a segment, so the merge candidate is empty (AssertionError with -ea, IndexOutOfBoundsException with -da); a regression since 7.5.0
 
-Bug LFV-442 · Area: index / TieredMergePolicy merge selection (doFindMerges candidate loop; setMaxMergedSegmentMB validation) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-442 · Area: index / TieredMergePolicy merge selection (doFindMerges candidate loop; setMaxMergedSegmentMB validation) · Priority: low · Impact: crash · Novelty: new
 
-Bug page: [../../bugs/LFV-442.html](../../bugs/LFV-442.html)
+Finding page: [../../bugs/LFV-442.html](../../bugs/LFV-442.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You configure the default TieredMergePolicy with setMaxMergedSegmentMB(0), which the setter accepts (it rejects only negative values, with the message 'must be &gt;=0'), delete some documents, and expect commit, close and forceMergeDeletes to succeed, either with no merge or with the singleton merge the class javadoc promises for segments over the maximum ('down to 1 at once, if that one has deletions'), as they do with a 1-byte maximum and as they did on 7.4.0. Instead the candidate loop in doFindMerges requires 'bytesThisMerge &lt; maxMergedSegmentBytes', which is 0 &lt; 0 before the first segment is added, so no segment is ever admitted and the candidate list stays empty. 'assert candidate.size &gt; 0' then fails with -ea, and candidate.get(0) throws IndexOutOfBoundsException ('Index 0 out of bounds for length 0') with -da, out of the writer call.
+You configure the default TieredMergePolicy with setMaxMergedSegmentMB(0), which the setter accepts (it rejects only negative values, with the message 'must be &gt;=0'), delete some documents, and expect commit(), close() and forceMergeDeletes() to succeed, either with no merge or with the singleton merge the class javadoc promises for segments over the maximum ('down to 1 at once, if that one has deletions'), as they do with a 1-byte maximum and as they did on 7.4.0. Instead the candidate loop in doFindMerges requires 'bytesThisMerge &lt; maxMergedSegmentBytes', which is 0 &lt; 0 before the first segment is added, so no segment is ever admitted and the candidate list stays empty. 'assert candidate.size() &gt; 0' then fails with -ea, and candidate.get(0) throws IndexOutOfBoundsException ('Index 0 out of bounds for length 0') with -da, out of the writer call.
 
 The test shows that `TieredMergePolicy.setMaxMergedSegmentMB(0)`, which the setter accepts, makes `forceMergeDeletes()` throw on a 5-doc segment with 1 deleted doc: the `doFindMerges` candidate loop never admits a segment, so the merge candidate is empty.
 
@@ -24,7 +24,7 @@ Expected `forceMergeDeletes()` to succeed; actual: `AssertionError` at `TieredMe
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

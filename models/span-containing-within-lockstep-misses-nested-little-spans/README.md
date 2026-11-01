@@ -4,9 +4,9 @@ Tools: TLA+/TLC.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- SpanContainingQuery and SpanWithinQuery miss documents and spans when the little query's spans end out of order (for example a SpanOrQuery of a longer near clause and a shorter clause that can occur inside it): their single forward pass tests only the current little span (containing) or never goes back to a big span it skipped (within), so a later, shorter little span inside a big span is never tried (bug LFV-909; [repro](../../repro/LFV-909/), [bug page](../../bugs/LFV-909.html))
+- SpanContainingQuery and SpanWithinQuery miss documents and spans when the little query's spans end out of order (for example a SpanOrQuery of a longer near clause and a shorter clause that can occur inside it): their single forward pass tests only the current little span (containing) or never goes back to a big span it skipped (within), so a later, shorter little span inside a big span is never tried (finding LFV-909; [repro](../../repro/LFV-909/), [finding page](../../bugs/LFV-909.html))
 
 ## Files
 
@@ -30,4 +30,4 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## How to run
 
-- TLA+ with TLC: `java -cp tla2tools.jar tlc2.TLC -config <Model>.cfg <Model>.tla` (a counterexample trace is the bug when the model encodes the current code).
+- TLA+ with TLC: `java -cp tla2tools.jar tlc2.TLC -config <Model>.cfg <Model>.tla` (a counterexample trace is the finding when the model encodes the current code).

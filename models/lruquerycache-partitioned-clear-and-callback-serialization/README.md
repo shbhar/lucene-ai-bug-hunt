@@ -4,11 +4,11 @@ Tools: TLA+/TLC.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- On main, LRUQueryCache.clear empties its partitions one at a time and then calls onClear with no lock held, so an entry cached during clear survives while a subclass that resets its statistics in onClear drops it (it reports 0 entries for a cache holding 1, and -1 once that entry is evicted); regression from #15558, main only (bug LFV-991; [repro](../../repro/LFV-991/))
-- On main, LRUQueryCache.cleanUp is synchronized on the cache object and takes partition locks while it holds that monitor, so a subclass whose statistics callbacks synchronize on the cache (synchronized methods or synchronized (this)) deadlocks the cleanup thread against a search, and every later search whose callback needs the monitor hangs too; regression from #15558, main only (bug LFV-1001; [repro](../../repro/LFV-1001/))
-- On main, LRUQueryCache's class javadoc still says its statistics callbacks are 'called synchronously and under a lock', but since #15558 the callbacks of different partitions run at the same time and onClear runs under no lock, and neither the javadoc nor MIGRATE.md tells subclasses that their statistics must now be thread-safe (documentation defect, main only) (bug LFV-1000; [repro](../../repro/LFV-1000/))
+- On main, LRUQueryCache.clear() empties its partitions one at a time and then calls onClear() with no lock held, so an entry cached during clear() survives while a subclass that resets its statistics in onClear() drops it (it reports 0 entries for a cache holding 1, and -1 once that entry is evicted); regression from #15558, main only (finding LFV-991; [repro](../../repro/LFV-991/), [finding page](../../bugs/LFV-991.html))
+- On main, LRUQueryCache.cleanUp() is synchronized on the cache object and takes partition locks while it holds that monitor, so a subclass whose statistics callbacks synchronize on the cache (synchronized methods or synchronized (this)) deadlocks the cleanup thread against a search, and every later search whose callback needs the monitor hangs too; regression from #15558, main only (finding LFV-1001; [repro](../../repro/LFV-1001/), [finding page](../../bugs/LFV-1001.html))
+- On main, LRUQueryCache's class javadoc still says its statistics callbacks are 'called synchronously and under a lock', but since #15558 the callbacks of different partitions run at the same time and onClear() runs under no lock, and neither the javadoc nor MIGRATE.md tells subclasses that their statistics must now be thread-safe (documentation defect, main only) (finding LFV-1000; [repro](../../repro/LFV-1000/))
 
 ## Files
 
@@ -42,4 +42,4 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## How to run
 
-- TLA+ with TLC: `java -cp tla2tools.jar tlc2.TLC -config <Model>.cfg <Model>.tla` (a counterexample trace is the bug when the model encodes the current code).
+- TLA+ with TLC: `java -cp tla2tools.jar tlc2.TLC -config <Model>.cfg <Model>.tla` (a counterexample trace is the finding when the model encodes the current code).

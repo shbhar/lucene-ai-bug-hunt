@@ -1,6 +1,6 @@
 # Default UnifiedHighlighter (WEIGHT_MATCHES) returns no highlights for a block-join hit when the join's inner query uses the highlighted field, because Weight#matches runs on an overlay reader whose highlighted field holds only the hit document
 
-Bug LFV-505 · Area: highlighter / UnifiedHighlighter WEIGHT_MATCHES path (FieldOffsetStrategy, OverlaySingleDocTermsLeafReader) with block-join queries · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-505 · Area: highlighter / UnifiedHighlighter WEIGHT_MATCHES path (FieldOffsetStrategy, OverlaySingleDocTermsLeafReader) with block-join queries · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You index parent/child blocks whose parents and children share a text field, sea
 ## Run it
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

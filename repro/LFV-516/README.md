@@ -1,6 +1,6 @@
 # Default UnifiedHighlighter (WEIGHT_MATCHES) rewrites the query again on its own per-leaf or one-document reader, so statistics-dependent queries such as CommonTermsQuery lose their highlights
 
-Bug LFV-516 · Area: highlighter / UnifiedHighlighter WEIGHT_MATCHES path (FieldOffsetStrategy) with statistics-dependent query rewrites (CommonTermsQuery, MoreLikeThisQuery) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-516 · Area: highlighter / UnifiedHighlighter WEIGHT_MATCHES path (FieldOffsetStrategy) with statistics-dependent query rewrites (CommonTermsQuery, MoreLikeThisQuery) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You search with CommonTermsQuery(SHOULD, MUST, 0.5) over 'the' (in 5 of 6 docume
 ## Run it
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

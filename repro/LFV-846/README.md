@@ -1,12 +1,14 @@
-# If IndexWriter's InfoStream throws while a full in-memory buffer is handed over for flushing, that buffer stays registered as flushing forever, so the writer hangs in its own self-close after an Error, or in close and rollback after an exception (every release since 6.2.0)
+# If IndexWriter's InfoStream throws while a full in-memory buffer is handed over for flushing, that buffer stays registered as flushing forever, so the writer hangs in its own self-close after an Error, or in close() and rollback() after an exception (every release since 6.2.0)
 
-Bug LFV-846 · Area: index / IndexWriter flush hand-off (DocumentsWriterFlushControl.checkOutForFlush, updateStallState, waitForFlush) · Priority: low · Impact: hang · Novelty: new
+Finding LFV-846 · Area: index / IndexWriter flush hand-off (DocumentsWriterFlushControl.checkOutForFlush, updateStallState, waitForFlush) · Priority: low · Impact: hang · Novelty: new
+
+Finding page: [../../bugs/LFV-846.html](../../bugs/LFV-846.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index with IndexWriter's InfoStream turned on, and one logging call throws (an OutOfMemoryError while Lucene builds its 'now stalling flushes' message, or an exception from the logging backend) just as a full in-memory buffer is handed over to be flushed. You expect what the IndexWriter javadoc promises: after an Error the writer closes itself, and after an exception close or rollback still finish. Instead the buffer is already registered as 'flushing' when the log call throws, nothing ever flushes or releases it, and every later wait for running flushes waits forever: after an Error addDocument hangs inside the writer's own rollback, and after an exception close and rollback hang (and, by code reading, commit and an NRT reopen too).
+You index with IndexWriter's InfoStream turned on, and one logging call throws (an OutOfMemoryError while Lucene builds its 'now stalling flushes' message, or an exception from the logging backend) just as a full in-memory buffer is handed over to be flushed. You expect what the IndexWriter javadoc promises: after an Error the writer closes itself, and after an exception close() or rollback() still finish. Instead the buffer is already registered as 'flushing' when the log call throws, nothing ever flushes or releases it, and every later wait for running flushes waits forever: after an Error addDocument hangs inside the writer's own rollback, and after an exception close() and rollback() hang (and, by code reading, commit() and an NRT reopen too).
 
 The test shows that an OutOfMemoryError thrown by the InfoStream while IndexWriter logs 'now stalling flushes' during the hand-off of a full buffer (DocumentsWriterFlushControl.checkOutForFlush) leaves addDocument blocked forever in the writer's own tragic rollback (waitForFlush).
 
@@ -22,7 +24,7 @@ Expected addDocument to rethrow the Error and the writer to close itself (getTra
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 2 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

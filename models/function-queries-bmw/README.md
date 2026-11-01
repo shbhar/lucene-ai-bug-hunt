@@ -4,13 +4,13 @@ Tools: SMT-LIB (Z3/cvc5), Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- FunctionScoreQuery's block-max bound multiplies by the wrapped query's no-score max score (0 for a TermQuery), so a BooleanQuery that contains it can drop the true top hits (bug LFV-211; [repro](../../repro/LFV-211/), [bug page](../../bugs/LFV-211.html))
-- FunctionScoreQuery scores negative values as 0, but its block-max bound stays negative, so top-k search skips competitive documents (bug LFV-203; [repro](../../repro/LFV-203/))
-- DoubleValuesSource.fromDoubleField/fromFloatField declare their raw IEEE-bit decoders INCREASING, so on a skip-indexed raw-bits field one NaN makes a block's score bound NaN (FunctionScoreQuery under TOP_SCORES then silently drops the true top hit) and all-negative blocks get inverted bounds (bug LFV-189; [repro](../../repro/LFV-189/))
-- DoubleValues.withDefault's getMaxScore returns the wrapped source's bound, which does not cover missingValue, so a FunctionScoreQuery over such a source can silently drop the true top hit under TOP_SCORES (bug LFV-214; [repro](../../repro/LFV-214/))
-- DoubleValuesSource rounds the skip-index block bound to the nearest float, so with a boost FunctionScoreQuery's max score can be one ulp below a real score and top-k search returns the wrong top hit (bug LFV-221; [repro](../../repro/LFV-221/))
+- FunctionScoreQuery's block-max bound multiplies by the wrapped query's no-score max score (0 for a TermQuery), so a BooleanQuery that contains it can drop the true top hits (finding LFV-211; [repro](../../repro/LFV-211/), [finding page](../../bugs/LFV-211.html))
+- FunctionScoreQuery scores negative values as 0, but its block-max bound stays negative, so top-k search skips competitive documents (finding LFV-203; [repro](../../repro/LFV-203/), [finding page](../../bugs/LFV-203.html))
+- DoubleValuesSource.fromDoubleField/fromFloatField declare their raw IEEE-bit decoders INCREASING, so on a skip-indexed raw-bits field one NaN makes a block's score bound NaN (FunctionScoreQuery under TOP_SCORES then silently drops the true top hit) and all-negative blocks get inverted bounds (finding LFV-189; [repro](../../repro/LFV-189/), [finding page](../../bugs/LFV-189.html))
+- DoubleValues.withDefault's getMaxScore returns the wrapped source's bound, which does not cover missingValue, so a FunctionScoreQuery over such a source can silently drop the true top hit under TOP_SCORES (finding LFV-214; [repro](../../repro/LFV-214/), [finding page](../../bugs/LFV-214.html))
+- DoubleValuesSource rounds the skip-index block bound to the nearest float, so with a boost FunctionScoreQuery's max score can be one ulp below a real score and top-k search returns the wrong top hit (finding LFV-221; [repro](../../repro/LFV-221/), [finding page](../../bugs/LFV-221.html))
 
 ## Files
 

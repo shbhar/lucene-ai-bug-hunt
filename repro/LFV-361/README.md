@@ -1,6 +1,8 @@
 # XML query parser: a &lt;Clause&gt; without the occurs attribute, which LuceneCoreQuery.dtd and BooleanQueryBuilder's own code default to SHOULD, is rejected with ParserException 'Invalid value for "occurs" attribute of clause:' (regression since 5.1.0, LUCENE-6270)
 
-Bug LFV-361 · Area: queryparser / xml (BooleanQueryBuilder) · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-361 · Area: queryparser / xml (BooleanQueryBuilder) · Priority: low · Impact: wrong error · Novelty: new
+
+Finding page: [../../bugs/LFV-361.html](../../bugs/LFV-361.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected: one SHOULD clause `f:a` (the DTD default and the builder's own null br
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

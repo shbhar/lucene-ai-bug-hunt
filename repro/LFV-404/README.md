@@ -1,12 +1,14 @@
-# addIndexes of a SortingCodecReader (including the reader that BPIndexReorderer.reorder returns) into a writer that uses BPReorderingMergePolicy with BpVectorReorderer throws UnsupportedOperationException, because SortingCodecReader's vector views do not support copy
+# addIndexes of a SortingCodecReader (including the reader that BPIndexReorderer.reorder returns) into a writer that uses BPReorderingMergePolicy with BpVectorReorderer throws UnsupportedOperationException, because SortingCodecReader's vector views do not support copy()
 
-Bug LFV-404 · Area: misc / index: BpVectorReorderer merge-time reordering (BPReorderingMergePolicy) over core / index: SortingCodecReader vector views · Priority: low · Impact: crash · Novelty: new
+Finding LFV-404 · Area: misc / index: BpVectorReorderer merge-time reordering (BPReorderingMergePolicy) over core / index: SortingCodecReader vector views · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-404.html](../../bugs/LFV-404.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You pass a SortingCodecReader, for example the reader that BPIndexReorderer.reorder returns or SortingCodecReader.wrap(reader, docMap, null), to IndexWriter#addIndexes on a writer whose merge policy is BPReorderingMergePolicy with a BpVectorReorderer, and expect the documents to be added and reordered, as they are for plain segment readers and as the same policy does with the postings BPIndexReorderer. Instead addIndexes throws UnsupportedOperationException and adds nothing: the policy reorders addIndexes as a forced merge, BpVectorReorderer's per-thread state calls copy on the input's float vector values, and SortingCodecReader's vector views throw from copy (with several such readers in one call the throw comes through SlowCompositeCodecReaderWrapper's merged copy). Making copy work is not enough on its own: BpVectorReorderer then treats the sorting view's ordinals as doc order, so the reordering is silently applied in the wrong doc space.
+You pass a SortingCodecReader, for example the reader that BPIndexReorderer.reorder returns or SortingCodecReader.wrap(reader, docMap, null), to IndexWriter#addIndexes on a writer whose merge policy is BPReorderingMergePolicy with a BpVectorReorderer, and expect the documents to be added and reordered, as they are for plain segment readers and as the same policy does with the postings BPIndexReorderer. Instead addIndexes throws UnsupportedOperationException and adds nothing: the policy reorders addIndexes as a forced merge, BpVectorReorderer's per-thread state calls copy() on the input's float vector values, and SortingCodecReader's vector views throw from copy() (with several such readers in one call the throw comes through SlowCompositeCodecReaderWrapper's merged copy()). Making copy() work is not enough on its own: BpVectorReorderer then treats the sorting view's ordinals as doc order, so the reordering is silently applied in the wrong doc space.
 
 The test shows that addIndexes of a SortingCodecReader (64 FLOAT32 vectors, reversed DocMap) into a writer with BPReorderingMergePolicy(BpVectorReorderer) fails, because BpVectorReorderer copies the input's vector values and SortingCodecReader's copy() is unsupported.
 
@@ -22,7 +24,7 @@ Expected: addIndexes adds (and reorders) the 64 documents, as it does for a plai
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

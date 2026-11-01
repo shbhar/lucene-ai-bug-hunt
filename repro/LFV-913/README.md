@@ -1,12 +1,12 @@
 # UnifiedHighlighter.highlightWithoutSearcher returns the text with no highlights under its default flags (WEIGHT_MATCHES) when the query also has a required or filter clause on another field
 
-Bug LFV-913 · Area: highlighter / UnifiedHighlighter re-analysis without a searcher (highlightWithoutSearcher: MemoryIndexOffsetStrategy reader == null branch + WEIGHT_MATCHES) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-913 · Area: highlighter / UnifiedHighlighter re-analysis without a searcher (highlightWithoutSearcher: MemoryIndexOffsetStrategy reader == null branch + WEIGHT_MATCHES) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a UnifiedHighlighter without a searcher (builderWithoutSearcher, default flags) and call highlightWithoutSearcher("body", query, "a b c", 1) with +title:x +body:a or +body:a #year:[2000 TO 2030], expecting '&lt;b&gt;a&lt;/b&gt; b c', which highlight gives for the same text on an indexed one-document copy, which the same call gives with withWeightMatches(false), and which 8.x gave by default. Instead it returns 'a b c' with no mark: under WEIGHT_MATCHES the whole query's Weight#matches runs on a MemoryIndex that holds only the highlighted field, where the other-field clause cannot match, so Matches is null ('doc doesn't match') and the highlighter falls back to the unmarked summary. The searcher path answers other-field clauses from the real index (OverlaySingleDocTermsLeafReader); the no-searcher branch has no such view, so a clause it cannot evaluate is treated as false.
+You build a UnifiedHighlighter without a searcher (builderWithoutSearcher, default flags) and call highlightWithoutSearcher("body", query, "a b c", 1) with +title:x +body:a or +body:a #year:[2000 TO 2030], expecting '&lt;b&gt;a&lt;/b&gt; b c', which highlight() gives for the same text on an indexed one-document copy, which the same call gives with withWeightMatches(false), and which 8.x gave by default. Instead it returns 'a b c' with no mark: under WEIGHT_MATCHES the whole query's Weight#matches runs on a MemoryIndex that holds only the highlighted field, where the other-field clause cannot match, so Matches is null ('doc doesn't match') and the highlighter falls back to the unmarked summary. The searcher path answers other-field clauses from the real index (OverlaySingleDocTermsLeafReader); the no-searcher branch has no such view, so a clause it cannot evaluate is treated as false.
 
 ## Expected vs actual
 
@@ -20,7 +20,7 @@ You build a UnifiedHighlighter without a searcher (builderWithoutSearcher, defau
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

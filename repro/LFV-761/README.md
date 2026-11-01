@@ -1,12 +1,12 @@
 # Default points format: after a PointTree visits a leaf and moves back to its parent, the next visitDocIDs, visitDocValues or moveToChild there fails an assertion in BKDReader (only with -ea; results are correct with -da)
 
-Bug LFV-761 · Area: util / BKD points (BKDReader.BKDPointTree navigation: visitDocIDs/visitDocValues on a leaf reset the inner-node input; default points format) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-761 · Area: util / BKD points (BKDReader.BKDPointTree navigation: visitDocIDs/visitDocValues on a leaf reset the inner-node input; default points format) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index points with the default codec, take a PointTree from PointValues.getPointTree, go down to a leaf, visit its documents (visitDocIDs or visitDocValues), call moveToParent and then visit the parent or call moveToChild again, which the API has allowed since LUCENE-10262 (Lucene 9.1, 'This change allows random navigation of a PointValues#PointTree'), and expect the parent's documents or its first child. Instead, with assertions enabled, that next call throws AssertionError in BKDReader.BKDPointTree.resetNodeDataPosition (BKDReader.java:401): the leaf visit had reset the reader's inner-node input to a saved position that readNodeData writes only for inner nodes, so for a leaf it is stale (0 on a fresh tree), and the parent then finds the input behind its own saved position. With assertions disabled every later read seeks to an absolute position first, so all results are correct and only -ea test runs fail.
+You index points with the default codec, take a PointTree from PointValues.getPointTree(), go down to a leaf, visit its documents (visitDocIDs or visitDocValues), call moveToParent() and then visit the parent or call moveToChild() again, which the API has allowed since LUCENE-10262 (Lucene 9.1, 'This change allows random navigation of a PointValues#PointTree'), and expect the parent's documents or its first child. Instead, with assertions enabled, that next call throws AssertionError in BKDReader.BKDPointTree.resetNodeDataPosition (BKDReader.java:401): the leaf visit had reset the reader's inner-node input to a saved position that readNodeData writes only for inner nodes, so for a leaf it is stale (0 on a fresh tree), and the parent then finds the input behind its own saved position. With assertions disabled every later read seeks to an absolute position first, so all results are correct and only -ea test runs fail.
 
 ## Expected vs actual
 
@@ -20,7 +20,7 @@ You index points with the default codec, take a PointTree from PointValues.getPo
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,8 +1,8 @@
 # Nori: user-dictionary nouns still use the context ids of mecab-ko-dic 2.0.3 after Lucene 10.0 moved to mecab-ko-dic 2.1.1, so the particle after a user noun gets the wrong part of speech (학교가: 가 becomes the verb 'go'; 학생이: 이 becomes the copula) and KoreanAnalyzer indexes spurious terms such as 가 and 이
 
-Bug LFV-658 · Area: analysis / nori KoreanTokenizer user dictionary (UserDictionary right ids, UserMorphData left id vs the bundled mecab-ko-dic-2.1.1 connection costs) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-658 · Area: analysis / nori KoreanTokenizer user dictionary (UserDictionary right ids, UserMorphData left id vs the bundled mecab-ko-dic-2.1.1 connection costs) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-658.html](../../bugs/LFV-658.html)
+Finding page: [../../bugs/LFV-658.html](../../bugs/LFV-658.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected `[학교]`, the terms without the user entry; actual: `[학교, 가]` (
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

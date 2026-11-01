@@ -4,10 +4,10 @@ Tools: SMT-LIB (Z3/cvc5), Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- MathUtil.asinh, acosh and atanh use the textbook log formulas without range reduction: asinh and acosh return Infinity for every finite |x| &gt;= 2^512, asinh and atanh return 0 for tiny nonzero x, and acosh of a large negative x returns an infinity instead of the documented NaN, also through the expression functions asinh, acosh and atanh (bug LFV-327; [repro](../../repro/LFV-327/))
-- RamUsageEstimator.sizeOfCollection adds the assumed backing-array bytes in int arithmetic, so a collection of 536,870,908 or more elements (268,435,453 with 8-byte references) gets a size estimate that is a multiple of 4 GiB too low, and negative when the elements add little (bug LFV-323; [repro](../../repro/LFV-323/))
+- MathUtil.asinh, acosh and atanh use the textbook log formulas without range reduction: asinh and acosh return Infinity for every finite |x| &gt;= 2^512, asinh and atanh return 0 for tiny nonzero x, and acosh of a large negative x returns an infinity instead of the documented NaN, also through the expression functions asinh, acosh and atanh (finding LFV-327; [repro](../../repro/LFV-327/), [finding page](../../bugs/LFV-327.html))
+- RamUsageEstimator.sizeOfCollection adds the assumed backing-array bytes in int arithmetic, so a collection of 536,870,908 or more elements (268,435,453 with 8-byte references) gets a size estimate that is a multiple of 4 GiB too low, and negative when the elements add little (finding LFV-323; [repro](../../repro/LFV-323/))
 
 ## Files
 

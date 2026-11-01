@@ -1,17 +1,17 @@
-# kNN and vector-similarity searches that hit the IndexSearcher timeout before collecting any hit return 0 hits with IndexSearcher.timedOut == false, so the timed-out search looks like a search without matches
+# kNN and vector-similarity searches that hit the IndexSearcher timeout before collecting any hit return 0 hits with IndexSearcher.timedOut() == false, so the timed-out search looks like a search without matches
 
-Bug LFV-115 · Area: search / IndexSearcher timeout reporting for vector queries (AbstractKnnVectorQuery rewrite, AbstractVectorSimilarityQuery scorerSupplier) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-115 · Area: search / IndexSearcher timeout reporting for vector queries (AbstractKnnVectorQuery rewrite, AbstractVectorSimilarityQuery scorerSupplier) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You set a timeout with IndexSearcher#setTimeout and run a kNN query (KnnFloatVectorQuery or KnnByteVectorQuery) or an approximate FloatVectorSimilarityQuery/ByteVectorSimilarityQuery, and the timeout fires before the vector search has found its first hit. You expect what a TermQuery gives under the same timeout: 0 hits with IndexSearcher#timedOut == true, the documented signal ('Returns true if any search hit the timeout') that the answer is incomplete. Instead the search returns 0 hits, TotalHits '0 hits' (EQUAL_TO) and timedOut == false, so the timed-out search cannot be told apart from a search that has no matches; IndexSearcher#count of a kNN query behaves the same way.
+You set a timeout with IndexSearcher#setTimeout and run a kNN query (KnnFloatVectorQuery or KnnByteVectorQuery) or an approximate FloatVectorSimilarityQuery/ByteVectorSimilarityQuery, and the timeout fires before the vector search has found its first hit. You expect what a TermQuery gives under the same timeout: 0 hits with IndexSearcher#timedOut() == true, the documented signal ('Returns true if any search hit the timeout') that the answer is incomplete. Instead the search returns 0 hits, TotalHits '0 hits' (EQUAL_TO) and timedOut() == false, so the timed-out search cannot be told apart from a search that has no matches; IndexSearcher#count of a kNN query behaves the same way.
 
 ## Expected vs actual
 
-- Expected: You expect what a TermQuery gives under the same timeout: 0 hits with IndexSearcher#timedOut == true, the documented signal ('Returns true if any search hit the timeout') that the answer is incomplete.
-- Actual: The search returns 0 hits, TotalHits '0 hits' (EQUAL_TO) and timedOut == false, so the timed-out search cannot be told apart from a search that has no matches; IndexSearcher#count of a kNN query behaves the same way.
+- Expected: You expect what a TermQuery gives under the same timeout: 0 hits with IndexSearcher#timedOut() == true, the documented signal ('Returns true if any search hit the timeout') that the answer is incomplete.
+- Actual: The search returns 0 hits, TotalHits '0 hits' (EQUAL_TO) and timedOut() == false, so the timed-out search cannot be told apart from a search that has no matches; IndexSearcher#count of a kNN query behaves the same way.
 
 ## Files
 
@@ -22,7 +22,7 @@ You set a timeout with IndexSearcher#setTimeout and run a kNN query (KnnFloatVec
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

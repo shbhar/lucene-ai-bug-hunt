@@ -1,8 +1,8 @@
 # Taxonomy Facets#getTopDims returns another dimension's children, childCount and value under a multi-valued dimension's name, because replacing the bottom of the top-dims queue updates dim and value but not dimOrd (released since 9.2.0)
 
-Bug LFV-363 · Area: facet / taxonomy facets (TaxonomyFacets#getTopDims, shared by FastTaxonomyFacetCounts and the int and float association facets) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-363 · Area: facet / taxonomy facets (TaxonomyFacets#getTopDims, shared by FastTaxonomyFacetCounts and the int and float association facets) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-363.html](../../bugs/LFV-363.html)
+Finding page: [../../bugs/LFV-363.html](../../bugs/LFV-363.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected (Facets#getTopDims javadoc: same as getAllDims, first topNDims): `dim=x
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

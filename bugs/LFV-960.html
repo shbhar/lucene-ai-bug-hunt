@@ -1,0 +1,405 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>TopGroups.merge throws NegativeArraySizeException when docOffset + docTopN overflows int</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.triage{margin:var(--s4) 0 0;padding:var(--s2) var(--s4);border-left:3px solid var(--info);background:var(--panel);
+max-width:var(--measure)}
+.triage p{margin:0;font-size:var(--step--1);line-height:1.5}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the finding in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All findings</a> &middot; Lucene finding &middot; LFV-960 &middot; topgroups-merge-docoffset-plus-doctopn-overflow</p><h1 id='top'>TopGroups.merge throws NegativeArraySizeException when docOffset + docTopN overflows int</h1><p class='tldr'>Merging grouped shard results with <code class='nw'>TopGroups.merge</code> and <code class='nw'>docOffset</code> 1, <code class='nw'>docTopN</code> <code>Integer.MAX_VALUE</code> ("every document after the first in each group") throws <code>NegativeArraySizeException: -2147483648</code>, because merge adds the two numbers in <code class='nw'>int</code>. <code class='nw'>docOffset</code> 0 works; every release since 3.3 has it, and the demonstrated reach is hand-written shard-merge code (in-tree search paths fail earlier).</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 739</span><span class='sub'>TopGroups.merge overflows docOffset + docTopN and throws NegativeArraySizeException, which is the grouping-module, loud form of the core TopDocs.merge overflow LFV-262 and only hits hand-written shard-merge code.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>crash</span></dd></div><div><dt>Since</dt><dd>3.3 (2011); LUCENE-3191 added TopGroups.merge<span class='sub'>introduced 2011-06-15 &middot; over 15 years</span></dd></div><div><dt>Affected</dt><dd>3.3 to 10.6.0, and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div class='wide'><dt>Found by</dt><dd>a z3 model of int sums, then a boundary probe</dd></div></dl><p class='ai-note'>AI-assisted page: this finding was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-11-01.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All findings</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The finding in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>In sharded grouping each shard returns its top documents per group, and <code class='nw'>TopGroups.merge</code> combines them: it merges the top <code>docOffset + docTopN</code> hits of each group, then drops the first <code class='nw'>docOffset</code>.</p><figure class='visual' id='topgroups-merge-docoffset-plus-doctopn-overflow-short-visual'><div class='frame'><a class='still' href='../assets/LFV-960/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-960/bug.png' alt='Summary card: TopGroups.merge throws NegativeArraySizeException when docOffset + docTopN overflows int. Two shards&#x27; group g (one document each, scores 2 and 1) merged with docOffset 1 and docTopN Integer.MAX_VALUE: the int sum 1 + 2147483647 wraps to -2147483648, and TopDocs.mergeAux throws NegativeArraySizeException: -2147483648 while sizing its result array; docOffset 0, or docTopN Integer.MAX_VALUE - 1, works. Reach: hand-written shard-merge code (GroupingSearch and TopGroupsCollectorManager fail earlier). Fix: saturate the window.' width='1920' height='1080'></a></div><figcaption>Two shards each hold group <code class='nw'>g</code> with one document (scores 2 and 1). Merging with <code class='nw'>docOffset</code> 1 and <code class='nw'>docTopN</code> <code>Integer.MAX_VALUE</code> adds 1 + 2147483647 in <code class='nw'>int</code>, which wraps to -2147483648, and the merge throws instead of returning the second document. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Two shards each return group <code class='nw'>g</code> with one document, scoring 2 and 1. You merge them with <code>TopGroups.merge(shards, Sort.RELEVANCE, Sort.RELEVANCE, docOffset, docTopN, ScoreMergeMode.None)</code>.</span></li><li><span><code class='nw'>docOffset</code> 0 with <code class='nw'>docTopN</code> 10 or <code>Integer.MAX_VALUE</code> gives both documents; <code class='nw'>docOffset</code> 1 with <code class='nw'>docTopN</code> 10 gives the second one.</span></li><li><span>You ask for every document after the first: <code class='nw'>docOffset</code> 1, <code class='nw'>docTopN</code> <code>Integer.MAX_VALUE</code>. You expect that same second document.</span></li><li><span>You get <code>NegativeArraySizeException: -2147483648</code>, with assertions on or off. merge computes <code>docOffset + docTopN</code> in <code class='nw'>int</code>: 1 + 2147483647 wraps to -2147483648, and <code class='nw'>TopDocs.merge</code> sizes its result array with it.</span></li><li><span>The edge is exactly the wrap: <code class='nw'>docOffset</code> 1 with <code class='nw'>docTopN</code> 2147483646 (sum 2^31 - 1) works; <code class='nw'>docOffset</code> 2 with the same <code class='nw'>docTopN</code> (sum 2^31) throws. A field sort inside groups fails the same way.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Code that calls <code class='nw'>TopGroups.merge</code> itself, bounds each shard's per-group window on its own (for example at <code class='nw'>maxDoc</code>), and passes <code class='nw'>docOffset</code> 1 or more with a "no limit" <code class='nw'>docTopN</code>: every such request fails, loudly. Lucene's <code class='nw'>GroupingSearch</code> and <code>TopGroupsCollectorManager</code> fail earlier on these values (LFV-964); Solr passes a finite value when <code>group.limit &lt; 0</code>.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>419 words</span></summary><div class='body'><p><code class='nw'>TopGroups.merge</code> combines the second-pass grouping results of several shards, then skips <code class='nw'>docOffset</code> documents per group and keeps <code class='nw'>docTopN</code>. It adds the two <code class='nw'>int</code>s without an overflow check before calling <code class='nw'>TopDocs.merge</code>, so <code class='nw'>docOffset</code> 1 with <code class='nw'>docTopN</code> <code>Integer.MAX_VALUE</code> ("all after the first") throws <code>NegativeArraySizeException: -2147483648</code> as soon as one group's shard results hold a document, for relevance and field order. <code class='nw'>docOffset</code> 0, or <code class='nw'>docTopN</code> <code>Integer.MAX_VALUE - 1</code>, works. It has been there since 3.3 (2011). Lucene's own <code class='nw'>GroupingSearch</code> and <code>TopGroupsCollectorManager</code> fail earlier on such values (LFV-964), so the demonstrated reachable path is hand-written shard-merge code that bounds each shard's window itself.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Two-pass grouping across shards</strong>: each shard runs the first pass, <code>SearchGroup.merge</code> picks the top groups, each shard runs the second pass for those groups, and <code class='nw'>TopGroups.merge</code> combines the per-group documents. The grouping package leaves this to the caller: "Sharding is not directly supported, though is not too difficult, if you can merge the top groups and top documents per group yourself" (<code>package-info.java:76-77</code>).</li><li><strong><code class='nw'>docOffset</code>, <code class='nw'>docTopN</code></strong>: "which document to start from within each group (for pagination)" and "how many top documents to keep within each group" (<code>TopGroups.java:128-129</code>). No bound is documented, and <code class='nw'>merge</code> checks neither.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li>For each group, <code class='nw'>merge</code> calls <code>TopDocs.merge(docOffset + docTopN, shardTopDocs)</code> for relevance order (<code>TopGroups.java:241</code>) or <code>TopDocs.merge(docSort, docOffset + docTopN, ...)</code> for a field sort (<code class='nw'>:247</code>). The sum is an <code class='nw'>int</code>: <code>1 + 2147483647</code> is <code class='nw'>-2147483648</code>.</li><li><code>TopDocs.merge(topN, ...)</code> is <code>merge(0, topN, ...)</code> (<code>TopDocs.java:203-204</code>, <code class='nw'>:216-217</code>). When the group's shard results hold at least one <code class='nw'>ScoreDoc</code>, <code class='nw'>mergeAux</code> sizes its result with <code>new ScoreDoc[Math.min(size, availHitCount - start)]</code> (<code class='nw'>TopDocs.java:313</code>), and the negative size throws <code>NegativeArraySizeException</code>. A group whose shards return no <code class='nw'>ScoreDoc</code> takes the empty branch (<code class='nw'>:310-311</code>), but one group with a returned <code class='nw'>ScoreDoc</code> fails the whole call.</li><li>The design itself handles "no limit": <code class='nw'>merge</code> keeps the top hits from position 0, reads the group's best score from <code class='nw'>scoreDocs[0]</code> (<code>TopGroups.java:244-245</code>) and drops the first <code class='nw'>docOffset</code> itself (<code class='nw'>:250-260</code>); core <code class='nw'>TopDocs.merge</code> sizes by the available hits, not by <code class='nw'>topN</code>. That is why <code class='nw'>docOffset</code> 0 with <code>Integer.MAX_VALUE</code> works. Only the addition breaks.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><p>Executed on main <code class='nw'>645d4fe14a20</code>, two shards with one document each (scores 2 and 1), relevance and field order alike: <code>(0, 10)</code> and <code>(0, 2147483647)</code> give 2 documents; <code>(1, 10)</code> and <code>(1, 2147483646)</code> give 1; <code>(1, 2147483647)</code> and <code>(2, 2147483646)</code> throw <code class='nw'>-2147483648</code>; <code>(2, 2147483647)</code> throws <code class='nw'>-2147483647</code>.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>274 words</span></summary><div class='body'><ul><li><strong>Who is hit (the demonstrated reachable path).</strong> Hand-written shard merging, the recipe the package docs point to (<code>package-info.java:76-77</code>), that bounds each shard's second-pass window itself and passes <code>docOffset &gt;= 1</code> with <code>docTopN &gt; Integer.MAX_VALUE - docOffset</code> (typically <code>Integer.MAX_VALUE</code>) to the merge. An independent reproducer built exactly that (two indexes, the first pass, <code>SearchGroup.merge</code>, <code>TopGroupsCollectorManager</code> per shard with the window at <code class='nw'>maxDoc</code>, then <code class='nw'>TopGroups.merge</code>), and it fails on main and 10.5.2.</li><li><strong>Who is not hit yet.</strong> <code>TopGroupsCollectorManager.newCollector</code> adds <code>withinGroupOffset + maxDocsPerGroup</code> itself (<code>TopGroupsCollectorManager.java:107</code>) before <code class='nw'>reduce</code> calls <code class='nw'>merge</code> (<code class='nw'>:116-122</code>), so <code class='nw'>GroupingSearch</code> and the manager fail first: <code>IllegalArgumentException: numHits must be &gt; 0</code> for <code>(1, MAX)</code>, <code class='nw'>OutOfMemoryError</code> for <code>(0, MAX)</code> with a field sort (that is LFV-964). If that sum is fixed and <code class='nw'>reduce</code> still passes the caller's values on, this line becomes the first failure. Lucene's own sharded test passes the same window to each shard and to the merge (<code>TestGrouping.java:1527</code>, <code class='nw'>:1552-1557</code>). Solr passes a finite <code class='nw'>docsPerGroup</code> for <code>group.limit &lt; 0</code> since SOLR-4164; for <code>group.limit &gt;= 0</code> it passes the request's limit and offset to <code class='nw'>merge</code> unchanged (read only; whether its shard requests fail earlier was not checked). A code search found no call in Elasticsearch or OpenSearch.</li><li><strong>Default or opt-in.</strong> No setting needed, but the call is an expert one: a static helper of an <code>@lucene.experimental</code> class (<code>TopGroups.java:38</code>).</li><li><strong>Effect.</strong> An exception instead of the merged groups whenever a group returns a document; no wrong or partial result. Workaround: <code>docTopN = Integer.MAX_VALUE - docOffset</code>, or a finite cap.</li><li><strong>Scale.</strong> None: 2 documents. <strong>Likelihood:</strong> rare; no report since 3.3 (2011).</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>The test shows that <code class='nw'>TopGroups.merge</code> of two hand-built shard results with docOffset 1 and docTopN Integer.MAX_VALUE overflows the int sum docOffset + docTopN.</p><figure class='code'><figcaption><span class='fname'>TestTopGroupsMergeOffsetOverflow.java (JUnit test)</span><span class='meta'>60 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.grouping;
+
+import java.util.List;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.TotalHits;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.BytesRef;
+
+public class TestTopGroupsMergeOffsetOverflow extends LuceneTestCase {
+
+  @SuppressWarnings(&quot;unchecked&quot;)
+  private static TopGroups&lt;BytesRef&gt; shard(float score) {
+    GroupDocs&lt;BytesRef&gt; group =
+        new GroupDocs&lt;&gt;(
+            Float.NaN,
+            score,
+            new TotalHits(1, TotalHits.Relation.EQUAL_TO),
+            new ScoreDoc[] {new ScoreDoc(0, score)},
+            new BytesRef(&quot;g&quot;),
+            new Object[] {score});
+    return new TopGroups&lt;&gt;(
+        Sort.RELEVANCE.getSort(), Sort.RELEVANCE.getSort(), 1, 1, new GroupDocs[] {group}, score);
+  }
+
+  public void testDocOffsetOneWithUnboundedDocTopN() {
+    TopGroups&lt;BytesRef&gt; merged;
+    try {
+      merged =
+          TopGroups.merge(
+              List.of(shard(2f), shard(1f)),
+              Sort.RELEVANCE,
+              Sort.RELEVANCE,
+              1,
+              Integer.MAX_VALUE,
+              TopGroups.ScoreMergeMode.None);
+    } catch (NegativeArraySizeException e) {
+      throw new AssertionError(
+          &quot;expected group g&#x27;s second document, but merge(docOffset=1, docTopN=MAX_VALUE) threw &quot; + e,
+          e);
+    }
+    assertEquals(1, merged.groups[0].scoreDocs().length);
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code># in a copy of this finding&#x27;s repro folder (repro/LFV-960/, which holds src/)
+# Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
+LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
+CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
+CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
+CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
+CP=$CP:$LUCENE/lucene/grouping/build/libs/lucene-grouping-$V.jar
+CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
+CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
+CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
+
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
+
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.search.grouping.TestTopGroupsMergeOffsetOverflow
+</code></pre></figure><dl class='outcome'><div><dt>Expected vs actual</dt><dd>Expected group g's second document (1 ScoreDoc); actual <code>NegativeArraySizeException: -2147483648</code> from TopDocs.mergeAux via TopGroups.merge:241 (-ea and -da).</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-960/'>repro/LFV-960/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>47 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>Lucene main 645d4fe14a20 (2026-10-28)</code></td></tr><tr><th scope='row'>jdk</th><td><code class='nw'>25.0.3+9-LTS</code></td></tr></tbody></table></div><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># Lucene main 645d4fe14a20, assertions on (-ea), seed DEADBEEF: 1 test(s) run, 1 failed
+    =&gt; java.lang.AssertionError: expected group g&#x27;s second document, but merge(docOffset=1, docTopN=MAX_VALUE) threw java.lang.NegativeArraySizeException: -2147483648
+       org.apache.lucene.search.grouping.TestTopGroupsMergeOffsetOverflow.testDocOffsetOneWithUnboundedDocTopN(TestTopGroupsMergeOffsetOverflow.java:54)
+     Caused by: java.lang.NegativeArraySizeException: -2147483648
+       org.apache.lucene.search.TopDocs.mergeAux(TopDocs.java:313)
+       org.apache.lucene.search.TopDocs.merge(TopDocs.java:217)
+       org.apache.lucene.search.TopDocs.merge(TopDocs.java:204)
+       org.apache.lucene.search.grouping.TopGroups.merge(TopGroups.java:241)
+       org.apache.lucene.search.grouping.TestTopGroupsMergeOffsetOverflow.testDocOffsetOneWithUnboundedDocTopN(TestTopGroupsMergeOffsetOverflow.java:46)</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it looks unintended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>No documented bound: <code class='nw'>docOffset</code> is "which document to start from within each group", <code class='nw'>docTopN</code> "how many top documents to keep".</li><li>It is an <code class='nw'>int</code> wrap, not a limit: <code>merge(1, 2147483646)</code> works, <code>merge(1, 2147483647)</code> throws, <code>merge(0, 2147483647)</code> works.</li><li>The grouping module fixed the same offset + limit overflow pattern as a bug before, in its facet API (SOLR-3956, 2013).</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>155 words</span></summary><div class='body'><ul><li><strong>Contract.</strong> <code>TopGroups.java:128-129</code> give the two parameters' meaning and no bound; the documented preconditions are the same sorts and the same top groups on every shard (<code class='nw'>:113-115</code>, <code class='nw'>:124-125</code>). <code class='nw'>merge</code> validates neither value.</li><li><strong>The method does not need a bound.</strong> It does not allocate by <code class='nw'>docTopN</code>; core <code class='nw'>TopDocs.merge</code> accepts <code>topN = Integer.MAX_VALUE</code> and sizes by the available hits (<code class='nw'>TopDocs.java:313</code>).</li><li><strong>The exception is accidental</strong>: a JVM allocation failure inside core, not a defined rejection like the <code>IllegalArgumentException</code>s <code class='nw'>merge</code> throws for mismatched shards (<code>TopGroups.java:164-166</code>, <code class='nw'>:202-210</code>).</li><li><strong>Precedent.</strong> SOLR-3956 (type Bug, fixed 2013, commit <code class='nw'>1ad382f3046</code>): for grouped facets the committer chose <code>Integer.MAX_VALUE</code> as "unlimited" and changed <code>getFacetEntries(offset, limit)</code> "to not have int overflow if Integer.MAX_VALUE &lt; offset+limit" (Chris M. Hostetter, JIRA comment of 2013-03-27). Main still tests <code>getFacetEntries(1, Integer.MAX_VALUE)</code> (<code>TestTermGroupFacetCollectorManager.java:106</code>, <code class='nw'>:135</code>).</li><li><strong>Tests never tried it.</strong> Upstream tests merge with finite windows (<code>TestTopGroups.java:174-181</code>, <code>TestGrouping.java:1552-1557</code>).</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>206 words</span></summary><div class='body'><p>The strongest case (the refute review, the intended-behaviour check): an unwritten precondition that the merge window equals the per-shard second-pass window, which is itself <code>docOffset + docTopN</code> (<code>TopGroupsCollectorManager.java:107</code>, <code>TestGrouping.java:1527</code>), so any pair that overflows in <code class='nw'>merge</code> has already failed in the shard; <code class='nw'>TopGroups</code> is <code>@lucene.experimental</code>; sharding is "not directly supported". The refute reviewer rated it moderate and, on that reading, judged the inputs outside the contract (<code>(1, MAX)</code> "is not a supported pagination request"), while noting the javadoc states no bound, "so this is not a conclusive contractual refutation".</p><p>Why it is weakened, though not conclusively disproved: nothing documents that precondition; <code class='nw'>TestTopGroups</code> feeds <code class='nw'>merge</code> hand-built results, so it is a standalone utility; the merge is well defined whenever each shard returned all its candidates (a window capped at <code class='nw'>maxDoc</code>); the boundary pair shows the limit is the wrap; and the same module treated the same pattern as a bug. The works-as-designed reviewer: "experimental status is not an input-domain restriction". Against it: the standard collection recipe always computes one positive <code class='nw'>int</code> window before the merge, and the request is extreme, though it uses the conventional "no limit" sentinel that the zero-offset call accepts. <strong>Verdict: a defect</strong>, low severity, narrow reach.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Saturate the window (validated)</strong></p><p class='short'>Saturate the window before calling <code class='nw'>TopDocs.merge</code>: <code>int docWindow = (int) Math.min((long) docOffset + docTopN, Integer.MAX_VALUE);</code> and pass <code class='nw'>docWindow</code> at both call sites (+5/-2 in <code class='nw'>TopGroups.java</code>). With it the test passes, and so do all 57 grouping tests and the module's checks.</p><pre class='snippet' tabindex='0'><code>// docOffset + docTopN can exceed Integer.MAX_VALUE (e.g. docTopN = Integer.MAX_VALUE for &quot;all
+// remaining documents&quot;): saturate instead of wrapping to a negative size.
+final int docWindow = (int) Math.min((long) docOffset + docTopN, Integer.MAX_VALUE);
+...
+mergedTopDocs = TopDocs.merge(docWindow, shardTopDocs);
+...
+mergedTopDocs = TopDocs.merge(docSort, docWindow, (TopFieldDocs[]) shardTopDocs);</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>3 options · 391 words</span></summary><div class='body'><p>One fix was built and validated with gradle; two alternatives are compared below.</p><div class="hd hd-3"><h3 id='fix-saturate'>Saturate the window (validated) <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-saturate" target="_self" aria-label="Link to this section" aria-describedby="fix-saturate"><span aria-hidden="true">#</span></a></div><p>Compute <code>docOffset + docTopN</code> in <code class='nw'>long</code>, cap it at <code>Integer.MAX_VALUE</code>, and pass that to both <code class='nw'>TopDocs.merge</code> calls. The finder wrote this patch; the first verifier independently chose the same saturation semantics (inlined at both calls, without the local).</p><pre class='snippet' tabindex='0'><code>// docOffset + docTopN can exceed Integer.MAX_VALUE (e.g. docTopN = Integer.MAX_VALUE for &quot;all
+// remaining documents&quot;): saturate instead of wrapping to a negative size.
+final int docWindow = (int) Math.min((long) docOffset + docTopN, Integer.MAX_VALUE);
+...
+mergedTopDocs = TopDocs.merge(docWindow, shardTopDocs);
+...
+mergedTopDocs = TopDocs.merge(docSort, docWindow, (TopFieldDocs[]) shardTopDocs);</code></pre><p class='k'>Trade-offs</p><p>Keeps the method's design (merge from position 0, take <code class='nw'>maxScore</code> from <code class='nw'>scoreDocs[0]</code>, slice locally) and every non-wrapping result. Nothing is lost by saturating: a group's merged hits are one Java array. One <code class='nw'>long</code> addition per call, before the per-group loop. It repairs the positive overflow only and is not input validation: for every pair whose sum is at most <code>Integer.MAX_VALUE</code>, negative values included, it passes exactly what main passes today, and <code class='nw'>merge</code> still neither documents nor checks <code>docOffset &gt;= 0</code> and <code>docTopN &gt;= 0</code> (option C's checks would add that).</p><p class='k'>What the checks validated</p><ul><li>Scratch worktree of <code class='nw'>645d4fe14a20</code>, gradle, JDK 25.0.3: stock, the repro fails (assertions on and off); with the fix it passes, with <code class='nw'>TestTopGroups</code>; all of <code>:lucene:grouping:test</code> (15 suites, 57 tests) passes with assertions on and off; <code>:lucene:grouping:check -x test</code> passes.</li><li>Standalone runner with the class shadowed: the repro passes; on main <code class='nw'>a9779ef3c193</code> the finder's 2 tests, the first verifier's 5 tests and the audit's 3 tests passed with the same fix.</li></ul><div class="hd hd-3"><h3 id='fix-paging-overload'>Call the paging overload <code>TopDocs.merge(docOffset, docTopN, ...)</code> (not built)</h3><a class="hlink" href="#fix-paging-overload" target="_self" aria-label="Link to this section" aria-describedby="fix-paging-overload"><span aria-hidden="true">#</span></a></div><p>Let core skip the offset and drop the local slice (<code>TopGroups.java:250-260</code>).</p><p class='k'>Trade-offs</p><p>Core has the same addition (<code>int requestedResultWindow = start + size</code>, <code class='nw'>TopDocs.java:314</code>, LFV-262: a page of null <code class='nw'>ScoreDoc</code>s), so it needs that fix first. It would also break <code class='nw'>maxScore</code> for relevance order: <code>TopGroups.java:244-245</code> reads the best score from <code class='nw'>scoreDocs[0]</code>, which would then be the first document after the offset.</p><div class="hd hd-3"><h3 id='fix-reject'>Reject an overflowing pair with a clear exception (not recommended)</h3><a class="hlink" href="#fix-reject" target="_self" aria-label="Link to this section" aria-describedby="fix-reject"><span aria-hidden="true">#</span></a></div><p>Validate the two values and use <code class='nw'>Math.addExact</code>, or throw <code>IllegalArgumentException</code>.</p><p class='k'>Trade-offs</p><p>A clean message, but it still refuses the "all remaining" request that <code class='nw'>docOffset</code> 0 and core <code class='nw'>TopDocs.merge</code> accept.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>An application that forwards an uncapped, user-chosen per-group offset and page size into its own <code class='nw'>TopGroups.merge</code> call fails that request with this exception; capping <code class='nw'>docTopN</code> avoids it.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A z3 model of the grouping module's <code class='nw'>int</code> offset + limit sums flagged this call: it is satisfiable at <code class='nw'>docOffset</code> 1, <code class='nw'>docTopN</code> <code>Integer.MAX_VALUE</code>. A boundary grid over the documented sharding recipe on main then threw exactly where the sum reaches 2^31, and it was reduced to one public-API test.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>135 words</span></summary><div class='body'><p><strong>Method: semi-formal.</strong> A hunt unit on the grouping module's <code class='nw'>int</code> offset + limit sums (<code class='nw'>GroupingSearch</code>, <code>FirstPassGroupingCollectorManager</code>, <code class='nw'>TopGroups.merge</code>) wrote a z3 model of each addition site. Query Q5 is satisfiable at <code class='nw'>docOffset</code> 1, <code class='nw'>docTopN</code> <code>Integer.MAX_VALUE</code> (sum -2^31); Q8 shows the wrap region is exactly <code>docOffset + docTopN &gt;= 2^31</code>. The site had been noted, but never run, by an earlier unit that worked on core <code class='nw'>TopDocs.merge</code> (LFV-262).</p><p>The unit then drove the documented sharding recipe on the stock main jars with a boundary grid of <code>(docOffset, docTopN)</code> up to <code>Integer.MAX_VALUE</code>, compared with a finite <code class='nw'>docTopN</code>: <code>(0, MAX)</code> and <code>(1, MAX-1)</code> matched; <code>(1, MAX)</code>, <code>(2, MAX-1)</code> and <code>(2, MAX)</code> threw, for relevance and field order. It reduced that to a public-API JUnit (2026-10-28), later minimised to the one-test repro.</p></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No report found: GitHub issues and PRs (including every open PR's file list), the JIRA archive, four mailing lists and the web, searched 2026-10-28 and rechecked 2026-10-31. Closest: #10342 (a different overflow in the same method) and SOLR-4164 (for <code>group.limit &lt; 0</code> Solr passes a finite value).</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p>Nobody else has reported <code class='nw'>TopGroups.merge</code>'s <code>docOffset + docTopN</code> sum, a <code>NegativeArraySizeException</code> from it, or a bound on the two values. Related items concern other code or set precedents.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>scripted prior-report search, two runs</th><td class='when'>2026-10-28</td><td>51 queries each over apache/lucene issues and PRs, commits, downstream projects, the dev@, java-user@, issues@ and commits@ lists, the JIRA archive and the web; 2804 and 172 distinct hits, every high and medium hit read</td><td>no report; related: #10342 / LUCENE-9302 (int total-hit counts in the same method), SOLR-4164, SOLR-3956 (a bug fix for the same offset + limit pattern in the grouped facet API), #5897 / LUCENE-4832 (a join-module enhancement, not a bug)</td></tr><tr><th scope='row'>GitHub by hand</th><td class='when'>2026-10-28</td><td>27 searches (recorded as 25 entries, two of which hold two code-search queries each) over apache/lucene, lucene-solr, solr, lucenenet, Elasticsearch and OpenSearch (issues, commits, code); the changed-file lists of all 414 open apache/lucene PRs; the 93 items updated since 2026-10-26</td><td>no report; only open PR #16548 touches <code class='nw'>TopGroups.java</code> (totalHits relation only)</td></tr><tr><th scope='row'>JIRA and mailing lists</th><td class='when'>2026-10-28</td><td>11 JQL queries (13 tickets read in full), 35 list queries, 7 web queries</td><td>no report</td></tr><tr><th scope='row'>Recheck for this doc</th><td class='when'>2026-10-31</td><td>upstream main fetched; GitHub searches for <code class='nw'>TopGroups</code> issues and PRs updated since 2026-10-27, <code>NegativeArraySizeException</code> issues, <code>"TopGroups.merge"</code></td><td>nothing new; main <code class='nw'>2f424fd428d</code> still has both sums</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Born with the method: LUCENE-3191 (<code class='nw'>a1e74fd6c94</code> / backport <code class='nw'>c0713158f8c</code>, 2011) added <code class='nw'>TopGroups.merge</code> with the <code class='nw'>int</code> sum; first release 3.3. Never fixed; later edits kept it. Executed failing on 18 releases from 3.3.0 to 10.5.2, the 10.6.0 release commit and main.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>7 rows</span></summary><div class='body'><p><strong>Introduced by</strong> LUCENE-3191, "Add TopDocs.merge to merge multiple TopDocs" (migrated issue #4264; author mikemccand; Subversion era, no PR). Its commits, both with the subject "add TopDocs.merge, TopGroups.merge, SearchGroup.merge, to make sharding easier": trunk commit <code class='nw'>a1e74fd6c94</code> (2011-06-15, first released in 4.0.0) and branch_3x backport <code class='nw'>c0713158f8c</code> (2011-06-16, first released in 3.3). The parent has no <code class='nw'>TopGroups.merge</code>. <code>git log -S 'docOffset + docTopN'</code> finds only that commit and <code class='nw'>e4436aa7fec</code> (LUCENE-6220, 2015), which split the call into the two now at <code>TopGroups.java:241</code> and <code class='nw'>:247</code>. Later edits, among them LUCENE-5515 (paging <code class='nw'>TopDocs.merge</code>, 4.8.0), LUCENE-6900, #15879, #15897, #16305 and #16516 (not a complete list), kept it.</p><p><strong>Not a regression.</strong> All 127 release tags from 3.3 to 10.5.2 have the sum (read); the 10.6.0 tag has it at <code class='nw'>:239</code> and <code class='nw'>:245</code>. 3.2.0 has no <code class='nw'>TopGroups.merge</code>.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>645d4fe14a20</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the one-test repro fails through gradle and the standalone runner, assertions on and off; the boundary probe throws for every sum &gt;= 2^31</td></tr><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>4 wrapping cases throw, 4 controls pass (assertions on and off); the finder's, the first verifier's and the audit's JUnits fail</td></tr><tr><th scope='row'>10.6.0 (release commit <code class='nw'>4ae946e5a9b</code>)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>4 of 4 throw (assertions on)</td></tr><tr><th scope='row'>10.5.2, 9.12.3, 3.3.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>4 of 4 throw, assertions on and off</td></tr><tr><th scope='row'>10.0.0, 9.0.0, 8.11.4, 8.0.0, 7.7.3, 7.0.0, 6.6.6, 6.0.0, 5.5.0, 5.4.1, 5.0.0, 4.10.4, 4.0.0, 3.6.2, 3.4.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>4 of 4 throw (assertions on)</td></tr><tr><th scope='row'>3.2.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> no API</span></td><td><code class='nw'>TopGroups.merge</code> does not exist</td></tr><tr><th scope='row'>fix (saturated window) on <code class='nw'>645d4fe14a20</code></th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the repro and all 57 grouping tests pass</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>A finder, an independent reproducer, reviews by another model family (reading only), an intended-behaviour devil's advocate, an adjudication and a credibility audit agree on the root cause; every executed check fails on main with assertions on and off and passes with the saturating fix.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>321 words</span></summary><div class='body'><p>The cross-model reviews ran reading-only (they could not run code); every claim they read was executed by the other checks. The hunt's checks ran on main <code class='nw'>a9779ef3c193</code>, whose relevant lines equal <code class='nw'>645d4fe14a20</code>.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>z3 site model, boundary grid, 2-test JUnit: fails 2 of 2 on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), the <code class='nw'>docOffset</code> 0 control passes; passes with the fix, as do 29 upstream grouping tests.</td></tr><tr><th scope='row'>cross-model review, refute lens</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> not real (low), procedural</span></td><td>OpenAI GPT-5.6, reading only: could not run Java, so its "not real" is procedural; root cause agrees; intended argument moderate, and on the implicit-window reading it judged the inputs outside the contract, while calling that "not a conclusive contractual refutation"; raised the reach caveat (in-tree callers fail earlier).</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own 5-test JUnit (hand-built and end-to-end sharded, plus a control): 4 of 5 fail on main and 10.5.2, 2 of 3 on 9.12.3; own saturating fix passes 5 of 5.</td></tr><tr><th scope='row'>Cross-model review, works-as-designed lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, medium</span></td><td>OpenAI GPT-5.6, reading only: intended argument weak, inputs in contract; a separate run showed the standard per-shard paths fail before any merge.</td></tr><tr><th scope='row'>Intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, medium-high</span></td><td>Boundary probe, SOLR-3956 precedent, finder's JUnit re-run (fails; passes with the fix).</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high</span></td><td>Re-ran the finder's and the independent reproduction's JUnits with new seeds (fail) and the independent reproduction's with the fix (pass).</td></tr><tr><th scope='row'>credibility audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>Finder's JUnit fails 2 of 2; an independent hand-built JUnit fails the two wrapping pairs with the <code>(1, MAX-1)</code> control passing, and passes with the fix.</td></tr><tr><th scope='row'>this doc</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed on 645d4fe14a20</span></td><td>The one-test repro fails through gradle and the standalone runner (assertions on and off); a 14-pair probe pins the edge for both sort kinds (four named outcomes asserted per sort, the rest observed in its output); the fix is validated with gradle.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-960/bug.png' download='topgroups-merge-docoffset-plus-doctopn-overflow-bug.png' target='_self'>PNG</a> <span class='n'>501 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Finding record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,165 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Finding record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-960, snapshot of 2026-11-01</p><dl class='card'><div><dt>Registry title</dt><dd>TopGroups.merge throws NegativeArraySizeException when docOffset + docTopN overflows int, for example docOffset = 1 with docTopN = Integer.MAX_VALUE ('all remaining documents'), although docOffset 0 with the same docTopN works</dd></div><div><dt>Area</dt><dd>grouping / TopGroups.merge (merging second-pass grouped results across shards or slices)</dd></div><div><dt>Priority</dt><dd>Low, rank 739: TopGroups.merge overflows docOffset + docTopN and throws NegativeArraySizeException, which is the grouping-module, loud form of the core TopDocs.merge overflow LFV-262 and only hits hand-written shard-merge code.</dd></div><div><dt>Impact class</dt><dd>crash</dd></div><div><dt>Impact note</dt><dd>Only code that merges grouped shard results itself with the public, @lucene.experimental static TopGroups.merge (the package docs leave sharding to the caller), bounds each shard's second-pass window on its own (for example at maxDoc) and passes docOffset &gt;= 1 with docTopN &gt; Integer.MAX_VALUE - docOffset, typically Integer.MAX_VALUE as 'all remaining documents', is hit; merge then throws NegativeArraySizeException every time, for relevance and field order within groups, with no silent wrong result; Lucene's own GroupingSearch and TopGroupsCollectorManager fail earlier, in the per-shard collector, for the same values; no setting or index size is needed, and every release from 3.3 to 10.6.0 and main is affected.</dd></div><div><dt>Summary</dt><dd>You merge two shards' second-pass grouping results with TopGroups.merge(shardTopGroups, groupSort, docSort, 1, Integer.MAX_VALUE, ...) to get every document after the first in each group, and expect the same groups as with docTopN = 10 on the same small data, just as docOffset 0 with docTopN = Integer.MAX_VALUE already gives. Instead merge throws NegativeArraySizeException: -2147483648: it passes the int sum docOffset + docTopN to TopDocs.merge, the sum wraps negative, and TopDocs.mergeAux sizes its result array with it. Every pair with docOffset + docTopN &gt;= 2^31 fails, for relevance and field order within groups; a sum of 2^31 - 1 still works.</dd></div><div><dt>Introduced</dt><dd>a1e74fd6c9463558e3c052f61dfd53c00328902f (trunk, svn r1136080, first released in 4.0.0) and its branch_3x backport c0713158f8c466146a09d2a4d974c656b379c209 (svn r1136465, first released in 3.3): LUCENE-3191 'Add TopDocs.merge to merge multiple TopDocs' (migrated issue #4264; svn era, no GitHub PR) added TopGroups.merge with the int sum docOffset + docTopN [read: git log -S 'docOffset + docTopN' finds exactly a1e74fd6c94, which adds it, and e4436aa7fec (LUCENE-6220, 2015), which splits it into the two calls now at TopGroups.java:241 and :247; it was never removed] (2011-06-15 (author date of a1e74fd6c94); 2011-06-16 (author date of the branch_3x backport c0713158f8c))</dd></div><div><dt>First affected version</dt><dd>3.3 [exec: 3.3.0 throws NegativeArraySizeException: -2147483648 for docOffset 1 + docTopN Integer.MAX_VALUE with -ea and -da]; 3.2.0 has no TopGroups.merge [exec: API-presence check, the probe does not compile]</dd></div><div><dt>Affected versions</dt><dd>Every release from 3.3 to 10.5.2 [read: the int sum is in all 127 release tags from 3.3 to 10.5.2 in the history clone; exec on 18 releases: 3.3.0, 3.4.0, 3.6.2, 4.0.0, 4.10.4, 5.0.0, 5.4.1, 5.5.0, 6.0.0, 6.6.6, 7.0.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0 and 10.5.2 with -ea, and with -da also on 3.3.0, 9.12.3 and 10.5.2: all 4 overflow cases throw, all 4 non-wrapping controls pass], branch_10_6 4ae946e5a9b (10.6.0, released 2026-10-29) [exec, array-signature probe] and main a9779ef3c193 [exec, -ea and -da]; upstream main 645d4fe14a2 still has both sums and TopGroups.java was last changed by 897625db0f9 (2026-08-20, unrelated) [read]; not fixed</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: Z3</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (the prior-report record, verdict new, searched 2026-10-28, read-only, plus the finder's scripted prior-report search): two scripted prior-report searches (51 queries each over apache/lucene issues and PRs, commits, downstream projects, the dev@, java-user@, issues@ and commits@ lists, the JIRA archive and the web; 2804 and 172 distinct hits, every high and medium hit read), 25 manual GitHub searches (apache/lucene, lucene-solr, solr, lucenenet, elasticsearch, OpenSearch; issues, commits and code), 11 JQL queries with 13 tickets read in full, 35 mailing-list queries, 7 web queries, the changed-file lists of all 414 open apache/lucene PRs and the 93 items updated since 2026-10-26; refresh 2026-10-28: no PR created since 2026-10-26 and no issue updated after a recent cutoff touches grouping, and no new commit on TopGroups.java; not fixed upstream (upstream main 645d4fe14a2 still has both sums at TopGroups.java:241 and :247); closest items, not reports: #10342 / LUCENE-9302 and lucene-solr PR #1411 (int total-hit-count accumulators in the same method, a different fix), SOLR-4164 (Solr caps the per-shard window and passes merge a finite docsPerGroup), SOLR-3956 and #5897 / LUCENE-4832 (precedents that offset + limit overflow and Integer.MAX_VALUE as 'all' are treated as bugs in grouping APIs), #15995, #15879, #15897, #16305 and #16516 (recent edits of the method, no size discussion), and #16548 (the only open PR touching TopGroups.java, totalHits relation only)</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>645d4fe14a20</code> (2026-10-28) through gradle in a scratch worktree (removed afterwards), assertions on (seed DEADBEEF) and off (5EED0960): stock, the one-test repro fails; with the recommended fix it passes, together with <code class='nw'>TestTopGroups</code>, all of <code>:lucene:grouping:test</code> (57 tests, both assertion modes) and <code>:lucene:grouping:check -x test</code>. Through a standalone runner on <code class='nw'>645d4fe14a20</code>: the repro (assertions on and off; fix shadowed: passes), a 14-pair boundary probe on the repro's data (relevance and field order, assertions on and off) and the audit's 2 + 3-document boundary JUnit. On main <code class='nw'>a9779ef3c193</code>, where <code class='nw'>TopGroups.java</code>, <code class='nw'>TopDocs.java</code> and <code>TopGroupsCollectorManager.java</code> have the same lines: the finder's JUnit, an independent 5-test JUnit, a devil's-advocate probe, judge and audit re-runs. A release probe on 18 releases from 3.3.0 to 10.5.2 and on the 10.6.0 release commit <code class='nw'>4ae946e5a9b</code>. Upstream main <code class='nw'>2f424fd428d</code> (2026-10-30) has no change to the grouping module or <code class='nw'>TopDocs.java</code> since <code class='nw'>645d4fe14a20</code>. OpenJDK 25.0.3, Linux aarch64 (the only platform run).</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Finding record</dt><dd><ul class='paths'><li><code>lucene/grouping/src/java/org/apache/lucene/search/grouping/TopGroups.java:38 (at a9779ef3c193) (@lucene.experimental), :128-129 (docOffset and docTopN @param, no bound), :241 and :247 (TopDocs.merge(docOffset + docTopN, ...)), :250-260 (slice from docOffset); lucene/core/src/java/org/apache/lucene/search/TopDocs.java:313 (new ScoreDoc[Math.min(size, availHitCount - start)]); lucene/grouping/src/java/org/apache/lucene/search/grouping/TopGroupsCollectorManager.java:107 (newCollector sums withinGroupOffset + maxDocsPerGroup) and :116 (reduce calls TopGroups.merge); lucene/grouping/src/java/org/apache/lucene/search/grouping/package-info.java:73-78 (sharding left to the caller)</code></li><li><code>a Lucene clone tags: TopGroupsCollectorManager (#15603, backport 8e443458c2f) and #15995 (fbeed298542) are first in releases/lucene/10.5.0</code></li></ul></dd></div><div><dt>The finding in 30 seconds</dt><dd><ul class='paths'><li><code>a Lucene main checkout (645d4fe14a20) lucene/grouping/src/java/org/apache/lucene/search/grouping/TopGroups.java:112-141 (javadoc, signature), :183, :241, :244-245, :247, :250-260</code></li><li><code>a Lucene main checkout (645d4fe14a20) lucene/core/src/java/org/apache/lucene/search/TopDocs.java:203-204, :216-217, :310-313</code></li><li><code>a Lucene main checkout (645d4fe14a20) lucene/grouping/src/java/org/apache/lucene/search/grouping/package-info.java:73-78</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>a Lucene main checkout (645d4fe14a20) lucene/grouping/src/java/org/apache/lucene/search/grouping/TopGroupsCollectorManager.java:101-123; lucene/grouping/src/test/org/apache/lucene/search/grouping/TestGrouping.java:1527, :1552-1557; lucene/grouping/src/java/org/apache/lucene/search/grouping/TopGroups.java:38</code></li></ul></dd></div><div><dt>Why it looks unintended</dt><dd><ul class='paths'><li><code>a Lucene main checkout (645d4fe14a20) lucene/grouping/src/java/org/apache/lucene/search/grouping/TopGroups.java:113-115, :124-125, :128-129, :164-166, :202-210; lucene/core/src/java/org/apache/lucene/search/TopDocs.java:313</code></li><li><code>a Lucene main checkout (645d4fe14a20) lucene/grouping/src/test/org/apache/lucene/search/grouping/TestTermGroupFacetCollectorManager.java:106-139; TestTopGroups.java:174-181; TestGrouping.java:1527, :1552-1557</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>a Lucene main checkout (645d4fe14a20) lucene/core/src/java/org/apache/lucene/search/TopDocs.java:314; lucene/grouping/src/java/org/apache/lucene/search/grouping/TopGroups.java:244-245, :250-260</code></li></ul></dd></div><div><dt>History</dt><dd><ul class='paths'><li><code>a Lucene clone tag releases/lucene/10.6.0 (TopGroups.java:239, :245; commit 4ae946e5a9b)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestTopGroupsMergeOffsetOverflow.java (JUnit test): <a href='../repro/LFV-960/src/org/apache/lucene/search/grouping/TestTopGroupsMergeOffsetOverflow.java'><code>repro/LFV-960/src/org/apache/lucene/search/grouping/TestTopGroupsMergeOffsetOverflow.java</code></a> (60 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>It is made separately from this text; its numbers come from the executed repro on main.</p><ul class='paths'><li><a href='../assets/LFV-960/bug.png'><code>assets/LFV-960/bug.png</code></a> (501 KB)</li></ul><p class='meta built'>Built 2026-11-01 from the hunt's record of this finding and its doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-11-01. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All findings</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  var own = !base && window.top === window && /^(https?|file):$/.test(location.protocol);
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = (own ? String(location.href).split('#')[0] : base) + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

@@ -1,8 +1,8 @@
 # ICUTokenizer with myanmarAsWords=false silently drops the Myanmar modifier letters U+A9E6 and U+AA70 (Shan and Khamti reduplication, as in 'ကꧦ'), and Common-script letters such as MICRO SIGN that fall into a Myanmar run, because MyanmarSyllable.rbbi gives a token status only to syllables and numbers
 
-Bug LFV-720 · Area: analysis / ICU (DefaultICUTokenizerConfig syllable rules MyanmarSyllable.rbbi / MyanmarSyllable.brk, used for Myanmar text when myanmarAsWords=false; ICUTokenizerFactory 'icu' with myanmarAsWords="false") · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-720 · Area: analysis / ICU (DefaultICUTokenizerConfig syllable rules MyanmarSyllable.rbbi / MyanmarSyllable.brk, used for Myanmar text when myanmarAsWords=false; ICUTokenizerFactory 'icu' with myanmarAsWords="false") · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-720.html](../../bugs/LFV-720.html)
+Finding page: [../../bugs/LFV-720.html](../../bugs/LFV-720.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected the tokens of KA + U+A9E6 (`\u1000\uA9E6`) to contain both letters; act
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

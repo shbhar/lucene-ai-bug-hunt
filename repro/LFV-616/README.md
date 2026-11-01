@@ -1,6 +1,6 @@
 # JapaneseTokenizer n-best output (nBestCost &gt; 0) with the default discardPunctuation=true gives a dictionary word that spans a discarded punctuation character (アイワ・コーポ) a position length one too long, so its path in the token graph skips the next word and a QueryBuilder query for アイワ・コーポ東京支店 makes 東京 optional
 
-Bug LFV-616 · Area: analysis / kuromoji JapaneseTokenizer n-best output (analysis-common morph.ViterbiNBest.fixupPendingList) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-616 · Area: analysis / kuromoji JapaneseTokenizer n-best output (analysis-common morph.ViterbiNBest.fixupPendingList) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You enable n-best output on JapaneseTokenizer (for example setNBestCost(2000)), 
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,12 +1,14 @@
 # FSDirectory: a pending-delete retry running on one thread can delete a file that another thread has just re-created (createOutput) or renamed onto the same name, so a file that was written and closed successfully silently disappears
 
-Bug LFV-331 · Area: store / FSDirectory pending deletes (delete retry vs. the createOutput/rename revive, thread safety) · Priority: low · Impact: data corruption · Novelty: new
+Finding LFV-331 · Area: store / FSDirectory pending deletes (delete retry vs. the createOutput/rename revive, thread safety) · Priority: low · Impact: data corruption · Novelty: new
+
+Finding page: [../../bugs/LFV-331.html](../../bugs/LFV-331.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-On a file system that refuses to delete open files (Windows, or a virus scanner), you delete a file that a reader still holds open, so FSDirectory keeps it as a pending delete; after the reader closes, one thread re-creates that name with createOutput (or renames another file onto it), writes and closes it, while another thread makes any mutating call on the same directory, for example sync of an unrelated file. You expect the new file to stay, like any file that was created, closed and never deleted. Instead the other thread's pending-delete retry, which copied the pending set before the revive, deletes the new file: listAll no longer lists it and openInput fails (on main under the test framework's WindowsFS: 'x was created and closed successfully but is gone: [other]').
+On a file system that refuses to delete open files (Windows, or a virus scanner), you delete a file that a reader still holds open, so FSDirectory keeps it as a pending delete; after the reader closes, one thread re-creates that name with createOutput (or renames another file onto it), writes and closes it, while another thread makes any mutating call on the same directory, for example sync() of an unrelated file. You expect the new file to stay, like any file that was created, closed and never deleted. Instead the other thread's pending-delete retry, which copied the pending set before the revive, deletes the new file: listAll() no longer lists it and openInput() fails (on main under the test framework's WindowsFS: 'x was created and closed successfully but is gone: [other]').
 
 The test shows that on a delete-refusing file system (WindowsFS), FSDirectory's pending-delete retry on one thread deletes x that another thread has just re-created with createOutput and closed (`TestFSDirectoryPendingDeleteRetry#testRetryKeepsFileRecreatedByAnotherThread`, two pending files, one forced interleaving).
 
@@ -22,7 +24,7 @@ Expected: x stays, like any file that was created, closed and never deleted. Act
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

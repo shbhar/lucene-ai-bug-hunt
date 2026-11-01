@@ -18,7 +18,8 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>PayloadScoreQuery scores a payload value of -0.0 as -0.0 instead of 0 (MinPayloadFunction, MaxPayloadFunction or a custom PayloadFunction with a decoder that reads IEEE floats), because its LUCENE-7996 negative-score clamp tests &#x27;score &gt;= 0 == false&#x27; and its explain truncation &#x27;value &lt; 0&#x27;; since 10.2.0 the top-1 hit is then not the head of the top-2 hits</h1>
-<p class="facts small"><span>Bug LFV-835</span><span>Area: queries / payloads (PayloadScoreQuery payload-score clamp, LUCENE-7996; visible through core TopScoreDocCollector tie handling; sibling of LFV-273&#x27;s function-query clamps)</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: new</span></p>
+<p class="facts small"><span>Finding LFV-835</span><span>Area: queries / payloads (PayloadScoreQuery payload-score clamp, LUCENE-7996; visible through core TopScoreDocCollector tie handling; sibling of LFV-273&#x27;s function-query clamps)</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-835.html">Finding page for LFV-835</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>Index two documents whose float payloads are &#x27;-0.0&#x27; and &#x27;0.0&#x27; (WhitespaceTokenizer + DelimitedPayloadTokenFilter with FloatEncoder) and search PayloadScoreQuery(SpanTermQuery, MaxPayloadFunction or MinPayloadFunction, a decoder that calls PayloadHelper.decodeFloat, includeSpanScore false or true). You expect both hits to score 0 and tie in doc-id order, because PayloadScoreQuery maps every negative payload score to 0 (LUCENE-7996: &#x27;Scorers are no longer allowed to produce negative scores&#x27;; the test framework&#x27;s AssertingScorer checks Float.compare(score, 0f) &gt;= 0), as it does for a payload of -1.0. Instead the -0.0 document scores and explains as -0.0, because the clamp &#x27;score &gt;= 0 == false&#x27; and the explain test &#x27;value &lt; 0&#x27; are both false for -0.0, and since 10.2.0 search(q, 1) returns that document while search(q, 2) ranks it second.</p>
@@ -30,7 +31,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </ul><h2>Run it</h2><ul>
 <li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
 <li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
+<li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
@@ -49,4 +50,4 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.queries.payloads.TestPayloadScoreQueryNegativeZero</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-30. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-01. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

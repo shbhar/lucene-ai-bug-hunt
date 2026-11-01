@@ -1,6 +1,8 @@
 # Geo3DPointOutsideSortField.equals casts its argument to the sibling class Geo3DPointSortField, so comparing two distinct outside-distance sort fields on the same field (directly, through Sort.equals, or in a HashMap keyed by Sort) throws ClassCastException instead of returning true or false
 
-Bug LFV-352 · Area: spatial3d / Geo3DDocValuesField outside-distance sort fields (Geo3DPointOutsideSortField equality) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-352 · Area: spatial3d / Geo3DDocValuesField outside-distance sort fields (Geo3DPointOutsideSortField equality) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-352.html](../../bugs/LFV-352.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected: `a.equals(b)` is true. Actual: `ClassCastException` (Geo3DPointOutside
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

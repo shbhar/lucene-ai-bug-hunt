@@ -1,6 +1,6 @@
 # Tessellator rejects a valid polygon whose holes touch nothing, depending on the outer ring's start vertex, when an earlier hole's bridge continues an outer edge: isLocallyInside treats the resulting straight angle as never inside, so fetchHoleBridge cannot switch to the only correct copy of the bridge end (regression in 8.2.0)
 
-Bug LFV-795 · Area: geo / Tessellator hole bridges (fetchHoleBridge, isLocallyInside) behind LatLonShape and XYShape polygon indexing · Priority: low · Impact: crash · Novelty: known upstream
+Finding LFV-795 · Area: geo / Tessellator hole bridges (fetchHoleBridge, isLocallyInside) behind LatLonShape and XYShape polygon indexing · Priority: low · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -11,7 +11,7 @@ You index a valid polygon with two holes that touch nothing, for example the clo
 ## Expected vs actual
 
 - Expected: You expect XYShape or LatLonShape.createIndexableFields to return its triangles whichever vertex the outer ring starts at.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -20,7 +20,7 @@ You index a valid polygon with two holes that touch nothing, for example the clo
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

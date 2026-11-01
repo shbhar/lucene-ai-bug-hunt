@@ -1,6 +1,6 @@
 # RegExp builds an automaton that doubles with every stacked '+' ('ab' followed by n '+' gives 2^n+2 states for the 3-state language ab+), a 10.0 regression that exhausts a 1 GB heap at about 20 '+'
 
-Bug LFV-364 · Area: util / automaton (RegExp, Operations.repeat; reached from RegexpQuery and the classic and flexible query parsers) · Priority: low · Impact: crash · Novelty: known upstream
+Finding LFV-364 · Area: util / automaton (RegExp, Operations.repeat; reached from RegexpQuery and the classic and flexible query parsers) · Priority: low · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ You build a RegexpQuery for 'ab' followed by n '+' (directly, or by typing /ab++
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

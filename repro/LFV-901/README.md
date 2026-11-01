@@ -1,6 +1,6 @@
 # IndexWriter.deleteDocuments with a kNN query runs on the writer's pooled segment reader, whose live docs miss the writer's own earlier deletes, and on the whole flushed segment including documents added later, so the query picks its k nearest among documents already deleted or added after the call and the acknowledged delete removes fewer documents than it should, often none (since 9.0.0)
 
-Bug LFV-901 · Area: core / index write path (delete-by-query: FrozenBufferedUpdates.applyQueryDeletes over the ReadersAndUpdates pooled reader) x core / search kNN queries · Priority: medium · Impact: data corruption · Novelty: known upstream
+Finding LFV-901 · Area: core / index write path (delete-by-query: FrozenBufferedUpdates.applyQueryDeletes over the ReadersAndUpdates pooled reader) x core / search kNN queries · Priority: medium · Impact: data corruption · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You index 10 documents with vectors, delete the nearest one (d0) by its id term,
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

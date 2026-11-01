@@ -1,12 +1,12 @@
-# PerFieldDocValuesFormat and PerFieldKnnVectorsFormat accept a per-field hook that returns another per-field format (for example the default codec's docValuesFormat or knnVectorsFormat); the nested writer overwrites the outer per-field attributes, so the committed segment cannot be opened, while PerFieldPostingsFormat rejects the same configuration
+# PerFieldDocValuesFormat and PerFieldKnnVectorsFormat accept a per-field hook that returns another per-field format (for example the default codec's docValuesFormat() or knnVectorsFormat()); the nested writer overwrites the outer per-field attributes, so the committed segment cannot be opened, while PerFieldPostingsFormat rejects the same configuration
 
-Bug LFV-256 · Area: codecs / per-field doc values and vectors formats (PerFieldDocValuesFormat, PerFieldKnnVectorsFormat attribute bookkeeping) · Priority: medium · Impact: index unusable · Novelty: known upstream
+Finding LFV-256 · Area: codecs / per-field doc values and vectors formats (PerFieldDocValuesFormat, PerFieldKnnVectorsFormat attribute bookkeeping) · Priority: medium · Impact: index unusable · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You write a codec whose per-field doc-values (or vectors) hook returns another per-field format, for example the default codec's docValuesFormat, add one document and close the writer. You expect the writer to reject the configuration, as PerFieldPostingsFormat does ('cannot embed PerFieldPostingsFormat inside itself'), or the committed index to open. Instead the commit succeeds, because the nested writer silently overwrote the outer per-field attributes with its own format name and suffix, and DirectoryReader.open fails with 'No sub-file with id _Lucene90_0.dvm' (vectors: _Lucene99HnswVectorsFormat_0.vemf) since the files were written as _0_PerFieldDV40_0_Lucene90_0.*.
+You write a codec whose per-field doc-values (or vectors) hook returns another per-field format, for example the default codec's docValuesFormat(), add one document and close the writer. You expect the writer to reject the configuration, as PerFieldPostingsFormat does ('cannot embed PerFieldPostingsFormat inside itself'), or the committed index to open. Instead the commit succeeds, because the nested writer silently overwrote the outer per-field attributes with its own format name and suffix, and DirectoryReader.open fails with 'No sub-file with id _Lucene90_0.dvm' (vectors: _Lucene99HnswVectorsFormat_0.vemf) since the files were written as _0_PerFieldDV40_0_Lucene90_0.*.
 
 ## Expected vs actual
 
@@ -22,7 +22,7 @@ You write a codec whose per-field doc-values (or vectors) hook returns another p
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

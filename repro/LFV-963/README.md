@@ -1,17 +1,17 @@
-# MultiPhraseQuery.Builder does not validate an empty Term: it throws ArrayIndexOutOfBoundsException at the first position but accepts one at later positions, and toString of the accepted query then throws, which also breaks explain and the 'indexed without position data' error
+# MultiPhraseQuery.Builder does not validate an empty Term[]: it throws ArrayIndexOutOfBoundsException at the first position but accepts one at later positions, and toString() of the accepted query then throws, which also breaks explain and the 'indexed without position data' error
 
-Bug LFV-963 · Area: core / search (MultiPhraseQuery.Builder input validation and MultiPhraseQuery.toString) · Priority: unranked · Impact: crash · Novelty: known upstream
+Finding LFV-963 · Area: core / search (MultiPhraseQuery.Builder input validation and MultiPhraseQuery.toString) · Priority: unranked · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a phrase with MultiPhraseQuery.Builder and pass an empty Term for one position, for example the terms of a prefix expansion that found nothing (the class javadoc's 'microsoft app*' recipe); add(Term) documents the array as a disjunction, so you expect an empty position to match nothing, or the Builder to reject it with IllegalArgumentException. At the first position Builder.add throws ArrayIndexOutOfBoundsException (it reads terms[0].field, MultiPhraseQuery.java:127), while at any later position the array is accepted and search correctly returns 0 hits, but toString throws ArrayIndexOutOfBoundsException (terms[0].text,:345). So logging the query fails, IndexSearcher.explain throws for a BooleanQuery or IndriAndQuery that holds it (BooleanWeight.java:99 and:103, IndriAndWeight.java:88), and on a field indexed without positions the documented IllegalStateException becomes that exception, because its message prints the query (:255-262).
+You build a phrase with MultiPhraseQuery.Builder and pass an empty Term[] for one position, for example the terms of a prefix expansion that found nothing (the class javadoc's 'microsoft app*' recipe); add(Term[]) documents the array as a disjunction, so you expect an empty position to match nothing, or the Builder to reject it with IllegalArgumentException. At the first position Builder.add throws ArrayIndexOutOfBoundsException (it reads terms[0].field(), MultiPhraseQuery.java:127), while at any later position the array is accepted and search correctly returns 0 hits, but toString() throws ArrayIndexOutOfBoundsException (terms[0].text(), :345). So logging the query fails, IndexSearcher.explain throws for a BooleanQuery or IndriAndQuery that holds it (BooleanWeight.java:99 and :103, IndriAndWeight.java:88), and on a field indexed without positions the documented IllegalStateException becomes that exception, because its message prints the query (:255-262).
 
 ## Expected vs actual
 
 - Expected: You expect an empty position to match nothing, or the Builder to reject it with IllegalArgumentException.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -21,7 +21,7 @@ You build a phrase with MultiPhraseQuery.Builder and pass an empty Term for one 
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

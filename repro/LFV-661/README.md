@@ -1,12 +1,12 @@
 # FreeTextSuggester.decodeWeight casts n-gram counts to int, so a word or context seen more than Integer.MAX_VALUE times gets a negative or wrapped count: lookup returns scores outside the documented 0.0 to 1.0 range and can rank the most frequent word last
 
-Bug LFV-661 · Area: suggest / FreeTextSuggester (n-gram counts stored as long FST outputs; lookup-side decode) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-661 · Area: suggest / FreeTextSuggester (n-gram counts stored as long FST outputs; lookup-side decode) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a FreeTextSuggester from text in which one word occurs more than Integer.MAX_VALUE (2,147,483,647) times and expect lookup to rank that word first with a score near 1.0, because the class javadoc says each result value is Long.MAX_VALUE times a score from 0.0 to 1.0 and build counts n-grams as long. Instead decodeWeight returns (int) (Long.MAX_VALUE - output), so a count of 2,148,532,224 comes back as -2,146,435,072 and lookup('a', 2) returns [ab score 0.0, a score -0.999]: a negative score, with the most frequent word ranked below a word seen once. The same cast decodes context counts, so every prediction from a context seen that often is scored wrongly, and counts above 2^32 wrap to small positive numbers that stay inside the 0..1 range and are silently wrong.
+You build a FreeTextSuggester from text in which one word occurs more than Integer.MAX_VALUE (2,147,483,647) times and expect lookup to rank that word first with a score near 1.0, because the class javadoc says each result value is Long.MAX_VALUE times a score from 0.0 to 1.0 and build() counts n-grams as long. Instead decodeWeight returns (int) (Long.MAX_VALUE - output), so a count of 2,148,532,224 comes back as -2,146,435,072 and lookup('a', 2) returns [ab score 0.0, a score -0.999]: a negative score, with the most frequent word ranked below a word seen once. The same cast decodes context counts, so every prediction from a context seen that often is scored wrongly, and counts above 2^32 wrap to small positive numbers that stay inside the 0..1 range and are silently wrong.
 
 ## Expected vs actual
 
@@ -21,7 +21,7 @@ You build a FreeTextSuggester from text in which one word occurs more than Integ
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

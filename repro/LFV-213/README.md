@@ -1,12 +1,14 @@
 # TemporalMergePolicy.forceMergeDeletes never expunges deletes from a segment that is the only eligible one in its time window (or the odd one left after full batches)
 
-Bug LFV-213 · Area: index / merge policy (TemporalMergePolicy forced-deletes selection, IndexWriter.forceMergeDeletes) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-213 · Area: index / merge policy (TemporalMergePolicy forced-deletes selection, IndexWriter.forceMergeDeletes) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-213.html](../../bugs/LFV-213.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You use TemporalMergePolicy and call IndexWriter.forceMergeDeletes while some time window holds exactly one segment whose share of deleted documents is above forceMergeDeletesPctAllowed (default 10%), for example in a single-segment index, or after forceMerge(1), which leaves one segment per window. You expect that segment to be rewritten without its deleted documents, as the policy's setForceMergeDeletesPctAllowed javadoc and MergePolicy.findForcedDeletesMerges ('expunge all deletes') describe and as TieredMergePolicy and LogMergePolicy do. Instead the policy skips every window with fewer than two eligible segments (and drops the one left over after full batches of maxThreshold), so the call schedules no merge and returns at once: a 10-document segment with 5 deletes still has maxDoc 10, and calling it again changes nothing.
+You use TemporalMergePolicy and call IndexWriter.forceMergeDeletes() while some time window holds exactly one segment whose share of deleted documents is above forceMergeDeletesPctAllowed (default 10%), for example in a single-segment index, or after forceMerge(1), which leaves one segment per window. You expect that segment to be rewritten without its deleted documents, as the policy's setForceMergeDeletesPctAllowed javadoc and MergePolicy.findForcedDeletesMerges ('expunge all deletes') describe and as TieredMergePolicy and LogMergePolicy do. Instead the policy skips every window with fewer than two eligible segments (and drops the one left over after full batches of maxThreshold), so the call schedules no merge and returns at once: a 10-document segment with 5 deletes still has maxDoc 10, and calling it again changes nothing.
 
 The test shows that `IndexWriter.forceMergeDeletes()` with a default `TemporalMergePolicy` does not expunge deletes from a segment that is the only eligible segment in its time window (here a one-segment index, 1 of 2 documents deleted, above the default 10% threshold).
 
@@ -22,7 +24,7 @@ Expected: the segment is rewritten, so maxDoc is 1. Actual: no merge is schedule
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

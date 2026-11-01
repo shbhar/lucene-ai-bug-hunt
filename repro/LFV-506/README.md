@@ -1,17 +1,17 @@
-# CharArrayMap.hashCode and CharArraySet.hashCode change on every call and differ for equal instances, because the inherited AbstractMap/AbstractSet hashCode sums identity hash codes of a fresh entry object and a fresh char key clone made on every iteration
+# CharArrayMap.hashCode() and CharArraySet.hashCode() change on every call and differ for equal instances, because the inherited AbstractMap/AbstractSet hashCode sums identity hash codes of a fresh entry object and a fresh char[] key clone made on every iteration
 
-Bug LFV-506 · Area: analysis / CharArraySet and CharArrayMap (stop-word, keyword and stem-override sets and maps) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-506 · Area: analysis / CharArraySet and CharArrayMap (stop-word, keyword and stem-override sets and maps) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a CharArrayMap with put("foo", 1) and put("bar", 2), or a CharArraySet {foo, bar} such as an analyzer's stop set, and call hashCode twice, or add it to a HashSet or HashMap and look it up again. You expect what Object.hashCode and Set/Map.hashCode require: the same value on every call to an unchanged object and equal hash codes for equal objects, so the lookup finds it. Instead every call returns a different value (for example -1124182418, then -1901051422), two equal sets hash differently, and HashSet.contains or HashMap.get with the very same instance returns false or null, because the inherited AbstractMap/AbstractSet hashCode sums the identity hash codes of a new map entry and a new char copy of each key that every iteration creates.
+You build a CharArrayMap with put("foo", 1) and put("bar", 2), or a CharArraySet {foo, bar} such as an analyzer's stop set, and call hashCode() twice, or add it to a HashSet or HashMap and look it up again. You expect what Object.hashCode and Set/Map.hashCode require: the same value on every call to an unchanged object and equal hash codes for equal objects, so the lookup finds it. Instead every call returns a different value (for example -1124182418, then -1901051422), two equal sets hash differently, and HashSet.contains or HashMap.get with the very same instance returns false or null, because the inherited AbstractMap/AbstractSet hashCode sums the identity hash codes of a new map entry and a new char[] copy of each key that every iteration creates.
 
 ## Expected vs actual
 
 - Expected: You expect what Object.hashCode and Set/Map.hashCode require: the same value on every call to an unchanged object and equal hash codes for equal objects, so the lookup finds it.
-- Actual: Every call returns a different value (for example -1124182418, then -1901051422), two equal sets hash differently, and HashSet.contains or HashMap.get with the very same instance returns false or null, because the inherited AbstractMap/AbstractSet hashCode sums the identity hash codes of a new map entry and a new char copy of each key that every iteration creates.
+- Actual: Every call returns a different value (for example -1124182418, then -1901051422), two equal sets hash differently, and HashSet.contains or HashMap.get with the very same instance returns false or null, because the inherited AbstractMap/AbstractSet hashCode sums the identity hash codes of a new map entry and a new char[] copy of each key that every iteration creates.
 
 ## Files
 
@@ -20,7 +20,7 @@ You build a CharArrayMap with put("foo", 1) and put("bar", 2), or a CharArraySet
 ## Run it
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

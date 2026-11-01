@@ -1,6 +1,6 @@
 # SpanMultiTermQueryWrapper.equals/hashCode ignore the span rewrite method (since 5.5.0), so wrappers that match different documents compare equal and IndexWriter's delete-by-query buffer keeps only one of two such deletes
 
-Bug LFV-946 · Area: queries / spans: SpanMultiTermQueryWrapper equality (span rewrite methods); consequence in index / IndexWriter delete-by-query buffering · Priority: unranked · Impact: data corruption · Novelty: known upstream
+Finding LFV-946 · Area: queries / spans: SpanMultiTermQueryWrapper equality (span rewrite methods); consequence in index / IndexWriter delete-by-query buffering · Priority: unranked · Impact: data corruption · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ You build new SpanMultiTermQueryWrapper(new PrefixQuery(f:aa)) twice and call se
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

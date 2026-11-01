@@ -1,17 +1,17 @@
 # DirectIODirectory accepts a mergeBufferSize that is not a multiple of the file system block size, and then every direct-I/O read fails, so merges hit a tragic exception; a size below the block size can also give a zero-capacity write buffer (BufferOverflowException, or writeBytes making no progress)
 
-Bug LFV-226 · Area: misc / store DirectIODirectory (direct-I/O merge buffers) · Priority: low · Impact: crash · Novelty: known upstream
+Finding LFV-226 · Area: misc / store DirectIODirectory (direct-I/O merge buffers) · Priority: low · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You create DirectIODirectory(FSDirectory, mergeBufferSize, minBytesDirect) with a mergeBufferSize that is not a multiple of the file system block size (for example 100000, or 4 * 4096 + 100, on a 4 KiB-block file system) and expect merges to read and write through direct I/O as usual, because the constructor documents the value only as 'Size of buffer to use for merging' and accepts any int. Instead every fresh top-level DirectIOIndexInput fails on its first read with IllegalArgumentException 'Negative position' or IOException 'Channel position... is not a multiple of the block size', so a merge that reads through direct I/O fails while opening its segment readers and IndexWriter closes on a tragic exception (the index on disk stays intact, but the error sometimes surfaces as CorruptIndexException); with a size below the block size, some fresh outputs throw BufferOverflowException on the first writeByte and writeBytes on such an output loops without progress. The cause is that the direct buffers are aligned slices whose capacity is always a block multiple (and can be 0), while DirectIOIndexInput starts its file position at -mergeBufferSize and then advances it by the buffer's capacity, so the first read lands at -(mergeBufferSize mod blockSize) or at blockSize - (mergeBufferSize mod blockSize).
+You create DirectIODirectory(FSDirectory, mergeBufferSize, minBytesDirect) with a mergeBufferSize that is not a multiple of the file system block size (for example 100000, or 4 * 4096 + 100, on a 4 KiB-block file system) and expect merges to read and write through direct I/O as usual, because the constructor documents the value only as 'Size of buffer to use for merging' and accepts any int. Instead every fresh top-level DirectIOIndexInput fails on its first read with IllegalArgumentException 'Negative position' or IOException 'Channel position ... is not a multiple of the block size', so a merge that reads through direct I/O fails while opening its segment readers and IndexWriter closes on a tragic exception (the index on disk stays intact, but the error sometimes surfaces as CorruptIndexException); with a size below the block size, some fresh outputs throw BufferOverflowException on the first writeByte and writeBytes on such an output loops without progress. The cause is that the direct buffers are aligned slices whose capacity is always a block multiple (and can be 0), while DirectIOIndexInput starts its file position at -mergeBufferSize and then advances it by the buffer's capacity, so the first read lands at -(mergeBufferSize mod blockSize) or at blockSize - (mergeBufferSize mod blockSize).
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: Every fresh top-level DirectIOIndexInput fails on its first read with IllegalArgumentException 'Negative position' or IOException 'Channel position... is not a multiple of the block size', so a merge that reads through direct I/O fails while opening its segment readers and IndexWriter closes on a tragic exception (the index on disk stays intact, but the error sometimes surfaces as CorruptIndexException); with a size below the block size, some fresh outputs throw BufferOverflowException on the first writeByte and writeBytes on such an output loops without progress.
+- Actual: Every fresh top-level DirectIOIndexInput fails on its first read with IllegalArgumentException 'Negative position' or IOException 'Channel position ... is not a multiple of the block size', so a merge that reads through direct I/O fails while opening its segment readers and IndexWriter closes on a tragic exception (the index on disk stays intact, but the error sometimes surfaces as CorruptIndexException); with a size below the block size, some fresh outputs throw BufferOverflowException on the first writeByte and writeBytes on such an output loops without progress.
 
 ## Files
 
@@ -21,7 +21,7 @@ You create DirectIODirectory(FSDirectory, mergeBufferSize, minBytesDirect) with 
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,7 +44,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/directio-nrtcaching-dirs/](../../models/directio-nrtcaching-dirs/)
+Formal models and scripts this finding's part of the hunt used: [../../models/directio-nrtcaching-dirs/](../../models/directio-nrtcaching-dirs/)
 
 ## Feedback
 

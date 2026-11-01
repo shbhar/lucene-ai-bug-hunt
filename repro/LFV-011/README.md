@@ -1,8 +1,8 @@
 # With index sorting and a parent field, deleting only a block's parent makes every later merge fail
 
-Bug LFV-011 · Area: index / IndexWriter merge · Priority: high · Impact: index unusable · Novelty: new
+Finding LFV-011 · Area: index / IndexWriter merge · Priority: high · Impact: index unusable · Novelty: new
 
-Bug page: [../../bugs/LFV-011.html](../../bugs/LFV-011.html)
+Finding page: [../../bugs/LFV-011.html](../../bugs/LFV-011.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: the second merge succeeds; actual (-ea and -da): IndexOutOfBoundsExcep
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

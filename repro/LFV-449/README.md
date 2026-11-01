@@ -1,12 +1,12 @@
 # The default SortedSetDocValues terms enum casts the ordinal to int in seekExact(long) and seekExact(term, TermState): on a view with more than 2^31 values a seek by ordinal throws, and from 2^32 values on it can silently land on the wrong term
 
-Bug LFV-449 · Area: index / sorted-set doc values terms enum (SortedSetDocValuesTermsEnum, the default SortedSetDocValues#termsEnum) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-449 · Area: index / sorted-set doc values terms enum (SortedSetDocValuesTermsEnum, the default SortedSetDocValues#termsEnum()) · Priority: low · Impact: silent wrong results · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You take the terms enum of a sorted-set doc-values view with more than 2^31 distinct values (for example MultiDocValues.getSortedSetValues over a very large multi-segment index), position it on a term with seekCeil, keep ord or termState, and later return with seekExact(ord) or seekExact(term, state); you expect to land on that term again, because sorted-set ordinals are longs and termsEnum is documented to support ord and seekExact(long). Instead seekExact(long) stores '(int) ord' (SortedSetDocValuesTermsEnum.java:69), so for ordinals from 2^31 to 2^32-1 it asks the values for a negative ordinal and throws, and for 2^32+5 it silently positions on ordinal 5 and returns that term, with -ea and -da. seekCeil, seekExact(BytesRef), next and ord use long arithmetic and are correct; the fix is to drop the cast.
+You take the terms enum of a sorted-set doc-values view with more than 2^31 distinct values (for example MultiDocValues.getSortedSetValues over a very large multi-segment index), position it on a term with seekCeil, keep ord() or termState(), and later return with seekExact(ord) or seekExact(term, state); you expect to land on that term again, because sorted-set ordinals are longs and termsEnum() is documented to support ord() and seekExact(long). Instead seekExact(long) stores '(int) ord' (SortedSetDocValuesTermsEnum.java:69), so for ordinals from 2^31 to 2^32-1 it asks the values for a negative ordinal and throws, and for 2^32+5 it silently positions on ordinal 5 and returns that term, with -ea and -da. seekCeil, seekExact(BytesRef), next() and ord() use long arithmetic and are correct; the fix is to drop the cast.
 
 The test shows that the default `SortedSetDocValues#termsEnum()` casts the ordinal to int in `seekExact(long)`, so on a view with more than 2^32 values `seekExact(2^32 + 5)` silently lands on ordinal 5.
 
@@ -22,7 +22,7 @@ Expected: `ord()` is 4294967301 after `seekExact(4294967301)`. Actual: `expected
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

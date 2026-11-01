@@ -1,14 +1,14 @@
 # AnalyzingSuggester and FuzzySuggester count skipped duplicate copies of a surface form toward maxSurfaceFormsPerAnalyzedForm, so distinct lower-weighted surface forms are silently dropped
 
-Bug LFV-248 · Area: suggest / analyzing suggester (AnalyzingSuggester.build, inherited by FuzzySuggester) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-248 · Area: suggest / analyzing suggester (AnalyzingSuggester.build, inherited by FuzzySuggester) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-248.html](../../bugs/LFV-248.html)
+Finding page: [../../bugs/LFV-248.html](../../bugs/LFV-248.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build an AnalyzingSuggester or FuzzySuggester from entries in which one text repeats, for example 256 documents with 'Apple iPhone' and one with 'apple iphone', which a lowercasing analyzer maps to the same analyzed form, and you expect both surface forms back, because maxSurfaceFormsPerAnalyzedForm (default 256) is documented as the 'maximum number of surface forms to keep for a single analyzed form' and repeated copies are documented as removed. build increments its per-analyzed-form counter and applies the limit before it checks whether the surface form was already seen, so every skipped copy still uses up a slot: lookup('apple ip') returns only [Apple iPhone], and with a limit of 2 the entries a/10, a/5, A/3 give [a/10] instead of [a/10, A/3]. With 255 copies, or without the repeated copy, both forms are returned.
+You build an AnalyzingSuggester or FuzzySuggester from entries in which one text repeats, for example 256 documents with 'Apple iPhone' and one with 'apple iphone', which a lowercasing analyzer maps to the same analyzed form, and you expect both surface forms back, because maxSurfaceFormsPerAnalyzedForm (default 256) is documented as the 'maximum number of surface forms to keep for a single analyzed form' and repeated copies are documented as removed. build() increments its per-analyzed-form counter and applies the limit before it checks whether the surface form was already seen, so every skipped copy still uses up a slot: lookup('apple ip') returns only [Apple iPhone], and with a limit of 2 the entries a/10, a/5, A/3 give [a/10] instead of [a/10, A/3]. With 255 copies, or without the repeated copy, both forms are returned.
 
 The test shows that `AnalyzingSuggester` with `maxSurfaceFormsPerAnalyzedForm=2` and the entries a/10, a/5, A/3 (a lowercasing analyzer maps all three to `a`) counts the skipped duplicate copy a/5 toward the limit and drops the distinct surface form A/3.
 
@@ -24,7 +24,7 @@ Expected: `lookup("a")` = `[a/10, A/3]`. Actual: `[a/10]`, with `-ea` and `-da`.
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

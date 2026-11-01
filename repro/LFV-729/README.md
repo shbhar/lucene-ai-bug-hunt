@@ -1,8 +1,8 @@
 # A facet dimension set to DrillDownTermsIndexing.NONE that shares its index field ($facets by default) with term-indexing dimensions makes FacetsConfig emit two schemas for that field, so since 9.0.0 IndexWriter rejects documents of one kind once a document of the other kind is indexed, and after a commit until the index is cleared or rebuilt
 
-Bug LFV-729 · Area: facet / FacetsConfig drill-down term indexing (DrillDownTermsIndexing.NONE in a shared indexFieldName) vs the core per-field schema check (IndexingChain FieldSchema, FieldInfo.verifySameIndexOptions) · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-729 · Area: facet / FacetsConfig drill-down term indexing (DrillDownTermsIndexing.NONE in a shared indexFieldName) vs the core per-field schema check (IndexingChain FieldSchema, FieldInfo.verifySameIndexOptions) · Priority: low · Impact: wrong error · Novelty: new
 
-Bug page: [../../bugs/LFV-729.html](../../bugs/LFV-729.html)
+Finding page: [../../bugs/LFV-729.html](../../bugs/LFV-729.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: both documents are indexed. Actual: the second `addDocument` throws `I
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

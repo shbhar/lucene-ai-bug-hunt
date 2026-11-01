@@ -1,17 +1,17 @@
 # OpenNLPOpsFactory.getLemmatizerDictionary never closes the lemma-dictionary InputStream it opens from the ResourceLoader, so every OpenNLPLemmatizerFilterFactory with a 'dictionary' leaves that file open until garbage collection (regression since 9.1.0: LUCENE-10171 undid the LUCENE-8188 fix)
 
-Bug LFV-461 · Area: analysis-opennlp / lemma dictionary loading (OpenNLPOpsFactory.getLemmatizerDictionary) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-461 · Area: analysis-opennlp / lemma dictionary loading (OpenNLPOpsFactory.getLemmatizerDictionary) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You configure the OpenNLP lemmatizer with a dictionary file (for example CustomAnalyzer.builder(dir).addTokenFilter("openNlpLemmatizer", "dictionary", "lemmas.dict")) and expect Lucene to close the file once it has read it, as it does for every other OpenNLP model and as it did for this dictionary up to 9.0.0. Instead OpenNLPOpsFactory.getLemmatizerDictionary passes loader.openResource(dictionaryFile) straight to OpenNLP's DictionaryLemmatizer, which reads the stream to the end but does not close it, so the file stays open after the analyzer is built and even after Analyzer.close, until garbage collection reclaims the stream; Lucene's own LeakFS test filesystem reports 'file handle leaks: [InputStream(.../lemmas-...dict)]'. The lemmas themselves are correct; only the file handle leaks.
+You configure the OpenNLP lemmatizer with a dictionary file (for example CustomAnalyzer.builder(dir).addTokenFilter("openNlpLemmatizer", "dictionary", "lemmas.dict")) and expect Lucene to close the file once it has read it, as it does for every other OpenNLP model and as it did for this dictionary up to 9.0.0. Instead OpenNLPOpsFactory.getLemmatizerDictionary passes loader.openResource(dictionaryFile) straight to OpenNLP's DictionaryLemmatizer, which reads the stream to the end but does not close it, so the file stays open after the analyzer is built and even after Analyzer.close(), until garbage collection reclaims the stream; Lucene's own LeakFS test filesystem reports 'file handle leaks: [InputStream(.../lemmas-...dict)]'. The lemmas themselves are correct; only the file handle leaks.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: OpenNLPOpsFactory.getLemmatizerDictionary passes loader.openResource(dictionaryFile) straight to OpenNLP's DictionaryLemmatizer, which reads the stream to the end but does not close it, so the file stays open after the analyzer is built and even after Analyzer.close, until garbage collection reclaims the stream; Lucene's own LeakFS test filesystem reports 'file handle leaks: [InputStream(.../lemmas-...dict)]'.
+- Actual: OpenNLPOpsFactory.getLemmatizerDictionary passes loader.openResource(dictionaryFile) straight to OpenNLP's DictionaryLemmatizer, which reads the stream to the end but does not close it, so the file stays open after the analyzer is built and even after Analyzer.close(), until garbage collection reclaims the stream; Lucene's own LeakFS test filesystem reports 'file handle leaks: [InputStream(.../lemmas-...dict)]'.
 
 ## Files
 
@@ -21,7 +21,7 @@ You configure the OpenNLP lemmatizer with a dictionary file (for example CustomA
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

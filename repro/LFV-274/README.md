@@ -1,8 +1,8 @@
 # On WGS84 and other non-spherical planet models, the outside distance from a point to a geo3d circle smaller than about 50 km is +Infinity in most directions (GeoCircle.computeOutsideDistance with the ARC or LINEAR style, and so Geo3DDocValuesField.newOutsideDistanceSort, which then sorts valid documents as if they had no value), because Plane.arcDistance and Plane.linearDistance look for the edge on the line where the circle's plane meets a plane through the origin, the plane normal and the point, and on an ellipsoid that line misses a small circle
 
-Bug LFV-274 · Area: spatial3d / geom outside distance (Plane.arcDistance and Plane.linearDistance behind GeoStandardCircle and GeoExactCircle computeOutsideDistance; user-facing Geo3DDocValuesField.newOutsideDistanceSort via Geo3DPointOutsideDistanceComparator) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-274 · Area: spatial3d / geom outside distance (Plane.arcDistance and Plane.linearDistance behind GeoStandardCircle and GeoExactCircle computeOutsideDistance; user-facing Geo3DDocValuesField.newOutsideDistanceSort via Geo3DPointOutsideDistanceComparator) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-274.html](../../bugs/LFV-274.html)
+Finding page: [../../bugs/LFV-274.html](../../bugs/LFV-274.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: about 2000 m (the distance to the circle edge; the fixes give 1998.03 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

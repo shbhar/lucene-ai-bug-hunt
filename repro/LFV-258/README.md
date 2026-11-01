@@ -1,6 +1,8 @@
 # FeatureField.newSigmoidQuery (and the IntervalQuery sigmoid) return NaN scores when pivot^exp overflows or underflows a double, for pivot and exp values the factories accept
 
-Bug LFV-258 · Area: document / FeatureField sigmoid scoring (FeatureField.SigmoidFunction behind newSigmoidQuery; the same arithmetic is copied in queries / intervals IntervalScoreFunction.SigmoidFunction behind the 4-argument IntervalQuery constructor) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-258 · Area: document / FeatureField sigmoid scoring (FeatureField.SigmoidFunction behind newSigmoidQuery; the same arithmetic is copied in queries / intervals IntervalScoreFunction.SigmoidFunction behind the 4-argument IntervalQuery constructor) · Priority: low · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-258.html](../../bugs/LFV-258.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected weight/2 = 0.5 at S = pivot, as the javadoc says; actual: `expected:<0.
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,7 +46,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/featurefield/](../../models/featurefield/)
+Formal models and scripts this finding's part of the hunt used: [../../models/featurefield/](../../models/featurefield/)
 
 ## Feedback
 

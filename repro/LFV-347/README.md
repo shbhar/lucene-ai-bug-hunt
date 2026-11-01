@@ -1,8 +1,8 @@
 # Monitor with RegexpQueryHandler silently misses regexp matches on any short token that contains a supplementary character (an emoji, a CJK Extension B ideograph, a Gothic or Adlam letter), because SuffixingNGramTokenFilter emits no ngrams for that token
 
-Bug LFV-347 · Area: monitor / presearcher (RegexpQueryHandler document-side ngram filter SuffixingNGramTokenFilter) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-347 · Area: monitor / presearcher (RegexpQueryHandler document-side ngram filter SuffixingNGramTokenFilter) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-347.html](../../bugs/LFV-347.html)
+Finding page: [../../bugs/LFV-347.html](../../bugs/LFV-347.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: /hel.*/ matches the document whose only token is "hello" + U+1F600 (1 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

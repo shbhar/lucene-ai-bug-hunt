@@ -1,12 +1,14 @@
 # Multi-term interval sources (Intervals.prefix, wildcard, regexp, fuzzyTerm, range, multiterm) skip the has-positions check that Intervals.term performs, so positional interval queries over them on a field indexed without positions silently return wrong hits (usually none) instead of throwing the documented exception
 
-Bug LFV-604 · Area: queries / intervals (MultiTermIntervalsSource behind Intervals.prefix, wildcard, regexp, range, fuzzyTerm and multiterm; IntervalQuery search and Weight#matches) · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-604 · Area: queries / intervals (MultiTermIntervalsSource behind Intervals.prefix, wildcard, regexp, range, fuzzyTerm and multiterm; IntervalQuery search and Weight#matches) · Priority: low · Impact: wrong error · Novelty: new
+
+Finding page: [../../bugs/LFV-604.html](../../bugs/LFV-604.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index 'alpha beta' into a field with IndexOptions.DOCS_AND_FREQS (no positions) and search IntervalQuery("body", Intervals.ordered(Intervals.prefix("alph"), Intervals.prefix("bet"))). You expect IllegalArgumentException ('... because it has no indexed positions'), because the IndexOptions javadoc says positional queries on such a field throw and the same query written with Intervals.term("alpha") and Intervals.term("beta") does throw. Instead MultiTermIntervalsSource never checks Terms#hasPositions, runs the interval logic on the position -1 that the postings return, and silently reports 0 hits (1 of 2 on a MultiReader that also holds a positioned copy of the document); wildcard, regexp, fuzzyTerm, range and multiterm leaves behave the same way.
+You index 'alpha beta' into a field with IndexOptions.DOCS_AND_FREQS (no positions) and search IntervalQuery("body", Intervals.ordered(Intervals.prefix("alph"), Intervals.prefix("bet"))). You expect IllegalArgumentException ('... because it has no indexed positions'), because the IndexOptions javadoc says positional queries on such a field throw and the same query written with Intervals.term("alpha") and Intervals.term("beta") does throw. Instead MultiTermIntervalsSource never checks Terms#hasPositions(), runs the interval logic on the position -1 that the postings return, and silently reports 0 hits (1 of 2 on a MultiReader that also holds a positioned copy of the document); wildcard, regexp, fuzzyTerm, range and multiterm leaves behave the same way.
 
 The test shows that `IntervalQuery("body", Intervals.ordered(Intervals.prefix("alph"), Intervals.prefix("bet")))` on a `DOCS_AND_FREQS` field (one doc, `alpha beta`) never checks for indexed positions.
 
@@ -22,7 +24,7 @@ Expected: `IllegalArgumentException` (no indexed positions), as `Intervals.term`
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,12 +1,14 @@
-# MoreLikeThis.retrieveInterestingTerms pre-sizes its result list to maxQueryTerms, so a large maxQueryTerms that like accepts (for example Integer.MAX_VALUE as 'no limit') throws OutOfMemoryError even for a one-word document
+# MoreLikeThis.retrieveInterestingTerms pre-sizes its result list to maxQueryTerms, so a large maxQueryTerms that like() accepts (for example Integer.MAX_VALUE as 'no limit') throws OutOfMemoryError even for a one-word document
 
-Bug LFV-574 · Area: queries / MoreLikeThis interesting-terms convenience API (MoreLikeThis.retrieveInterestingTerms(int) and retrieveInterestingTerms(Reader, String)) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-574 · Area: queries / MoreLikeThis interesting-terms convenience API (MoreLikeThis.retrieveInterestingTerms(int) and retrieveInterestingTerms(Reader, String)) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-574.html](../../bugs/LFV-574.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You set MoreLikeThis.setMaxQueryTerms(Integer.MAX_VALUE), meaning 'no limit', and call retrieveInterestingTerms(...) on a one-word document. You expect that one word back, just as like with the same setting returns a one-clause query. Instead both overloads begin with 'new ArrayList&lt;&gt;(maxQueryTerms)' (MoreLikeThis.java:889 and:914), sized from the limit rather than from the number of terms found, and throw java.lang.OutOfMemoryError: Requested array size exceeds VM limit.
+You set MoreLikeThis.setMaxQueryTerms(Integer.MAX_VALUE), meaning 'no limit', and call retrieveInterestingTerms(...) on a one-word document. You expect that one word back, just as like() with the same setting returns a one-clause query. Instead both overloads begin with 'new ArrayList&lt;&gt;(maxQueryTerms)' (MoreLikeThis.java:889 and :914), sized from the limit rather than from the number of terms found, and throw java.lang.OutOfMemoryError: Requested array size exceeds VM limit.
 
 The test shows that with `setMaxQueryTerms(Integer.MAX_VALUE)`, `MoreLikeThis.retrieveInterestingTerms(Reader, String)` on a one-word document runs `new ArrayList<>(maxQueryTerms)` before it has found any terms.
 
@@ -22,7 +24,7 @@ Expected `[lucene]`; actual `java.lang.OutOfMemoryError: Requested array size ex
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

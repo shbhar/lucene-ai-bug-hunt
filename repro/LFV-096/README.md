@@ -1,20 +1,20 @@
 # An addBatch that registers a new term-vector field but frames no rows leaves a segment whose FieldInfos declare term vectors with no term-vector files, so the committed index cannot be opened
 
-Bug LFV-096 · Area: index / columnar addBatch (term vectors) · Priority: medium · Impact: index unusable · Novelty: new
+Finding LFV-096 · Area: index / columnar addBatch (term vectors) · Priority: medium · Impact: index unusable · Novelty: new
 
-Bug page: [../../bugs/LFV-096.html](../../bugs/LFV-096.html)
+Finding page: [../../bugs/LFV-096.html](../../bugs/LFV-096.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You add a document, then call IndexWriter#addBatch with a column batch that declares a new text field with term vectors but adds no row: the batch is empty, or it is rejected with IllegalArgumentException because a later column conflicts with the existing schema, or its column cursor throws before the first row. You expect the earlier document to commit and the index to open, as it does when the same rejection happens through addDocument. Instead the segment's FieldInfos say the field has term vectors but no term-vector files were written, so DirectoryReader.open on the commit throws CorruptIndexException ('No sub-file with id.tvd found in compound file'), or, with the default IndexWriterConfig, commit itself throws.
+You add a document, then call IndexWriter#addBatch with a column batch that declares a new text field with term vectors but adds no row: the batch is empty, or it is rejected with IllegalArgumentException because a later column conflicts with the existing schema, or its column cursor throws before the first row. You expect the earlier document to commit and the index to open, as it does when the same rejection happens through addDocument. Instead the segment's FieldInfos say the field has term vectors but no term-vector files were written, so DirectoryReader.open on the commit throws CorruptIndexException ('No sub-file with id .tvd found in compound file'), or, with the default IndexWriterConfig, commit() itself throws.
 
 The test shows that an `IndexWriter#addBatch` with an empty batch (`numDocs() == 0`) that declares a new term-vector field, after one `addDocument`, commits a segment whose FieldInfos declare term vectors but that has no term-vector files.
 
 ## Expected vs actual
 
-Expected `DirectoryReader.open` to open the commit with 1 document; actual: `CorruptIndexException` caused by `No sub-file with id.tvd found in compound file "_0.cfs"`, with `-ea` and `-da`.
+Expected `DirectoryReader.open` to open the commit with 1 document; actual: `CorruptIndexException` caused by `No sub-file with id .tvd found in compound file "_0.cfs"`, with `-ea` and `-da`.
 
 ## Files
 
@@ -24,7 +24,7 @@ Expected `DirectoryReader.open` to open the commit with 1 document; actual: `Cor
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,12 +1,14 @@
 # FunctionRangeQuery scores a document with its raw, possibly negative, function value although LUCENE-7996 forbids negative scores and FunctionQuery over the same source clamps them to 0; since 10.1.0 a matching document whose value is -Infinity can then disappear from the top-k results of a minimumShouldMatch &gt;= 2 BooleanQuery
 
-Bug LFV-406 · Area: queries / function queries (ValueSourceScorer behind FunctionRangeQuery, LUCENE-7996 non-negative score rule; the hit loss surfaces in core WANDScorer) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-406 · Area: queries / function queries (ValueSourceScorer behind FunctionRangeQuery, LUCENE-7996 non-negative score rule; the hit loss surfaces in core WANDScorer) · Priority: low · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-406.html](../../bugs/LFV-406.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index a document with DoubleDocValuesField("d", -5.0) and search new FunctionRangeQuery(new DoubleFieldSource("d"), -10.0, 10.0, true, true), expecting a non-negative score, because since LUCENE-7996 (8.0) scorers must not produce negative scores and FunctionQuery over the same source scores that document 0. Instead it scores -5.0 (-Infinity and NaN become -Float.MAX_VALUE), because ValueSourceScorer.score returns the raw value and LUCENE-7996 clamped FunctionQuery, BoostedQuery and FunctionScoreQuery but not this scorer. Since 10.1.0 this also loses hits: with minimumNumberShouldMatch = 2 over SHOULD clauses FunctionRangeQuery(d, open range), body:a and body:b (sparse term clauses; also dense ones since 10.5.0), a matching document whose value is -Infinity is missing from search(q, 10), whose totalHits says '3 hits' while count(q) is 4, because WANDScorer rejects a candidate whose scaled score is below the initial minimum competitive score of 0.
+You index a document with DoubleDocValuesField("d", -5.0) and search new FunctionRangeQuery(new DoubleFieldSource("d"), -10.0, 10.0, true, true), expecting a non-negative score, because since LUCENE-7996 (8.0) scorers must not produce negative scores and FunctionQuery over the same source scores that document 0. Instead it scores -5.0 (-Infinity and NaN become -Float.MAX_VALUE), because ValueSourceScorer.score() returns the raw value and LUCENE-7996 clamped FunctionQuery, BoostedQuery and FunctionScoreQuery but not this scorer. Since 10.1.0 this also loses hits: with minimumNumberShouldMatch = 2 over SHOULD clauses FunctionRangeQuery(d, open range), body:a and body:b (sparse term clauses; also dense ones since 10.5.0), a matching document whose value is -Infinity is missing from search(q, 10), whose totalHits says '3 hits' while count(q) is 4, because WANDScorer rejects a candidate whose scaled score is below the initial minimum competitive score of 0.
 
 The test shows that `FunctionRangeQuery` scores a document with its raw negative value (`-Infinity` becomes `-Float.MAX_VALUE`), so a `minimumNumberShouldMatch = 2` BooleanQuery drops that matching document from top-k results.
 
@@ -22,7 +24,7 @@ Expected `search(q, 10)` to return all `count(q) = 2` matches; actual: 1 (`expec
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

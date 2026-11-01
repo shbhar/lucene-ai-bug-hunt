@@ -1,14 +1,14 @@
 # PackedQuadPrefixTree in a geo context indexes a point at longitude +180 under the -180 edge cell, but point queries look in the +180 edge cell, so RPT and CompositeSpatialStrategy Intersects/Contains with that same point miss the document
 
-Bug LFV-705 · Area: spatial-extras / prefix trees: PackedQuadPrefixTree point-to-cell lookup (RecursivePrefixTreeStrategy and CompositeSpatialStrategy point queries) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-705 · Area: spatial-extras / prefix trees: PackedQuadPrefixTree point-to-cell lookup (RecursivePrefixTreeStrategy and CompositeSpatialStrategy point queries) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-705.html](../../bugs/LFV-705.html)
+Finding page: [../../bugs/LFV-705.html](../../bugs/LFV-705.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index a point at longitude +180, for example Pt(180, 10), with RecursivePrefixTreeStrategy over PackedQuadPrefixTree(SpatialContext.GEO, 8) and query Intersects or Contains with that same point; the document must match, since a point intersects and contains itself and the prefix-tree approximation may only add matches (SpatialArgs: the error 'should not shrink' the shape). Instead the query returns 0 hits, and so does CompositeSpatialStrategy's Intersects: indexing keeps the first cell in Z order whose rectangle relates to the point, and a geo rectangle treats +180 as -180, so the point is stored in the cells at the -180 edge, while the point query's cell lookup (PackedQuadPrefixTree.getCell, a mid-point walk since LUCENE-8755 in 8.3.0) sends x=+180 to the cells at the +180 edge. The same point at -180, QuadPrefixTree, and a rectangle query touching +180 still find the document.
+You index a point at longitude +180, for example Pt(180, 10), with RecursivePrefixTreeStrategy over PackedQuadPrefixTree(SpatialContext.GEO, 8) and query Intersects or Contains with that same point; the document must match, since a point intersects and contains itself and the prefix-tree approximation may only add matches (SpatialArgs: the error 'should not shrink' the shape). Instead the query returns 0 hits, and so does CompositeSpatialStrategy's Intersects: indexing keeps the first cell in Z order whose rectangle relate()s to the point, and a geo rectangle treats +180 as -180, so the point is stored in the cells at the -180 edge, while the point query's cell lookup (PackedQuadPrefixTree.getCell, a mid-point walk since LUCENE-8755 in 8.3.0) sends x=+180 to the cells at the +180 edge. The same point at -180, QuadPrefixTree, and a rectangle query touching +180 still find the document.
 
 The test shows that a document indexed at longitude +180 with `RecursivePrefixTreeStrategy` over `PackedQuadPrefixTree(SpatialContext.GEO, 8)` is not found by an `Intersects` query with that same point (indexing stores it in the -180 edge cell, the point query looks in the +180 edge cell).
 
@@ -24,7 +24,7 @@ Expected 1 hit (a point intersects itself); actual 0 (`expected:<1> but was:<0>`
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -50,7 +50,7 @@ The module(s) spatial-extras also need their third-party runtime jars; `./gradle
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/spatial-extras-composite-and-prefix-tree-query-cross-check/](../../models/spatial-extras-composite-and-prefix-tree-query-cross-check/)
+Formal models and scripts this finding's part of the hunt used: [../../models/spatial-extras-composite-and-prefix-tree-query-cross-check/](../../models/spatial-extras-composite-and-prefix-tree-query-cross-check/)
 
 ## Feedback
 

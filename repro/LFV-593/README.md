@@ -1,12 +1,12 @@
 # With a soft-deletes field configured, an IndexWriter opened from a near-real-time reader's IndexCommit (IndexWriterConfig#setIndexCommit) counts the reader's deletions again, so its next commit can drop a segment that still has live documents, write a commit that cannot be opened, or turn a soft delete into a hard delete (since 7.4.0)
 
-Bug LFV-593 · Area: index / IndexWriter construction from a near-real-time reader (ReaderPool pre-enrollment, PendingSoftDeletes reader constructor, soft-deletes accounting) · Priority: medium · Impact: data corruption · Novelty: known upstream
+Finding LFV-593 · Area: index / IndexWriter construction from a near-real-time reader (ReaderPool pre-enrollment, PendingSoftDeletes reader constructor, soft-deletes accounting) · Priority: medium · Impact: data corruption · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You configure a soft-deletes field, soft-delete one document (for example with an ordinary softUpdateDocument), open a near-real-time reader, close the writer, and open a new IndexWriter from that reader with setIndexCommit(nrtReader.getIndexCommit), as the setIndexCommit javadoc documents. You expect the new writer to start from the reader's point in time and commit every document, with the soft delete still soft. Instead it counts each deletion the reader sees again (a committed soft delete three times, an uncommitted hard delete twice), so its next commit drops a 3-document segment that has 2 live documents, writes a 2-document commit that DirectoryReader.open rejects with 'invalid deletion count: 3 vs maxDoc=2', or hard-deletes the soft-deleted document, and a later forceMerge can silently attach one document's terms to another document's stored fields.
+You configure a soft-deletes field, soft-delete one document (for example with an ordinary softUpdateDocument), open a near-real-time reader, close the writer, and open a new IndexWriter from that reader with setIndexCommit(nrtReader.getIndexCommit()), as the setIndexCommit javadoc documents. You expect the new writer to start from the reader's point in time and commit every document, with the soft delete still soft. Instead it counts each deletion the reader sees again (a committed soft delete three times, an uncommitted hard delete twice), so its next commit drops a 3-document segment that has 2 live documents, writes a 2-document commit that DirectoryReader.open rejects with 'invalid deletion count: 3 vs maxDoc=2', or hard-deletes the soft-deleted document, and a later forceMerge can silently attach one document's terms to another document's stored fields.
 
 ## Expected vs actual
 
@@ -20,7 +20,7 @@ You configure a soft-deletes field, soft-delete one document (for example with a
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,14 +1,14 @@
-# WordDelimiterGraphFilter drops the hole of a swallowed last token (a punctuation-only token such as the '--' in 'foo --', or a token whose parts the flags all switch off) and any stop-word hole that token carries, because it has no end override, so the final position increment is 0 and the next value of a multi-valued field starts too early (released since 6.5.0)
+# WordDelimiterGraphFilter drops the hole of a swallowed last token (a punctuation-only token such as the '--' in 'foo --', or a token whose parts the flags all switch off) and any stop-word hole that token carries, because it has no end() override, so the final position increment is 0 and the next value of a multi-valued field starts too early (released since 6.5.0)
 
-Bug LFV-354 · Area: analysis / WordDelimiterGraphFilter final position increment (end of stream, accumPosInc) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-354 · Area: analysis / WordDelimiterGraphFilter final position increment (end of stream, accumPosInc) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-354.html](../../bugs/LFV-354.html)
+Finding page: [../../bugs/LFV-354.html](../../bugs/LFV-354.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You analyse 'foo --' (or 'foo the --' behind a StopFilter) with a whitespace tokenizer and WordDelimiterGraphFilter at its default flags, and expect the swallowed punctuation-only token to leave a hole that end reports as a final position increment of 1 (2 with the stop word), as the filter does mid-stream ('foo -- bar' puts bar at +2, which upstream tests assert) and as StopFilter does for 'foo the'. Instead the filter keeps that hole in an internal accumulator that only a later emitted token applies and has no end override, so the final increment is 0. In a multi-valued field with the default gap 0 the next value 'bar' then lands at position 1 instead of 2: PhraseQuery(foo, bar) matches the values 'foo --' | 'bar' while the StopFilter control 'foo the' | 'bar' does not, and the phrase QueryBuilder builds for 'foo -- bar' matches the single value 'foo -- bar' but not the two values (both executed).
+You analyse 'foo --' (or 'foo the --' behind a StopFilter) with a whitespace tokenizer and WordDelimiterGraphFilter at its default flags, and expect the swallowed punctuation-only token to leave a hole that end() reports as a final position increment of 1 (2 with the stop word), as the filter does mid-stream ('foo -- bar' puts bar at +2, which upstream tests assert) and as StopFilter does for 'foo the'. Instead the filter keeps that hole in an internal accumulator that only a later emitted token applies and has no end() override, so the final increment is 0. In a multi-valued field with the default gap 0 the next value 'bar' then lands at position 1 instead of 2: PhraseQuery(foo, bar) matches the values 'foo --' | 'bar' while the StopFilter control 'foo the' | 'bar' does not, and the phrase QueryBuilder builds for 'foo -- bar' matches the single value 'foo -- bar' but not the two values (both executed).
 
 The test shows that WordDelimiterGraphFilter (factory default flags, after a WhitespaceTokenizer) drops the hole of a swallowed trailing punctuation-only token: for `foo --` its `end()` reports no final position increment, although the same token leaves a hole mid-stream.
 
@@ -24,7 +24,7 @@ Expected `finalPosInc` 1; actual 0 (`finalPosInc expected:<1> but was:<0>`), wit
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

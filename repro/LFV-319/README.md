@@ -1,14 +1,14 @@
-# MultiFieldQueryParser under AND treats clause i of every field's analyzed BooleanQuery as term position i and requires each group, so fields whose analyzers tokenize the same text differently lose (and sometimes gain wrong) matches (released since 6.2.0, default settings since 7.0.0), and since #16446 (unreleased) graph-phrase alternatives such as a multi-word synonym are required together
+# MultiFieldQueryParser under AND treats clause i of every field's analyzed BooleanQuery as term position i and requires each group, so fields whose analyzers tokenize the same text differently lose (and sometimes gain wrong) matches (released since 6.2.0, default settings since 7.0.0), and since #16446 (10.6.0) graph-phrase alternatives such as a multi-word synonym are required together
 
-Bug LFV-319 · Area: queryparser / classic MultiFieldQueryParser (getFieldQuery(String,String,boolean) per-field clause grouping and getMultiTermPositionQuery; core util/QueryBuilder graph phrases) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-319 · Area: queryparser / classic MultiFieldQueryParser (getFieldQuery(String,String,boolean) per-field clause grouping and getMultiTermPositionQuery; core util/QueryBuilder graph phrases) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-319.html](../../bugs/LFV-319.html)
+Finding page: [../../bugs/LFV-319.html](../../bugs/LFV-319.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You search the fields title and body with MultiFieldQueryParser under AND_OPERATOR and expect what its class javadoc promises: every query term must appear, in any field, so adding a field never loses a document that QueryParser on one of those fields finds. Instead getFieldQuery takes clause i of each field's analyzed BooleanQuery as 'term position i' and requires every such group: with title tokenized on whitespace and body on letters, 'wi-fi router' becomes +(title:wi-fi body:wi) +(title:router body:fi) +(body:router), which misses a document titled 'wi-fi router' and matches one with title 'router' and body 'wi router' (released since 6.2.0, default settings since 7.0.0; since #16446 the single word 'wi-fi' loses the match too). Since #16446 (unreleased), with autoGeneratePhraseQueries and the multi-word synonym 'guinea pig' -&gt; 'cavy', 'guinea-pig' becomes +(body:"guinea pig") +(body:cavy), so even MultiFieldQueryParser over body alone finds nothing where QueryParser(body) finds the document.
+You search the fields title and body with MultiFieldQueryParser under AND_OPERATOR and expect what its class javadoc promises: every query term must appear, in any field, so adding a field never loses a document that QueryParser on one of those fields finds. Instead getFieldQuery takes clause i of each field's analyzed BooleanQuery as 'term position i' and requires every such group: with title tokenized on whitespace and body on letters, 'wi-fi router' becomes +(title:wi-fi body:wi) +(title:router body:fi) +(body:router), which misses a document titled 'wi-fi router' and matches one with title 'router' and body 'wi router' (released since 6.2.0, default settings since 7.0.0; since #16446 the single word 'wi-fi' loses the match too). Since #16446 (in 10.6.0), with autoGeneratePhraseQueries and the multi-word synonym 'guinea pig' -&gt; 'cavy', 'guinea-pig' becomes +(body:"guinea pig") +(body:cavy), so even MultiFieldQueryParser over body alone finds nothing where QueryParser(body) finds the document.
 
 The test shows that under AND with autoGeneratePhraseQueries, `MultiFieldQueryParser` over the single field `body` turns the synonym alternatives of `guinea-pig` (`"guinea pig"` OR `cavy`) into two required clauses.
 
@@ -24,7 +24,7 @@ Expected: 1 hit, the same as `QueryParser("body")` (`body:"guinea pig" body:cavy
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -52,7 +52,7 @@ The module(s) facet also need their third-party runtime jars; `./gradlew -p luce
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/queryparser-classic/](../../models/queryparser-classic/)
+Formal models and scripts this finding's part of the hunt used: [../../models/queryparser-classic/](../../models/queryparser-classic/)
 
 ## Feedback
 

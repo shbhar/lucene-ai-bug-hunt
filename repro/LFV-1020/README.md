@@ -1,17 +1,17 @@
-# TemporalMergePolicy's class javadoc 'Configuration:' example calls.setBaseTimeSeconds(3600), a method that does not exist: the setter was renamed to setBaseTimeInSeconds(long) during review of #15620 and the example kept the old name, so it has not compiled on any release (documentation defect)
+# TemporalMergePolicy's class javadoc 'Configuration:' example calls .setBaseTimeSeconds(3600), a method that does not exist: the setter was renamed to setBaseTimeInSeconds(long) during review of #15620 and the example kept the old name, so it has not compiled on any release (documentation defect)
 
-Bug LFV-1020 · Area: core / index merge policy (TemporalMergePolicy class javadoc example) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-1020 · Area: core / index merge policy (TemporalMergePolicy class javadoc example) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-The TemporalMergePolicy class javadoc shows, under 'Configuration:', how to build the policy with a fluent chain: setTemporalField("timestamp"), setBaseTimeSeconds(3600), setMinThreshold(4), setMaxThreshold(8) and setCompactionRatio(1.2), then passes it to IndexWriterConfig.setMergePolicy. With setBaseTimeInSeconds(3600) the example compiles and the getters return exactly the commented values, so only the javadoc is wrong.
+The TemporalMergePolicy class javadoc shows, under 'Configuration:', how to build the policy with a fluent chain: setTemporalField("timestamp"), setBaseTimeSeconds(3600), setMinThreshold(4), setMaxThreshold(8) and setCompactionRatio(1.2), then passes it to IndexWriterConfig.setMergePolicy. The class has no setBaseTimeSeconds method: its setter is setBaseTimeInSeconds(long), renamed on a reviewer's suggestion while #15620 was in review, so the copied example fails with javac 'cannot find symbol: method setBaseTimeSeconds(int)'. With setBaseTimeInSeconds(3600) the example compiles and the getters return exactly the commented values, so only the javadoc is wrong.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -20,7 +20,7 @@ The TemporalMergePolicy class javadoc shows, under 'Configuration:', how to buil
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,12 +1,14 @@
 # ShapeAreaValueSource leaves its multiplier out of equals/hashCode, so area sources with different multipliers compare equal and BooleanQuery merges or drops their clauses: wrong, clause-order-dependent scores, and wrong hits for area filters
 
-Bug LFV-302 · Area: spatial-extras / value sources (ShapeAreaValueSource equality, consumed by FunctionScoreQuery, area filters and BooleanQuery duplicate-clause handling) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-302 · Area: spatial-extras / value sources (ShapeAreaValueSource equality, consumed by FunctionScoreQuery, area filters and BooleanQuery duplicate-clause handling) · Priority: low · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-302.html](../../bugs/LFV-302.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index one rectangle with BBoxStrategy (planar area 800) and score it with two FunctionScoreQuery SHOULD clauses whose sources differ only in the multiplier, new ShapeAreaValueSource(strategy.makeShapeValueSource, ctx, false, 1.0) and the same with 3.0, expecting the sum 800 + 2400 = 3200. Instead ShapeAreaValueSource equals/hashCode compare only geoArea and the shape source, so the two clauses are equal, BooleanQuery.rewrite merges them into one clause with boost 2 that keeps only the first multiplier, and the document scores 1600 (4800 with the clauses swapped). Area filters built on such sources are de-duplicated the same way, so a FILTER or MUST_NOT area clause can be silently dropped and the hit set changes (2550 hits expected, 3800 returned).
+You index one rectangle with BBoxStrategy (planar area 800) and score it with two FunctionScoreQuery SHOULD clauses whose sources differ only in the multiplier, new ShapeAreaValueSource(strategy.makeShapeValueSource(), ctx, false, 1.0) and the same with 3.0, expecting the sum 800 + 2400 = 3200. Instead ShapeAreaValueSource equals/hashCode compare only geoArea and the shape source, so the two clauses are equal, BooleanQuery.rewrite merges them into one clause with boost 2 that keeps only the first multiplier, and the document scores 1600 (4800 with the clauses swapped). Area filters built on such sources are de-duplicated the same way, so a FILTER or MUST_NOT area clause can be silently dropped and the hit set changes (2550 hits expected, 3800 returned).
 
 The test shows that two ShapeAreaValueSource instances that differ only in the multiplier compare equal, so a SHOULD disjunction of FunctionScoreQuery clauses over them is merged into one clause and loses the second multiplier.
 
@@ -22,7 +24,7 @@ Expected: one rectangle of area 800 scores 800 x 1 + 800 x 3 = 3200. Actual (-ea
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

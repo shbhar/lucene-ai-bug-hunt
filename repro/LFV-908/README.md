@@ -1,14 +1,14 @@
-# A negative cache limit (GroupingSearch.setCaching(-1,..) / setCachingInMB(-1.0,..), CachingCollector.create(.., -1), CachingCollectorManager) is accepted and caches nothing, yet isCached stays true, so replay delivers no documents and grouped search silently returns groups with no documents and totalHitCount 0 (since 9.8.0; from 5.0.0 to 9.7.0 replay threw instead)
+# A negative cache limit (GroupingSearch.setCaching(-1, ..) / setCachingInMB(-1.0, ..), CachingCollector.create(.., -1), CachingCollectorManager) is accepted and caches nothing, yet isCached() stays true, so replay() delivers no documents and grouped search silently returns groups with no documents and totalHitCount 0 (since 9.8.0; from 5.0.0 to 9.7.0 replay threw instead)
 
-Bug LFV-908 · Area: search / CachingCollector first-pass caching (CachingCollector, CachingCollectorManager) x grouping GroupingSearch two-pass caching · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-908 · Area: search / CachingCollector first-pass caching (CachingCollector, CachingCollectorManager) x grouping GroupingSearch two-pass caching · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-908.html](../../bugs/LFV-908.html)
+Finding page: [../../bugs/LFV-908.html](../../bugs/LFV-908.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You enable caching for a grouped search (or wrap a first-pass collector in CachingCollector or CachingCollectorManager) with a negative limit, for example setCaching(-1, true) meant as 'no limit', and expect either an IllegalArgumentException or the documented fallback for a cache over its limit: isCached false and the query re-run. Instead the limit is accepted and nothing is cached (a negative count is the collector's own internal 'purged' marker), but isCached stays true, so replay delivers none of the collected documents and GroupingSearch returns its top groups with no documents and totalHitCount 0 instead of 20 in the repro, with no error. From 5.0.0 to 9.7.0 the same input failed at replay with an AssertionError (-ea) or IndexOutOfBoundsException (-da).
+You enable caching for a grouped search (or wrap a first-pass collector in CachingCollector or CachingCollectorManager) with a negative limit, for example setCaching(-1, true) meant as 'no limit', and expect either an IllegalArgumentException or the documented fallback for a cache over its limit: isCached() false and the query re-run. Instead the limit is accepted and nothing is cached (a negative count is the collector's own internal 'purged' marker), but isCached() stays true, so replay() delivers none of the collected documents and GroupingSearch returns its top groups with no documents and totalHitCount 0 instead of 20 in the repro, with no error. From 5.0.0 to 9.7.0 the same input failed at replay with an AssertionError (-ea) or IndexOutOfBoundsException (-da).
 
 The test shows that GroupingSearch.setCaching(-1, true) is accepted, caches nothing, still reports the cache as usable, and so replays no document into the second pass.
 
@@ -24,7 +24,7 @@ Expected the grouped search over one matching document to report `totalHitCount`
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

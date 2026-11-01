@@ -1,14 +1,14 @@
-# MemoryIndex stores binaryValue instead of IndexableField.storedValue, so stored StringField/KeywordField values built from a String and stored IntField/LongField/FloatField/DoubleField values come back as binary bytes (Document.get and numericValue return null), and a StoredField built from a StoredFieldDataInput is dropped (released since 9.6.0)
+# MemoryIndex stores binaryValue() instead of IndexableField.storedValue(), so stored StringField/KeywordField values built from a String and stored IntField/LongField/FloatField/DoubleField values come back as binary bytes (Document.get and numericValue() return null), and a StoredField built from a StoredFieldDataInput is dropped (released since 9.6.0)
 
-Bug LFV-330 · Area: memory / MemoryIndex stored fields · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-330 · Area: memory / MemoryIndex stored fields · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-330.html](../../bugs/LFV-330.html)
+Finding page: [../../bugs/LFV-330.html](../../bugs/LFV-330.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a MemoryIndex from a document with StringField("id", "doc-1", Store.YES), a KeywordField(String, Store.YES) or an IntField("count", 5, Store.YES) and read it back through storedFields.document(0), expecting the same stored values IndexWriter returns, since MemoryIndex has supported stored fields since 9.5.0 (#11999). Instead MemoryIndex stores the field's binaryValue rather than its storedValue: the String comes back as its UTF-8 bytes, so Document.get("id") returns null, and the numbers come back as their sortable point bytes (IntField 5 as [80 00 00 05]), so numericValue returns null. A StoredField built from a StoredFieldDataInput is not stored at all; the BytesRef constructors and plain StoredField values are unaffected.
+You build a MemoryIndex from a document with StringField("id", "doc-1", Store.YES), a KeywordField(String, Store.YES) or an IntField("count", 5, Store.YES) and read it back through storedFields().document(0), expecting the same stored values IndexWriter returns, since MemoryIndex has supported stored fields since 9.5.0 (#11999). Instead MemoryIndex stores the field's binaryValue() rather than its storedValue(): the String comes back as its UTF-8 bytes, so Document.get("id") returns null, and the numbers come back as their sortable point bytes (IntField 5 as [80 00 00 05]), so numericValue() returns null. A StoredField built from a StoredFieldDataInput is not stored at all; the BytesRef constructors and plain StoredField values are unaffected.
 
 The test shows that `MemoryIndex` stores a `StringField(String, Store.YES)` as its term bytes (`binaryValue()`) instead of its `storedValue()`, so the stored String is lost.
 
@@ -24,7 +24,7 @@ Expected: `storedFields().document(0).get("id")` is `"doc-1"`, as with IndexWrit
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

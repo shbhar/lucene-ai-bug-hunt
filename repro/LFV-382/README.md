@@ -1,14 +1,14 @@
 # SimpleNaiveBayesDocumentClassifier applies a documented 'field^boost' (e.g. 'title^10') only on its first call: it writes the stripped field name back into the caller's textFieldNames array, so every later classification silently returns the unboosted result (released since 6.0.0)
 
-Bug LFV-382 · Area: classification / document classifiers (SimpleNaiveBayesDocumentClassifier field boosts) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-382 · Area: classification / document classifiers (SimpleNaiveBayesDocumentClassifier field boosts) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-382.html](../../bugs/LFV-382.html)
+Finding page: [../../bugs/LFV-382.html](../../bugs/LFV-382.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a SimpleNaiveBayesDocumentClassifier with textFieldNames {"title^10", "body"}, as its constructor javadoc allows, and classify documents with it one after another, expecting the title boost on every call. The first call applies the boost but also overwrites "title^10" with "title" in textFieldNames, which is the caller's own array kept by reference, so from the second call on every boost is 1: classifying the same document twice gives fruit (0.99994) and then vehicle (0.55373), exactly the unboosted classifier's answer, and on the upstream test's own fixture ('title^100') the class flips from batman to the video-game class. No error is raised, and a second classifier built from the same String is unboosted even on its first call.
+You build a SimpleNaiveBayesDocumentClassifier with textFieldNames {"title^10", "body"}, as its constructor javadoc allows, and classify documents with it one after another, expecting the title boost on every call. The first call applies the boost but also overwrites "title^10" with "title" in textFieldNames, which is the caller's own array kept by reference, so from the second call on every boost is 1: classifying the same document twice gives fruit (0.99994) and then vehicle (0.55373), exactly the unboosted classifier's answer, and on the upstream test's own fixture ('title^100') the class flips from batman to the video-game class. No error is raised, and a second classifier built from the same String[] is unboosted even on its first call.
 
 The test shows that SimpleNaiveBayesDocumentClassifier built with the documented field boost "title^10" applies the boost only on its first call; the same document classified a second time gets the unboosted result.
 
@@ -24,7 +24,7 @@ Expected: both assignClass calls return the boosted result `fruit 0.998994379330
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -50,7 +50,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/classification/](../../models/classification/)
+Formal models and scripts this finding's part of the hunt used: [../../models/classification/](../../models/classification/)
 
 ## Feedback
 

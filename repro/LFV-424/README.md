@@ -1,8 +1,8 @@
 # SortRescorer and ExpressionRescorer give returned hits another hit's first-pass score when topN is smaller than the number of first-pass hits (AssertionError with -ea)
 
-Bug LFV-424 · Area: search / rescoring (SortRescorer; expressions ExpressionRescorer inherits rescore) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-424 · Area: search / rescoring (SortRescorer; expressions ExpressionRescorer inherits rescore()) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-424.html](../../bugs/LFV-424.html)
+Finding page: [../../bugs/LFV-424.html](../../bugs/LFV-424.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: doc 1 keeps its own score 1.0. Actual: doc 0's score 2.0 with `-da`; w
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

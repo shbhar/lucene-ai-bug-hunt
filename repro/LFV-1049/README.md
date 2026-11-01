@@ -1,8 +1,8 @@
 # IndexSortSortedNumericDocValuesRangeQuery casts its long bounds to int on an INT index sort, so Long.MIN_VALUE / Long.MAX_VALUE open ends (or any bound outside the int range) silently return wrong hits and counts
 
-Bug LFV-1049 · Area: search / IndexSortSortedNumericDocValuesRangeQuery (index-sort range shortcut: INT sort comparator path and 4-byte points path) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-1049 · Area: search / IndexSortSortedNumericDocValuesRangeQuery (index-sort range shortcut: INT sort comparator path and 4-byte points path) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-1049.html](../../bugs/LFV-1049.html)
+Finding page: [../../bugs/LFV-1049.html](../../bugs/LFV-1049.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ You sort the index by SortField("f", SortField.Type.INT), index the values -5, 3
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,7 +44,7 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-## Files shown on the bug page
+## Files shown on the finding page
 
 - [TestIndexSortIntSortLongBound.java](TestIndexSortIntSortLongBound.java)
 

@@ -1,12 +1,14 @@
-# Geo3DPoint polygon and path queries report a constant 592-byte ramBytesUsed regardless of shape size, because PointInGeo3DShapeQuery prices its GeoShape as a 256-byte unknown object, so LRUQueryCache can hold many times its maxRamBytesUsed (since 8.2.0)
+# Geo3DPoint polygon and path queries report a constant 592-byte ramBytesUsed() regardless of shape size, because PointInGeo3DShapeQuery prices its GeoShape as a 256-byte unknown object, so LRUQueryCache can hold many times its maxRamBytesUsed (since 8.2.0)
 
-Bug LFV-400 · Area: spatial3d / PointInGeo3DShapeQuery RAM accounting (Accountable#ramBytesUsed; core LRUQueryCache RAM budget) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-400 · Area: spatial3d / PointInGeo3DShapeQuery RAM accounting (Accountable#ramBytesUsed; core LRUQueryCache RAM budget) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-400.html](../../bugs/LFV-400.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You filter with a Geo3DPoint polygon or path query, for example newLargePolygonQuery with 2,000 edges or newPathQuery with 200 points, and expect its ramBytesUsed to estimate the heap it holds, which is what Accountable promises and what LRUQueryCache charges against its maxRamBytesUsed budget. Instead PointInGeo3DShapeQuery.ramBytesUsed passes the shape and its bounds to RamUsageEstimator.sizeOfObject, which prices every object that is not Accountable (no GeoShape is) at a fixed 256 bytes, so every such query reports 592 bytes whatever its size: 4.9x too low for an 8-edge polygon, 47x for 99 edges, about 2,300x for the 2,000-edge large polygon (1,360,960 bytes retained). An LRUQueryCache with a 1 MiB budget therefore keeps 8 such filters that retain 10.9 MB, accounts about 6 KB for them and evicts nothing; the hits are correct.
+You filter with a Geo3DPoint polygon or path query, for example newLargePolygonQuery with 2,000 edges or newPathQuery with 200 points, and expect its ramBytesUsed() to estimate the heap it holds, which is what Accountable promises and what LRUQueryCache charges against its maxRamBytesUsed budget. Instead PointInGeo3DShapeQuery.ramBytesUsed() passes the shape and its bounds to RamUsageEstimator.sizeOfObject, which prices every object that is not Accountable (no GeoShape is) at a fixed 256 bytes, so every such query reports 592 bytes whatever its size: 4.9x too low for an 8-edge polygon, 47x for 99 edges, about 2,300x for the 2,000-edge large polygon (1,360,960 bytes retained). An LRUQueryCache with a 1 MiB budget therefore keeps 8 such filters that retain 10.9 MB, accounts about 6 KB for them and evicts nothing; the hits are correct.
 
 The test shows that `Geo3DPoint.newLargePolygonQuery` reports the same `ramBytesUsed()` for 8 and for 2,000 polygon edges, because `PointInGeo3DShapeQuery` prices its `GeoShape` as a fixed 256-byte unknown object.
 
@@ -22,7 +24,7 @@ Expected: the 2,000-edge query (about 1.36 MB retained) reports more than the 8-
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

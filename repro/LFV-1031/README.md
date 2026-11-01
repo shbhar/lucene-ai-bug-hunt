@@ -1,17 +1,17 @@
-# The spans package javadoc's example for combining a span query with other queries (restrict it to documents that also contain "iraq") calls new BooleanQuery, Query.add(q, true, false) and new TermQuery(String, String), none of which exists, so it has not compiled in any release (documentation defect)
+# The spans package javadoc's example for combining a span query with other queries (restrict it to documents that also contain "iraq") calls new BooleanQuery(), Query.add(q, true, false) and new TermQuery(String, String), none of which exists, so it has not compiled in any release (documentation defect)
 
-Bug LFV-1031 · Area: queries / spans (package javadoc example) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-1031 · Area: queries / spans (package javadoc example) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-The spans package overview says span queries 'may be freely intermixed with other Lucene queries' and shows how to restrict its John Kerry / George Bush span query to documents that also contain the word 'iraq'. That three-line example does not compile: new BooleanQuery has had no public constructor since 6.0 (a BooleanQuery is built with BooleanQuery.Builder), the abstract Query class it is assigned to has no add(...) method, and TermQuery has never had a (String, String) constructor. Written with BooleanQuery.Builder, Occur.MUST and new TermQuery(new Term("content", "iraq")) it compiles, so only the code in the javadoc is wrong.
+The spans package overview says span queries 'may be freely intermixed with other Lucene queries' and shows how to restrict its John Kerry / George Bush span query to documents that also contain the word 'iraq'. That three-line example does not compile: new BooleanQuery() has had no public constructor since 6.0 (a BooleanQuery is built with BooleanQuery.Builder), the abstract Query class it is assigned to has no add(...) method, and TermQuery has never had a (String, String) constructor. Written with BooleanQuery.Builder, Occur.MUST and new TermQuery(new Term("content", "iraq")) it compiles, so only the code in the javadoc is wrong.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -20,7 +20,7 @@ The spans package overview says span queries 'may be freely intermixed with othe
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

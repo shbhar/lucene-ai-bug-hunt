@@ -1,12 +1,12 @@
-# With an index sort, a failure while creating the sorted stored-fields or term-vectors writer during flush leaves the reader on the temporary.fdt/.fdx (.tvd/.tvx) files open after IndexWriter closes itself
+# With an index sort, a failure while creating the sorted stored-fields or term-vectors writer during flush leaves the reader on the temporary .fdt/.fdx (.tvd/.tvx) files open after IndexWriter closes itself
 
-Bug LFV-440 · Area: index / flush-time index sorting (SortingStoredFieldsConsumer, SortingTermVectorsConsumer) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-440 · Area: index / flush-time index sorting (SortingStoredFieldsConsumer, SortingTermVectorsConsumer) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You configure an index sort, and while a flush is creating the final sorted stored-fields (or term-vectors) files, creating or opening a file fails with an IOException, for example because the process has too many open files. You expect IndexWriter to close itself, as it does after any failed flush, and to release every file it opened. Instead the reader that the flush had just opened on the temporary.fdt/.fdx (or.tvd/.tvx) files is never closed, because it is opened one statement before the try whose finally closes it, so two inputs on already-deleted temporary files stay open (on MMapDirectory, mapped) after IndexWriter and the Directory are closed.
+You configure an index sort, and while a flush is creating the final sorted stored-fields (or term-vectors) files, creating or opening a file fails with an IOException, for example because the process has too many open files. You expect IndexWriter to close itself, as it does after any failed flush, and to release every file it opened. Instead the reader that the flush had just opened on the temporary .fdt/.fdx (or .tvd/.tvx) files is never closed, because it is opened one statement before the try whose finally closes it, so two inputs on already-deleted temporary files stay open (on MMapDirectory, mapped) after IndexWriter and the Directory are closed.
 
 The test shows that with an index sort, when creating the final sorted stored-fields writer fails during flush (`createOutput` of `.fdm` throws), IndexWriter closes itself but the reader on the temporary `.fdt`/`.fdx` files stays open.
 
@@ -22,7 +22,7 @@ Expected: no open file handles after the failed `commit()` and `close()`. Actual
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

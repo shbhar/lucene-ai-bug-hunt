@@ -1,8 +1,8 @@
 # XYShape.newLineQuery / newGeometryQuery accept QueryRelation.WITHIN with an XYLine, which LatLonShape (and XYShape itself up to 8.4.1) rejects with IllegalArgumentException; the accepted query silently returns only indexed points lying on the line and never an indexed line, not even one identical to the query line (the check was lost in LUCENE-9194, 8.5.0)
 
-Bug LFV-434 · Area: core / document: XYShape queries (XYShape.newLineQuery and newGeometryQuery, XYShapeQuery, Line2D) · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-434 · Area: core / document: XYShape queries (XYShape.newLineQuery and newGeometryQuery, XYShapeQuery, Line2D) · Priority: low · Impact: wrong error · Novelty: new
 
-Bug page: [../../bugs/LFV-434.html](../../bugs/LFV-434.html)
+Finding page: [../../bugs/LFV-434.html](../../bugs/LFV-434.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected `IllegalArgumentException`, as `LatLonShape.newLineQuery` throws and XY
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

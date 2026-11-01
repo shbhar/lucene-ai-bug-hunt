@@ -1,8 +1,10 @@
 # FunctionRangeQuery over Int/Long/EnumFieldSource turns an exclusive bound at the type limit into an inclusive one
 
-Bug LFV-083 · Area: queries / function · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-083 · Area: queries / function · Priority: low · Impact: silent wrong results · Novelty: new
 
-AI-assisted finding, reproduced on Lucene main but not yet independently re-verified, and not yet triaged by a human Lucene committer. This site files nothing upstream.
+Finding page: [../../bugs/LFV-083.html](../../bugs/LFV-083.html)
+
+AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
@@ -22,7 +24,7 @@ Expected 0 hits; actual 1 (`expected:<0> but was:<1>`).
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

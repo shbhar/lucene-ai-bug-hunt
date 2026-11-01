@@ -1,12 +1,14 @@
 # SweetSpotSimilarity.hyperbolicTf returns max instead of about min for frequencies far below xoffset, because its NaN fallback is right only for the Math.pow overflow above the midpoint, so a hyperbolic-tf subclass is not monotone in freq and ranks a document with one occurrence above one with hundreds
 
-Bug LFV-750 · Area: misc / similarities (SweetSpotSimilarity hyperbolicTf helper) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-750 · Area: misc / similarities (SweetSpotSimilarity hyperbolicTf helper) · Priority: low · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-750.html](../../bugs/LFV-750.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You subclass SweetSpotSimilarity so that tf returns hyperbolicTf(freq), as its javadoc suggests, call setHyperbolicTfFactors(0, 2, 10, 400) and search, expecting the documented curve min+(max-min)/2*(tanh((freq-xoffset)*ln(base))+1): a tf near min (0) for frequencies far below the midpoint 400, rising to max (2) above it. Instead hyperbolicTf returns the maximum 2.0 for every frequency from 1 to 91 and drops to 0.0 at 92, so a document that contains the term once outranks an equally long one that contains it 400 times. Far below the midpoint Math.pow(base, xoffset - freq) overflows to Infinity (once xoffset - freq exceeds about 308 at base 10, about 2705 at the default base 1.3), the ratio becomes NaN, and the guard 'return Float.isNaN(result) ? max: result', which is right only for the overflow above the midpoint, returns max.
+You subclass SweetSpotSimilarity so that tf() returns hyperbolicTf(freq), as its javadoc suggests, call setHyperbolicTfFactors(0, 2, 10, 400) and search, expecting the documented curve min+(max-min)/2*(tanh((freq-xoffset)*ln(base))+1): a tf near min (0) for frequencies far below the midpoint 400, rising to max (2) above it. Instead hyperbolicTf returns the maximum 2.0 for every frequency from 1 to 91 and drops to 0.0 at 92, so a document that contains the term once outranks an equally long one that contains it 400 times. Far below the midpoint Math.pow(base, xoffset - freq) overflows to Infinity (once xoffset - freq exceeds about 308 at base 10, about 2705 at the default base 1.3), the ratio becomes NaN, and the guard 'return Float.isNaN(result) ? max : result', which is right only for the overflow above the midpoint, returns max.
 
 The test shows that `SweetSpotSimilarity.hyperbolicTf` returns max, not about min, for a frequency far below the midpoint: with `setHyperbolicTfFactors(0, 2, 10, 400)`, `Math.pow(10, 399)` overflows, the ratio is NaN and the NaN guard returns max.
 
@@ -22,7 +24,7 @@ Expected `hyperbolicTf(1)` = 0.0 (the javadoc formula `min+(max-min)/2*(tanh((x-
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

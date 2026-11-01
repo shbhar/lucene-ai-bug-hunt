@@ -1,17 +1,17 @@
 # Weight#matches of Intervals.atLeast, or iterating the Matches it returns, throws IllegalStateException (AssertionError with -ea) for a matching document once an Intervals.or(...) source has run out of intervals, so default UnifiedHighlighter highlighting of such a query fails
 
-Bug LFV-806 · Area: queries / intervals (Intervals.atLeast Matches path: MinimumShouldMatchIntervalsSource, CachingMatchesIterator) · Priority: medium · Impact: crash · Novelty: known upstream
+Finding LFV-806 · Area: queries / intervals (Intervals.atLeast Matches path: MinimumShouldMatchIntervalsSource, CachingMatchesIterator) · Priority: medium · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index 'a c b a' and ask Weight#matches, or the default UnifiedHighlighter, for Intervals.atLeast(2, term a, term b, or(term c, term d)); you expect the positions [0,1] [1,2] [2,3] that the query's own interval iterator returns and that the control atLeast(2, a, b, c) gives, and the snippet '&lt;b&gt;a&lt;/b&gt; &lt;b&gt;c&lt;/b&gt; &lt;b&gt;b&lt;/b&gt; &lt;b&gt;a&lt;/b&gt;'. Instead iterating the Matches throws IllegalStateException (AssertionError with -ea) from DisjunctionIntervalIterator.currentOrd and the whole highlight call fails, also for the query text 'fn:atLeast(2 a b fn:or(c d))': atLeast's match callback asks every source for its sub-matches, including the or source that has no interval left and that atLeast has already dropped. For some documents Weight#matches itself throws (atLeast(2, or(c, d), b, phrase(a, b)) on 'c a b').
+You index 'a c b a' and ask Weight#matches, or the default UnifiedHighlighter, for Intervals.atLeast(2, term a, term b, or(term c, term d)); you expect the positions [0,1] [1,2] [2,3] that the query's own interval iterator returns and that the control atLeast(2, a, b, c) gives, and the snippet '&lt;b&gt;a&lt;/b&gt; &lt;b&gt;c&lt;/b&gt; &lt;b&gt;b&lt;/b&gt; &lt;b&gt;a&lt;/b&gt;'. Instead iterating the Matches throws IllegalStateException (AssertionError with -ea) from DisjunctionIntervalIterator.currentOrd and the whole highlight call fails, also for the query text 'fn:atLeast(2 a b fn:or(c d))': atLeast's match callback asks every source for its sub-matches, including the or() source that has no interval left and that atLeast has already dropped. For some documents Weight#matches itself throws (atLeast(2, or(c, d), b, phrase(a, b)) on 'c a b').
 
 ## Expected vs actual
 
 - Expected: You expect the positions [0,1] [1,2] [2,3] that the query's own interval iterator returns and that the control atLeast(2, a, b, c) gives, and the snippet '&lt;b&gt;a&lt;/b&gt; &lt;b&gt;c&lt;/b&gt; &lt;b&gt;b&lt;/b&gt; &lt;b&gt;a&lt;/b&gt;'.
-- Actual: Iterating the Matches throws IllegalStateException (AssertionError with -ea) from DisjunctionIntervalIterator.currentOrd and the whole highlight call fails, also for the query text 'fn:atLeast(2 a b fn:or(c d))': atLeast's match callback asks every source for its sub-matches, including the or source that has no interval left and that atLeast has already dropped.
+- Actual: Iterating the Matches throws IllegalStateException (AssertionError with -ea) from DisjunctionIntervalIterator.currentOrd and the whole highlight call fails, also for the query text 'fn:atLeast(2 a b fn:or(c d))': atLeast's match callback asks every source for its sub-matches, including the or() source that has no interval left and that atLeast has already dropped.
 
 ## Files
 
@@ -21,7 +21,7 @@ You index 'a c b a' and ask Weight#matches, or the default UnifiedHighlighter, f
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

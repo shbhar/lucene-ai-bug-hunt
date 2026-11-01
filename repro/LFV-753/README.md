@@ -1,12 +1,12 @@
-# SimpleText points: PointTree.clone shares a saved split-value array with the tree it was cloned from, so moving one tree corrupts the node bounds the other reports
+# SimpleText points: PointTree.clone() shares a saved split-value array with the tree it was cloned from, so moving one tree corrupts the node bounds the other reports
 
-Bug LFV-753 · Area: codecs / SimpleText points format (SimpleTextBKDReader.SimpleTextPointTree#clone) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-753 · Area: codecs / SimpleText points format (SimpleTextBKDReader.SimpleTextPointTree#clone) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index points with the SimpleText codec, take a PointTree from PointValues.getPointTree, clone it and keep moving both the clone and the original, and expect each tree to report the bounds of its own current node, as PointTree#clone promises ('the current node becomes the root of the new tree') and as the default points format does. Instead SimpleTextPointTree.clone copies the reference to the original's saved split-value array for the current level, so a move of one tree overwrites the bound that the other tree restores when it moves back up: after tree.moveToChild, tree.moveToParent, clone = tree.clone, clone.moveToChild, tree.moveToChild, tree.moveToSibling, clone.moveToParent, the clone at its root reports max 0 instead of 2047 for the values 0..2047. Any traversal that prunes on those bounds can then miss or wrongly include cells; no in-tree query moves trees this way.
+You index points with the SimpleText codec, take a PointTree from PointValues.getPointTree(), clone it and keep moving both the clone and the original, and expect each tree to report the bounds of its own current node, as PointTree#clone promises ('the current node becomes the root of the new tree') and as the default points format does. Instead SimpleTextPointTree.clone() copies the reference to the original's saved split-value array for the current level, so a move of one tree overwrites the bound that the other tree restores when it moves back up: after tree.moveToChild(), tree.moveToParent(), clone = tree.clone(), clone.moveToChild(), tree.moveToChild(), tree.moveToSibling(), clone.moveToParent(), the clone at its root reports max 0 instead of 2047 for the values 0..2047. Any traversal that prunes on those bounds can then miss or wrongly include cells; no in-tree query moves trees this way.
 
 The test shows that with the SimpleText codec a `PointTree.clone()` shares a saved split value with the original tree, so moving the original corrupts the clone's bounds.
 
@@ -22,7 +22,7 @@ Expected the clone's root max `1023` after it moves back to its root (values 0..
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

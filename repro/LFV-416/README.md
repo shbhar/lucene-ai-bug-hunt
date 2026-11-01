@@ -1,6 +1,6 @@
 # FunctionRangeQuery over a double or float source drops -Infinity / +Infinity documents when an omitted (null) bound is marked exclusive ({* TO x] or [x TO *}), while int, long, enum and string sources treat an omitted bound as unbounded
 
-Bug LFV-416 · Area: queries / function queries (FunctionRangeQuery range scorers: DoubleDocValues.getRangeScorer and the float default FunctionValues.getRangeScorer) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-416 · Area: queries / function queries (FunctionRangeQuery range scorers: DoubleDocValues.getRangeScorer and the float default FunctionValues.getRangeScorer) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You index documents whose DoubleDocValuesField "d" holds -Infinity, 0 and +Infin
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

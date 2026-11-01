@@ -4,11 +4,11 @@ Tools: Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- GroupingSearch with groupLimit or groupDocsLimit = Integer.MAX_VALUE ('all remaining groups/documents') throws NegativeArraySizeException, OutOfMemoryError or an IllegalArgumentException naming -2147483648, because it does not cap the limits at maxDoc as IndexSearcher.search does and its collectors add offset + limit in int (every release since 4.0.0) (bug LFV-964; [repro](../../repro/LFV-964/))
-- SearchGroup.merge (the shard-merge helper of grouped search) with topN = Integer.MAX_VALUE ('all remaining groups') throws OutOfMemoryError because it pre-sizes its result list by topN (regression in 6.2.0, LUCENE-7356), and with offset &gt;= 1 throws NullPointerException because offset + topN wraps to a negative queue bound (since 3.3.0) (bug LFV-958; [repro](../../repro/LFV-958/))
-- TopGroups.merge throws NegativeArraySizeException when docOffset + docTopN overflows int, for example docOffset = 1 with docTopN = Integer.MAX_VALUE ('all remaining documents'), although docOffset 0 with the same docTopN works (bug LFV-960; [repro](../../repro/LFV-960/))
+- GroupingSearch with groupLimit or groupDocsLimit = Integer.MAX_VALUE ('all remaining groups/documents') throws NegativeArraySizeException, OutOfMemoryError or an IllegalArgumentException naming -2147483648, because it does not cap the limits at maxDoc as IndexSearcher.search does and its collectors add offset + limit in int (every release since 4.0.0) (finding LFV-964; [repro](../../repro/LFV-964/), [finding page](../../bugs/LFV-964.html))
+- SearchGroup.merge (the shard-merge helper of grouped search) with topN = Integer.MAX_VALUE ('all remaining groups') throws OutOfMemoryError because it pre-sizes its result list by topN (regression in 6.2.0, LUCENE-7356), and with offset &gt;= 1 throws NullPointerException because offset + topN wraps to a negative queue bound (since 3.3.0) (finding LFV-958; [repro](../../repro/LFV-958/), [finding page](../../bugs/LFV-958.html))
+- TopGroups.merge throws NegativeArraySizeException when docOffset + docTopN overflows int, for example docOffset = 1 with docTopN = Integer.MAX_VALUE ('all remaining documents'), although docOffset 0 with the same docTopN works (finding LFV-960; [repro](../../repro/LFV-960/), [finding page](../../bugs/LFV-960.html))
 
 ## Files
 

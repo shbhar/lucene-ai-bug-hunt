@@ -18,7 +18,7 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>If merge setup throws, the vectors merge instances obtained so far never get finishMerge (MergeState constructor and PerFieldKnnVectorsFormat merge copy constructor)</h1>
-<p class="facts small"><span>Bug LFV-108</span><span>Area: index / merge setup (MergeState merge instances, KnnVectorsReader finishMerge lifecycle)</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: known upstream</span></p>
+<p class="facts small"><span>Finding LFV-108</span><span>Area: index / merge setup (MergeState merge instances, KnnVectorsReader finishMerge lifecycle)</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: known upstream</span></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You merge segments that have vectors (forceMerge, a background merge or addIndexes(CodecReader...)) and the merge fails while it is being set up, after it already took a vectors merge instance from one source segment or one vector field, for example because re-opening a data file for sequential reads throws an IOException. You expect every merge instance obtained with KnnVectorsReader#getMergeInstance to get its finishMerge call on this failure too, as #14977 (&#x27;always called regardless of merge outcome&#x27;), the 10.6.0 CHANGES entry for GITHUB#14930 (&#x27;including exceptional exits&#x27;) and the test framework&#x27;s AssertingKnnVectorsReader close check (mergeInstanceCount == finishMergeCount) say. Instead the failure happens inside new SegmentMerger(...) (the MergeState constructor) or inside the PerFieldKnnVectorsFormat merge copy constructor, before IndexWriter enters the try/finally that calls cleanupMerge, so the instances already obtained never get finishMerge (obtained=1, finished=0); stock formats on main see no effect because their finishMerge does nothing.</p>
@@ -30,7 +30,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </ul><h2>Run it</h2><ul>
 <li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
 <li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
+<li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
@@ -48,4 +48,4 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.index.TestMergeInstanceSetupFailure \
        --select-class org.apache.lucene.index.TestPerFieldMergeInstanceSetupFailure</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-30. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-01. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

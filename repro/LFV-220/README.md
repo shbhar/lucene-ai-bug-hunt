@@ -1,8 +1,8 @@
 # ToParentBlockJoinSortField treats a parent as having a missing child value whenever its block holds any document outside childFilter, even if every document has the sort field (regression in 10.5.0)
 
-Bug LFV-220 · Area: join / ToParentBlockJoinSortField nested sort (ToParentDocValues missing-child count, #15727) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-220 · Area: join / ToParentBlockJoinSortField nested sort (ToParentDocValues missing-child count, #15727) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-220.html](../../bugs/LFV-220.html)
+Finding page: [../../bugs/LFV-220.html](../../bugs/LFV-220.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected `P2=d P1=y` (MIN over the type:a children, as on 10.4.0); actual: `P1=n
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -4,9 +4,9 @@ Tools: Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- DocAndScoreQuery.createDocAndScoreQuery (public on main since #16686) keeps repeated doc ids: a document listed twice is counted and returned twice, and a repeated first document of a segment is iterated by the previous segment as doc id == maxDoc (a deleted or MUST_NOT-excluded document comes back, or a search with deletions or a doc-values sort throws) (bug LFV-955; [repro](../../repro/LFV-955/))
+- DocAndScoreQuery.createDocAndScoreQuery (public on main since #16686) keeps repeated doc ids: a document listed twice is counted and returned twice, and a repeated first document of a segment is iterated by the previous segment as doc id == maxDoc (a deleted or MUST_NOT-excluded document comes back, or a search with deletions or a doc-values sort throws) (finding LFV-955; [repro](../../repro/LFV-955/), [finding page](../../bugs/LFV-955.html))
 
 ## Files
 

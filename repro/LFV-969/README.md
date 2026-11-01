@@ -1,14 +1,14 @@
 # CompletionScorer silently ignores the BulkScorer [min, max) window instead of rejecting it, so a CompletionQuery run through IndexSearcher#search with a timeout (even one that never fires) or with intra-segment partitions returns repeated suggestions and drops others
 
-Bug LFV-969 · Area: suggest / document (NRT) suggester: CompletionScorer under IndexSearcher's windowed execution (setTimeout, intra-segment partitions) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-969 · Area: suggest / document (NRT) suggester: CompletionScorer under IndexSearcher's windowed execution (setTimeout, intra-segment partitions) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-969.html](../../bugs/LFV-969.html)
+Finding page: [../../bugs/LFV-969.html](../../bugs/LFV-969.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You run a CompletionQuery through IndexSearcher#search with a TopSuggestDocsCollector (for example suggestSearcher.search(query, collector)) on a searcher that has a timeout set, even one that never fires, or that splits a segment into intra-segment partitions. You expect the same top suggestions as SuggestIndexSearcher#suggest, or a loud error if this path is unsupported, because BulkScorer#score must score only the documents in [min, max) and a timeout that never fires must not change results. Instead CompletionScorer runs its whole-segment top-N lookup again on every window or partition, so the top suggestions come back several times and lower ones are dropped (500 suggestions, n=5: [499, 499, 498, 498, 497] instead of [499, 498, 497, 496, 495]; one suggestion returned 5 times; partitions: [499 x5]), while the total says EQUAL_TO and timedOut is false.
+You run a CompletionQuery through IndexSearcher#search with a TopSuggestDocsCollector (for example suggestSearcher.search(query, collector)) on a searcher that has a timeout set, even one that never fires, or that splits a segment into intra-segment partitions. You expect the same top suggestions as SuggestIndexSearcher#suggest, or a loud error if this path is unsupported, because BulkScorer#score must score only the documents in [min, max) and a timeout that never fires must not change results. Instead CompletionScorer runs its whole-segment top-N lookup again on every window or partition, so the top suggestions come back several times and lower ones are dropped (500 suggestions, n=5: [499, 499, 498, 498, 497] instead of [499, 498, 497, 496, 495]; one suggestion returned 5 times; partitions: [499 x5]), while the total says EQUAL_TO and timedOut() is false.
 
 The test shows that a CompletionQuery run through the IndexSearcher#search(Query, Collector) that SuggestIndexSearcher inherits, with a timeout that never fires, returns the same suggestion several times, because CompletionScorer ignores the BulkScorer [min, max) window and reruns its lookup on every window.
 
@@ -24,7 +24,7 @@ Expected 1 hit for an index with one suggestion; actual 5 (`expected:<1> but was
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

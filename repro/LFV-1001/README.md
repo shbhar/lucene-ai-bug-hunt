@@ -1,12 +1,14 @@
-# On main, LRUQueryCache.cleanUp is synchronized on the cache object and takes partition locks while it holds that monitor, so a subclass whose statistics callbacks synchronize on the cache (synchronized methods or synchronized (this)) deadlocks the cleanup thread against a search, and every later search whose callback needs the monitor hangs too; regression from #15558, main only
+# On main, LRUQueryCache.cleanUp() is synchronized on the cache object and takes partition locks while it holds that monitor, so a subclass whose statistics callbacks synchronize on the cache (synchronized methods or synchronized (this)) deadlocks the cleanup thread against a search, and every later search whose callback needs the monitor hangs too; regression from #15558, main only
 
-Bug LFV-1001 · Area: search / query cache (LRUQueryCache.cleanUp locking vs the statistics callbacks) · Priority: low · Impact: hang · Novelty: new
+Finding LFV-1001 · Area: search / query cache (LRUQueryCache.cleanUp() locking vs the statistics callbacks) · Priority: low · Impact: hang · Novelty: new
+
+Finding page: [../../bugs/LFV-1001.html](../../bugs/LFV-1001.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You subclass LRUQueryCache to keep your own statistics in the callbacks its javadoc offers (onHit, onMiss, onCacheEntryInserted, onCacheEntryEvicted) and make them thread-safe the plain Java way, with synchronized methods or synchronized (this), and you let the cache clean up stale entries as documented. You expect searches and cleanUp, which its javadoc calls 'safe to call concurrently', to keep running, as the same subclass does on 10.x, where Lucene never locks the cache object itself; on main, cleanUp is a synchronized method, so it holds the cache object's monitor while it waits for a partition lock, while a search holds that partition lock and waits for the same monitor inside your callback. Both threads wait for each other forever (the JVM's deadlock detector names the cycle for the insertion callback; for onHit it cannot, because a read-lock holder has no owner), and every later search whose callback needs the monitor, every clearQuery on that partition and every later cleanUp block behind them.
+You subclass LRUQueryCache to keep your own statistics in the callbacks its javadoc offers (onHit, onMiss, onCacheEntryInserted, onCacheEntryEvicted) and make them thread-safe the plain Java way, with synchronized methods or synchronized (this), and you let the cache clean up stale entries as documented. You expect searches and cleanUp(), which its javadoc calls 'safe to call concurrently', to keep running, as the same subclass does on 10.x, where Lucene never locks the cache object itself; on main, cleanUp() is a synchronized method, so it holds the cache object's monitor while it waits for a partition lock, while a search holds that partition lock and waits for the same monitor inside your callback. Both threads wait for each other forever (the JVM's deadlock detector names the cycle for the insertion callback; for onHit it cannot, because a read-lock holder has no owner), and every later search whose callback needs the monitor, every clearQuery() on that partition and every later cleanUp() block behind them.
 
 The test shows that on main, LRUQueryCache.cleanUp() holds the cache monitor while it waits for a partition lock, so a subclass whose onCacheEntryInserted uses synchronized (this) deadlocks a search against cleanUp().
 
@@ -22,7 +24,7 @@ Expected: the search finishes; actual on main 645d4fe: after 10 s search=BLOCKED
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,7 +46,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/lruquerycache-partitioned-clear-and-callback-serialization/](../../models/lruquerycache-partitioned-clear-and-callback-serialization/)
+Formal models and scripts this finding's part of the hunt used: [../../models/lruquerycache-partitioned-clear-and-callback-serialization/](../../models/lruquerycache-partitioned-clear-and-callback-serialization/)
 
 ## Feedback
 

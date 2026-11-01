@@ -1,6 +1,8 @@
 # BKDWriter does not cap its in-heap point buffer at the Java array limit, so with maxMBSortInHeap &gt;= 2048 MB a points merge of more than 2^31 bytes throws NegativeArraySizeException and closes the IndexWriter
 
-Bug LFV-613 · Area: util / BKD points (BKDWriter in-heap sort buffer sizing: HeapPointWriter and the BKDRadixSelector heap writers, reached through Lucene90PointsWriter's public maxMBSortInHeap constructor) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-613 · Area: util / BKD points (BKDWriter in-heap sort buffer sizing: HeapPointWriter and the BKDRadixSelector heap writers, reached through Lucene90PointsWriter's public maxMBSortInHeap constructor) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-613.html](../../bugs/LFV-613.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected: the point is buffered or spilled to disk. Actual (-ea and -da): Negati
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,7 +46,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/bkd-write-niche-configs/](../../models/bkd-write-niche-configs/)
+Formal models and scripts this finding's part of the hunt used: [../../models/bkd-write-niche-configs/](../../models/bkd-write-niche-configs/)
 
 ## Feedback
 

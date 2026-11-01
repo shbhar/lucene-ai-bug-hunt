@@ -1,12 +1,14 @@
 # CheckIndex -exorcise with more than one thread (threadCount &gt; 1, the default on multi-core machines, or checkIndex(onlySegments, executor)) writes the surviving segments in ascending file-size order instead of commit order, so the repaired index's segment order and relative document order depend on the thread count
 
-Bug LFV-640 · Area: index / CheckIndex concurrent segment check and exorcise · Priority: low · Impact: minor · Novelty: new
+Finding LFV-640 · Area: index / CheckIndex concurrent segment check and exorcise · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-640.html](../../bugs/LFV-640.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You repair an index that has a broken segment with CheckIndex -exorcise, or checkIndex followed by exorciseIndex, on a multi-core machine, where threadCount defaults to the number of cores. You expect the same repaired commit that a sequential run (-threadCount 1) writes: the documentation describes the thread count and the executor overload only as ways to speed up the check, and exorcise only as removing the broken segments. Instead the concurrent path collects the segment results in ascending file-size order (a sort added so that small segments print first) and exorciseIndex commits that list as it is, so the surviving segments, and with them the relative order of their documents, are permuted; an index written in insertion order comes back reversed, so Sort.INDEXORDER returns the newest documents first instead of the oldest.
+You repair an index that has a broken segment with CheckIndex -exorcise, or checkIndex() followed by exorciseIndex, on a multi-core machine, where threadCount defaults to the number of cores. You expect the same repaired commit that a sequential run (-threadCount 1) writes: the documentation describes the thread count and the executor overload only as ways to speed up the check, and exorcise only as removing the broken segments. Instead the concurrent path collects the segment results in ascending file-size order (a sort added so that small segments print first) and exorciseIndex commits that list as it is, so the surviving segments, and with them the relative order of their documents, are permuted; an index written in insertion order comes back reversed, so Sort.INDEXORDER returns the newest documents first instead of the oldest.
 
 The test shows that CheckIndex with threadCount 2 followed by exorciseIndex writes the surviving segments in ascending size order instead of commit order (3 segments of 10, 1 and 1 documents, with _1 corrupted).
 
@@ -22,7 +24,7 @@ Expected: the new commit is [_0, _2] (only the broken _1 removed), as with threa
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

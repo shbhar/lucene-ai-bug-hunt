@@ -1,12 +1,14 @@
 # FileDictionary treats its fieldDelimiter as a regular expression, so a delimiter such as '|', '.', '+' or '$' makes a valid suggestion file fail to load or silently mis-parse
 
-Bug LFV-478 · Area: suggest / FileDictionary (text-file dictionary for Lookup.build) · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-478 · Area: suggest / FileDictionary (text-file dictionary for Lookup.build) · Priority: low · Impact: wrong error · Novelty: new
+
+Finding page: [../../bugs/LFV-478.html](../../bugs/LFV-478.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a suggester from a text file with lines such as 'foo bar|10|p1', read with new FileDictionary(reader, "|"), and expect the entry (suggestion 'foo bar', weight 10, payload 'p1') that the class javadoc's line format describes. Instead FileDictionary passes the delimiter to String.split, which reads it as a regular expression: '|' (an empty alternation) splits between every character, so getEntryIterator throws IllegalArgumentException 'More than 3 fields in one line'; '.' and '+' throw ArrayIndexOutOfBoundsException and PatternSyntaxException. With '$' or '^' no line is ever split, so every line silently becomes one suggestion such as 'foo bar$10$p1' with weight 1 and no payload, and a suggester built from it returns that key.
+You build a suggester from a text file with lines such as 'foo bar|10|p1', read with new FileDictionary(reader, "|"), and expect the entry (suggestion 'foo bar', weight 10, payload 'p1') that the class javadoc's line format describes. Instead FileDictionary passes the delimiter to String.split, which reads it as a regular expression: '|' (an empty alternation) splits between every character, so getEntryIterator() throws IllegalArgumentException 'More than 3 fields in one line'; '.' and '+' throw ArrayIndexOutOfBoundsException and PatternSyntaxException. With '$' or '^' no line is ever split, so every line silently becomes one suggestion such as 'foo bar$10$p1' with weight 1 and no payload, and a suggester built from it returns that key.
 
 The test shows that `FileDictionary` passes its `fieldDelimiter` to `String.split`, which reads it as a regular expression, so the valid line `foo bar|10` with delimiter `"|"` cannot be read.
 
@@ -22,7 +24,7 @@ Expected: one entry, suggestion `foo bar` with weight 10. Actual: `getEntryItera
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

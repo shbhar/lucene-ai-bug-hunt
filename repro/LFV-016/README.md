@@ -1,6 +1,6 @@
 # deleteDocuments(Query) on a doc-values field is evaluated against stale values when doc-values updates are pending
 
-Bug LFV-016 · Area: index / doc-values updates · Priority: high · Impact: data corruption · Novelty: known upstream
+Finding LFV-016 · Area: index / doc-values updates · Priority: high · Impact: data corruption · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ You update a doc-values field and then delete documents with a query on that fie
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
 - Recorded outcome of run 1 on Lucene main a9779ef3c193: 9 test(s) run, 6 failed (testA1_deleteNewValueAfterUpdate_flushedSegment, testA2_deleteOldValueAfterUpdate_flushedSegment, testA3_deleteNewValueAfterUpdate_inRamDoc, testB1_crossPacket_resolvedButUnwrittenUpdate, testB2_tryUpdateDocValueThenDelete, testS1_softDeleteThenPurgeByExistsQuery).
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,17 +1,17 @@
 # LongValueFacetCounts count-all constructors that take a LongValuesSource or MultiLongValuesSource count deleted documents, although they promise the result of a MatchAllDocsQuery (LUCENE-10070 fixed only the field-based constructor)
 
-Bug LFV-433 · Area: facet / LongValueFacetCounts (count-all constructors with a LongValuesSource or MultiLongValuesSource) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-433 · Area: facet / LongValueFacetCounts (count-all constructors with a LongValuesSource or MultiLongValuesSource) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You delete or update documents and then count all values of a long field with new LongValueFacetCounts("field", LongValuesSource.fromLongField("field"), reader), or with a MultiLongValuesSource, and expect what both constructors' javadoc promises, 'the same result as computing facets on a MatchAllDocsQuery', which sees only live documents. Instead the two value-source count-all loops visit every doc id below maxDoc and never check getLiveDocs, so deleted documents are counted: on upstream's own testCountAll index (10 documents, 1 deleted) you get value=10 and '0 (5)' instead of value=9 and '0 (4)', and after updateDocument the replaced value is still listed as a label. LUCENE-10070 fixed exactly this in 8.11.0 for the field-based count-all constructor of the same class, but left the value-source paths out.
+You delete or update documents and then count all values of a long field with new LongValueFacetCounts("field", LongValuesSource.fromLongField("field"), reader), or with a MultiLongValuesSource, and expect what both constructors' javadoc promises, 'the same result as computing facets on a MatchAllDocsQuery', which sees only live documents. Instead the two value-source count-all loops visit every doc id below maxDoc and never check getLiveDocs(), so deleted documents are counted: on upstream's own testCountAll index (10 documents, 1 deleted) you get value=10 and '0 (5)' instead of value=9 and '0 (4)', and after updateDocument the replaced value is still listed as a label. LUCENE-10070 fixed exactly this in 8.11.0 for the field-based count-all constructor of the same class, but left the value-source paths out.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: The two value-source count-all loops visit every doc id below maxDoc and never check getLiveDocs, so deleted documents are counted: on upstream's own testCountAll index (10 documents, 1 deleted) you get value=10 and '0 (5)' instead of value=9 and '0 (4)', and after updateDocument the replaced value is still listed as a label.
+- Actual: The two value-source count-all loops visit every doc id below maxDoc and never check getLiveDocs(), so deleted documents are counted: on upstream's own testCountAll index (10 documents, 1 deleted) you get value=10 and '0 (5)' instead of value=9 and '0 (4)', and after updateDocument the replaced value is still listed as a label.
 
 ## Files
 
@@ -22,7 +22,7 @@ You delete or update documents and then count all values of a long field with ne
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

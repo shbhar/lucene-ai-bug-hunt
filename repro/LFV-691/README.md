@@ -1,8 +1,8 @@
 # RegexCompletionQuery lets '.' and negated character classes match the document suggester's internal end byte (0x00), so a suggestion one character shorter than the pattern is returned ('foo.' returns foo as well as food, 'foo..' returns food)
 
-Bug LFV-691 · Area: suggest / document (NRT) suggester (RegexCompletionQuery automaton intersected with the NRTSuggester FST, including the internal END and dedup bytes; also inside ContextQuery) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-691 · Area: suggest / document (NRT) suggester (RegexCompletionQuery automaton intersected with the NRTSuggester FST, including the internal END and dedup bytes; also inside ContextQuery) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-691.html](../../bugs/LFV-691.html)
+Finding page: [../../bugs/LFV-691.html](../../bugs/LFV-691.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected `[food]`; actual `[foo, food]`: `expected:<[food]> but was:<[foo, food]
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

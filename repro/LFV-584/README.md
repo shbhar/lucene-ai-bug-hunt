@@ -1,8 +1,8 @@
 # QueryBuilder drops every token boost (BoostAttribute) from a quoted phrase as soon as one of its words has a single-word synonym, so typed word|weight boosts and weighted-synonym weights are silently ignored there, while plain phrases, graph phrases and unquoted queries keep them
 
-Bug LFV-584 · Area: core / util QueryBuilder phrase building with token boosts (analyzeMultiPhrase; BoostAttribute from DelimitedBoostTokenFilter and weighted synonyms; reached through the classic, multi-field and simple query parsers) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-584 · Area: core / util QueryBuilder phrase building with token boosts (analyzeMultiPhrase; BoostAttribute from DelimitedBoostTokenFilter and weighted synonyms; reached through the classic, multi-field and simple query parsers) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-584.html](../../bugs/LFV-584.html)
+Finding page: [../../bugs/LFV-584.html](../../bugs/LFV-584.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected boost 0.5; actual 1.0 (`body:"fast (automobile car)" expected:<0.5> but
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

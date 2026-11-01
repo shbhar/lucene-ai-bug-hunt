@@ -1,6 +1,6 @@
 # DynamicRangeUtil computes DynamicRangeInfo.centroid ('the average value in the range') from an unchecked long sum of the range's values, so when one range's values sum past Long.MAX_VALUE (for example six epoch-nanosecond timestamps of today) it silently returns a centroid outside [min, max], typically negative for positive values
 
-Bug LFV-428 · Area: facet / dynamic range facets (DynamicRangeUtil.computeDynamicRanges and computeDynamicNumericRanges, DynamicRangeInfo.centroid) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-428 · Area: facet / dynamic range facets (DynamicRangeUtil.computeDynamicRanges and computeDynamicNumericRanges, DynamicRangeInfo.centroid) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You index six documents whose long doc-values field holds epoch-nanosecond times
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -46,7 +46,7 @@ The module(s) facet also need their third-party runtime jars; `./gradlew -p luce
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/count-stats-modules/](../../models/count-stats-modules/)
+Formal models and scripts this finding's part of the hunt used: [../../models/count-stats-modules/](../../models/count-stats-modules/)
 
 ## Feedback
 

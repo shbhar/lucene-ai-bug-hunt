@@ -1,17 +1,17 @@
-# codecs defect
+# Sparse multi-valued SortedNumericDocValues#rangeIntoBitSet (default codec), called after advanceExact(d) returned false, judges doc d by a neighbouring document's values (or throws ArrayIndexOutOfBoundsException)
 
-Bug LFV-415 · Area: codecs / doc values (Lucene90 sparse multi-valued sorted-numeric rangeIntoBitSet) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-415 · Area: codecs / doc values (Lucene90 sparse multi-valued sorted-numeric rangeIntoBitSet) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-On a default-codec index with docs {0: [1,3], 1: no value, 2: [5,7]} in a multi-valued numeric doc-values field, you call advanceExact(1) on the field's SortedNumericDocValues (it returns false) and then rangeIntoBitSet(1, 3, 1, 3, bits, 0) on the same iterator. You expect no bit, because neither doc 1 nor doc 2 has a value in [1, 3], and that is what the method's documented per-document default returns from the same state. Instead the codec's override evaluates doc 1 with doc 0's values and marks it (in a DENSE block it uses the next valued document's values), and when no earlier document has values ({0: no value, 1: [1,3], 2: [5,7]}, advanceExact(0) then rangeIntoBitSet(0, 3, 1, 3,...)) it throws ArrayIndexOutOfBoundsException: Index -1.
+On a default-codec index with docs {0: [1,3], 1: no value, 2: [5,7]} in a multi-valued numeric doc-values field, you call advanceExact(1) on the field's SortedNumericDocValues (it returns false) and then rangeIntoBitSet(1, 3, 1, 3, bits, 0) on the same iterator. You expect no bit, because neither doc 1 nor doc 2 has a value in [1, 3], and that is what the method's documented per-document default returns from the same state. Instead the codec's override evaluates doc 1 with doc 0's values and marks it (in a DENSE block it uses the next valued document's values), and when no earlier document has values ({0: no value, 1: [1,3], 2: [5,7]}, advanceExact(0) then rangeIntoBitSet(0, 3, 1, 3, ...)) it throws ArrayIndexOutOfBoundsException: Index -1.
 
 ## Expected vs actual
 
 - Expected: You expect no bit, because neither doc 1 nor doc 2 has a value in [1, 3], and that is what the method's documented per-document default returns from the same state.
-- Actual: The codec's override evaluates doc 1 with doc 0's values and marks it (in a DENSE block it uses the next valued document's values), and when no earlier document has values ({0: no value, 1: [1,3], 2: [5,7]}, advanceExact(0) then rangeIntoBitSet(0, 3, 1, 3,...)) it throws ArrayIndexOutOfBoundsException: Index -1.
+- Actual: The codec's override evaluates doc 1 with doc 0's values and marks it (in a DENSE block it uses the next valued document's values), and when no earlier document has values ({0: no value, 1: [1,3], 2: [5,7]}, advanceExact(0) then rangeIntoBitSet(0, 3, 1, 3, ...)) it throws ArrayIndexOutOfBoundsException: Index -1.
 
 ## Files
 
@@ -21,7 +21,7 @@ On a default-codec index with docs {0: [1,3], 1: no value, 2: [5,7]} in a multi-
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -43,7 +43,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/dv-norms-cursor-coherence/](../../models/dv-norms-cursor-coherence/)
+Formal models and scripts this finding's part of the hunt used: [../../models/dv-norms-cursor-coherence/](../../models/dv-norms-cursor-coherence/)
 
 ## Feedback
 

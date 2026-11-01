@@ -1,6 +1,6 @@
 # SmartChineseAnalyzer silently drops letters and letter-numbers as if they were punctuation, among them the Chinese zero U+3007 (二〇〇八年 -&gt; 二, 八, 年) and the Roman numerals Ⅰ-Ⅻ (第Ⅲ章 and 第Ⅳ章 analyze identically), because Utility.getCharType classifies four whole Unicode blocks as DELIMITER
 
-Bug LFV-707 · Area: analysis-smartcn / HHMM segmenter character classes (Utility.getCharType -> HHMMSegmenter DELIMITER token -> SegTokenFilter ',' -> default stop list; SmartChineseAnalyzer and HMMChineseTokenizer) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-707 · Area: analysis-smartcn / HHMM segmenter character classes (Utility.getCharType -> HHMMSegmenter DELIMITER token -> SegTokenFilter ',' -> default stop list; SmartChineseAnalyzer and HMMChineseTokenizer) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You index Chinese text with the stock SmartChineseAnalyzer, whose javadoc says i
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

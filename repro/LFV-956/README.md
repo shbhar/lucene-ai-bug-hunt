@@ -1,8 +1,8 @@
 # SynonymGraphFilterFactory and SynonymFilterFactory keep a UTF-8 byte order mark at the start of a synonyms file, so the file's first rule silently stops working and a commented-out first line that contains a comma becomes a live rule
 
-Bug LFV-956 · Area: analysis-common / synonym file loading (SynonymGraphFilterFactory and the deprecated SynonymFilterFactory loadSynonyms -> SolrSynonymParser, WordnetSynonymParser) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-956 · Area: analysis-common / synonym file loading (SynonymGraphFilterFactory and the deprecated SynonymFilterFactory loadSynonyms -> SolrSynonymParser, WordnetSynonymParser) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-956.html](../../bugs/LFV-956.html)
+Finding page: [../../bugs/LFV-956.html](../../bugs/LFV-956.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected "foo" to expand to [bar, foo], as without the mark; actual: [foo] (`ter
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

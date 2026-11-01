@@ -1,6 +1,6 @@
 # Association facets with AssociationAggregationFunction.MAX report 0 instead of the maximum when every value of a label, of a single-valued dimension or of a rolled-up hierarchy node is negative, because the maximum starts from 0 (int, float and DoubleValuesSource paths; every release since 9.2.0)
 
-Bug LFV-547 · Area: facet / taxonomy association facets (TaxonomyFacetIntAssociations, TaxonomyFacetFloatAssociations incl. the DoubleValuesSource path; MAX start value in the per-ordinal, roll-up and dimension aggregates) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-547 · Area: facet / taxonomy association facets (TaxonomyFacetIntAssociations, TaxonomyFacetFloatAssociations incl. the DoubleValuesSource path; MAX start value in the per-ordinal, roll-up and dimension aggregates) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You index two documents whose IntAssociationFacetField values for the label int/
 ## Run it
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,6 +1,6 @@
 # A single indexed token of 715,827,878 or more UTF-16 units closes IndexWriter and drops uncommitted documents instead of being rejected as an immense term
 
-Bug LFV-385 · Area: index / IndexingChain aborting-exception classification x util / UTF-16 to UTF-8 sizing (CharTermAttributeImpl.getBytesRef, BytesRefBuilder.copyChars, UnicodeUtil.maxUTF8Length) · Priority: low · Impact: crash · Novelty: known upstream
+Finding LFV-385 · Area: index / IndexingChain aborting-exception classification x util / UTF-16 to UTF-8 sizing (CharTermAttributeImpl.getBytesRef, BytesRefBuilder.copyChars, UnicodeUtil.maxUTF8Length) · Priority: low · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ You index a document whose untokenized indexed field (or a TextField analyzed wi
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -57,7 +57,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/unicode-conversions/](../../models/unicode-conversions/)
+Formal models and scripts this finding's part of the hunt used: [../../models/unicode-conversions/](../../models/unicode-conversions/)
 
 ## Feedback
 

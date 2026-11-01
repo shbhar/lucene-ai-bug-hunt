@@ -4,9 +4,9 @@ Tools: Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- IndexSearcher#count on a two-term disjunction over-counts, even above maxDoc, when the searcher timeout fires while the intersection is counted (bug LFV-465; [repro](../../repro/LFV-465/))
+- IndexSearcher#count on a two-term disjunction over-counts, even above maxDoc, when the searcher timeout fires while the intersection is counted (finding LFV-465; [repro](../../repro/LFV-465/), [finding page](../../bugs/LFV-465.html))
 
 ## Files
 

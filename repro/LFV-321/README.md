@@ -1,6 +1,8 @@
 # TermInSetQuery.equals/hashCode ignore the rewrite method, so set queries that match different documents compare equal, and IndexWriter's delete-by-query buffer then applies only one of them
 
-Bug LFV-321 · Area: core / search: TermInSetQuery equality (MultiTermQuery rewrite methods); consequence in index / IndexWriter delete-by-query buffering · Priority: low · Impact: data corruption · Novelty: new
+Finding LFV-321 · Area: core / search: TermInSetQuery equality (MultiTermQuery rewrite methods); consequence in index / IndexWriter delete-by-query buffering · Priority: low · Impact: data corruption · Novelty: new
+
+Finding page: [../../bugs/LFV-321.html](../../bugs/LFV-321.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected: the doc-values query matches the document, so 0 live docs. Actual on m
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

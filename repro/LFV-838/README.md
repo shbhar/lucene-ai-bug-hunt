@@ -1,8 +1,8 @@
 # A binary doc-values update whose term matches many documents copies its value once per matched document into one int-sized buffer when it is applied, so at 2^31 bytes in one segment (about 2^30 for the first update of a field in a packet) commit throws ArrayIndexOutOfBoundsException (AssertionError with -ea) and IndexWriter closes itself, losing the update and every uncommitted document (every release since 4.8.0)
 
-Bug LFV-838 · Area: index / IndexWriter doc-values updates (BinaryDocValuesFieldUpdates value buffer, FrozenBufferedUpdates apply, applyUpdatesPacket tragic close) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-838 · Area: index / IndexWriter doc-values updates (BinaryDocValuesFieldUpdates value buffer, FrozenBufferedUpdates apply, applyUpdatesPacket tragic close) · Priority: low · Impact: crash · Novelty: new
 
-Bug page: [../../bugs/LFV-838.html](../../bugs/LFV-838.html)
+Finding page: [../../bugs/LFV-838.html](../../bugs/LFV-838.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -12,8 +12,8 @@ You commit 2,100 documents that share the term group:g, add one more document, c
 
 ## Expected vs actual
 
-- Expected: `commit` succeeds, the writer stays open, all 2,100 documents read the 1 MiB value and `late` is committed.
-- Actual: `commit` throws `AssertionError: size must be positive (got -2147483648): likely integer overflow?` (`ArrayIndexOutOfBoundsException` with assertions off); the writer is closed and `late` is lost.
+- Expected: `commit()` succeeds, the writer stays open, all 2,100 documents read the 1 MiB value and `late` is committed.
+- Actual: `commit()` throws `AssertionError: size must be positive (got -2147483648): likely integer overflow?` (`ArrayIndexOutOfBoundsException` with assertions off); the writer is closed and `late` is lost.
 
 ## Files
 
@@ -23,7 +23,7 @@ You commit 2,100 documents that share the term group:g, add one more document, c
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -49,7 +49,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-## Files shown on the bug page
+## Files shown on the finding page
 
 - [TestBinaryDocValuesUpdateBufferOverflow.java](TestBinaryDocValuesUpdateBufferOverflow.java)
 - [TestBinaryDvUpdateManyDocs.java](TestBinaryDvUpdateManyDocs.java)

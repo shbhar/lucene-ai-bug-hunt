@@ -1,17 +1,17 @@
 # MemoryIndex's class javadoc example calls new SimpleAnalyzer(version) and new QueryParser(version, "content", analyzer), constructors removed in 5.0.0 (LUCENE-5859), so the example does not compile on any release since 5.0.0 (documentation defect)
 
-Bug LFV-1032 · Area: memory / MemoryIndex (class javadoc example) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-1032 · Area: memory / MemoryIndex (class javadoc example) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-The MemoryIndex class javadoc shows an 'Example Usage' program that adds two fields to a MemoryIndex, parses '+author:james +salmon~ +fish* manual~' and prints "it's a match". Its first and fifth lines call new SimpleAnalyzer(version) and new QueryParser(version, "content", analyzer), but both Version-taking constructors were removed in 5.0.0 (LUCENE-5859), so the example has not compiled on any release since then, whatever type version is given. With new SimpleAnalyzer and new QueryParser("content", analyzer) the same example compiles and prints "it's a match" on main and 10.5.2, so only the javadoc is wrong.
+The MemoryIndex class javadoc shows an 'Example Usage' program that adds two fields to a MemoryIndex, parses '+author:james +salmon~ +fish* manual~' and prints "it's a match". Its first and fifth lines call new SimpleAnalyzer(version) and new QueryParser(version, "content", analyzer), but both Version-taking constructors were removed in 5.0.0 (LUCENE-5859), so the example has not compiled on any release since then, whatever type version is given. With new SimpleAnalyzer() and new QueryParser("content", analyzer) the same example compiles and prints "it's a match" on main and 10.5.2, so only the javadoc is wrong.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -20,7 +20,7 @@ The MemoryIndex class javadoc shows an 'Example Usage' program that adds two fie
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

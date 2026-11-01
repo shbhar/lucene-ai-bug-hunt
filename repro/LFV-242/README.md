@@ -1,14 +1,14 @@
 # NRTSuggester returns too few or wrongly ranked suggestions in a segment with only a few deleted documents, because its deleted-document queue slack (long)(topN / liveDocsRatio) rounds back down to topN
 
-Bug LFV-242 · Area: suggest / document (NRT) suggester (NRTSuggester.getMaxTopNSearcherQueueSize via SuggestIndexSearcher and CompletionQuery; Util.TopNSearcher queue depth) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-242 · Area: suggest / document (NRT) suggester (NRTSuggester.getMaxTopNSearcherQueueSize via SuggestIndexSearcher and CompletionQuery; Util.TopNSearcher queue depth) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-242.html](../../bugs/LFV-242.html)
+Finding page: [../../bugs/LFV-242.html](../../bugs/LFV-242.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index suggestions with SuggestField, delete one document or update it (which deletes the old version), and ask SuggestIndexSearcher.suggest for the top n completions; you expect the top n live completions, because NRTSuggester enlarges its bounded search queue 'to account for the filtered out suggestions' of deleted documents. With few deletions that enlargement, (long)(topN / liveDocsRatio), rounds back down to topN (for one deletion in ten documents, (long)(1 / 0.9) = 1), so a deleted completion that takes a result slot is thrown away and nothing replaces it: with abc_0, the best of abc_0..abc_9 in one segment, deleted, suggest('abc_', 1) returns instead of [abc_1], and after updateDocument lowers the best entry's weight from 1000 to 1, suggest(num=1) returns that entry at weight 1 instead of the live entry at weight 999. Deleting more documents (5 of 10) gives the queue enough room and the same lookup works.
+You index suggestions with SuggestField, delete one document or update it (which deletes the old version), and ask SuggestIndexSearcher.suggest for the top n completions; you expect the top n live completions, because NRTSuggester enlarges its bounded search queue 'to account for the filtered out suggestions' of deleted documents. With few deletions that enlargement, (long)(topN / liveDocsRatio), rounds back down to topN (for one deletion in ten documents, (long)(1 / 0.9) = 1), so a deleted completion that takes a result slot is thrown away and nothing replaces it: with abc_0, the best of abc_0..abc_9 in one segment, deleted, suggest('abc_', 1) returns [] instead of [abc_1], and after updateDocument lowers the best entry's weight from 1000 to 1, suggest(num=1) returns that entry at weight 1 instead of the live entry at weight 999. Deleting more documents (5 of 10) gives the queue enough room and the same lookup works.
 
 The test shows that the document suggester returns too few suggestions from a segment with few deletions: NRTSuggester's deleted-document queue slack `(long)(topN / liveDocsRatio)` rounds back down to topN (here `(long)(1 / 0.9) = 1`), so a deleted completion takes the only queue slot and nothing replaces it.
 
@@ -24,7 +24,7 @@ Expected for one segment abc_0..abc_9 (weights 100..91) with abc_0 deleted, `sug
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

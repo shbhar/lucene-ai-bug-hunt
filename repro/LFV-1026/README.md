@@ -1,17 +1,17 @@
-# BulkScorer#score's javadoc example ('a Scorer-based implementation could look like below') calls scorer.advance(min) and scorer.nextDoc, which Scorer has not had since LUCENE-6919 made it expose iterator instead of extending DocIdSetIterator, so the example does not compile on any release since 5.5.0 (documentation defect)
+# BulkScorer#score's javadoc example ('a Scorer-based implementation could look like below') calls scorer.advance(min) and scorer.nextDoc(), which Scorer has not had since LUCENE-6919 made it expose iterator() instead of extending DocIdSetIterator, so the example does not compile on any release since 5.5.0 (documentation defect)
 
-Bug LFV-1026 · Area: core / search (BulkScorer#score javadoc example) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-1026 · Area: core / search (BulkScorer#score javadoc example) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-The javadoc of BulkScorer#score(LeafCollector, Bits, int, int) explains the window contract (ignore documents before min, return a value &gt;= max) and then shows 'a Scorer-based implementation could look like below'. Copied into code on any release since 5.5.0 the example does not compile, because it calls scorer.advance(min) and scorer.nextDoc: Scorer stopped extending DocIdSetIterator in LUCENE-6919 and now offers those methods only through scorer.iterator. With scorer.iterator.advance(min) and scorer.iterator.nextDoc the example compiles and honours the contract, so only the javadoc is wrong.
+The javadoc of BulkScorer#score(LeafCollector, Bits, int, int) explains the window contract (ignore documents before min, return a value &gt;= max) and then shows 'a Scorer-based implementation could look like below'. Copied into code on any release since 5.5.0 the example does not compile, because it calls scorer.advance(min) and scorer.nextDoc(): Scorer stopped extending DocIdSetIterator in LUCENE-6919 and now offers those methods only through scorer.iterator(). With scorer.iterator().advance(min) and scorer.iterator().nextDoc() the example compiles and honours the contract, so only the javadoc is wrong.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -20,7 +20,7 @@ The javadoc of BulkScorer#score(LeafCollector, Bits, int, int) explains the wind
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

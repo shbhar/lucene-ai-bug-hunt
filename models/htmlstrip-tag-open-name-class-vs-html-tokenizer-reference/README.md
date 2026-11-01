@@ -4,9 +4,9 @@ Tools: Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- HTMLStripCharFilter drops an unclosed '&lt;name' or '&lt;/name' when the input ends right after the name, but outputs the same text when any character follows it, so 'a &lt; b' indexes only 'a' (bug LFV-878; [repro](../../repro/LFV-878/), [bug page](../../bugs/LFV-878.html))
+- HTMLStripCharFilter drops an unclosed '&lt;name' or '&lt;/name' when the input ends right after the name, but outputs the same text when any character follows it, so 'a &lt; b' indexes only 'a' (finding LFV-878; [repro](../../repro/LFV-878/), [finding page](../../bugs/LFV-878.html))
 
 ## Files
 

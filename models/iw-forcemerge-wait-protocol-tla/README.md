@@ -4,12 +4,12 @@ Tools: TLA+/TLC.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- IndexWriter.forceMerge(n) can return normally with more than n segments when a merge that was already pending or running at the call fails: forceMerge adopts that merge without updating its mergeGen, so addMergeException drops the failure, and the tragic event is published only after mergeFinish has woken the waiting forceMerge (bug LFV-590; [repro](../../repro/LFV-590/), [bug page](../../bugs/LFV-590.html))
-- With NoMergeScheduler and a merge policy that selects merges (for example the default TieredMergePolicy), IndexWriter.close (default commit-on-close), forceMerge(1) and a blocking forceMergeDeletes never return: IndexWriter registers the policy's merges as pending, NoMergeScheduler never runs or removes them, and all three calls wait until no merge is pending (bug LFV-587; [repro](../../repro/LFV-587/))
-- Since 9.4.0, IndexWriter.addIndexes(CodecReader...) blocks indefinitely (until another thread interrupts it or rolls the writer back) when the writer uses NoMergeScheduler, also together with NoMergePolicy as the NoMergeScheduler javadoc recommends: the reader merge is handed to the merge scheduler, which never runs it, and is then awaited with no time limit (bug LFV-586; [repro](../../repro/LFV-586/))
-- Two overlapping IndexWriter.forceMerge calls with different maxNumSegments share one writer-wide target, so forceMerge(1) returns normally with 2 segments when a forceMerge(2) starts on another thread while its merges are still running (bug LFV-592; [repro](../../repro/LFV-592/))
+- IndexWriter.forceMerge(n) can return normally with more than n segments when a merge that was already pending or running at the call fails: forceMerge adopts that merge without updating its mergeGen, so addMergeException drops the failure, and the tragic event is published only after mergeFinish has woken the waiting forceMerge (finding LFV-590; [repro](../../repro/LFV-590/), [finding page](../../bugs/LFV-590.html))
+- With NoMergeScheduler and a merge policy that selects merges (for example the default TieredMergePolicy), IndexWriter.close() (default commit-on-close), forceMerge(1) and a blocking forceMergeDeletes() never return: IndexWriter registers the policy's merges as pending, NoMergeScheduler never runs or removes them, and all three calls wait until no merge is pending (finding LFV-587; [repro](../../repro/LFV-587/))
+- Since 9.4.0, IndexWriter.addIndexes(CodecReader...) blocks indefinitely (until another thread interrupts it or rolls the writer back) when the writer uses NoMergeScheduler, also together with NoMergePolicy as the NoMergeScheduler javadoc recommends: the reader merge is handed to the merge scheduler, which never runs it, and is then awaited with no time limit (finding LFV-586; [repro](../../repro/LFV-586/), [finding page](../../bugs/LFV-586.html))
+- Two overlapping IndexWriter.forceMerge calls with different maxNumSegments share one writer-wide target, so forceMerge(1) returns normally with 2 segments when a forceMerge(2) starts on another thread while its merges are still running (finding LFV-592; [repro](../../repro/LFV-592/), [finding page](../../bugs/LFV-592.html))
 
 ## Files
 
@@ -27,4 +27,4 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## How to run
 
-- TLA+ with TLC: `java -cp tla2tools.jar tlc2.TLC -config <Model>.cfg <Model>.tla` (a counterexample trace is the bug when the model encodes the current code).
+- TLA+ with TLC: `java -cp tla2tools.jar tlc2.TLC -config <Model>.cfg <Model>.tla` (a counterexample trace is the finding when the model encodes the current code).

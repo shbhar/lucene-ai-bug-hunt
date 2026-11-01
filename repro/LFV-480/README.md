@@ -1,12 +1,12 @@
 # Inputs from BufferedIndexInput.wrap and the default BufferedIndexInput.slice accept seek and skipBytes past the end instead of throwing EOFException
 
-Bug LFV-480 · Area: store / BufferedIndexInput.SlicedIndexInput (BufferedIndexInput.wrap and the default slice) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-480 · Area: store / BufferedIndexInput.SlicedIndexInput (BufferedIndexInput.wrap and the default slice()) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You take 20 bytes of a file with BufferedIndexInput.wrap("w", in, 10, 20), or a slice of a BufferedIndexInput subclass that keeps the default slice, call seek(21) or skipBytes(21), and expect the EOFException that IndexInput#seek promises for a position beyond the end and that every stock Directory's inputs and slices throw. Instead the call succeeds and getFilePointer returns 21; only the next read throws EOFException. The cause is the empty SlicedIndexInput.seekInternal: BufferedIndexInput.seek hands every target outside its buffer to seekInternal, and only readInternal checks the slice's length.
+You take 20 bytes of a file with BufferedIndexInput.wrap("w", in, 10, 20), or a slice of a BufferedIndexInput subclass that keeps the default slice(), call seek(21) or skipBytes(21), and expect the EOFException that IndexInput#seek promises for a position beyond the end and that every stock Directory's inputs and slices throw. Instead the call succeeds and getFilePointer() returns 21; only the next read throws EOFException. The cause is the empty SlicedIndexInput.seekInternal: BufferedIndexInput.seek hands every target outside its buffer to seekInternal, and only readInternal checks the slice's length.
 
 The test shows that an input from `BufferedIndexInput.wrap("w", in, 0, 20)` accepts `seek(21)` because `SlicedIndexInput.seekInternal` is empty (the default `BufferedIndexInput#slice` and `skipBytes` reach the same method).
 
@@ -22,7 +22,7 @@ Expected, per the `IndexInput#seek` javadoc: `EOFException` for a position beyon
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

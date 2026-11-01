@@ -1,8 +1,8 @@
 # Lat/lon distance queries can drop a point whose distance equals the radius and match a point one ulp beyond it, because GeoUtils.distanceQuerySortKey does not return the largest sort key within the radius (every release since 6.1.0)
 
-Bug LFV-573 · Area: core / geo distance queries (GeoUtils.distanceQuerySortKey, shared by LatLonPoint, LatLonDocValuesField and LatLonShape circle queries) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-573 · Area: core / geo distance queries (GeoUtils.distanceQuerySortKey, shared by LatLonPoint, LatLonDocValuesField and LatLonShape circle queries) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-573.html](../../bugs/LFV-573.html)
+Finding page: [../../bugs/LFV-573.html](../../bugs/LFV-573.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected count 1 at radius 8154434.476304402 m (the point's own distance); actua
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,6 +1,8 @@
 # LogMergePolicy.findForcedDeletesMerges does not skip segments that are already merging, so IndexWriter rejects the whole run and forceMergeDeletes(true) returns with deletes left in segments that were never merging
 
-Bug LFV-178 · Area: index / merge policy (LogMergePolicy forced-deletes selection, IndexWriter.forceMergeDeletes) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-178 · Area: index / merge policy (LogMergePolicy forced-deletes selection, IndexWriter.forceMergeDeletes) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-178.html](../../bugs/LFV-178.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected 0 deleted docs after the call; actual 1 (`expected:<0> but was:<1>`), w
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

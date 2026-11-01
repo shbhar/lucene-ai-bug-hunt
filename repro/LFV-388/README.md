@@ -1,8 +1,8 @@
 # BM25NBClassifier scores a class that has no live, training-query-matching document as if it had probability 1 (log prior 0 and log-likelihood 0), so with few classes it outranks the trained classes and is assigned although it has no training data (released since 7.0.0)
 
-Bug LFV-388 · Area: classification / BM25NBClassifier (assignClass and getClasses) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-388 · Area: classification / BM25NBClassifier (assignClass and getClasses) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-388.html](../../bugs/LFV-388.html)
+Finding page: [../../bugs/LFV-388.html](../../bugs/LFV-388.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: assignClass("apple") returns "fruit". Actual: "heldout" (its zero-hit 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -50,7 +50,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/classification/](../../models/classification/)
+Formal models and scripts this finding's part of the hunt used: [../../models/classification/](../../models/classification/)
 
 ## Feedback
 

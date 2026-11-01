@@ -1,17 +1,17 @@
-# UpgradeIndexMergePolicy's class javadoc example calls new IndexWriterConfig(Version.LUCENE_XX, new KeywordAnalyzer), a constructor removed in 5.0.0 (LUCENE-5871), so the example does not compile with any version constant (documentation defect)
+# UpgradeIndexMergePolicy's class javadoc example calls new IndexWriterConfig(Version.LUCENE_XX, new KeywordAnalyzer()), a constructor removed in 5.0.0 (LUCENE-5871), so the example does not compile with any version constant (documentation defect)
 
-Bug LFV-1021 · Area: core / index (UpgradeIndexMergePolicy class javadoc example) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-1021 · Area: core / index (UpgradeIndexMergePolicy class javadoc example) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-The UpgradeIndexMergePolicy javadoc says that for a fully customizable upgrade you can use this policy like any other merge policy and call forceMerge, and shows five lines that start with new IndexWriterConfig(Version.LUCENE_XX, new KeywordAnalyzer). That two-argument constructor was removed in 5.0.0 (LUCENE-5871), so the example does not compile on any release since then, whatever real version constant you put in for the LUCENE_XX placeholder. With new IndexWriterConfig(new KeywordAnalyzer) the same example compiles and, run on a 10.0.0 index, rewrites every segment to the current version and keeps every live document, so only the javadoc is wrong.
+The UpgradeIndexMergePolicy javadoc says that for a fully customizable upgrade you can use this policy like any other merge policy and call forceMerge, and shows five lines that start with new IndexWriterConfig(Version.LUCENE_XX, new KeywordAnalyzer()). That two-argument constructor was removed in 5.0.0 (LUCENE-5871), so the example does not compile on any release since then, whatever real version constant you put in for the LUCENE_XX placeholder. With new IndexWriterConfig(new KeywordAnalyzer()) the same example compiles and, run on a 10.0.0 index, rewrites every segment to the current version and keeps every live document, so only the javadoc is wrong.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -20,7 +20,7 @@ The UpgradeIndexMergePolicy javadoc says that for a fully customizable upgrade y
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

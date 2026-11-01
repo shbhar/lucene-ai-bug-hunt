@@ -1,6 +1,8 @@
 # Intervals.term(term, payloadFilter) throws IllegalArgumentException ('no indexed payloads') for every segment in which no document indexed a payload for the field, so the whole search fails and whether it fails depends on segment layout
 
-Bug LFV-455 · Area: queries / intervals (PayloadFilteredTermIntervalsSource per-segment hasPayloads check) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-455 · Area: queries / intervals (PayloadFilteredTermIntervalsSource per-segment hasPayloads check) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-455.html](../../bugs/LFV-455.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected: 1 hit (the document whose "dog" has a payload); actual (-ea and -da): 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

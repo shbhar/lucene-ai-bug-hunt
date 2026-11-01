@@ -1,6 +1,6 @@
 # When DirectoryReader.openIfChanged on a FilterDirectoryReader (for example SoftDeletesDirectoryReaderWrapper) fails while wrapping the reopened reader, the newly opened inner reader is never closed, so the segment readers it shares with the old reader, and its files, leak
 
-Bug LFV-495 · Area: core / index reader reopen (FilterDirectoryReader.wrapDirectoryReader on every doOpenIfChanged path; SoftDeletesDirectoryReaderWrapper as the stock trigger) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-495 · Area: core / index reader reopen (FilterDirectoryReader.wrapDirectoryReader on every doOpenIfChanged path; SoftDeletesDirectoryReaderWrapper as the stock trigger) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ Expected the shared segment reader's refCount to be back to 1 (only the old read
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

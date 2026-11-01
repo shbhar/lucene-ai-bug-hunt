@@ -1,6 +1,8 @@
-# Polygon.fromGeoJSON rejects a valid GeoJSON Feature whose properties (or another non-geometry member object) contain a member named "type", throwing ParseException 'can only handle type... but got &lt;value&gt;' (every release since 6.2.0)
+# Polygon.fromGeoJSON rejects a valid GeoJSON Feature whose properties (or another non-geometry member object) contain a member named "type", throwing ParseException 'can only handle type ... but got &lt;value&gt;' (every release since 6.2.0)
 
-Bug LFV-562 · Area: core / geo GeoJSON parsing (Polygon.fromGeoJSON, SimpleGeoJSONPolygonParser) · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-562 · Area: core / geo GeoJSON parsing (Polygon.fromGeoJSON, SimpleGeoJSONPolygonParser) · Priority: low · Impact: wrong error · Novelty: new
+
+Finding page: [../../bugs/LFV-562.html](../../bugs/LFV-562.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -12,7 +14,7 @@ The test shows that `Polygon.fromGeoJSON` rejects a GeoJSON Feature whose `prope
 
 ## Expected vs actual
 
-Expected: the same polygon as the bare Polygon geometry. Actual: `ParseException` "can only handle type FeatureCollection..., Feature, Polygon or MultiPolygon, but got x", with -ea and -da.
+Expected: the same polygon as the bare Polygon geometry. Actual: `ParseException` "can only handle type FeatureCollection ..., Feature, Polygon or MultiPolygon, but got x", with -ea and -da.
 
 ## Files
 
@@ -22,7 +24,7 @@ Expected: the same polygon as the bare Polygon geometry. Actual: `ParseException
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

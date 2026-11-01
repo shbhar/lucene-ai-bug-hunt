@@ -1,6 +1,6 @@
 # NGramPhraseQuery matches documents its own PhraseQuery does not whenever adjacent gram positions do not come from adjacent text: multi-valued n-gram fields with a position increment gap below n (Lucene's default gap is 0), CJKAnalyzer text with a break between CJK runs (punctuation, a digit, a Latin word or a stop word), and NGramTokenizer pre-tokenizing through isTokenChar
 
-Bug LFV-627 · Area: core / search (NGramPhraseQuery rewrite), on n-gram fields built with analysis-common (NGramTokenizer, CJKAnalyzer / CJKBigramFilter) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-627 · Area: core / search (NGramPhraseQuery rewrite), on n-gram fields built with analysis-common (NGramTokenizer, CJKAnalyzer / CJKBigramFilter) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You wrap the analyzer's phrase query in NGramPhraseQuery, which its javadoc pres
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,12 +1,14 @@
-# IndexWriter opened from an older reader's IndexCommit takes SegmentInfos.version from that reader, not from the newest commit, so its commits can reuse the version of a newer commit and a reader still open on that commit reports isCurrent=true and openIfChanged returns null
+# IndexWriter opened from an older reader's IndexCommit takes SegmentInfos.version from that reader, not from the newest commit, so its commits can reuse the version of a newer commit and a reader still open on that commit reports isCurrent()=true and openIfChanged returns null
 
-Bug LFV-591 · Area: index / IndexWriter construction from a reader's IndexCommit (SegmentInfos.version; DirectoryReader.isCurrent and openIfChanged) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-591 · Area: index / IndexWriter construction from a reader's IndexCommit (SegmentInfos.version; DirectoryReader.isCurrent and openIfChanged) · Priority: low · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-591.html](../../bugs/LFV-591.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You keep an older commit (for example with NoDeletionPolicy or a snapshot), open a reader on it, and later go back to it by opening a new IndexWriter with setIndexCommit(thatReader.getIndexCommit) and committing, while another reader is still open on a newer commit. You expect that reader to notice the new commits (isCurrent false, openIfChanged returning the latest commit), as it does when the same commit is taken from DirectoryReader.listCommits. Instead the writer restarts SegmentInfos.version from the old reader instead of from the newest commit, so one of its commits can get exactly the newer commit's version (segments_3 holding [a, b, c] and segments_5 holding [a] are both version 10), and the stale reader reports isCurrent=true, openIfChanged returns null and SearcherLifetimeManager.record throws IllegalArgumentException.
+You keep an older commit (for example with NoDeletionPolicy or a snapshot), open a reader on it, and later go back to it by opening a new IndexWriter with setIndexCommit(thatReader.getIndexCommit()) and committing, while another reader is still open on a newer commit. You expect that reader to notice the new commits (isCurrent() false, openIfChanged returning the latest commit), as it does when the same commit is taken from DirectoryReader.listCommits. Instead the writer restarts SegmentInfos.version from the old reader instead of from the newest commit, so one of its commits can get exactly the newer commit's version (segments_3 holding [a, b, c] and segments_5 holding [a] are both version 10), and the stale reader reports isCurrent()=true, openIfChanged returns null and SearcherLifetimeManager.record throws IllegalArgumentException.
 
 The test shows that an IndexWriter opened with setIndexCommit(olderReader.getIndexCommit()) restarts SegmentInfos.version from that reader, so its second commit reuses the version of a newer commit that another reader still has open.
 
@@ -22,7 +24,7 @@ Expected `isCurrent()` false on the reader of segments_3 (3 docs) after the writ
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

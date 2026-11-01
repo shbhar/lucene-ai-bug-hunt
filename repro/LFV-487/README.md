@@ -1,12 +1,14 @@
-# BlockTreeOrds TermsEnum: seekExact(term, termState) right after seekExact(ord) marks the enum positioned over an incomplete frame stack, so a later seekExact returns false for an existing term and seekCeil/next throw or return made-up terms
+# BlockTreeOrds TermsEnum: seekExact(term, termState) right after seekExact(ord) marks the enum positioned over an incomplete frame stack, so a later seekExact returns false for an existing term and seekCeil/next() throw or return made-up terms
 
-Bug LFV-487 · Area: codecs / BlockTreeOrds terms dictionary (lucene-codecs OrdsSegmentTermsEnum) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-487 · Area: codecs / BlockTreeOrds terms dictionary (lucene-codecs OrdsSegmentTermsEnum) · Priority: low · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-487.html](../../bugs/LFV-487.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index a field with BlockTreeOrdsPostingsFormat (here 26 terms a00..a24 and b in one segment, default block sizes), position a TermsEnum with seekExact(0), take its termState and call seekExact(term, state) on the same enum, which the TermsEnum javadoc allows and which leaves it on a00. You expect a later seekExact("b") to return true, seekCeil("b") to return FOUND and next after a24 to return "b", as they do without the extra TermState call and with every other terms dictionary. Instead seekExact("b") returns false, seekCeil("b") throws EOFException (or, in a segment whose terms file is larger than about 7 KB, returns NOT_FOUND with a made-up term) and next after a24 throws, because seekExact(ord) loads only the target block and deliberately leaves the enum unpositioned, while the TermState seek's 'already on this term' shortcut marks it positioned anyway, so the next call reuses parent frames that were never loaded.
+You index a field with BlockTreeOrdsPostingsFormat (here 26 terms a00..a24 and b in one segment, default block sizes), position a TermsEnum with seekExact(0), take its termState() and call seekExact(term(), state) on the same enum, which the TermsEnum javadoc allows and which leaves it on a00. You expect a later seekExact("b") to return true, seekCeil("b") to return FOUND and next() after a24 to return "b", as they do without the extra TermState call and with every other terms dictionary. Instead seekExact("b") returns false, seekCeil("b") throws EOFException (or, in a segment whose terms file is larger than about 7 KB, returns NOT_FOUND with a made-up term) and next() after a24 throws, because seekExact(ord) loads only the target block and deliberately leaves the enum unpositioned, while the TermState seek's 'already on this term' shortcut marks it positioned anyway, so the next call reuses parent frames that were never loaded.
 
 The test shows that on a `BlockTreeOrdsPostingsFormat` TermsEnum, `seekExact(0)` followed by `seekExact(term(), termState())` on the same enum leaves it unable to find another existing term (26 terms a00..a24 and b, default block sizes).
 
@@ -22,7 +24,7 @@ Expected `seekExact("b")` to return `true`; actual `false` (`existing term b: ex
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

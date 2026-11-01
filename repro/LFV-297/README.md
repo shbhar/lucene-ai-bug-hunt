@@ -1,17 +1,17 @@
 # RescoreTopNQuery throws (AssertionError with -ea, ArrayIndexOutOfBoundsException with -da) instead of matching nothing when its inner query matches no document: rewrite passes an empty top-n list to DocAndScoreQuery.createDocAndScoreQuery, which requires a non-empty one
 
-Bug LFV-297 · Area: search / rescoring · Priority: medium · Impact: crash · Novelty: known upstream
+Finding LFV-297 · Area: search / rescoring · Priority: medium · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks. Maintainer triage: Fixed, triaged by Greg Miller (Lucene committer, PR #16926) on 2026-10-28 (https://github.com/apache/lucene/pull/16926). Greg Miller fixed it on main and branch_11x (11.0) by returning MatchNoDocsQuery when the inner query leaves nothing to rescore, the same guard as our fix. They left it out of 10.6 because they were not sure it is severe enough, so the 10.x line keeps the bug. This site files nothing upstream.
 
 ## What it shows
 
-You wrap a query in RescoreTopNQuery, for example full-precision rescoring of a kNN query with a filter, and on this index the inner query matches nothing (the filter matches no document, the term is absent, or the index is empty). You expect 0 hits, which is what the inner query alone returns. Instead the search throws an AssertionError with assertions enabled, or ArrayIndexOutOfBoundsException 'Index 0 out of bounds for length 0' without them, because rewrite hands its empty top-n list to a helper that reads the first entry; the kNN query's own rewrite checks for this case and returns MatchNoDocsQuery.
+You wrap a query in RescoreTopNQuery, for example full-precision rescoring of a kNN query with a filter, and on this index the inner query matches nothing (the filter matches no document, the term is absent, or the index is empty). You expect 0 hits, which is what the inner query alone returns. Instead the search throws an AssertionError with assertions enabled, or ArrayIndexOutOfBoundsException 'Index 0 out of bounds for length 0' without them, because rewrite() hands its empty top-n list to a helper that reads the first entry; the kNN query's own rewrite checks for this case and returns MatchNoDocsQuery.
 
 ## Expected vs actual
 
 - Expected: You expect 0 hits, which is what the inner query alone returns.
-- Actual: The search throws an AssertionError with assertions enabled, or ArrayIndexOutOfBoundsException 'Index 0 out of bounds for length 0' without them, because rewrite hands its empty top-n list to a helper that reads the first entry; the kNN query's own rewrite checks for this case and returns MatchNoDocsQuery.
+- Actual: The search throws an AssertionError with assertions enabled, or ArrayIndexOutOfBoundsException 'Index 0 out of bounds for length 0' without them, because rewrite() hands its empty top-n list to a helper that reads the first entry; the kNN query's own rewrite checks for this case and returns MatchNoDocsQuery.
 
 ## Files
 
@@ -21,7 +21,7 @@ You wrap a query in RescoreTopNQuery, for example full-precision rescoring of a 
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

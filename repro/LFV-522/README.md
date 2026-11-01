@@ -1,14 +1,14 @@
 # ContextSuggestField accepts contexts that contain U+001E or U+001F although its javadoc promises an IllegalArgumentException for reserved characters; the completion analysis then drops U+001E (a suggestion indexed under context 'a&lt;U+001E&gt;b' is stored as, returned for and labelled with the exact context 'ab') and doubles U+001F (context 'a&lt;U+001F&gt;b' never matches its own exact query and is reported as 'a&lt;U+001F&gt;&lt;U+001F&gt;b')
 
-Bug LFV-522 · Area: suggest / document (NRT) suggester (ContextSuggestField context validation; the context then passes through ConcatenateGraphFilter's SEP_LABEL escaping and HOLE removal) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-522 · Area: suggest / document (NRT) suggester (ContextSuggestField context validation; the context then passes through ConcatenateGraphFilter's SEP_LABEL escaping and HOLE removal) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-522.html](../../bugs/LFV-522.html)
+Finding page: [../../bugs/LFV-522.html](../../bugs/LFV-522.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index one suggestion under context 'ab' and another under context 'a&lt;U+001E&gt;b' with ContextSuggestField, and expect an IllegalArgumentException, because the constructor javadoc says it throws one 'if value or contexts contains any reserved characters' and U+001E and U+001F are exactly the characters that SuggestField and CompletionQuery reject as reserved (or, at the least, a context that round-trips). Instead both documents are indexed: ContextQuery.addContext("ab") returns both and reports both with context 'ab', addContext("a&lt;U+001E&gt;b") returns nothing, and a context 'a&lt;U+001F&gt;b' is also accepted, its exact query returns nothing and addAllContexts reports it as 'a&lt;U+001F&gt;&lt;U+001F&gt;b'. The cause: ContextSuggestField.validate checks a context only for U+001D (CONTEXT_SEPARATOR); the context then goes through ConcatenateGraphFilter, which turns a U+001E byte into an epsilon and escapes U+001F by doubling it, while ContextQuery builds its automaton from the raw characters, so the index side and the query side disagree.
+You index one suggestion under context 'ab' and another under context 'a&lt;U+001E&gt;b' with ContextSuggestField, and expect an IllegalArgumentException, because the constructor javadoc says it throws one 'if value or contexts contains any reserved characters' and U+001E and U+001F are exactly the characters that SuggestField and CompletionQuery reject as reserved (or, at the least, a context that round-trips). Instead both documents are indexed: ContextQuery.addContext("ab") returns both and reports both with context 'ab', addContext("a&lt;U+001E&gt;b") returns nothing, and a context 'a&lt;U+001F&gt;b' is also accepted, its exact query returns nothing and addAllContexts() reports it as 'a&lt;U+001F&gt;&lt;U+001F&gt;b'. The cause: ContextSuggestField.validate checks a context only for U+001D (CONTEXT_SEPARATOR); the context then goes through ConcatenateGraphFilter, which turns a U+001E byte into an epsilon and escapes U+001F by doubling it, while ContextQuery builds its automaton from the raw characters, so the index side and the query side disagree.
 
 The test shows that a `ContextSuggestField` context containing U+001E is accepted and merged into another context: a suggestion indexed under `a<U+001E>b` is returned, labelled `ab`, by an exact `ContextQuery.addContext("ab")`.
 
@@ -24,7 +24,7 @@ Expected `addDocument` to reject the reserved character (the constructor's @thro
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,8 +1,8 @@
 # UnifiedHighlighter.highlightWithoutSearcher ignores maxLength (the default 10,000 included): it analyzes and highlights the whole supplied text, although getMaxLength and Builder.withMaxLength document that content is truncated to maxLength before highlighting
 
-Bug LFV-756 · Area: highlighter / UnifiedHighlighter (highlightWithoutSearcher entry point, maxLength option) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-756 · Area: highlighter / UnifiedHighlighter (highlightWithoutSearcher entry point, maxLength option) · Priority: low · Impact: minor · Novelty: new
 
-Bug page: [../../bugs/LFV-756.html](../../bugs/LFV-756.html)
+Finding page: [../../bugs/LFV-756.html](../../bugs/LFV-756.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: the text is cut to 20 chars before highlighting (getMaxLength javadoc)
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

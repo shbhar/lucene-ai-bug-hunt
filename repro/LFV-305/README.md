@@ -1,6 +1,6 @@
 # Classic QueryParser and MultiFieldQueryParser ignore an explicit phrase slop ("..."~N) when the phrase analyzes to a token graph (multi-word synonyms, WordDelimiterGraphFilter) or, for QueryParser, carries token boosts, and search with the default phraseSlop instead: fewer hits with the default slop 0, extra hits for an explicit ~0 when a larger default slop is set
 
-Bug LFV-305 · Area: queryparser / classic QueryParser and MultiFieldQueryParser phrase slop (QueryParserBase.getFieldQuery(String,String,int), MultiFieldQueryParser.getFieldQuery and applySlop; core util/QueryBuilder graph and boosted phrases) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-305 · Area: queryparser / classic QueryParser and MultiFieldQueryParser phrase slop (QueryParserBase.getFieldQuery(String,String,int), MultiFieldQueryParser.getFieldQuery and applySlop; core util/QueryBuilder graph and boosted phrases) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ You parse "guinea pig food"~1 with the classic QueryParser over an analyzer with
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

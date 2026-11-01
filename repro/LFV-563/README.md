@@ -1,14 +1,14 @@
-# A document block rejected at a child can be flushed as a fully deleted segment without the parent field; if the merge policy keeps it (SoftDeletesRetentionMergePolicy can), merges that combine it only with segments without multi-document blocks throw 'expected parent doc field... across all segments' and close IndexWriter, again after every reopen
+# A document block rejected at a child can be flushed as a fully deleted segment without the parent field; if the merge policy keeps it (SoftDeletesRetentionMergePolicy can), merges that combine it only with segments without multi-document blocks throw 'expected parent doc field ... across all segments' and close IndexWriter, again after every reopen
 
-Bug LFV-563 · Area: index / IndexWriter document blocks (parent field) and merges · Priority: medium · Impact: index unusable · Novelty: new
+Finding LFV-563 · Area: index / IndexWriter document blocks (parent field) and merges · Priority: medium · Impact: index unusable · Novelty: new
 
-Bug page: [../../bugs/LFV-563.html](../../bugs/LFV-563.html)
+Finding page: [../../bugs/LFV-563.html](../../bugs/LFV-563.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You set IndexWriterConfig#setParentField (no index sort) and a merge policy that keeps fully deleted segments, such as SoftDeletesRetentionMergePolicy, and IndexWriter rejects a document block at a child with a documented non-aborting exception (for example a term longer than MAX_TERM_LENGTH) while that block is the only content of its in-memory segment, for example the first thing indexed after a commit. You expect the rejection to leave a consistent index that keeps merging, as the addDocument javadoc promises ('if an Exception is hit... the index will be consistent'). Instead the block is flushed as a fully deleted segment whose FieldInfos have no parent field (IndexWriter registers the parent field only when it reaches a block's last document), the merge policy keeps it, and every merge that combines it only with segments holding no multi-document block throws IllegalStateException 'expected parent doc field to be "_parent " across all segments but found a segment with different field "null"' and closes IndexWriter, also after the index is reopened, until forceMergeDeletes removes the segment.
+You set IndexWriterConfig#setParentField (no index sort) and a merge policy that keeps fully deleted segments, such as SoftDeletesRetentionMergePolicy, and IndexWriter rejects a document block at a child with a documented non-aborting exception (for example a term longer than MAX_TERM_LENGTH) while that block is the only content of its in-memory segment, for example the first thing indexed after a commit. You expect the rejection to leave a consistent index that keeps merging, as the addDocument javadoc promises ('if an Exception is hit ... the index will be consistent'). Instead the block is flushed as a fully deleted segment whose FieldInfos have no parent field (IndexWriter registers the parent field only when it reaches a block's last document), the merge policy keeps it, and every merge that combines it only with segments holding no multi-document block throws IllegalStateException 'expected parent doc field to be "_parent " across all segments but found a segment with different field "null"' and closes IndexWriter, also after the index is reopened, until forceMergeDeletes removes the segment.
 
 The test shows that with setParentField and SoftDeletesRetentionMergePolicy, a block rejected at its child (term &gt; MAX_TERM_LENGTH) right after a commit leaves a fully deleted segment without the parent field that breaks forceMerge (`TestRejectedBlockSegmentWithoutParentField#testForceMergeAfterBlockRejectedAtChild`).
 
@@ -24,7 +24,7 @@ Expected: forceMerge(1) succeeds. Actual: IllegalStateException "expected parent
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

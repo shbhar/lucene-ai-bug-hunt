@@ -1,17 +1,17 @@
-# An invalid regular expression lets IllegalArgumentException escape QueryParser.parse and StandardQueryParser.parse
+# An invalid regular expression lets IllegalArgumentException escape QueryParser.parse() and StandardQueryParser.parse()
 
-Bug LFV-041 · Area: queryparser / classic and flexible · Priority: medium · Impact: wrong error · Novelty: known upstream
+Finding LFV-041 · Area: queryparser / classic and flexible · Priority: medium · Impact: wrong error · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You parse a query string that contains an invalid /regex/ with the classic, MultiField or flexible query parser. You expect a ParseException (or QueryNodeException). Instead the RegExp IllegalArgumentException escapes parse.
+You parse a query string that contains an invalid /regex/ with the classic, MultiField or flexible query parser. You expect a ParseException (or QueryNodeException). Instead the RegExp IllegalArgumentException escapes parse().
 
 ## Expected vs actual
 
 - Expected: You expect a ParseException (or QueryNodeException).
-- Actual: The RegExp IllegalArgumentException escapes parse.
+- Actual: The RegExp IllegalArgumentException escapes parse().
 
 ## Files
 
@@ -21,7 +21,7 @@ You parse a query string that contains an invalid /regex/ with the classic, Mult
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

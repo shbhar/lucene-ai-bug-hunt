@@ -1,16 +1,16 @@
 # SpanNotQuery with a negative post (or dist) drops every include span that follows the last exclude span in a document, because NO_MORE_POSITIONS - post overflows int
 
-Bug LFV-279 · Area: queries / span queries (SpanNotQuery: the exclusion filter in SpanNotWeight#getSpans) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-279 · Area: queries / span queries (SpanNotQuery: the exclusion filter in SpanNotWeight#getSpans) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-279.html](../../bugs/LFV-279.html)
+Finding page: [../../bugs/LFV-279.html](../../bugs/LFV-279.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index the text 'b a c' and run new SpanNotQuery(a, b, 0, -1), whose javadoc says it keeps the 'a' spans that do not overlap a 'b' and that a negative post only allows some overlap; since 'b' at position 0 overlaps neither 'a', you expect both spans [1,2) and [2,3), exactly as with post = 0. Instead you get only [1,2): once the first 'a' has used up the document's exclude spans, the exclude iterator sits at NO_MORE_POSITIONS (Integer.MAX_VALUE) and SpanNotQuery.java:210 computes Integer.MAX_VALUE - post, which wraps to a negative int for any post &lt; 0, so every later 'a' in the document is rejected. Nested as spanNear([spanNot(a, b, 0, -1), c], 0, true), the document no longer matches at all (count 0 instead of 1).
+You index the text 'b a a c' and run new SpanNotQuery(a, b, 0, -1), whose javadoc says it keeps the 'a' spans that do not overlap a 'b' and that a negative post only allows some overlap; since 'b' at position 0 overlaps neither 'a', you expect both spans [1,2) and [2,3), exactly as with post = 0. Instead you get only [1,2): once the first 'a' has used up the document's exclude spans, the exclude iterator sits at NO_MORE_POSITIONS (Integer.MAX_VALUE) and SpanNotQuery.java:210 computes Integer.MAX_VALUE - post, which wraps to a negative int for any post &lt; 0, so every later 'a' in the document is rejected. Nested as spanNear([spanNot(a, b, 0, -1), c], 0, true), the document no longer matches at all (count 0 instead of 1).
 
-The test shows that `SpanNotQuery(a, b, 0, -1)` over the text "b a c" drops the second "a" span, because once the exclude spans are used up `Integer.MAX_VALUE - post` overflows (SpanNotQuery.java:210).
+The test shows that `SpanNotQuery(a, b, 0, -1)` over the text "b a a c" drops the second "a" span, because once the exclude spans are used up `Integer.MAX_VALUE - post` overflows (SpanNotQuery.java:210).
 
 ## Expected vs actual
 
@@ -24,7 +24,7 @@ Expected spans `[1,2), [2,3)` (as with post = 0, since "b" overlaps neither "a")
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

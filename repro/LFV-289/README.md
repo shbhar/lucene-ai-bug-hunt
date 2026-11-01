@@ -1,6 +1,8 @@
 # HTMLStripCharFilter leaves hexadecimal character references with six hex digits (&amp;#x10FFFD; &amp;#x100000; the zero-padded &amp;#x0000E9) undecoded, because its length check counts the leading 'x' and so lets only five hex digits through
 
-Bug LFV-289 · Area: analysis / HTMLStripCharFilter (JFlex grammar, numeric character references; also the 'htmlStrip' char filter SPI) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-289 · Area: analysis / HTMLStripCharFilter (JFlex grammar, numeric character references; also the 'htmlStrip' char filter SPI) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-289.html](../../bugs/LFV-289.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected `&#x0000E9;` to strip to `é`; actual: the literal `&#x0000E9;` (`expec
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

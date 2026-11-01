@@ -1,12 +1,14 @@
-# Hunspell Dictionary fails to load with 'Too many collisions' when its entry count is a multiple of 961, because WordStorage takes the raw String.hashCode modulo the table size (for example the en_US dictionary plus a 300-word custom list)
+# Hunspell Dictionary can fail to load with 'Too many collisions' when its entry count is a multiple of 961, because WordStorage takes the raw String.hashCode() modulo the table size (for example the en_US dictionary plus a 300-word custom list)
 
-Bug LFV-933 · Area: analysis-common / hunspell WordStorage (dictionary word hash table) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-933 · Area: analysis-common / hunspell WordStorage (dictionary word hash table) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-933.html](../../bugs/LFV-933.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You load a Hunspell dictionary, for example the stock en_US dictionary plus a custom list of 300 words through HunspellStemFilterFactory's documented dictionary="en_US.dic,custom.dic" pattern, and expect it to load as it does with 299 or 301 custom words. Instead the Dictionary constructor throws RuntimeException 'Too many collisions. Try a larger Dictionary#hashFactor (now 1.0). If this doesn't help, please report this to dev@lucene.apache.org', so the analyzer cannot be built. WordStorage puts every word into slot Math.abs(String.hashCode % tableSize) with tableSize = entry count x hashFactor (default 1.0); when that size is a multiple of 961 = 31*31, the slot of a short word depends almost only on its last two letters (31^2 divides every earlier term of the unmixed radix-31 hash), so short words with a common ending (six-letter '-er' words in en_US) pile into a few slots and one exceeds the hard limit of 20 entries.
+You load a Hunspell dictionary, for example the stock en_US dictionary plus a custom list of 300 words through HunspellStemFilterFactory's documented dictionary="en_US.dic,custom.dic" pattern, and expect it to load as it does with 299 or 301 custom words. Instead the Dictionary constructor throws RuntimeException 'Too many collisions. Try a larger Dictionary#hashFactor (now 1.0). If this doesn't help, please report this to dev@lucene.apache.org', so the analyzer cannot be built. WordStorage puts every word into slot Math.abs(String.hashCode() % tableSize) with tableSize = entry count x hashFactor (default 1.0); when that size is a multiple of 961 = 31*31, the slot of a short word depends almost only on its last two letters (31^2 divides every earlier term of the unmixed radix-31 hash), so short words with a common ending (six-letter '-er' words in en_US) pile into a few slots and one exceeds the hard limit of 20 entries.
 
 The test shows that a Hunspell `Dictionary` with 961 = 31*31 entries cannot load: `WordStorage` takes `String.hashCode() % 961`, which for short words keeps only the last two letters, so 21 short "-ing" words fill one slot past the 20-entry limit.
 
@@ -22,7 +24,7 @@ Expected: 940 three-letter words plus 21 "-ing" words (no flags, default hashFac
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -45,7 +47,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/hunspell-set-encoding-names-vs-c-hunspell-reference/](../../models/hunspell-set-encoding-names-vs-c-hunspell-reference/)
+Formal models and scripts this finding's part of the hunt used: [../../models/hunspell-set-encoding-names-vs-c-hunspell-reference/](../../models/hunspell-set-encoding-names-vs-c-hunspell-reference/)
 
 ## Feedback
 

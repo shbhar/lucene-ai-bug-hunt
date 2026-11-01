@@ -1,17 +1,17 @@
-# A Directory.deleteFile failure during a non-commit IndexFileDeleter checkpoint (for example while a flush drops a fully deleted segment) leaves one extra reference on every file of the writer's current segments, so the still-open IndexWriter never deletes those files once they become unused, not even in deleteUnusedFiles, rollback or close
+# A Directory.deleteFile failure during a non-commit IndexFileDeleter checkpoint (for example while a flush drops a fully deleted segment) leaves one extra reference on every file of the writer's current segments, so the still-open IndexWriter never deletes those files once they become unused, not even in deleteUnusedFiles(), rollback() or close()
 
-Bug LFV-630 · Area: core / index IndexFileDeleter reference counting (non-commit checkpoint after a failed Directory.deleteFile; reached from IndexWriter flush, NRT flush and tryDeleteDocument) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-630 · Area: core / index IndexFileDeleter reference counting (non-commit checkpoint after a failed Directory.deleteFile; reached from IndexWriter flush, NRT flush and tryDeleteDocument) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index with an IndexWriter on a Directory whose deleteFile can throw an IOException (Directory.deleteFile declares it), and one delete fails while the writer checkpoints outside a commit, for example when flush drops a newly flushed segment whose documents were all deleted; flush throws, but the writer stays open and reports no tragic exception, so you keep indexing, merging and committing. You expect the writer to delete the files of segments that are merged away once no commit references them, as IndexFileDeleter's reference counting promises (LUCENE-5919 made its decRef exception-safe for this reason). Instead the checkpoint has already taken a reference on every current file and, because decRef threw, skips the line that records those files for release, so in the repro _0.cfe, _0.cfs and _0.si stay on disk after the merge, the next commit, deleteUnusedFiles and close (rollback), and only a new IndexWriter removes them.
+You index with an IndexWriter on a Directory whose deleteFile can throw an IOException (Directory.deleteFile declares it), and one delete fails while the writer checkpoints outside a commit, for example when flush() drops a newly flushed segment whose documents were all deleted; flush() throws, but the writer stays open and reports no tragic exception, so you keep indexing, merging and committing. You expect the writer to delete the files of segments that are merged away once no commit references them, as IndexFileDeleter's reference counting promises (LUCENE-5919 made its decRef exception-safe for this reason). Instead the checkpoint has already taken a reference on every current file and, because decRef threw, skips the line that records those files for release, so in the repro _0.cfe, _0.cfs and _0.si stay on disk after the merge, the next commit, deleteUnusedFiles() and close() (rollback), and only a new IndexWriter removes them.
 
 ## Expected vs actual
 
 - Expected: You expect the writer to delete the files of segments that are merged away once no commit references them, as IndexFileDeleter's reference counting promises (LUCENE-5919 made its decRef exception-safe for this reason).
-- Actual: The checkpoint has already taken a reference on every current file and, because decRef threw, skips the line that records those files for release, so in the repro _0.cfe, _0.cfs and _0.si stay on disk after the merge, the next commit, deleteUnusedFiles and close (rollback), and only a new IndexWriter removes them.
+- Actual: The checkpoint has already taken a reference on every current file and, because decRef threw, skips the line that records those files for release, so in the repro _0.cfe, _0.cfs and _0.si stay on disk after the merge, the next commit, deleteUnusedFiles() and close() (rollback), and only a new IndexWriter removes them.
 
 ## Files
 
@@ -20,7 +20,7 @@ You index with an IndexWriter on a Directory whose deleteFile can throw an IOExc
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

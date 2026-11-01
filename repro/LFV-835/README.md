@@ -1,6 +1,8 @@
 # PayloadScoreQuery scores a payload value of -0.0 as -0.0 instead of 0 (MinPayloadFunction, MaxPayloadFunction or a custom PayloadFunction with a decoder that reads IEEE floats), because its LUCENE-7996 negative-score clamp tests 'score &gt;= 0 == false' and its explain truncation 'value &lt; 0'; since 10.2.0 the top-1 hit is then not the head of the top-2 hits
 
-Bug LFV-835 · Area: queries / payloads (PayloadScoreQuery payload-score clamp, LUCENE-7996; visible through core TopScoreDocCollector tie handling; sibling of LFV-273's function-query clamps) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-835 · Area: queries / payloads (PayloadScoreQuery payload-score clamp, LUCENE-7996; visible through core TopScoreDocCollector tie handling; sibling of LFV-273's function-query clamps) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-835.html](../../bugs/LFV-835.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected: both documents score 0 and search(q, 1) returns the head of search(q, 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

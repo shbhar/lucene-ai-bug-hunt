@@ -1,14 +1,14 @@
-# TSTLookup.store/load writes each tree node's split char with DataOutput.writeString, so the two surrogate halves of an emoji or CJK Extension B character come back as U+FFFD: after load, get and lookups whose prefix runs through such a character silently find nothing, and some neighbouring BMP keys are lost too (every release since 4.7.0)
+# TSTLookup.store/load writes each tree node's split char with DataOutput.writeString, so the two surrogate halves of an emoji or CJK Extension B character come back as U+FFFD: after load(), get() and lookups whose prefix runs through such a character silently find nothing, and some neighbouring BMP keys are lost too (every release since 4.7.0)
 
-Bug LFV-699 · Area: suggest / ternary search tree suggester persistence (TSTLookup.store and load, writeRecursively and readRecursively) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-699 · Area: suggest / ternary search tree suggester persistence (TSTLookup.store and load, writeRecursively and readRecursively) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-699.html](../../bugs/LFV-699.html)
+Finding page: [../../bugs/LFV-699.html](../../bugs/LFV-699.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a TSTLookup from ordinary text that contains an emoji or a CJK Extension B character (for example the key 𠮷野家 with weight 5), store it, load it back, and expect the reloaded copy to answer like the original, as Lookup.load promises ('load it from a previously saved copy'). Instead lookup('𠮷', true, 5) returns instead of [𠮷野家/5] and get('𠮷野家') returns null after the reload, because TSTLookup keeps one tree node per UTF-16 code unit, writeRecursively writes each node's split char with DataOutput.writeString of a one-char String, and a lone surrogate has no UTF-8 form, so it is written and reloaded as U+FFFD and the tree's char comparisons then take the wrong branches. ASCII keys and getCount survive, while some BMP keys next to a surrogate node are lost too (in the finder's test lookup('Ａ') returns instead of [Ａb/4]).
+You build a TSTLookup from ordinary text that contains an emoji or a CJK Extension B character (for example the key 𠮷野家 with weight 5), store() it, load() it back, and expect the reloaded copy to answer like the original, as Lookup.load promises ('load it from a previously saved copy'). Instead lookup('𠮷', true, 5) returns [] instead of [𠮷野家/5] and get('𠮷野家') returns null after the reload, because TSTLookup keeps one tree node per UTF-16 code unit, writeRecursively writes each node's split char with DataOutput.writeString of a one-char String, and a lone surrogate has no UTF-8 form, so it is written and reloaded as U+FFFD and the tree's char comparisons then take the wrong branches. ASCII keys and getCount() survive, while some BMP keys next to a surrogate node are lost too (in the finder's test lookup('Ａ') returns [] instead of [Ａb/4]).
 
 The test shows that `TSTLookup.store`/`load` loses a key that contains a supplementary character (U+20BB7): each surrogate split char is written with `writeString` and comes back as U+FFFD.
 
@@ -24,7 +24,7 @@ Expected `get(key)` on the reloaded lookup to return the weight 5; actual `null`
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

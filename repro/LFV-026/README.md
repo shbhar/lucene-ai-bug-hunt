@@ -1,12 +1,14 @@
 # Flexible StandardQueryParser throws ClassCastException on the input *&gt;a
 
-Bug LFV-026 · Area: queryparser / flexible · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-026 · Area: queryparser / flexible · Priority: low · Impact: wrong error · Novelty: new
+
+Finding page: [../../bugs/LFV-026.html](../../bugs/LFV-026.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You parse the query string *&gt;a with the flexible StandardQueryParser. You expect a query or a QueryNodeException for bad syntax. Instead parse throws an unchecked ClassCastException.
+You parse the query string *&gt;a with the flexible StandardQueryParser. You expect a query or a QueryNodeException for bad syntax. Instead parse() throws an unchecked ClassCastException.
 
 The test shows that the flexible `StandardQueryParser` parsing the open range `*>a` (field `*`) throws an unchecked `ClassCastException`.
 
@@ -22,7 +24,7 @@ Expected: a Query or the documented `QueryNodeException`. Actual: `ClassCastExce
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,8 +1,8 @@
 # XYShape point queries can miss a polygon at one of its own vertices: Component2D.pointInTriangle rejects the second vertex (b) of a clockwise triangle, and ShapeField.encodeTriangle makes XY triangles counter-clockwise only on their sortable-int encodings, so a stored triangle can decode clockwise; an INTERSECTS point query at that vertex misses the polygon and DISJOINT returns it (since 8.5.0)
 
-Bug LFV-764 · Area: geo / XYShape point queries (Component2D.pointInTriangle; ShapeField.encodeTriangle orientation for XY) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-764 · Area: geo / XYShape point queries (Component2D.pointInTriangle; ShapeField.encodeTriangle orientation for XY) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-764.html](../../bugs/LFV-764.html)
+Finding page: [../../bugs/LFV-764.html](../../bugs/LFV-764.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: 1 hit (a polygon's vertices belong to it). Actual: 0 hits.
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

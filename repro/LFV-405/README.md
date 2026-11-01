@@ -1,14 +1,14 @@
 # MatchingFacetSetsCounts decodes the facet-set binary doc value from position 0 of BytesRef.bytes instead of BytesRef.offset, so a value that a reader returns as a slice of a larger array is counted from the wrong bytes (silently wrong facet-set counts, or NegativeArraySizeException / ArrayIndexOutOfBoundsException)
 
-Bug LFV-405 · Area: facet / facet sets (MatchingFacetSetsCounts.count, a BinaryDocValues consumer; reached through MemoryIndex, custom readers and the backward-codecs Lucene80 BEST_COMPRESSION doc-values producer) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-405 · Area: facet / facet sets (MatchingFacetSetsCounts.count, a BinaryDocValues consumer; reached through MemoryIndex, custom readers and the backward-codecs Lucene80 BEST_COMPRESSION doc-values producer) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-405.html](../../bugs/LFV-405.html)
+Finding page: [../../bugs/LFV-405.html](../../bugs/LFV-405.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You count facet sets with MatchingFacetSetsCounts over a reader that hands back a document's facet-set binary doc value as a BytesRef slice of a larger array (offset != 0), for example a MemoryIndex holding a value that was packed into a shared buffer, and expect the same counts as for a compact copy of the same bytes. Instead count reads the dimension count from bytes[0] and the dimension values from bytes[4..length) of the backing array, ignoring the offset, so the document is counted under whatever bytes start that array: a document whose set is (3,4), stored right after an encoding of (1,2), is counted as (1,2)=1 and (3,4)=0, with no error. When the leading bytes do not decode to a sane dimension count, the MatchingFacetSetsCounts constructor throws NegativeArraySizeException or ArrayIndexOutOfBoundsException instead, while the same value indexed through IndexWriter with the default codec is counted correctly.
+You count facet sets with MatchingFacetSetsCounts over a reader that hands back a document's facet-set binary doc value as a BytesRef slice of a larger array (offset != 0), for example a MemoryIndex holding a value that was packed into a shared buffer, and expect the same counts as for a compact copy of the same bytes. Instead count() reads the dimension count from bytes[0] and the dimension values from bytes[4..length) of the backing array, ignoring the offset, so the document is counted under whatever bytes start that array: a document whose set is (3,4), stored right after an encoding of (1,2), is counted as (1,2)=1 and (3,4)=0, with no error. When the leading bytes do not decode to a sane dimension count, the MatchingFacetSetsCounts constructor throws NegativeArraySizeException or ArrayIndexOutOfBoundsException instead, while the same value indexed through IndexWriter with the default codec is counted correctly.
 
 The test shows that MatchingFacetSetsCounts ignores `BytesRef.offset` of a facet-set binary doc value: a MemoryIndex document whose value is the (3,4) encoding as a slice after an encoding of (1,2) is counted as (1,2).
 
@@ -24,7 +24,7 @@ Expected counts `(3,4)=1, (1,2)=0`; actual `(3,4)=0, (1,2)=1` (`expected:<[(3,4)
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

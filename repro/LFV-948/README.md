@@ -1,12 +1,12 @@
-# The Lucene 10.6.0 release notes (CHANGES.txt in the 10.6.0 RC1 and in main's copy of the 10.6.0 section) say StableTflSimilarity 'also supports k3 query-term frequency saturation', but 10.6.0 has no k3: the 10.6 backport left k3 out and dropped the sentence on review request, and an unrelated later backport put the sentence back (documentation defect, unreleased)
+# The Lucene 10.6.0 release notes (CHANGES.txt in the 10.6.0 RC1 and in main's copy of the 10.6.0 section) say StableTflSimilarity 'also supports k3 query-term frequency saturation', but 10.6.0 has no k3: the 10.6 backport left k3 out and dropped the sentence on review request, and an unrelated later backport put the sentence back (documentation defect, released in 10.6.0)
 
-Bug LFV-948 · Area: release notes / lucene/CHANGES.txt 10.6.0 New Features (GITHUB#16243 entry) x search / similarities (StableTflSimilarity) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-948 · Area: release notes / lucene/CHANGES.txt 10.6.0 New Features (GITHUB#16243 entry) x search / similarities (StableTflSimilarity) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You read the Lucene 10.6.0 release notes, whose GITHUB#16243 entry says StableTflSimilarity 'also supports k3 query-term frequency saturation', and write new StableTflSimilarity(1.2f, 0.917f, 7f) against the 10.6.0 jar. You expect it to compile, as it does on main; instead javac finds no (float, float, float) constructor and no getK3, because the 10.x backport (#16322) deliberately left k3 out ('remove k3 which isn't in 10') and, on the feature author's review request, also dropped the k3 sentence, which a later, unrelated backport commit (3a75616c943, the #16300 backport) put back. The sentence ships in the RC1 source release's CHANGES.txt and Changes.html and is also in main's copy of the 10.6.0 section.
+You read the Lucene 10.6.0 release notes, whose GITHUB#16243 entry says StableTflSimilarity 'also supports k3 query-term frequency saturation', and write new StableTflSimilarity(1.2f, 0.917f, 7f) against the 10.6.0 jar. You expect it to compile, as it does on main; instead javac finds no (float, float, float) constructor and no getK3(), because the 10.x backport (#16322) deliberately left k3 out ('remove k3 which isn't in 10') and, on the feature author's review request, also dropped the k3 sentence, which a later, unrelated backport commit (3a75616c943, the #16300 backport) put back. The sentence ships in the RC1 source release's CHANGES.txt and Changes.html and is also in main's copy of the 10.6.0 section.
 
 The test shows that the Lucene 10.6.0 CHANGES entry for GITHUB#16243 (RC1 CHANGES.txt:57, and main's copy of the 10.6.0 section at CHANGES.txt:507) says StableTflSimilarity 'also supports k3', but the 10.6.0 class has no k3 constructor; main's class has one, so the test passes on main and fails on the 10.6.0 RC1 code.
 
@@ -23,7 +23,7 @@ The test shows that the Lucene 10.6.0 CHANGES entry for GITHUB#16243 (RC1 CHANGE
 - Tested on Lucene branch_10_6 4ae946e5a9b9 (2026-10-26): reproduced on 10.6.0-SNAPSHOT jars built at this commit.
 - Recorded outcome of run 1 on Lucene branch_10_6 4ae946e5a9b9: 1 test(s) run, 1 failed.
 - Passes on Lucene main 645d4fe14a20 (2026-10-28).
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

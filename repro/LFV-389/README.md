@@ -1,6 +1,6 @@
 # Test suite on main: #16028 removed @Test from six test classes that do not extend LuceneTestCase, so their 18 test methods never run (TestRuntimeDependenciesSane and TestCandidateMatcherVisibility report no tests; TestClassloadingDeadlock, TestModularLayer and TestScripts each report one green placeholder; the opt-in TestHunspellRepositoryTestCases fails with 'No runnable methods')
 
-Bug LFV-389 · Area: test infrastructure / JUnit 4 test discovery (core, core.tests, monitor, distribution.tests, analysis-common hunspell) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-389 · Area: test infrastructure / JUnit 4 test discovery (core, core.tests, monitor, distribution.tests, analysis-common hunspell) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -12,7 +12,7 @@ The test shows that main's TestCandidateMatcherVisibility (not a LuceneTestCase 
 
 ## Expected vs actual
 
-Expected `JUnitCore.runClasses(TestCandidateMatcherVisibility.class)` to run 3 tests with no failure; actual: run=1, `initializationError... No runnable methods`, with `-ea` and `-da`.
+Expected `JUnitCore.runClasses(TestCandidateMatcherVisibility.class)` to run 3 tests with no failure; actual: run=1, `initializationError ... No runnable methods`, with `-ea` and `-da`.
 
 ## Files
 
@@ -22,7 +22,7 @@ Expected `JUnitCore.runClasses(TestCandidateMatcherVisibility.class)` to run 3 t
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

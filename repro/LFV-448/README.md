@@ -1,14 +1,16 @@
 # OpenNLP analysis factories cache models and lemma dictionaries JVM-wide by bare file name, so an analyzer built from a second configuration directory silently uses another directory's same-named model (and builds even when its own directory lacks the file); the name namespace and its scope are undocumented (documentation defect of a deliberate design)
 
-Bug LFV-448 · Area: analysis-opennlp / model cache (OpenNLPOpsFactory and the OpenNLP factories' inform/create) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-448 · Area: analysis-opennlp / model cache (OpenNLPOpsFactory and the OpenNLP factories' inform/create) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-448.html](../../bugs/LFV-448.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build two analyzers with CustomAnalyzer.builder(configDir) from two configuration directories, each with its own OpenNLP model under the same file name (for example sent.bin and tok.bin, or a lemma dictionary), and expect each analyzer to use its own directory's files, as builder(Path) says it 'loads all resources from the given file system base directory'. Instead the OpenNLP factories keep one static, JVM-wide cache per model type keyed only by the file name, so the second analyzer silently gets the model the first directory loaded: with two valid, different tokenizer models, configB's analyzer produces configA's tokens [Hello, world,., This, is, a, test,.] instead of its own [Hello, world., This, is, a, test.], and a directory with no such file at all still builds. The name-keyed cache is intended (LUCENE-2899), but nothing documents that file names are shared by every configuration in the JVM.
+You build two analyzers with CustomAnalyzer.builder(configDir) from two configuration directories, each with its own OpenNLP model under the same file name (for example sent.bin and tok.bin, or a lemma dictionary), and expect each analyzer to use its own directory's files, as builder(Path) says it 'loads all resources from the given file system base directory'. Instead the OpenNLP factories keep one static, JVM-wide cache per model type keyed only by the file name, so the second analyzer silently gets the model the first directory loaded: with two valid, different tokenizer models, configB's analyzer produces configA's tokens [Hello, world, ., This, is, a, test, .] instead of its own [Hello, world., This, is, a, test.], and a directory with no such file at all still builds. The name-keyed cache is intended (LUCENE-2899), but nothing documents that file names are shared by every configuration in the JVM.
 
-The test shows that two CustomAnalyzers, each built from its own ResourceLoader with a different `lemmas.txt` (dogs -&gt; dogA, dogs -&gt; dogB) for openNlpLemmatizer; the second one uses the first one's dictionary, because OpenNLPOpsFactory caches it JVM-wide by file name (undocumented; category doc).
+The test shows that of two CustomAnalyzers, each built from its own ResourceLoader with a different `lemmas.txt` (dogs -&gt; dogA, dogs -&gt; dogB) for openNlpLemmatizer, the second one uses the first one's dictionary, because OpenNLPOpsFactory caches it JVM-wide by file name (undocumented).
 
 ## Expected vs actual
 
@@ -22,7 +24,7 @@ Expected: the second analyzer lemmatizes "dogs" to dogB (its own file); actual (
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

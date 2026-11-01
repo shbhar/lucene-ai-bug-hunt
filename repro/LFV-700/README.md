@@ -1,14 +1,14 @@
 # BlendedInfixSuggester loses a distinct suggestion when a duplicate entry arrives while its result set is full: boundedTreeAdd evicts the lowest result before TreeSet.add rejects the duplicate, so lookup returns num-1 suggestions, or a lower-ranked fetched suggestion in place of a higher-ranked one
 
-Bug LFV-700 · Area: suggest / analyzing: BlendedInfixSuggester result collection · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-700 · Area: suggest / analyzing: BlendedInfixSuggester result collection · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-700.html](../../bugs/LFV-700.html)
+Finding page: [../../bugs/LFV-700.html](../../bugs/LFV-700.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a BlendedInfixSuggester with its default settings (POSITION_LINEAR, numFactor 10) from {the lake:1000, lake:950, lake:950, my lake:920} and call lookup("lake", false, 2); blending gives lake 950, the lake 900 and my lake 828, num=3 returns [lake/950, the lake/900, my lake/828], so you expect [lake/950, the lake/900]. Instead you get [lake/950, my lake/828], and without 'my lake' only [lake/950]. When the bounded result set is full, boundedTreeAdd (BlendedInfixSuggester.java:294-306) removes the lowest result with pollFirst before it calls results.add(result), and that add does nothing for the second 'lake' because LookUpComparator (:383-407) already holds an equal element, so 'the lake' is lost and a later, lower-ranked hit takes its slot.
+You build a BlendedInfixSuggester with its default settings (POSITION_LINEAR, numFactor 10) from {the lake:1000, lake:950, lake:950, my lake:920} and call lookup("lake", false, 2); blending gives lake 950, the lake 900 and my lake 828, num=3 returns [lake/950, the lake/900, my lake/828], so you expect [lake/950, the lake/900]. Instead you get [lake/950, my lake/828], and without 'my lake' only [lake/950]. When the bounded result set is full, boundedTreeAdd (BlendedInfixSuggester.java:294-306) removes the lowest result with pollFirst() before it calls results.add(result), and that add does nothing for the second 'lake' because LookUpComparator (:383-407) already holds an equal element, so 'the lake' is lost and a later, lower-ranked hit takes its slot.
 
 The test shows that a default `BlendedInfixSuggester` drops a distinct suggestion when a duplicate arrives while its result set is full: `boundedTreeAdd` evicts the lowest result before `TreeSet.add` rejects the duplicate.
 
@@ -24,7 +24,7 @@ For {the lake:1000, lake:950, lake:950, my lake:920}, `lookup("lake", false, 2)`
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,12 +1,14 @@
-# PersistentSnapshotDeletionPolicy.snapshot and release return before the new save file's name is durable: persist fsyncs snapshots_N but never calls Directory.syncMetaData, so an OS crash or power loss can lose an acknowledged snapshot
+# PersistentSnapshotDeletionPolicy.snapshot() and release() return before the new save file's name is durable: persist() fsyncs snapshots_N but never calls Directory.syncMetaData(), so an OS crash or power loss can lose an acknowledged snapshot
 
-Bug LFV-194 · Area: index / deletion policies (PersistentSnapshotDeletionPolicy persistence, directory fsync) · Priority: low · Impact: data corruption · Novelty: new
+Finding LFV-194 · Area: index / deletion policies (PersistentSnapshotDeletionPolicy persistence, directory fsync) · Priority: low · Impact: data corruption · Novelty: new
+
+Finding page: [../../bugs/LFV-194.html](../../bugs/LFV-194.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You protect a commit with PersistentSnapshotDeletionPolicy.snapshot, whose javadoc says that once the method returns the snapshot information is persisted in the directory. Instead persist writes and fsyncs the new snapshots_N file but never fsyncs the directory (Directory.syncMetaData), the step Lucene's own commit takes because a new file's name is not durable until then. After an OS crash or power loss the save file can be gone: the snapshot count comes back as 0 and, with the snapshots in a separate Directory, the reopened IndexWriter deletes the commit the snapshot was protecting (a lost release instead brings a released snapshot back).
+You protect a commit with PersistentSnapshotDeletionPolicy.snapshot(), whose javadoc says that once the method returns the snapshot information is persisted in the directory. Instead persist() writes and fsyncs the new snapshots_N file but never fsyncs the directory (Directory.syncMetaData()), the step Lucene's own commit takes because a new file's name is not durable until then. After an OS crash or power loss the save file can be gone: the snapshot count comes back as 0 and, with the snapshots in a separate Directory, the reopened IndexWriter deletes the commit the snapshot was protecting (a lost release() instead brings a released snapshot back).
 
 The test shows that `PersistentSnapshotDeletionPolicy.snapshot()`, documented as "once this method returns, the snapshot information is persisted", syncs the bytes of the new `snapshots_N` file but never calls `Directory.syncMetaData()`, so the new file's name is not made durable.
 
@@ -22,7 +24,7 @@ Expected at least one `syncMetaData()` call on the snapshot directory during `sn
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

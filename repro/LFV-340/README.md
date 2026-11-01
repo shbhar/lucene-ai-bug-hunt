@@ -1,14 +1,14 @@
 # MemoryIndex drops the final position increment of each value of a multi-valued field (and the gaps after leading values with no tokens), so phrase and other position queries disagree with IndexWriter, including Lucene Monitor's single-document matching
 
-Bug LFV-340 · Area: memory / MemoryIndex term inversion (multi-valued analyzed fields: positions and offsets carried from one value to the next); reached in-tree through monitor single-document batches · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-340 · Area: memory / MemoryIndex term inversion (multi-valued analyzed fields: positions and offsets carried from one value to the next); reached in-tree through monitor single-document batches · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-340.html](../../bugs/LFV-340.html)
+Finding page: [../../bugs/LFV-340.html](../../bugs/LFV-340.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You add a document whose text field has two values, 'quick the' and 'fox', to a MemoryIndex with an analyzer that removes the stop word 'the', and expect the positions of a one-document IndexWriter index: IndexWriter keeps the hole the removed trailing 'the' leaves (TokenStream.end reports it as a final position increment), so 'fox' is at position 2 and the phrase "quick fox" does not match. MemoryIndex.storeTerms never adds that final increment, puts 'fox' at position 1 and matches the phrase; the reverse also happens (the input of upstream's TestIndexWriter#testStopwordsPosIncHole matches a phrase on IndexWriter but not on MemoryIndex), and values that produce no tokens before the first token skip the position and offset gaps ([the | quick fox] with gap 100: IndexWriter quick at position 101, offsets 4-9; MemoryIndex position 0, offsets 0-5). Lucene Monitor inherits it: a stored phrase query matches the document when it is matched alone (MemoryIndex path) but not when the same document is in a two-document batch (IndexWriter path).
+You add a document whose text field has two values, 'quick the' and 'fox', to a MemoryIndex with an analyzer that removes the stop word 'the', and expect the positions of a one-document IndexWriter index: IndexWriter keeps the hole the removed trailing 'the' leaves (TokenStream.end() reports it as a final position increment), so 'fox' is at position 2 and the phrase "quick fox" does not match. MemoryIndex.storeTerms never adds that final increment, puts 'fox' at position 1 and matches the phrase; the reverse also happens (the input of upstream's TestIndexWriter#testStopwordsPosIncHole matches a phrase on IndexWriter but not on MemoryIndex), and values that produce no tokens before the first token skip the position and offset gaps ([the | quick fox] with gap 100: IndexWriter quick at position 101, offsets 4-9; MemoryIndex position 0, offsets 0-5). Lucene Monitor inherits it: a stored phrase query matches the document when it is matched alone (MemoryIndex path) but not when the same document is in a two-document batch (IndexWriter path).
 
 The test shows that a field with values "quick the" and "fox" (StandardAnalyzer with stop word "the") gets the phrase "quick fox" wrong in MemoryIndex: IndexWriter keeps the hole that the removed trailing "the" leaves (the final position increment from `TokenStream.end()`, so fox is at position 2), and MemoryIndex drops it (fox at 1).
 
@@ -24,7 +24,7 @@ Expected the IndexWriter result, 0 hits for `PhraseQuery("body", "quick", "fox")
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

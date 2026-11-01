@@ -1,12 +1,12 @@
 # BytesRefArray.iterator(Comparator) throws NullPointerException for a null comparator once the array holds 2 or more values, instead of iterating in append order as its javadoc says (regression since 8.5.0, LUCENE-9228)
 
-Bug LFV-392 · Area: util / BytesRefArray (iterator(Comparator) with a null comparator) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-392 · Area: util / BytesRefArray (iterator(Comparator) with a null comparator) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You append two or more values (for example c, a, b) to a BytesRefArray and call iterator((Comparator&lt;BytesRef&gt;) null), expecting the values back in append order, as the method's javadoc promises ('Otherwise the order is the same as the values were appended') and as Lucene 8.4.1 and earlier do. Instead the call throws NullPointerException ('Cannot invoke Comparator.compare... because this.val$cmp is null', from StringSorter$1.compare via BytesRefArray.sort), because the method now always sorts with the given comparator; with 0 or 1 values, or with the no-arg iterator, append order still comes back. The one-line fix restores the pre-8.5 null check ('return iterator(comp == null ? null: sort(comp, false));'); a maintainer may instead prefer to correct the javadoc.
+You append two or more values (for example c, a, b) to a BytesRefArray and call iterator((Comparator&lt;BytesRef&gt;) null), expecting the values back in append order, as the method's javadoc promises ('Otherwise the order is the same as the values were appended') and as Lucene 8.4.1 and earlier do. Instead the call throws NullPointerException ('Cannot invoke Comparator.compare ... because this.val$cmp is null', from StringSorter$1.compare via BytesRefArray.sort), because the method now always sorts with the given comparator; with 0 or 1 values, or with the no-arg iterator(), append order still comes back. The one-line fix restores the pre-8.5 null check ('return iterator(comp == null ? null : sort(comp, false));'); a maintainer may instead prefer to correct the javadoc.
 
 The test shows that `BytesRefArray.iterator((Comparator<BytesRef>) null)` on an array holding two values (b, a) throws NullPointerException instead of iterating in append order, because `iterator(Comparator)` always sorts with the given comparator.
 
@@ -22,7 +22,7 @@ Expected: b, then a (javadoc: "Otherwise the order is the same as the values wer
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

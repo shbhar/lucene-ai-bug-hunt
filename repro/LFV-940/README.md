@@ -1,14 +1,16 @@
-# benchmark defect
+# TrecJudge counts every qrels grade other than the literal string "0" as relevant, so negative TREC grades (such as -2 for spam pages in TREC Web track qrels) are judged relevant and inflate the relevant-document count, precision, AP and MRR
 
-Bug LFV-940 · Area: benchmark / search-quality package (trec.TrecJudge, the qrels reader used by QualityBenchmark and QueryDriver) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-940 · Area: benchmark / search-quality package (trec.TrecJudge, the qrels reader used by QualityBenchmark and QueryDriver) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-940.html](../../bugs/LFV-940.html)
+Finding page: [../../bugs/LFV-940.html](../../bugs/LFV-940.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
 You evaluate search quality with QueryDriver or QualityBenchmark and a TREC qrels file read by TrecJudge, expecting a document to count as relevant only when its grade is 1 or more, as trec_eval counts it. TrecJudge instead treats every grade token except the exact string "0" as relevant, so documents graded -2 (spam or useless, in TREC Web track qrels) or -1 count as relevant: a junk page graded -2 that ranks above the only relevant page gives 2 relevant documents, P@1 1.0 and AP 1.0, where trec_eval gives 1, 0 and 0.5. There is no error or warning.
+
+The test shows that `TrecJudge` built from the qrels line `1 0 d -2` (grade -2, junk in TREC Web track qrels) judges document `d` relevant for query `1`.
 
 ## Expected vs actual
 
@@ -22,7 +24,7 @@ Expected `isRelevant("d", q) == false` (trec_eval counts a document relevant onl
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

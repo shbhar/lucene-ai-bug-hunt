@@ -1,8 +1,8 @@
 # kNN vector queries size each segment's result heap from the requested k, not from what the segment can return, so k = Integer.MAX_VALUE throws IllegalArgumentException and k = 2^28 runs out of a 2 GiB heap on a 3-document index (core KnnFloat/KnnByteVectorQuery without a filter: regression in 9.10.0; join DiversifyingChildren*KnnVectorQuery: since 9.8.0)
 
-Bug LFV-454 · Area: search / kNN vector queries (per-segment collector sizing: AbstractKnnVectorQuery, TopKnnCollectorManager, TopKnnCollector; join DiversifyingNearestChildrenKnnCollectorManager) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-454 · Area: search / kNN vector queries (per-segment collector sizing: AbstractKnnVectorQuery, TopKnnCollectorManager, TopKnnCollector; join DiversifyingNearestChildrenKnnCollectorManager) · Priority: low · Impact: crash · Novelty: new
 
-Bug page: [../../bugs/LFV-454.html](../../bugs/LFV-454.html)
+Finding page: [../../bugs/LFV-454.html](../../bugs/LFV-454.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected 3 hits (k is "the number of documents to find"); actual IllegalArgument
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,17 +1,17 @@
 # Default UnifiedHighlighter (WEIGHT_MATCHES) rebuilds the query's Weight on its own single-leaf searcher, so JoinUtil global-ordinals joins throw IllegalStateException and ParentChildrenBlockJoinQuery reads its top-level parent id as a segment-local id
 
-Bug LFV-503 · Area: highlighter / UnifiedHighlighter WEIGHT_MATCHES path (FieldOffsetStrategy) with reader-bound join queries · Priority: medium · Impact: crash · Novelty: known upstream
+Finding LFV-503 · Area: highlighter / UnifiedHighlighter WEIGHT_MATCHES path (FieldOffsetStrategy) with reader-bound join queries · Priority: medium · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You search with a query that contains a JoinUtil global-ordinals join, for example +text:shirt +JoinUtil.createJoinQuery("join", text:great, type:to, searcher, scoreMode, null), and highlight the hits with a UnifiedHighlighter built on that same searcher with default flags. You expect the snippet 'red &lt;b&gt;shirt&lt;/b&gt;', which is what the highlighter returns with WEIGHT_MATCHES off. Instead highlight throws IllegalStateException 'Creating the weight against a different index reader than this query has been built for.', because FieldOffsetStrategy re-creates the query's Weight on a new IndexSearcher over the hit's single leaf, which the join's reader check rejects; the same substitute searcher makes ParentChildrenBlockJoinQuery read its top-level parent doc id as a local id of the hit's segment, so a hit in a later segment loses its highlight ('size small' instead of '&lt;b&gt;size&lt;/b&gt; small') or crashes.
+You search with a query that contains a JoinUtil global-ordinals join, for example +text:shirt +JoinUtil.createJoinQuery("join", text:great, type:to, searcher, scoreMode, null), and highlight the hits with a UnifiedHighlighter built on that same searcher with default flags. You expect the snippet 'red &lt;b&gt;shirt&lt;/b&gt;', which is what the highlighter returns with WEIGHT_MATCHES off. Instead highlight() throws IllegalStateException 'Creating the weight against a different index reader than this query has been built for.', because FieldOffsetStrategy re-creates the query's Weight on a new IndexSearcher over the hit's single leaf, which the join's reader check rejects; the same substitute searcher makes ParentChildrenBlockJoinQuery read its top-level parent doc id as a local id of the hit's segment, so a hit in a later segment loses its highlight ('size small' instead of '&lt;b&gt;size&lt;/b&gt; small') or crashes.
 
 ## Expected vs actual
 
 - Expected: You expect the snippet 'red &lt;b&gt;shirt&lt;/b&gt;', which is what the highlighter returns with WEIGHT_MATCHES off.
-- Actual: highlight throws IllegalStateException 'Creating the weight against a different index reader than this query has been built for.', because FieldOffsetStrategy re-creates the query's Weight on a new IndexSearcher over the hit's single leaf, which the join's reader check rejects; the same substitute searcher makes ParentChildrenBlockJoinQuery read its top-level parent doc id as a local id of the hit's segment, so a hit in a later segment loses its highlight ('size small' instead of '&lt;b&gt;size&lt;/b&gt; small') or crashes.
+- Actual: highlight() throws IllegalStateException 'Creating the weight against a different index reader than this query has been built for.', because FieldOffsetStrategy re-creates the query's Weight on a new IndexSearcher over the hit's single leaf, which the join's reader check rejects; the same substitute searcher makes ParentChildrenBlockJoinQuery read its top-level parent doc id as a local id of the hit's segment, so a hit in a later segment loses its highlight ('size small' instead of '&lt;b&gt;size&lt;/b&gt; small') or crashes.
 
 ## Files
 
@@ -20,7 +20,7 @@ You search with a query that contains a JoinUtil global-ordinals join, for examp
 ## Run it
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

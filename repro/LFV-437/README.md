@@ -1,17 +1,17 @@
 # RandomSamplingFacetsCollector samples one hit per (int) (1 / samplingRate) hits but amortizes by the untruncated samplingRate, so amortized facet counts are up to 2x too high (1999 hits with sampleSize 1000: every hit is sampled, yet every count is doubled)
 
-Bug LFV-437 · Area: facet / sampling (RandomSamplingFacetsCollector: sampling rate vs bin size in amortizeFacetCounts and getSamplingRate) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-437 · Area: facet / sampling (RandomSamplingFacetsCollector: sampling rate vs bin size in amortizeFacetCounts and getSamplingRate) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You sample facet counts with RandomSamplingFacetsCollector and sampleSize 1000 on a query with 1999 hits, call amortizeFacetCounts to scale the sampled counts back up, and expect estimates of the true counts; here the sample happens to contain every hit, so the right answer is the exact counts 667/666/666. Instead you get 1333/1331/1331 and a dimension total of 3996 for 1999 hits, with no error: the collector computes samplingRate = 1000 / 1999 = 0.50025 but samples one hit per bin of (int) (1 / samplingRate) = 1 hit, and it amortizes, and reports through getSamplingRate, with the untruncated rate. In general the counts are too high by totalHits / (sampleSize * binSize), between 1 and 2, worst just below twice the sample size.
+You sample facet counts with RandomSamplingFacetsCollector and sampleSize 1000 on a query with 1999 hits, call amortizeFacetCounts to scale the sampled counts back up, and expect estimates of the true counts; here the sample happens to contain every hit, so the right answer is the exact counts 667/666/666. Instead you get 1333/1331/1331 and a dimension total of 3996 for 1999 hits, with no error: the collector computes samplingRate = 1000 / 1999 = 0.50025 but samples one hit per bin of (int) (1 / samplingRate) = 1 hit, and it amortizes, and reports through getSamplingRate(), with the untruncated rate. In general the counts are too high by totalHits / (sampleSize * binSize), between 1 and 2, worst just below twice the sample size.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: You get 1333/1331/1331 and a dimension total of 3996 for 1999 hits, with no error: the collector computes samplingRate = 1000 / 1999 = 0.50025 but samples one hit per bin of (int) (1 / samplingRate) = 1 hit, and it amortizes, and reports through getSamplingRate, with the untruncated rate.
+- Actual: You get 1333/1331/1331 and a dimension total of 3996 for 1999 hits, with no error: the collector computes samplingRate = 1000 / 1999 = 0.50025 but samples one hit per bin of (int) (1 / samplingRate) = 1 hit, and it amortizes, and reports through getSamplingRate(), with the untruncated rate.
 
 ## Files
 
@@ -22,7 +22,7 @@ You sample facet counts with RandomSamplingFacetsCollector and sampleSize 1000 o
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,12 +1,12 @@
 # SimpleNaiveBayesClassifier applies its documented training query only to the per-word counts: the class prior and the likelihood denominators are computed over the whole index, so labelled documents outside the training set can decide the class (released since 4.6.0; same pattern in SimpleNaiveBayesDocumentClassifier and CachingNaiveBayesClassifier)
 
-Bug LFV-391 · Area: classification / SimpleNaiveBayesClassifier (training query; copies in SimpleNaiveBayesDocumentClassifier and CachingNaiveBayesClassifier) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-391 · Area: classification / SimpleNaiveBayesClassifier (training query; copies in SimpleNaiveBayesDocumentClassifier and CachingNaiveBayesClassifier) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index four training documents marked split:train (fruit: 'apple', 'pear', 'plum'; vehicle: 'car') and ten more vehicle documents marked split:other, build SimpleNaiveBayesClassifier with the training query split:train and classify 'apple', expecting what the same classifier trained on an index holding only the four training documents answers: fruit (0.811), with prior P(fruit) = 3/4. Instead it answers vehicle (P(fruit) = 0.445), and for an empty input, which only the prior decides, it gives P(fruit) = 3/14, the whole-index share. The query is ANDed only into the per-word counts (getWordFreqForClass); the prior (docFreq(class) / Terms.getDocCount) and the likelihood denominator (average unique terms per document x docFreq(class) + that document count) ignore it, because countDocsWithClass applies the query only in a getDocCount == -1 fallback that current codecs never take.
+You index four training documents marked split:train (fruit: 'apple', 'pear', 'plum'; vehicle: 'car') and ten more vehicle documents marked split:other, build SimpleNaiveBayesClassifier with the training query split:train and classify 'apple', expecting what the same classifier trained on an index holding only the four training documents answers: fruit (0.811), with prior P(fruit) = 3/4. Instead it answers vehicle (P(fruit) = 0.445), and for an empty input, which only the prior decides, it gives P(fruit) = 3/14, the whole-index share. The query is ANDed only into the per-word counts (getWordFreqForClass); the prior (docFreq(class) / Terms.getDocCount()) and the likelihood denominator (average unique terms per document x docFreq(class) + that document count) ignore it, because countDocsWithClass applies the query only in a getDocCount() == -1 fallback that current codecs never take.
 
 ## Expected vs actual
 
@@ -21,7 +21,7 @@ You index four training documents marked split:train (fruit: 'apple', 'pear', 'p
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

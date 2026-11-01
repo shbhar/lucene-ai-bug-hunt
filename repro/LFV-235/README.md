@@ -1,14 +1,14 @@
-# Closing a FilterCodecReader runs the wrapped reader's close hook directly (in.doClose instead of in.close), so a DirectoryReader that still uses that segment silently finds 0 hits, and its own close later releases the segment a second time and throws
+# Closing a FilterCodecReader runs the wrapped reader's close hook directly (in.doClose() instead of in.close()), so a DirectoryReader that still uses that segment silently finds 0 hits, and its own close later releases the segment a second time and throws
 
-Bug LFV-235 · Area: index / FilterCodecReader reader lifecycle (IndexReader reference counting) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-235 · Area: index / FilterCodecReader reader lifecycle (IndexReader reference counting) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-235.html](../../bugs/LFV-235.html)
+Finding page: [../../bugs/LFV-235.html](../../bugs/LFV-235.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You wrap a segment of an open DirectoryReader in a FilterCodecReader (for example to pass it to IndexWriter.addIndexes), take the usual extra reference with incRef, and close the wrapper, expecting the DirectoryReader to keep working, because the IndexReader javadoc says a reader 'will not really be closed until decRef has been called for all outstanding references' and FilterLeafReader behaves exactly that way. Instead FilterCodecReader.doClose calls the wrapped reader's internal close hook (in.doClose) rather than releasing a reference (in.close), so the segment's files are closed while the DirectoryReader still uses it: a TermQuery that matched 1 document now finds 0 with no error, reading stored fields throws AlreadyClosedException, and closing the DirectoryReader later releases the same resources a second time and throws.
+You wrap a segment of an open DirectoryReader in a FilterCodecReader (for example to pass it to IndexWriter.addIndexes), take the usual extra reference with incRef(), and close the wrapper, expecting the DirectoryReader to keep working, because the IndexReader javadoc says a reader 'will not really be closed until decRef has been called for all outstanding references' and FilterLeafReader behaves exactly that way. Instead FilterCodecReader.doClose() calls the wrapped reader's internal close hook (in.doClose()) rather than releasing a reference (in.close()), so the segment's files are closed while the DirectoryReader still uses it: a TermQuery that matched 1 document now finds 0 with no error, reading stored fields throws AlreadyClosedException, and closing the DirectoryReader later releases the same resources a second time and throws.
 
 The test shows that closing a `FilterCodecReader` over an incRef'd segment of an open `DirectoryReader` runs the segment's `doClose()` directly, so the still-open `DirectoryReader` silently loses the segment's terms.
 
@@ -24,7 +24,7 @@ Expected `count(id:1)` = 1 (the DirectoryReader still holds a reference). Actual
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

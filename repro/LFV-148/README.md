@@ -1,12 +1,12 @@
-# (Latent) MonotonicBlockPackedWriter writes a block whose values end close to Long.MAX_VALUE with too few bits, so MonotonicBlockPackedReader returns wrong values: min + (long) (avg * i) overflows in flush
+# (Latent) MonotonicBlockPackedWriter writes a block whose values end close to Long.MAX_VALUE with too few bits, so MonotonicBlockPackedReader returns wrong values: min + (long) (avg * i) overflows in flush()
 
-Bug LFV-148 · Area: util / packed ints (MonotonicBlockPackedWriter, MonotonicBlockPackedReader) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-148 · Area: util / packed ints (MonotonicBlockPackedWriter, MonotonicBlockPackedReader) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You write a block of non-negative, increasing longs with MonotonicBlockPackedWriter, for example {1, Long.MAX_VALUE}, and read it back with MonotonicBlockPackedReader. You expect the same values back: the writer is documented as 'A writer for large monotonically increasing sequences of positive longs' with no upper bound, and flush says 'adjust min so that all deltas will be positive'. Instead the predicted value min + (long) (avg * i) wraps past Long.MAX_VALUE, so the adjustment of min is skipped and the resulting negative delta is ignored when the bit width is chosen; get(1) returns Long.MIN_VALUE with no error (a larger block trips an AssertionError in BulkOperationPacked.encode under -ea and reads back wrong values under -da).
+You write a block of non-negative, increasing longs with MonotonicBlockPackedWriter, for example {1, Long.MAX_VALUE}, and read it back with MonotonicBlockPackedReader. You expect the same values back: the writer is documented as 'A writer for large monotonically increasing sequences of positive longs' with no upper bound, and flush() says 'adjust min so that all deltas will be positive'. Instead the predicted value min + (long) (avg * i) wraps past Long.MAX_VALUE, so the adjustment of min is skipped and the resulting negative delta is ignored when the bit width is chosen; get(1) returns Long.MIN_VALUE with no error (a larger block trips an AssertionError in BulkOperationPacked.encode under -ea and reads back wrong values under -da).
 
 The test shows that MonotonicBlockPackedWriter mis-encodes the block {1, Long.MAX_VALUE} (block size 64): `min + (long) (avg * i)` wraps in flush(), so the delta gets too few bits.
 
@@ -22,7 +22,7 @@ Expected `reader.get(1) == Long.MAX_VALUE`; actual `Long.MIN_VALUE` (same with -
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,7 +44,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/packed-ints-monotonic/](../../models/packed-ints-monotonic/)
+Formal models and scripts this finding's part of the hunt used: [../../models/packed-ints-monotonic/](../../models/packed-ints-monotonic/)
 
 ## Feedback
 

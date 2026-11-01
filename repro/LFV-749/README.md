@@ -1,8 +1,8 @@
 # JapaneseTokenizer and KoreanTokenizer with discardPunctuation=true (the default) keep punctuation and symbols outside the BMP (U+10100, U+1E95E, emoji such as U+1F600) as tokens, because isPunctuation classifies a single UTF-16 unit (the high surrogate), while BMP characters of the same general category are dropped (released since 3.6.0 and 7.4.0)
 
-Bug LFV-749 · Area: analysis / kuromoji and nori Viterbi tokenizers, discardPunctuation (ja.ViterbiNBest.isPunctuation and its three discard sites, ko.Viterbi.shouldFilterToken) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-749 · Area: analysis / kuromoji and nori Viterbi tokenizers, discardPunctuation (ja.ViterbiNBest.isPunctuation and its three discard sites, ko.Viterbi.shouldFilterToken) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-749.html](../../bugs/LFV-749.html)
+Finding page: [../../bugs/LFV-749.html](../../bugs/LFV-749.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected `[日本, 日本]` / `[한국, 한국]` for `日本 U+10100 日本` / `
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 2 test(s) run, 2 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

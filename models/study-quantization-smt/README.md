@@ -4,13 +4,13 @@ Tools: SMT-LIB (Z3/cvc5), Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- Two antipodal COSINE vectors make the OSQ centroid zero, so flush or merge fails and the writer closes (bug LFV-047; [repro](../../repro/LFV-047/), [bug page](../../bugs/LFV-047.html))
-- COSINE vectors whose float32 squared norm underflows pass validation and give Inf/NaN scores or poison OSQ segments (bug LFV-046; [repro](../../repro/LFV-046/), [bug page](../../bugs/LFV-046.html))
-- Quantized MIP/EUCLIDEAN scores become NaN when OSQ correction terms overflow (bug LFV-064; [repro](../../repro/LFV-064/), [bug page](../../bugs/LFV-064.html))
-- Quantized MIP score of a document equal to its segment centroid is 3.0 instead of 3.5 (bug LFV-079; [repro](../../repro/LFV-079/))
-- PACKED_NIBBLE quantized vectors with an odd dimension fail once raw vectors are dropped (bug LFV-065; [repro](../../repro/LFV-065/))
+- Two antipodal COSINE vectors make the OSQ centroid zero, so flush or merge fails and the writer closes (finding LFV-047; [repro](../../repro/LFV-047/), [finding page](../../bugs/LFV-047.html))
+- COSINE vectors whose float32 squared norm underflows pass validation and give Inf/NaN scores or poison OSQ segments (finding LFV-046; [repro](../../repro/LFV-046/), [finding page](../../bugs/LFV-046.html))
+- Quantized MIP/EUCLIDEAN scores become NaN when OSQ correction terms overflow (finding LFV-064; [repro](../../repro/LFV-064/), [finding page](../../bugs/LFV-064.html))
+- Quantized MIP score of a document equal to its segment centroid is 3.0 instead of 3.5 (finding LFV-079; [repro](../../repro/LFV-079/))
+- PACKED_NIBBLE quantized vectors with an odd dimension fail once raw vectors are dropped (finding LFV-065; [repro](../../repro/LFV-065/))
 
 ## Files
 

@@ -1,12 +1,14 @@
 # DoubleRange#getQuery(Query, DoubleValuesSource) and LongRange#getQuery(Query, LongValuesSource) never call rewrite(searcher) on the values source, so a source that needs rewriting (DoubleValuesSource.fromQuery, IndexReaderFunctions) throws 'must be rewritten', and a legacy QueryValueSource view silently ignores the searcher's Similarity
 
-Bug LFV-776 · Area: facet / range drill-down and filter queries (DoubleRange/LongRange.ValueSourceQuery) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-776 · Area: facet / range drill-down and filter queries (DoubleRange/LongRange.ValueSourceQuery) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-776.html](../../bugs/LFV-776.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a range filter with DoubleRange#getQuery(null, DoubleValuesSource.fromQuery(new TermQuery(...))) (or LongRange#getQuery with the source's toLongValuesSource view) and run it on an IndexSearcher, and expect it to match the documents whose query score falls in the range, as FunctionMatchQuery does with the same source, because core says Queries that use a DoubleValuesSource call rewrite in createWeight. Instead the search throws UnsupportedOperationException 'This DoubleValuesSource must be rewritten': the range query hands the source to getValues without ever rewriting it against the searcher. With a legacy QueryValueSource view on a searcher that uses ClassicSimilarity the same omission is silent: the source scores with a fresh default-Similarity searcher, and the range [top score, top score] matches 0 documents where FunctionMatchQuery matches 3.
+You build a range filter with DoubleRange#getQuery(null, DoubleValuesSource.fromQuery(new TermQuery(...))) (or LongRange#getQuery with the source's toLongValuesSource() view) and run it on an IndexSearcher, and expect it to match the documents whose query score falls in the range, as FunctionMatchQuery does with the same source, because core says Queries that use a DoubleValuesSource call rewrite() in createWeight. Instead the search throws UnsupportedOperationException 'This DoubleValuesSource must be rewritten': the range query hands the source to getValues without ever rewriting it against the searcher. With a legacy QueryValueSource view on a searcher that uses ClassicSimilarity the same omission is silent: the source scores with a fresh default-Similarity searcher, and the range [top score, top score] matches 0 documents where FunctionMatchQuery matches 3.
 
 The test shows that `DoubleRange#getQuery(null, DoubleValuesSource.fromQuery(new TermQuery(f:a)))` on a one-document index never rewrites the values source against the searcher.
 
@@ -22,7 +24,7 @@ Expected: count 1 (the document scores &gt; 0; values-source queries call `rewri
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

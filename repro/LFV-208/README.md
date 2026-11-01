@@ -1,6 +1,6 @@
-# index defect
+# ConcurrentMergeScheduler.merge hands a checked-out merge back with onMergeFinished on any failure in its spawn block, so a merge whose thread already started is unregistered while still running, and a merge whose thread never started is never completed
 
-Bug LFV-208 · Area: index · Priority: low · Impact: hang · Novelty: known upstream
+Finding LFV-208 · Area: index / ConcurrentMergeScheduler merge spawn (CMS.merge hand-back, IndexWriterMergeSource.onMergeFinished, IndexWriter.mergeFinish) · Priority: low · Impact: hang · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ You use the default ConcurrentMergeScheduler, and something fails while it hands
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

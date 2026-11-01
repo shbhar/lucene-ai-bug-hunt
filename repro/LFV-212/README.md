@@ -1,12 +1,14 @@
-# Geo3D circles with a radius between about 2e-5 m and 12 cm take the inside of their cut plane from the sign of rounding noise, so Geo3DPoint.newDistanceQuery with such a radius can match every point document on the planet
+# Geo3D circles with a radius between about 2e-5 m and 20 cm take the inside of their cut plane from the sign of rounding noise, so Geo3DPoint.newDistanceQuery with such a radius can match every point document on the planet
 
-Bug LFV-212 · Area: spatial3d / geom circles (GeoStandardCircle cut plane and SidedPlane sidedness, behind Geo3DPoint.newDistanceQuery and GeoCircleFactory.makeGeoCircle) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-212 · Area: spatial3d / geom circles (GeoStandardCircle cut plane and SidedPlane sidedness, behind Geo3DPoint.newDistanceQuery and GeoCircleFactory.makeGeoCircle) · Priority: low · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-212.html](../../bugs/LFV-212.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a Geo3D distance query with a very small radius, for example Geo3DPoint.newDistanceQuery with 1.24 cm, and expect it to match only points near the centre, or to be rejected as too small. The circle's cut plane passes within about r^2/2 of the circle's centre (here about 2e-18), far below double rounding, and SidedPlane takes the plane's inside from the sign of evaluate(center), which at that size is rounding noise. When the noise has the wrong sign the circle is the whole planet minus a speck, and the query silently returns every indexed point: in the repro, all 3 documents thousands of kilometres away.
+You build a Geo3D distance query with a very small radius, for example Geo3DPoint.newDistanceQuery with 1.24 cm, and expect it to match only points near the centre, or to be rejected as too small. The circle's cut plane passes within about r^2/2 of the circle's centre (here about 2e-18), far below double rounding, and SidedPlane takes the plane's inside from the sign of evaluate(center), which at that size is rounding noise. When the noise has the wrong sign the circle is the whole planet minus a speck (below about 1 mm, minus a patch of up to a few hundred metres near the centre), and the query silently returns every indexed point outside it: in the repro, all 3 documents thousands of kilometres away.
 
 The test shows that `Geo3DPoint.newDistanceQuery` with a 1.24 cm radius (WGS84) builds a circle whose cut plane faces the wrong way, so the query matches a document at the centre's antipode.
 
@@ -22,7 +24,7 @@ Expected 0 hits for the antipode; actual: 1 (`hits for the antipode expected:<0>
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

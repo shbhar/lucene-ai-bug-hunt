@@ -4,9 +4,9 @@ Tools: Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- ShapeField.encodeTriangle puts the wrong edge flag on the first edge when it flips a clockwise triangle, so LatLonShape and XYShape CONTAINS queries return wrong hits (bug LFV-204; [repro](../../repro/LFV-204/), [bug page](../../bugs/LFV-204.html))
+- ShapeField.encodeTriangle puts the wrong edge flag on the first edge when it flips a clockwise triangle, so LatLonShape and XYShape CONTAINS queries return wrong hits (finding LFV-204; [repro](../../repro/LFV-204/), [finding page](../../bugs/LFV-204.html))
 
 ## Files
 

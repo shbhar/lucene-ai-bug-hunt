@@ -4,10 +4,10 @@ Tools: SMT-LIB (Z3/cvc5), Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- Doc-values range queries with a skip index return wrong hits when a segment's values span more than Long.MAX_VALUE (bug LFV-044; [repro](../../repro/LFV-044/), [bug page](../../bugs/LFV-044.html))
-- Panama minMaxScalarQuantize rounds differently from the default implementation at one boundary value (bug LFV-071; [repro](../../repro/LFV-071/))
+- Doc-values range queries with a skip index return wrong hits when a segment's values span more than Long.MAX_VALUE (finding LFV-044; [repro](../../repro/LFV-044/), [finding page](../../bugs/LFV-044.html))
+- Panama minMaxScalarQuantize rounds differently from the default implementation at one boundary value (finding LFV-071; [repro](../../repro/LFV-071/))
 
 ## Files
 

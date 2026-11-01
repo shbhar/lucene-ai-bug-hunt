@@ -4,9 +4,9 @@ Tools: SMT-LIB (Z3/cvc5), Dafny, Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- MaxScoreBulkScorer can skip a document whose score equals the minimum competitive score (1-ulp rank inversion) (bug LFV-060; [repro](../../repro/LFV-060/), [bug page](../../bugs/LFV-060.html))
+- MaxScoreBulkScorer can skip a document whose score equals the minimum competitive score (1-ulp rank inversion) (finding LFV-060; [repro](../../repro/LFV-060/), [finding page](../../bugs/LFV-060.html))
 
 ## Files
 

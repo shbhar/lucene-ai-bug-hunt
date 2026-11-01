@@ -1,8 +1,8 @@
 # SweetSpotSimilarity with a length plateau (setLengthNormFactors with min &gt;= 2) breaks Similarity's norm-monotonicity contract, so default top-k search silently misses the best hits
 
-Bug LFV-413 · Area: misc / similarities (SweetSpotSimilarity) with core impacts-based TOP_SCORES pruning · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-413 · Area: misc / similarities (SweetSpotSimilarity) with core impacts-based TOP_SCORES pruning · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-413.html](../../bugs/LFV-413.html)
+Finding page: [../../bugs/LFV-413.html](../../bugs/LFV-413.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -23,7 +23,7 @@ Expected: search(q, 1) returns the exhaustive top hit, doc 1025 (score 1.41). Ac
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

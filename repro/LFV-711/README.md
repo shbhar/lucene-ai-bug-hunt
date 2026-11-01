@@ -1,8 +1,8 @@
 # LatLonShape/XYShape CONTAINS with a query polygon that has holes returns indexed shapes that do not contain it, because Polygon2D.withinTriangle never tests the query's hole edges
 
-Bug LFV-711 · Area: geo / shape queries (Polygon2D.withinTriangle; LatLonShape and XYShape CONTAINS with a query polygon that has holes) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-711 · Area: geo / shape queries (Polygon2D.withinTriangle; LatLonShape and XYShape CONTAINS with a query polygon that has holes) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-711.html](../../bugs/LFV-711.html)
+Finding page: [../../bugs/LFV-711.html](../../bugs/LFV-711.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: 0 CONTAINS hits (the doc's hole removes (5,5), and the point query con
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

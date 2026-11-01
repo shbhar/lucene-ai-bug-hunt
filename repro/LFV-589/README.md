@@ -1,6 +1,8 @@
-# The HNSW vectors formats (Lucene99HnswVectorsFormat, Lucene104HnswScalarQuantizedVectorsFormat, HnswBitVectorsFormat) accept numMergeWorkers &lt;= 0 together with a merge ExecutorService, and then every merge that builds an HNSW graph throws ArrayIndexOutOfBoundsException (0 workers) or NegativeArraySizeException (negative) and closes the IndexWriter as a tragic event (since 9.9.0)
+# The HNSW vectors formats (Lucene99HnswVectorsFormat, Lucene104HnswScalarQuantizedVectorsFormat, HnswBitVectorsFormat and, since 10.6.0, the sandbox DedupHnswVectorsFormat and DedupHnswScalarQuantizedVectorsFormat) accept numMergeWorkers &lt;= 0 together with a merge ExecutorService, and then every merge that builds an HNSW graph throws ArrayIndexOutOfBoundsException (0 workers) or NegativeArraySizeException (negative) and closes the IndexWriter as a tragic event (since 9.9.0)
 
-Bug LFV-589 · Area: codecs / HNSW vectors formats (constructor parameter validation; concurrent HNSW merge) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-589 · Area: codecs / HNSW vectors formats (constructor parameter validation; concurrent HNSW merge) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-589.html](../../bugs/LFV-589.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected an IllegalArgumentException at construction or a working `forceMerge(1)
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,17 +1,17 @@
-# Global-ordinals join explain ignores toQuery, so documents that are not hits (from-side documents, or to-side documents a narrower toQuery excludes) are explained as matches
+# Global-ordinals join explain() ignores toQuery, so documents that are not hits (from-side documents, or to-side documents a narrower toQuery excludes) are explained as matches
 
-Bug LFV-168 · Area: join / JoinUtil global-ordinals join explain (GlobalOrdinalsQuery, GlobalOrdinalsWithScoreQuery) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-168 · Area: join / JoinUtil global-ordinals join explain (GlobalOrdinalsQuery, GlobalOrdinalsWithScoreQuery) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a global-ordinals join with JoinUtil.createJoinQuery(joinField, fromQuery, toQuery, searcher, scoreMode, ordinalMap), where 'from' and 'to' documents share one join field and fromQuery/toQuery tell them apart as the javadoc requires, and ask IndexSearcher.explain about a document the join does not return, for example a 'from' document whose join value was collected. You expect a non-match explanation, as upstream TestJoinUtil#testOrdinalsJoinExplainNoMatches asserts for other non-hits of this query and as CheckHits.checkNoMatchExplanations requires. Instead explain checks only that the document's join value was collected and never consults toQuery, which the scorers do iterate, so it answers 'A match, join value X' in every ScoreMode; search results are unaffected, but BooleanQuery explanations built on it go wrong and BooleanWeight.explain can throw NullPointerException.
+You build a global-ordinals join with JoinUtil.createJoinQuery(joinField, fromQuery, toQuery, searcher, scoreMode, ordinalMap), where 'from' and 'to' documents share one join field and fromQuery/toQuery tell them apart as the javadoc requires, and ask IndexSearcher.explain about a document the join does not return, for example a 'from' document whose join value was collected. You expect a non-match explanation, as upstream TestJoinUtil#testOrdinalsJoinExplainNoMatches asserts for other non-hits of this query and as CheckHits.checkNoMatchExplanations requires. Instead explain() checks only that the document's join value was collected and never consults toQuery, which the scorers do iterate, so it answers 'A match, join value X' in every ScoreMode; search results are unaffected, but BooleanQuery explanations built on it go wrong and BooleanWeight.explain can throw NullPointerException.
 
 ## Expected vs actual
 
 - Expected: You expect a non-match explanation, as upstream TestJoinUtil#testOrdinalsJoinExplainNoMatches asserts for other non-hits of this query and as CheckHits.checkNoMatchExplanations requires.
-- Actual: explain checks only that the document's join value was collected and never consults toQuery, which the scorers do iterate, so it answers 'A match, join value X' in every ScoreMode; search results are unaffected, but BooleanQuery explanations built on it go wrong and BooleanWeight.explain can throw NullPointerException.
+- Actual: explain() checks only that the document's join value was collected and never consults toQuery, which the scorers do iterate, so it answers 'A match, join value X' in every ScoreMode; search results are unaffected, but BooleanQuery explanations built on it go wrong and BooleanWeight.explain can throw NullPointerException.
 
 ## Files
 
@@ -21,7 +21,7 @@ You build a global-ordinals join with JoinUtil.createJoinQuery(joinField, fromQu
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

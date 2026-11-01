@@ -1,12 +1,12 @@
 # (Latent) FixedBitSet.approximateCardinality returns a negative value for bit sets of 2^31-63 bits or more, because its scale factor 64 * numWords overflows int
 
-Bug LFV-133 · Area: util / FixedBitSet (approximateCardinality) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-133 · Area: util / FixedBitSet (approximateCardinality) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You create a FixedBitSet of 2^31-63 to 2^31-1 bits (for example new FixedBitSet(Integer.MAX_VALUE), a legal length: the class javadoc points to LongBitSet only for more than 2.1B bits), set some bits and call approximateCardinality; you expect a non-negative estimate of the number of set bits, as BitSet documents ('an approximation of the cardinality of this set'). Instead it returns a negative number (-2147418112 with all 2^31-1 bits set, -64 with a single set bit), because the scale factor (interval / rangeLength) * numWords / maxWord is computed in int and its product 64 * numWords wraps to Integer.MIN_VALUE once the set has 2^25 words; new BitDocIdSet(bits) then throws IllegalArgumentException 'cost must be &gt;= 0'. No Lucene code path builds a bit set that long (doc-ID sets stop at IndexWriter.MAX_DOCS = 2^31-129 bits), so only external code that uses FixedBitSet directly over another int domain is affected.
+You create a FixedBitSet of 2^31-63 to 2^31-1 bits (for example new FixedBitSet(Integer.MAX_VALUE), a legal length: the class javadoc points to LongBitSet only for more than 2.1B bits), set some bits and call approximateCardinality(); you expect a non-negative estimate of the number of set bits, as BitSet documents ('an approximation of the cardinality of this set'). Instead it returns a negative number (-2147418112 with all 2^31-1 bits set, -64 with a single set bit), because the scale factor (interval / rangeLength) * numWords / maxWord is computed in int and its product 64 * numWords wraps to Integer.MIN_VALUE once the set has 2^25 words; new BitDocIdSet(bits) then throws IllegalArgumentException 'cost must be &gt;= 0'. No Lucene code path builds a bit set that long (doc-ID sets stop at IndexWriter.MAX_DOCS = 2^31-129 bits), so only external code that uses FixedBitSet directly over another int domain is affected.
 
 The test shows that `FixedBitSet.approximateCardinality()` returns a negative number for a set of Integer.MAX_VALUE bits, because its scale factor `64 * numWords` is computed in int and wraps at 2^25 words.
 
@@ -22,7 +22,7 @@ Expected: a non-negative estimate (one bit is set). Actual: `-64`, with `-ea` an
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,7 +44,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/bitsets-livedocs-acceptdocs/](../../models/bitsets-livedocs-acceptdocs/)
+Formal models and scripts this finding's part of the hunt used: [../../models/bitsets-livedocs-acceptdocs/](../../models/bitsets-livedocs-acceptdocs/)
 
 ## Feedback
 

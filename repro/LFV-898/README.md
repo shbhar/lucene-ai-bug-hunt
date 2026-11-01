@@ -1,12 +1,14 @@
 # FeatureField saturation and sigmoid queries and IntervalQuery scoring compute w*(1 - k/(S+k)) instead of the documented w*S/(S+k) (and the same rewrite for the sigmoid), so documents whose value is far below the pivot score exactly 0.0 or tie with documents that have different values
 
-Bug LFV-898 · Area: document / FeatureField score functions (SaturationFunction and SigmoidFunction behind newSaturationQuery and newSigmoidQuery); queries / intervals IntervalScoreFunction (IntervalQuery's default saturation scoring and its pivot and pivot-plus-exponent constructors) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-898 · Area: document / FeatureField score functions (SaturationFunction and SigmoidFunction behind newSaturationQuery and newSigmoidQuery); queries / intervals IntervalScoreFunction (IntervalQuery's default saturation scoring and its pivot and pivot-plus-exponent constructors) · Priority: low · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-898.html](../../bugs/LFV-898.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You rank with FeatureField.newSaturationQuery, whose javadoc says it 'will score documents as weight * S / (S + pivot)' (newSigmoidQuery and IntervalQuery's scoring state the same kind of formula), a value that is positive and grows with S, so a document with a smaller feature value should score lower but above 0. The code instead computes weight * (1 - pivot / (S + pivot)) (and 1 - k^a / (S^a + k^a) for the sigmoid) so that rounding cannot make scores decrease, and when S is far below the pivot the sum S + pivot rounds to almost exactly the pivot and the subtraction cancels. With pivot 1000 a document with S = 1e-5 scores exactly 0.0 while explain prints 'computed as w * S / (S + k)', with the library's default pivot 199 adjacent pairs of distinct stored values tie, and IntervalQuery gives intervals 1,000,000 and 1,030,000 positions wide the same score and a 2^25-wide interval 0.0.
+You rank with FeatureField.newSaturationQuery, whose javadoc says it 'will score documents as weight * S / (S + pivot)' (newSigmoidQuery and IntervalQuery's scoring state the same kind of formula), a value that is positive and grows with S, so a document with a smaller feature value should score lower but above 0. The code instead computes weight * (1 - pivot / (S + pivot)) (and 1 - k^a / (S^a + k^a) for the sigmoid) so that rounding cannot make scores decrease, and when S is far below the pivot the sum S + pivot rounds to almost exactly the pivot and the subtraction cancels. With pivot 1000 a document with S = 1e-5 scores exactly 0.0 while explain() prints 'computed as w * S / (S + k)', with the library's default pivot 199 adjacent pairs of distinct stored values tie, and IntervalQuery gives intervals 1,000,000 and 1,030,000 positions wide the same score and a 2^25-wide interval 0.0.
 
 The test shows that `FeatureField.newSaturationQuery` (weight 1, pivot 1000) scores a document with feature value S = 2^-17 as exactly 0.0, because the code computes `w * (1 - k / (S + k))` and `S + k` rounds to `k`.
 
@@ -22,7 +24,7 @@ Expected: the documented `w * S / (S + k)` = 7.63e-9, a positive score. Actual: 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,7 +46,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/feature-saturation-sigmoid-cancellation/](../../models/feature-saturation-sigmoid-cancellation/)
+Formal models and scripts this finding's part of the hunt used: [../../models/feature-saturation-sigmoid-cancellation/](../../models/feature-saturation-sigmoid-cancellation/)
 
 ## Feedback
 

@@ -1,14 +1,14 @@
-# Copying a ParallelLeafReader into an index (IndexWriter.addIndexes over SlowCodecReaderWrapper, or a merge whose OneMerge.wrapForMerge returns one) silently stores a later sub-reader's stored fields under another field's name: ParallelLeafReader.storedFields lets each sub-reader visit with its own FieldInfo numbers while getFieldInfos renumbers the fields, and StoredFieldsWriter.MergeVisitor skips its remap-by-name step when the numbers look aligned
+# Copying a ParallelLeafReader into an index (IndexWriter.addIndexes over SlowCodecReaderWrapper, or a merge whose OneMerge.wrapForMerge returns one) silently stores a later sub-reader's stored fields under another field's name: ParallelLeafReader.storedFields() lets each sub-reader visit with its own FieldInfo numbers while getFieldInfos() renumbers the fields, and StoredFieldsWriter.MergeVisitor skips its remap-by-name step when the numbers look aligned
 
-Bug LFV-652 · Area: core / index (ParallelLeafReader stored fields x StoredFieldsWriter.MergeVisitor, on addIndexes and wrapForMerge copies) · Priority: medium · Impact: data corruption · Novelty: new
+Finding LFV-652 · Area: core / index (ParallelLeafReader stored fields x StoredFieldsWriter.MergeVisitor, on addIndexes and wrapForMerge copies) · Priority: medium · Impact: data corruption · Novelty: new
 
-Bug page: [../../bugs/LFV-652.html](../../bugs/LFV-652.html)
+Finding page: [../../bugs/LFV-652.html](../../bugs/LFV-652.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build two indexes in lockstep, as ParallelLeafReader requires (index A stores title='Lucene in Action', index B stores price='42'), wrap them in a ParallelLeafReader, which itself returns both fields correctly, and copy it into a new index with IndexWriter.addIndexes(SlowCodecReaderWrapper.wrap(reader)), expecting the copy to hold title and price. Instead the copy holds title='Lucene in Action' and title='42' and no price field, with no error and a clean CheckIndex: storedFields lets B report price with B's own field number 0, the parallel reader's getFieldInfos numbers price 1, and because the target's merged numbers equal the parallel reader's, the stored-fields merge skips its remap-by-name step and writes the value under number 0, which is title. A merge whose OneMerge.wrapForMerge adds a parallel index with stored fields behind each segment goes wrong the same way (a 'summary' value stored as a second 'id').
+You build two indexes in lockstep, as ParallelLeafReader requires (index A stores title='Lucene in Action', index B stores price='42'), wrap them in a ParallelLeafReader, which itself returns both fields correctly, and copy it into a new index with IndexWriter.addIndexes(SlowCodecReaderWrapper.wrap(reader)), expecting the copy to hold title and price. Instead the copy holds title='Lucene in Action' and title='42' and no price field, with no error and a clean CheckIndex: storedFields() lets B report price with B's own field number 0, the parallel reader's getFieldInfos() numbers price 1, and because the target's merged numbers equal the parallel reader's, the stored-fields merge skips its remap-by-name step and writes the value under number 0, which is title. A merge whose OneMerge.wrapForMerge adds a parallel index with stored fields behind each segment goes wrong the same way (a 'summary' value stored as a second 'id').
 
 The test shows that `IndexWriter#addIndexes(SlowCodecReaderWrapper.wrap(new ParallelLeafReader(a, b)))` into a fresh index stores b's stored field under a's field name (a: title="Lucene in Action", b: price="42").
 
@@ -24,7 +24,7 @@ Expected the copy to have price=42; actual `Document<stored<title:Lucene in Acti
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

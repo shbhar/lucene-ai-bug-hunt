@@ -1,8 +1,8 @@
 # addIndexes(CodecReader...) takes the reserved document count and the new segment's soft-delete count from the readers before OneMerge#wrapForMerge, so a merge whose wrapper removes documents over-reserves documents and, with soft deletes, commits a wrong soft-delete count that can drop live documents or corrupt a later merge (since 9.9.0)
 
-Bug LFV-726 · Area: index / IndexWriter addIndexes(CodecReader...) accounting (reserveDocs, addIndexesReaderMerge soft-delete count) x MergePolicy#findMerges(CodecReader...) / OneMerge#wrapForMerge · Priority: low · Impact: data corruption · Novelty: new
+Finding LFV-726 · Area: index / IndexWriter addIndexes(CodecReader...) accounting (reserveDocs, addIndexesReaderMerge soft-delete count) x MergePolicy#findMerges(CodecReader...) / OneMerge#wrapForMerge · Priority: low · Impact: data corruption · Novelty: new
 
-Bug page: [../../bugs/LFV-726.html](../../bugs/LFV-726.html)
+Finding page: [../../bugs/LFV-726.html](../../bugs/LFV-726.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected `getDocStats().numDocs` = 1 (c is live and the new segment has no delet
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

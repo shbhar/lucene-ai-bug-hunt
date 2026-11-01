@@ -1,8 +1,8 @@
 # UnifiedHighlighter's no-match summary of a multi-valued field counts the internal U+0000 value separator as a passage, so the summary contains a NUL character and shows one value or sentence fewer than requested
 
-Bug LFV-498 · Area: highlighter / UnifiedHighlighter default summary (FieldHighlighter.getSummaryPassagesNoHighlight over the SplittingBreakIterator that splits multi-valued fields on MULTIVAL_SEP_CHAR) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-498 · Area: highlighter / UnifiedHighlighter default summary (FieldHighlighter.getSummaryPassagesNoHighlight over the SplittingBreakIterator that splits multi-valued fields on MULTIVAL_SEP_CHAR) · Priority: low · Impact: minor · Novelty: new
 
-Bug page: [../../bugs/LFV-498.html](../../bugs/LFV-498.html)
+Finding page: [../../bugs/LFV-498.html](../../bugs/LFV-498.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected the field's first 2 sentences with no U+0000 ("the first maxPassages se
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

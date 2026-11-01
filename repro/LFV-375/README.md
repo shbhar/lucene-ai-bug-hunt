@@ -1,12 +1,14 @@
 # Hunspell COMPLEXPREFIXES: after removing the second prefix the Stemmer keeps removing prefixes, so words with three prefixes are accepted and a zero-length prefix recurses until StackOverflowError (also in HunspellStemFilter, where it closes the IndexWriter)
 
-Bug LFV-375 · Area: analysis / hunspell (Stemmer affix removal) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-375 · Area: analysis / hunspell (Stemmer affix removal) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-375.html](../../bugs/LFV-375.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You load a hunspell dictionary that sets COMPLEXPREFIXES (twofold prefix stripping, meant for morphologically complex right-to-left languages) and chains prefixes through continuation classes, and expect at most two prefixes per word, as hunspell(5), C Hunspell and Lucene up to 9.4.2 do. Instead, after removing the second prefix the Stemmer goes on removing prefixes: with prefixes a, b, c chained on root x, the three-prefix word cbax is accepted by spell and stemmed to x, and with a zero-length prefix that only passes on a flag (PFX A 0 0/B), the same prefix is removed again and again without shortening the word, so spell("bbx"), getRoots("bx") and HunspellStemFilter throw StackOverflowError. Inside IndexWriter.addDocument that Error closes the writer, and every later addDocument throws AlreadyClosedException.
+You load a hunspell dictionary that sets COMPLEXPREFIXES (twofold prefix stripping, meant for morphologically complex right-to-left languages) and chains prefixes through continuation classes, and expect at most two prefixes per word, as hunspell(5), C Hunspell and Lucene up to 9.4.2 do. Instead, after removing the second prefix the Stemmer goes on removing prefixes: with prefixes a, b, c chained on root x, the three-prefix word cbax is accepted by spell() and stemmed to x, and with a zero-length prefix that only passes on a flag (PFX A 0 0/B), the same prefix is removed again and again without shortening the word, so spell("bbx"), getRoots("bx") and HunspellStemFilter throw StackOverflowError. Inside IndexWriter.addDocument that Error closes the writer, and every later addDocument throws AlreadyClosedException.
 
 The test shows that with COMPLEXPREFIXES the hunspell Stemmer keeps stripping prefixes after the second one: with chained prefixes a, b, c on root x/A, `spell("cbax")` is true, and with a zero-length chained prefix (`PFX A 0 0/B`) `spell("bbx")` recurses until StackOverflowError (`TestComplexPrefixesAtMostTwo`, 2 methods, one per symptom).
 
@@ -22,7 +24,7 @@ Expected: both words rejected (`false`), as hunspell(5) twofold prefix stripping
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 2 test(s) run, 2 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,16 +1,16 @@
-# A commit that fails before startCommit (merge-on-commit setup, doAfterFlush, the merge scheduler or the event listener) keeps references on all of its files, so the still-open writer never deletes them, not even on rollback or close
+# A commit that fails before startCommit (merge-on-commit setup, doAfterFlush, the merge scheduler or the event listener) keeps references on all of its files, so the still-open writer never deletes them, not even on rollback() or close()
 
-Bug LFV-456 · Area: index / IndexWriter commit failure path (prepareCommit, IndexFileDeleter reference counts, merge-on-commit) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-456 · Area: index / IndexWriter commit failure path (prepareCommit, IndexFileDeleter reference counts, merge-on-commit) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You call commit and it throws a non-tragic exception early, for example an IOException while Lucene opens the small segments it merges as part of the commit (on by default), or from your MergePolicy.findFullFlushMerges or doAfterFlush override; the writer stays open, as Lucene intends. You expect the writer to delete the files of that failed commit once they are no longer needed: after later merges and commits, on deleteUnusedFiles, on rollback (whose javadoc says it removes any temporary files) or on close. Instead prepareCommit has already taken a reference on every file of the commit and releases it only if startCommit fails, so these files keep a positive reference count and stay on disk until a new IndexWriter opens the directory.
+You call commit() and it throws a non-tragic exception early, for example an IOException while Lucene opens the small segments it merges as part of the commit (on by default), or from your MergePolicy.findFullFlushMerges or doAfterFlush override; the writer stays open, as Lucene intends. You expect the writer to delete the files of that failed commit once they are no longer needed: after later merges and commits, on deleteUnusedFiles(), on rollback() (whose javadoc says it removes any temporary files) or on close(). Instead prepareCommit has already taken a reference on every file of the commit and releases it only if startCommit fails, so these files keep a positive reference count and stay on disk until a new IndexWriter opens the directory.
 
 ## Expected vs actual
 
-- Expected: You expect the writer to delete the files of that failed commit once they are no longer needed: after later merges and commits, on deleteUnusedFiles, on rollback (whose javadoc says it removes any temporary files) or on close.
+- Expected: You expect the writer to delete the files of that failed commit once they are no longer needed: after later merges and commits, on deleteUnusedFiles(), on rollback() (whose javadoc says it removes any temporary files) or on close().
 - Actual: prepareCommit has already taken a reference on every file of the commit and releases it only if startCommit fails, so these files keep a positive reference count and stay on disk until a new IndexWriter opens the directory.
 
 ## Files
@@ -21,7 +21,7 @@ You call commit and it throws a non-tragic exception early, for example an IOExc
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

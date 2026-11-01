@@ -1,6 +1,6 @@
 # IndriAndQuery accepts MUST, FILTER and MUST_NOT clauses without complaint but ignores them when matching (it always matches the union of all clauses), while its explain does read MUST/FILTER, so it explains some of its own hits as non-matches
 
-Bug LFV-871 · Area: search / IndriAndQuery (clause Occur handling in matching and explain) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-871 · Area: search / IndriAndQuery (clause Occur handling in matching and explain) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You build an IndriAndQuery from BooleanClauses with Occur values other than SHOU
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -42,7 +42,7 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/indri-query-family-composite-score-boost-visitor-explain-laws/](../../models/indri-query-family-composite-score-boost-visitor-explain-laws/)
+Formal models and scripts this finding's part of the hunt used: [../../models/indri-query-family-composite-score-boost-visitor-explain-laws/](../../models/indri-query-family-composite-score-boost-visitor-explain-laws/)
 
 ## Feedback
 

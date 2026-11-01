@@ -1,6 +1,8 @@
 # UnifiedHighlighter with maxNoHighlightPassages below -1 throws IllegalArgumentException 'Illegal Capacity' for every document with no match in the field, although the javadoc says any value below 0 falls back to maxPassages
 
-Bug LFV-546 · Area: highlighter / UnifiedHighlighter no-match default summary (FieldHighlighter.highlightFieldForDoc maps only '== -1' to maxPassages; FieldHighlighter.getSummaryPassagesNoHighlight) · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-546 · Area: highlighter / UnifiedHighlighter no-match default summary (FieldHighlighter.highlightFieldForDoc maps only '== -1' to maxPassages; FieldHighlighter.getSummaryPassagesNoHighlight) · Priority: low · Impact: wrong error · Novelty: new
+
+Finding page: [../../bugs/LFV-546.html](../../bugs/LFV-546.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected the default summary `"First sentence. "` (javadoc: any value below 0 de
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

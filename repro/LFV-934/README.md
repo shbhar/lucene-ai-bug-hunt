@@ -1,6 +1,6 @@
-# The file-format javadoc of the default segment info format (Lucene99SegmentInfoFormat) gives a wrong.si grammar: SegVersion and SegMinVersion are typed as String, but the writer stores three Int32s (and a flag byte plus three Int32s), and SegMinVersion and HasBlocks are missing from the documented sequence (documentation defect; the writer and reader agree)
+# The file-format javadoc of the default segment info format (Lucene99SegmentInfoFormat) gives a wrong .si grammar: SegVersion and SegMinVersion are typed as String, but the writer stores three Int32s (and a flag byte plus three Int32s), and SegMinVersion and HasBlocks are missing from the documented sequence (documentation defect; the writer and reader agree)
 
-Bug LFV-934 · Area: codecs / segment info (Lucene99SegmentInfoFormat.si file-format javadoc vs its writer and reader) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-934 · Area: codecs / segment info (Lucene99SegmentInfoFormat .si file-format javadoc vs its writer and reader) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -12,7 +12,7 @@ The test shows that reading a default-codec `.si` file with the `Lucene99Segment
 
 ## Expected vs actual
 
-Expected: `readString()` after the IndexHeader returns `11.0.0`. Actual: the Int32 major version 11 is read as the string length, so the result is 11 NUL characters (`SegVersion chars [0,...] expected:<[11.0.0]>`).
+Expected: `readString()` after the IndexHeader returns `11.0.0`. Actual: the Int32 major version 11 is read as the string length, so the result is 11 NUL characters (`SegVersion chars [0, ...] expected:<[11.0.0]>`).
 
 ## Files
 
@@ -22,7 +22,7 @@ Expected: `readString()` after the IndexHeader returns `11.0.0`. Actual: the Int
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

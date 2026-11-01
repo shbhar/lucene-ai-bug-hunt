@@ -1,12 +1,14 @@
-# With SerialMergeScheduler, a merge that fails while another thread's commit waits to run its merge-on-commit merges deadlocks both threads forever (commit holds commitLock and waits for the scheduler's monitor; the failing merge holds that monitor and its tragic rollback waits for commitLock), and the writer can no longer be closed (since 8.6.0; with default merge-on-commit settings since 9.3.0)
+# With SerialMergeScheduler, a merge that fails while another thread's commit() waits to run its merge-on-commit merges deadlocks both threads forever (commit() holds commitLock and waits for the scheduler's monitor; the failing merge holds that monitor and its tragic rollback waits for commitLock), and the writer can no longer be closed (since 8.6.0; with default merge-on-commit settings since 9.3.0)
 
-Bug LFV-581 · Area: index / IndexWriter commit (merge-on-commit under commitLock, SerialMergeScheduler, tragic-event rollback) · Priority: low · Impact: hang · Novelty: new
+Finding LFV-581 · Area: index / IndexWriter commit (merge-on-commit under commitLock, SerialMergeScheduler, tragic-event rollback) · Priority: low · Impact: hang · Novelty: new
+
+Finding page: [../../bugs/LFV-581.html](../../bugs/LFV-581.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You configure IndexWriter with SerialMergeScheduler and keep merge-on-commit on (the default since 9.3); one thread calls commit while another thread's addDocument runs a merge, and that merge fails, for example because the disk is full. You expect IndexWriter to close itself on the tragic merge failure and both calls to return with an exception, as they do with ConcurrentMergeScheduler or with merge-on-commit off. Instead commit holds IndexWriter's commit lock while it waits to enter SerialMergeScheduler's synchronized merge method, and the failing merge thread, still inside that method, waits for the commit lock in the tragic rollback, so both threads hang forever and the writer cannot be closed.
+You configure IndexWriter with SerialMergeScheduler and keep merge-on-commit on (the default since 9.3); one thread calls commit() while another thread's addDocument runs a merge, and that merge fails, for example because the disk is full. You expect IndexWriter to close itself on the tragic merge failure and both calls to return with an exception, as they do with ConcurrentMergeScheduler or with merge-on-commit off. Instead commit() holds IndexWriter's commit lock while it waits to enter SerialMergeScheduler's synchronized merge method, and the failing merge thread, still inside that method, waits for the commit lock in the tragic rollback, so both threads hang forever and the writer cannot be closed.
 
 The test shows that with SerialMergeScheduler and the default merge-on-commit wait, a merge that fails on another thread while commit() starts its merge-on-commit merges deadlocks commit() and the merging thread (commit holds commitLock and waits for the scheduler monitor; the failing merge holds that monitor and its tragic rollback waits for commitLock).
 
@@ -22,7 +24,7 @@ Expected commit() and the failed merge to both return with an exception (the wri
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

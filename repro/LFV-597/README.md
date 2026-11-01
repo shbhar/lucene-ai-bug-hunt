@@ -1,8 +1,8 @@
 # FacetsConfig writes the bare dimension term of a flat multiValued + requireDimCount SortedSetDocValues dimension without escaping it, so a dimension name containing U+001F or U+001E is read back as a different path: the dimension loses one label and reports that label's count as its own, a phantom dimension appears, a name with two U+001F makes facet-state construction throw for the whole field, and (-ea) a name ending in U+001E throws AssertionError
 
-Bug LFV-597 · Area: facet / SortedSetDocValues faceting (FacetsConfig.processSSDVFacetFields path encoding with DELIM_CHAR U+001F / ESCAPE_CHAR U+001E, decoded by DefaultSortedSetDocValuesReaderState) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-597 · Area: facet / SortedSetDocValues faceting (FacetsConfig.processSSDVFacetFields path encoding with DELIM_CHAR U+001F / ESCAPE_CHAR U+001E, decoded by DefaultSortedSetDocValuesReaderState) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-597.html](../../bugs/LFV-597.html)
+Finding page: [../../bugs/LFV-597.html](../../bugs/LFV-597.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ One document with labels x and y; expected `getTopChildren` labels `[x (1), y (1
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,6 +1,6 @@
 # An NRT reader opened during a merge reuses the SegmentReaders the merge opened with a MERGE IOContext, so its searches read through merge-only inputs (direct I/O with DirectIODirectory, on-disk instead of RAM postings with DirectPostingsFormat, sequential read advice with ADVISE_BY_CONTEXT)
 
-Bug LFV-099 · Area: index / IndexWriter NRT reader pool (readers shared with merges) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-099 · Area: index / IndexWriter NRT reader pool (readers shared with merges) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You let a merge start on segments that no NRT reader has opened yet (for example
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

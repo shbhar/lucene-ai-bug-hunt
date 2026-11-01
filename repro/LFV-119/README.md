@@ -1,6 +1,6 @@
 # SegmentInfos#readLatestCommit(Directory, int) and #readCommit(Directory, String, int) javadocs misdescribe the minimum-version check: readLatestCommit still names the index-created major, and both say 'strictly greater' although the check is inclusive (javadoc only; the code is correct)
 
-Bug LFV-119 · Area: index / SegmentInfos version check (javadoc) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-119 · Area: index / SegmentInfos version check (javadoc) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You call SegmentInfos.readLatestCommit(dir, m) or readCommit(dir, file, m) and e
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

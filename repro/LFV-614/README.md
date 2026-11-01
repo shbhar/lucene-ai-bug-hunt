@@ -1,8 +1,8 @@
 # GeoDegenerateLatitudeZone.isWithin compares z with sin(latitude) at a 1e-10 tolerance instead of using its own planet-model plane, so a zero-height geo3d box spanning all longitudes rejects the points on its own latitude on WGS84 and, on any planet model, can report CONTAINS for areas just below it, which makes Geo3D prefix-tree searches match points tens of degrees away
 
-Bug LFV-614 · Area: spatial3d / geom bounding boxes (GeoDegenerateLatitudeZone, which GeoBBoxFactory.makeGeoBBox returns for a box with equal top and bottom latitude spanning all longitudes), reached through Geo3DPoint.newBoxQuery / newShapeQuery and the spatial-extras Geo3D spatial context (Geo3dShape.relate, RecursivePrefixTreeStrategy, CompositeSpatialStrategy) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-614 · Area: spatial3d / geom bounding boxes (GeoDegenerateLatitudeZone, which GeoBBoxFactory.makeGeoBBox returns for a box with equal top and bottom latitude spanning all longitudes), reached through Geo3DPoint.newBoxQuery / newShapeQuery and the spatial-extras Geo3D spatial context (Geo3dShape.relate, RecursivePrefixTreeStrategy, CompositeSpatialStrategy) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-614.html](../../bugs/LFV-614.html)
+Finding page: [../../bugs/LFV-614.html](../../bugs/LFV-614.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected `isWithin(new GeoPoint(WGS84, 0.5, 1.0))` to be true, as it is for the 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

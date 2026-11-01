@@ -1,6 +1,8 @@
 # Surround QueryParser.parse throws StackOverflowError instead of its declared ParseException on deeply nested groups (as few as about 740 levels, about 1.5 KB of query text, on a 1 MB thread stack)
 
-Bug LFV-919 · Area: queryparser / surround (generated JavaCC parser, QueryParser.jj) · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-919 · Area: queryparser / surround (generated JavaCC parser, QueryParser.jj) · Priority: low · Impact: wrong error · Novelty: new
+
+Finding page: [../../bugs/LFV-919.html](../../bugs/LFV-919.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -8,7 +10,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You call the surround parser's documented entry point QueryParser.parse(String), which declares only ParseException and already turns the lexer's TokenMgrError (an Error) into a ParseException, on a valid query with many nested groups, for example "(".repeat(d) + "a" + ")".repeat(d) or a long chain of "(a OR " groups, and expect a query or a ParseException. Instead the generated recursive-descent grammar, which spends seven frames per "(" (FieldsQuery -&gt; OrQuery -&gt; AndQuery -&gt; NotQuery -&gt; NQuery -&gt; WQuery -&gt; PrimaryQuery -&gt; FieldsQuery) and has no depth bound, runs out of stack and java.lang.StackOverflowError escapes parse, so a caller that handles ParseException gets an undeclared Error. On a 1 MB thread stack as few as about 740 nested groups (1,473 chars) are enough on the first deep parse, and an 800-term chain of parenthesised binary ORs (7,884 chars, under the module's 1024-basic-query limit) fails even after JIT warm-up.
 
-The test shows that the surround `QueryParser.parse` on 100,000 nested parentheses lets `StackOverflowError` escape from its unbounded FieldsQuery -&gt;... -&gt; PrimaryQuery recursion.
+The test shows that the surround `QueryParser.parse` on 100,000 nested parentheses lets `StackOverflowError` escape from its unbounded FieldsQuery -&gt; ... -&gt; PrimaryQuery recursion.
 
 ## Expected vs actual
 
@@ -22,7 +24,7 @@ Expected: a query or the declared `ParseException`; actual: `AssertionError: exp
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,14 +1,14 @@
 # A reordered addIndexes(CodecReader...) silently drops the stored fields and term vectors of the first document after an empty (maxDoc 0) input reader: SlowCompositeCodecReaderWrapper.docIdToReaderId keeps an Arrays.binarySearch hit on a repeated doc start and reads that document from the empty reader
 
-Bug LFV-318 · Area: index / addIndexes reorder path: SlowCompositeCodecReaderWrapper doc-ID-to-reader lookup (stored fields, term vectors), reached through misc BPReorderingMergePolicy or any OneMerge#reorder · Priority: low · Impact: data corruption · Novelty: new
+Finding LFV-318 · Area: index / addIndexes reorder path: SlowCompositeCodecReaderWrapper doc-ID-to-reader lookup (stored fields, term vectors), reached through misc BPReorderingMergePolicy or any OneMerge#reorder · Priority: low · Impact: data corruption · Novelty: new
 
-Bug page: [../../bugs/LFV-318.html](../../bugs/LFV-318.html)
+Finding page: [../../bugs/LFV-318.html](../../bugs/LFV-318.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You call IndexWriter.addIndexes(CodecReader...) with a 3-document reader, an empty reader (maxDoc == 0) and a 2-document reader on a writer whose merge policy reorders the merge, such as BPReorderingMergePolicy or any OneMerge#reorder that returns a DocMap (the identity is enough), and you expect all 5 documents to keep their stored fields and term vectors, as they do with the same call without reordering. Instead the merged view that IndexWriter builds for the reorder (SlowCompositeCodecReaderWrapper) has doc starts [0, 3, 3, 5], Arrays.binarySearch finds start 3 at the empty reader's index, and docIdToReaderId keeps that exact hit, so merged doc 3 (the first document of the third reader) is read as doc 0 of the empty reader. The new segment is written without any error under -ea and -da: that document is still found by its id term and keeps its doc values, but its stored fields and term vectors are gone.
+You call IndexWriter.addIndexes(CodecReader...) with a 3-document reader, an empty reader (maxDoc() == 0) and a 2-document reader on a writer whose merge policy reorders the merge, such as BPReorderingMergePolicy or any OneMerge#reorder that returns a DocMap (the identity is enough), and you expect all 5 documents to keep their stored fields and term vectors, as they do with the same call without reordering. Instead the merged view that IndexWriter builds for the reorder (SlowCompositeCodecReaderWrapper) has doc starts [0, 3, 3, 5], Arrays.binarySearch finds start 3 at the empty reader's index, and docIdToReaderId keeps that exact hit, so merged doc 3 (the first document of the third reader) is read as doc 0 of the empty reader. The new segment is written without any error under -ea and -da: that document is still found by its id term and keeps its doc values, but its stored fields and term vectors are gone.
 
 The test shows that addIndexes(1 doc, empty CodecReader, 1 doc) through BPReorderingMergePolicy reads the document after the empty reader from the empty reader (SlowCompositeCodecReaderWrapper.docIdToReaderId), so it is written without stored fields.
 
@@ -24,7 +24,7 @@ Expected: both documents of the new segment keep their stored id (2 of 2). Actua
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -47,7 +47,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/codecreader-wrappers/](../../models/codecreader-wrappers/)
+Formal models and scripts this finding's part of the hunt used: [../../models/codecreader-wrappers/](../../models/codecreader-wrappers/)
 
 ## Feedback
 

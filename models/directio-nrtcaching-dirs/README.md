@@ -4,9 +4,9 @@ Tools: Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- DirectIODirectory accepts a mergeBufferSize that is not a multiple of the file system block size, and then every direct-I/O read fails, so merges hit a tragic exception; a size below the block size can also give a zero-capacity write buffer (BufferOverflowException, or writeBytes making no progress) (bug LFV-226; [repro](../../repro/LFV-226/))
+- DirectIODirectory accepts a mergeBufferSize that is not a multiple of the file system block size, and then every direct-I/O read fails, so merges hit a tragic exception; a size below the block size can also give a zero-capacity write buffer (BufferOverflowException, or writeBytes making no progress) (finding LFV-226; [repro](../../repro/LFV-226/))
 
 ## Files
 

@@ -1,6 +1,6 @@
 # Quantized MIP score of a document equal to its segment centroid is 3.0 instead of 3.5
 
-Bug LFV-079 · Area: codecs / vectors · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-079 · Area: codecs / vectors · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ With the OSQ format and MAXIMUM_INNER_PRODUCT, you score a document whose vector
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -43,7 +43,7 @@ java -ea -esa -Xmx4g --add-modules jdk.incubator.vector --enable-native-access=A
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/study-quantization-smt/](../../models/study-quantization-smt/)
+Formal models and scripts this finding's part of the hunt used: [../../models/study-quantization-smt/](../../models/study-quantization-smt/)
 
 ## Feedback
 

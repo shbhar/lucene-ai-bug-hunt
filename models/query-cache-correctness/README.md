@@ -4,11 +4,11 @@ Tools: TLA+/TLC.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- LatLonShape/XYShape newSlowDocValuesBoxQuery reports Weight#isCacheable == true although it reads the shape from binary doc values, so after an in-place doc-values update the query cache keeps returning the old matches (bug LFV-308; [repro](../../repro/LFV-308/), [bug page](../../bugs/LFV-308.html))
-- LongRange/DoubleRange#getQuery(fastMatchQuery, valueSource) reports its Weight as cacheable without asking the fast-match query, so after an in-place doc-values update the query cache keeps returning the old matches (bug LFV-320; [repro](../../repro/LFV-320/), [bug page](../../bugs/LFV-320.html))
-- LateInteractionFloatValuesSource#isCacheable always returns true although it reads the multi-vectors from binary doc values, so after an in-place update of a LateInteractionField the query cache keeps returning the old matches of a FunctionMatchQuery or DoubleRange query over it (bug LFV-336; [repro](../../repro/LFV-336/), [bug page](../../bugs/LFV-336.html))
+- LatLonShape/XYShape newSlowDocValuesBoxQuery reports Weight#isCacheable() == true although it reads the shape from binary doc values, so after an in-place doc-values update the query cache keeps returning the old matches (finding LFV-308; [repro](../../repro/LFV-308/), [finding page](../../bugs/LFV-308.html))
+- LongRange/DoubleRange#getQuery(fastMatchQuery, valueSource) reports its Weight as cacheable without asking the fast-match query, so after an in-place doc-values update the query cache keeps returning the old matches (finding LFV-320; [repro](../../repro/LFV-320/), [finding page](../../bugs/LFV-320.html))
+- LateInteractionFloatValuesSource#isCacheable always returns true although it reads the multi-vectors from binary doc values, so after an in-place update of a LateInteractionField the query cache keeps returning the old matches of a FunctionMatchQuery or DoubleRange query over it (finding LFV-336; [repro](../../repro/LFV-336/), [finding page](../../bugs/LFV-336.html))
 
 ## Files
 
@@ -24,4 +24,4 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## How to run
 
-- TLA+ with TLC: `java -cp tla2tools.jar tlc2.TLC -config <Model>.cfg <Model>.tla` (a counterexample trace is the bug when the model encodes the current code).
+- TLA+ with TLC: `java -cp tla2tools.jar tlc2.TLC -config <Model>.cfg <Model>.tla` (a counterexample trace is the finding when the model encodes the current code).

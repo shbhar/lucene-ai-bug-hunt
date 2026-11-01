@@ -1,6 +1,8 @@
-# MMapDirectory applies a slice's read advice to the wrong bytes when the slice starts inside an mmap chunk and crosses into the next one (the #14109 prefetch fix missed this caller of advise)
+# MMapDirectory applies a slice's read advice to the wrong bytes when the slice starts inside an mmap chunk and crosses into the next one (the #14109 prefetch fix missed this caller of advise())
 
-Bug LFV-126 · Area: store / MMapDirectory read advice (MemorySegmentIndexInput slices, compound files) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-126 · Area: store / MMapDirectory read advice (MemorySegmentIndexInput slices, compound files) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-126.html](../../bugs/LFV-126.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected: RANDOM advice only inside the slice [524288, 1572864); actual (-ea and
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

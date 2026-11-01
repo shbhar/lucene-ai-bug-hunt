@@ -1,6 +1,6 @@
 # CapitalizationFilter treats a second delimiter in a row ('. ', a double space) or a delimiter at the start of the token as the first character of the next word, so that word is not capitalized and misses keep, okPrefix and minWordLength ('dr. jekyll' -&gt; 'Dr. jekyll', 'new york' -&gt; 'New york', ' hello' -&gt; ' hello')
 
-Bug LFV-535 · Area: analysis-common / miscellaneous (CapitalizationFilter, CapitalizationFilterFactory) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-535 · Area: analysis-common / miscellaneous (CapitalizationFilter, CapitalizationFilterFactory) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You put CapitalizationFilter with onlyFirstWord=false after a KeywordTokenizer a
 ## Run it
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

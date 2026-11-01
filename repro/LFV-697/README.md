@@ -1,18 +1,18 @@
 # LazyDocument.fetchRealValues checks its value-count assertion in the wrong direction: with assertions enabled, reading a lazy value of a multi-valued field before that field's last getField call throws AssertionError ('More lazy values then real values'), while the over-request case the message names is not caught and fails with ArrayIndexOutOfBoundsException
 
-Bug LFV-697 · Area: misc / document: LazyDocument (lazy loading of stored fields, multi-valued fields) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-697 · Area: misc / document: LazyDocument (lazy loading of stored fields, multi-valued fields) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-With assertions enabled the first read instead throws AssertionError 'More lazy values then real values for field: f', because fetchRealValues asserts realValues.length &lt;= lazyValues.size (LazyDocument.java:113-114), the reverse of what its message and the loop right after it (:116-121, which reads realValues[i] once per lazy value) need.
+For a document whose stored field f has the values v0 and v1, you call LazyDocument.getField(f), read the returned field, then call getField(f) again and read the second one; getField's own comment says the document is re-fetched when more lazy fields are requested after others were loaded, so you expect v0 and then v1. With assertions enabled the first read instead throws AssertionError 'More lazy values then real values for field: f', because fetchRealValues asserts realValues.length &lt;= lazyValues.size() (LazyDocument.java:113-114), the reverse of what its message and the loop right after it (:116-121, which reads realValues[i] once per lazy value) need. With -da the same calls return v0 and v1, and the case the message describes (more getField calls than stored values) passes the assertion and fails with ArrayIndexOutOfBoundsException in both modes.
 
 The test shows that with `-ea`, reading the first lazy value of a two-valued stored field before the field's second `LazyDocument.getField` call throws, because `fetchRealValues` asserts `realValues.length <= lazyValues.size()`, the reverse of its own message.
 
 ## Expected vs actual
 
-actual with `-ea`: `AssertionError: More lazy values then real values for field: f` at `LazyDocument.java:113`. With `-da` the test passes (the claim is about `-ea` only).
+Expected `v0` and then `v1`; actual with `-ea`: `AssertionError: More lazy values then real values for field: f` at `LazyDocument.java:113`. With `-da` the test passes (the claim is about `-ea` only).
 
 ## Files
 
@@ -22,7 +22,7 @@ actual with `-ea`: `AssertionError: More lazy values then real values for field:
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

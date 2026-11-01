@@ -1,12 +1,14 @@
-# AutomatonQuery.ramBytesUsed is computed once at construction, so a query that runs on an NFA (WildcardQuery and RegexpQuery by default on main, opt-in NFA queries since 10.0.0) under-reports the DFA states it builds while searching, and an LRUQueryCache can hold far more heap than its RAM budget
+# AutomatonQuery.ramBytesUsed() is computed once at construction, so a query that runs on an NFA (WildcardQuery and RegexpQuery by default on main, opt-in NFA queries since 10.0.0) under-reports the DFA states it builds while searching, and an LRUQueryCache can hold far more heap than its RAM budget
 
-Bug LFV-192 · Area: search / AutomatonQuery RAM accounting (NFARunAutomaton lazily built DFA states; LRUQueryCache RAM budget) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-192 · Area: search / AutomatonQuery RAM accounting (NFARunAutomaton lazily built DFA states; LRUQueryCache RAM budget) · Priority: low · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-192.html](../../bugs/LFV-192.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You run a WildcardQuery or RegexpQuery whose automaton is not deterministic, for example '*a?????????' or 'a*b??????????', and expect its ramBytesUsed to estimate the heap the query holds, which is what the Accountable javadoc says and what LRUQueryCache uses to stay within maxRamBytesUsed. On main such a query runs on an NFARunAutomaton that builds DFA states lazily during the search and keeps them on the query object, but AutomatonQuery stored ramBytesUsed in a final field when it was constructed, so after one search the value is 40x to 310x too small (5,674 bytes reported vs 228,680 retained; 6,714 vs 2,081,152). An LRUQueryCache with a 1 MiB budget then keeps 4 such queries as keys that retain 2.7 to 7.4 MB while it accounts about 36 KB in total and evicts nothing; the matching documents are correct.
+You run a WildcardQuery or RegexpQuery whose automaton is not deterministic, for example '*a?????????' or 'a*b??????????', and expect its ramBytesUsed() to estimate the heap the query holds, which is what the Accountable javadoc says and what LRUQueryCache uses to stay within maxRamBytesUsed. On main such a query runs on an NFARunAutomaton that builds DFA states lazily during the search and keeps them on the query object, but AutomatonQuery stored ramBytesUsed() in a final field when it was constructed, so after one search the value is 36x to 310x too small (5,674 bytes reported vs 205,216 retained over 1,024 terms; 6,714 vs 2,081,152 on a 20,000-document field). An LRUQueryCache with a 1 MiB budget then keeps 4 such queries as keys that retain 2.7 to 7.4 MB while it accounts about 36 KB in total and evicts nothing; the matching documents are correct.
 
 The test shows that `AutomatonQuery.ramBytesUsed()` is frozen at construction: after one `count` of `WildcardQuery(f:*a?????????)` over all 1,024 10-char a/b terms, its lazily determinized NFA has grown but the query's value has not.
 
@@ -22,7 +24,7 @@ Expected `q.ramBytesUsed() >= q.getCompiled().ramBytesUsed()` (the query holds t
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

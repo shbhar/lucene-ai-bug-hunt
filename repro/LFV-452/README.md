@@ -1,17 +1,17 @@
-# If closing a pooled segment reader throws inside IndexWriter.deleteAll, the segments are already cleared but the change is never counted: the writer stays open and its NRT readers show an empty index, yet hasUncommittedChanges is false and commit and close keep every document, until a later unrelated commit silently applies the failed deleteAll
+# If closing a pooled segment reader throws inside IndexWriter.deleteAll, the segments are already cleared but the change is never counted: the writer stays open and its NRT readers show an empty index, yet hasUncommittedChanges() is false and commit() and close() keep every document, until a later unrelated commit silently applies the failed deleteAll
 
-Bug LFV-452 · Area: index / IndexWriter deleteAll (change accounting on the exception path, ReaderPool.dropAll) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-452 · Area: index / IndexWriter deleteAll (change accounting on the exception path, ReaderPool.dropAll) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You commit two documents, open and close an NRT reader (so the writer keeps pooled segment readers), and call deleteAll; closing one of the pooled readers throws (for example a core ClosedListener your cache registered throws its declared IOException, or closing a file fails), so deleteAll throws an IOException and the writer stays open. You expect the writer to stay self-consistent: what its NRT readers show is what commit persists, and hasUncommittedChanges reports the pending change. Instead deleteAll has already removed every segment but skipped counting the change, so new NRT readers show 0 documents while hasUncommittedChanges is false, commit returns -1 and writes nothing, close keeps both documents on disk, and the next unrelated addDocument plus commit silently applies the deleteAll that failed.
+You commit two documents, open and close an NRT reader (so the writer keeps pooled segment readers), and call deleteAll(); closing one of the pooled readers throws (for example a core ClosedListener your cache registered throws its declared IOException, or closing a file fails), so deleteAll() throws an IOException and the writer stays open. You expect the writer to stay self-consistent: what its NRT readers show is what commit() persists, and hasUncommittedChanges() reports the pending change. Instead deleteAll has already removed every segment but skipped counting the change, so new NRT readers show 0 documents while hasUncommittedChanges() is false, commit() returns -1 and writes nothing, close() keeps both documents on disk, and the next unrelated addDocument plus commit silently applies the deleteAll that failed.
 
 ## Expected vs actual
 
-- Expected: You expect the writer to stay self-consistent: what its NRT readers show is what commit persists, and hasUncommittedChanges reports the pending change.
-- Actual: deleteAll has already removed every segment but skipped counting the change, so new NRT readers show 0 documents while hasUncommittedChanges is false, commit returns -1 and writes nothing, close keeps both documents on disk, and the next unrelated addDocument plus commit silently applies the deleteAll that failed.
+- Expected: You expect the writer to stay self-consistent: what its NRT readers show is what commit() persists, and hasUncommittedChanges() reports the pending change.
+- Actual: deleteAll has already removed every segment but skipped counting the change, so new NRT readers show 0 documents while hasUncommittedChanges() is false, commit() returns -1 and writes nothing, close() keeps both documents on disk, and the next unrelated addDocument plus commit silently applies the deleteAll that failed.
 
 ## Files
 
@@ -21,7 +21,7 @@ You commit two documents, open and close an NRT reader (so the writer keeps pool
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

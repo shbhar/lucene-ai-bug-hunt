@@ -1,8 +1,8 @@
 # DateTools strings stop sorting by date and stop round-tripping outside years AD 1..9999: the 'yyyy' year-of-era pattern drops the BC era (2 BC sorts after AD 1 and parses back as AD 2; 1 BC and AD 1 give the same string) and gives years after 9999 a fifth digit (10000 sorts before 2026, and stringToTime throws ParseException on DateTools' own output)
 
-Bug LFV-645 · Area: core / document (DateTools date-to-string term encoding: timeToString/dateToString and stringToTime/stringToDate) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-645 · Area: core / document (DateTools date-to-string term encoding: timeToString/dateToString and stringToTime/stringToDate) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-645.html](../../bugs/LFV-645.html)
+Finding page: [../../bugs/LFV-645.html](../../bugs/LFV-645.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected `-62198928000000` (2 BC-01-01); actual `-62104233600000` (AD 2-01-01): 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

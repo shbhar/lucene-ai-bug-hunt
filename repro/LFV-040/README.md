@@ -1,6 +1,6 @@
 # PersistentSnapshotDeletionPolicy.getLastSaveFile reads nextWriteGen without synchronization (benign data race)
 
-Bug LFV-040 · Area: index / deletion policies · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-040 · Area: index / deletion policies · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You call getLastSaveFile while other threads snapshot or release commits. You ex
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,6 +1,6 @@
 # After a commit, IndexFileDeleter deletes the old segments_N and then the files only it referenced with no directory fsync in between, so an OS crash that persists those unlinks out of order can leave a stale older commit that blocks IndexWriter
 
-Bug LFV-201 · Area: index / IndexFileDeleter and util/FileDeleter (deletion of expired commits, crash durability) · Priority: low · Impact: index unusable · Novelty: known upstream
+Finding LFV-201 · Area: index / IndexFileDeleter and util/FileDeleter (deletion of expired commits, crash durability) · Priority: low · Impact: index unusable · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You index with IndexWriter on an FSDirectory with default settings and commit; a
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,8 +1,8 @@
 # Bulk BinaryDocValues#binaryValues (new in 10.6) sizes its buffer in int: it fails at 2 GiB and can return wrong bytes at 4 GiB
 
-Bug LFV-003 · Area: codecs / doc values · Priority: low · Impact: crash · Novelty: new
+Finding LFV-003 · Area: codecs / doc values · Priority: low · Impact: crash · Novelty: new
 
-Bug page: [../../bugs/LFV-003.html](../../bugs/LFV-003.html)
+Finding page: [../../bugs/LFV-003.html](../../bugs/LFV-003.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -23,7 +23,7 @@ You call the new bulk BinaryDocValues#binaryValues on the default codec for docu
 
 - Not run on Lucene main a9779ef3c193 (2026-10-26): the repro needs more memory than the rerun host had.
 - Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -45,13 +45,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-## Files shown on the bug page
+## Files shown on the finding page
 
 - [minimal-test.diff](minimal-test.diff)
 - [MakeIndex.java](MakeIndex.java)
 - [BulkCall.java](BulkCall.java)
 
-Formal models and scripts this bug's part of the hunt used: [../../models/study-overflow-at-scale/](../../models/study-overflow-at-scale/)
+Formal models and scripts this finding's part of the hunt used: [../../models/study-overflow-at-scale/](../../models/study-overflow-at-scale/)
 
 ## Feedback
 

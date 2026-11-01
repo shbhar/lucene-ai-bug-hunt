@@ -1,8 +1,8 @@
 # Geo3D distance sorts read a document's doc values twice in any segment where some document has two or more points, so top-N and searchAfter results come back in the wrong order with another document's distance as the sort value (even a filtered-out or deleted document's), or the search throws EOFException (every release since 7.0.0)
 
-Bug LFV-551 · Area: spatial3d / Geo3DDocValuesField sort comparators (Geo3DPointDistanceComparator, Geo3DPointOutsideDistanceComparator; all seven Geo3D sort factories) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-551 · Area: spatial3d / Geo3DDocValuesField sort comparators (Geo3DPointDistanceComparator, Geo3DPointOutsideDistanceComparator; all seven Geo3D sort factories) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-551.html](../../bugs/LFV-551.html)
+Finding page: [../../bugs/LFV-551.html](../../bugs/LFV-551.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected the head of the full sort, doc 2 at 55,599 m then doc 0 at 111,194 m; a
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

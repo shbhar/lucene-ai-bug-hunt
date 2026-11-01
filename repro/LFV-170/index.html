@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Postings docIDRunEnd returns Integer.MIN_VALUE for dense blocks after a term&#x27;s last level-1 skip block when doc IDs are within 8,192 (4,096 before 10.4) of 2^31, so CheckIndex at level 2 or higher reports a healthy segment of about 2^31 documents as corrupt (LFV-170)</title><style>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Postings docIDRunEnd() returns Integer.MIN_VALUE for dense blocks after a term&#x27;s last level-1 skip block when doc IDs are within 8,192 (4,096 before 10.4) of 2^31, so CheckIndex at level 2 or higher reports a healthy segment of about 2^31 documents as corrupt (LFV-170)</title><style>
 :root{--fg:#1d2329;--dim:#5a6570;--line:#d8dee4;--bg:#fff;--soft:#f5f7f9;--link:#0b5cad}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
 font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
@@ -17,11 +17,12 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 .scroll{overflow-x:auto}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
-</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>Postings docIDRunEnd returns Integer.MIN_VALUE for dense blocks after a term&#x27;s last level-1 skip block when doc IDs are within 8,192 (4,096 before 10.4) of 2^31, so CheckIndex at level 2 or higher reports a healthy segment of about 2^31 documents as corrupt</h1>
-<p class="facts small"><span>Bug LFV-170</span><span>Area: codecs / postings reader (Lucene104 BlockPostingsEnum#docIDRunEnd, also the Lucene101 and Lucene103 readers); index / CheckIndex</span><span>Priority: low</span><span>Impact: wrong error</span><span>Novelty: new</span></p>
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>Postings docIDRunEnd() returns Integer.MIN_VALUE for dense blocks after a term&#x27;s last level-1 skip block when doc IDs are within 8,192 (4,096 before 10.4) of 2^31, so CheckIndex at level 2 or higher reports a healthy segment of about 2^31 documents as corrupt</h1>
+<p class="facts small"><span>Finding LFV-170</span><span>Area: codecs / postings reader (Lucene104 BlockPostingsEnum#docIDRunEnd, also the Lucene101 and Lucene103 readers); index / CheckIndex</span><span>Priority: low</span><span>Impact: wrong error</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-170.html">Finding page for LFV-170</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
-<p>You have one segment of about 2^31 documents (within about 8,000 docs of IndexWriter.MAX_DOCS) with a term whose postings are dense near the end of the doc-ID space, for example a term that every document has, and you call docIDRunEnd on its postings or run CheckIndex at level 2 or higher. You expect docIDRunEnd to return a doc ID greater than the current one, as its javadoc promises, and CheckIndex to pass. Instead, in the dense blocks after the term&#x27;s last full 8,192-doc level-1 skip block (4,096 docs in 10.2-10.3), the default postings reader returns Integer.MIN_VALUE and CheckIndex reports the healthy segment as corrupt (&#x27;Run end -2147483648 is &lt;= doc ID 2147475456&#x27;); query results stay correct, and the repro writes the postings through the public codec API rather than indexing 2^31 documents with IndexWriter.</p>
+<p>You have one segment of about 2^31 documents (within about 8,000 docs of IndexWriter.MAX_DOCS) with a term whose postings are dense near the end of the doc-ID space, for example a term that every document has, and you call docIDRunEnd() on its postings or run CheckIndex at level 2 or higher. You expect docIDRunEnd() to return a doc ID greater than the current one, as its javadoc promises, and CheckIndex to pass. Instead, in the dense blocks after the term&#x27;s last full 8,192-doc level-1 skip block (4,096 docs in 10.2-10.3), the default postings reader returns Integer.MIN_VALUE and CheckIndex reports the healthy segment as corrupt (&#x27;Run end -2147483648 is &lt;= doc ID 2147475456&#x27;); query results stay correct, and the repro writes the postings through the public codec API rather than indexing 2^31 documents with IndexWriter.</p>
 <p>The test shows that Lucene104 postings docIDRunEnd() on a dense 256-doc block that follows the term&#x27;s last level-1 block, with doc IDs within 8,192 of 2^31, returns NO_MORE_DOCS + 1 = Integer.MIN_VALUE. The test is codec level: it writes 8,448 doc IDs with the postings writer.</p>
 <h2>Expected vs actual</h2>
 <p>Expected: docIDRunEnd() &gt; docID() = 2147475456. Actual (-ea and -da): -2147483648.</p>
@@ -30,7 +31,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </ul><h2>Run it</h2><ul>
 <li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
 <li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
+<li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
@@ -47,5 +48,5 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.codecs.lucene104.TestDocIDRunEndNearMaxDoc</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/postings-lucene104/index.html">postings-lucene104</a></p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-30. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<p>Formal models and scripts this finding's part of the hunt used: <a href="../../models/postings-lucene104/index.html">postings-lucene104</a></p>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-01. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

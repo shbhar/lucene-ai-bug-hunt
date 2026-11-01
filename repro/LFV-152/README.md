@@ -1,16 +1,16 @@
-# IndexWriter opened from a reader's IndexCommit still rejects an index by its created major ('createdVersionMajor must be &gt;= 9, got: 8'), although DirectoryReader.open, OpenMode.APPEND and a listCommits commit accept the same commit under the per-segment version check of GITHUB#14607
+# IndexWriter opened from a reader's IndexCommit still rejects an index by its created major ('createdVersionMajor must be &gt;= 9, got: 8'), although DirectoryReader.open, OpenMode.APPEND and a listCommits() commit accept the same commit under the per-segment version check of GITHUB#14607
 
-Bug LFV-152 · Area: index / IndexWriter open from a reader commit (version gate) · Priority: low · Impact: crash · Novelty: known upstream
+Finding LFV-152 · Area: index / IndexWriter open from a reader commit (version gate) · Priority: low · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You have an index that Lucene 8.x created and 9.x then fully re-indexed in place, so every segment is 9.x; since GITHUB#14607 (released in 10.4.0) Lucene 10.x and main open it normally for reading and with an IndexWriter in APPEND mode. You expect new IndexWriter(dir, new IndexWriterConfig.setIndexCommit(reader.getIndexCommit)), which the setIndexCommit javadoc documents for near-real-time readers, to open it as well. Instead it throws IllegalArgumentException 'createdVersionMajor must be &gt;= 9, got: 8', because this one constructor branch still checks the index's creation major, the rule #14607 replaced on every other open path with a check of each segment's version.
+You have an index that Lucene 8.x created and 9.x then fully re-indexed in place, so every segment is 9.x; since GITHUB#14607 (released in 10.4.0) Lucene 10.x and main open it normally for reading and with an IndexWriter in APPEND mode. You expect new IndexWriter(dir, new IndexWriterConfig().setIndexCommit(reader.getIndexCommit())), which the setIndexCommit javadoc documents for near-real-time readers, to open it as well. Instead it throws IllegalArgumentException 'createdVersionMajor must be &gt;= 9, got: 8', because this one constructor branch still checks the index's creation major, the rule #14607 replaced on every other open path with a check of each segment's version.
 
 ## Expected vs actual
 
-- Expected: You expect new IndexWriter(dir, new IndexWriterConfig.setIndexCommit(reader.getIndexCommit)), which the setIndexCommit javadoc documents for near-real-time readers, to open it as well.
+- Expected: You expect new IndexWriter(dir, new IndexWriterConfig().setIndexCommit(reader.getIndexCommit())), which the setIndexCommit javadoc documents for near-real-time readers, to open it as well.
 - Actual: It throws IllegalArgumentException 'createdVersionMajor must be &gt;= 9, got: 8', because this one constructor branch still checks the index's creation major, the rule #14607 replaced on every other open path with a check of each segment's version.
 
 ## Files
@@ -21,7 +21,7 @@ You have an index that Lucene 8.x created and 9.x then fully re-indexed in place
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

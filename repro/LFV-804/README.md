@@ -1,17 +1,17 @@
-# UnifiedHighlighter throws MaxBytesLengthExceededException when a TermInSetQuery's toString is longer than 32766 bytes (for example 886 UUID-like ids), because PassageScorer groups match labels in a BytesRefHash
+# UnifiedHighlighter throws MaxBytesLengthExceededException when a TermInSetQuery's toString() is longer than 32766 bytes (for example 886 UUID-like ids), because PassageScorer groups match labels in a BytesRefHash
 
-Bug LFV-804 · Area: highlighter / UnifiedHighlighter passage scoring (PassageScorer match labels) · Priority: medium · Impact: crash · Novelty: known upstream
+Finding LFV-804 · Area: highlighter / UnifiedHighlighter passage scoring (PassageScorer match labels) · Priority: medium · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You search with a TermInSetQuery of 886 UUID-shaped ids (or 4,000 short terms) on a field indexed with offsets, get the hit, and call the default UnifiedHighlighter's highlight on that field, expecting the snippet with the matching id in &lt;b&gt;, as the equivalent ConstantScoreQuery over a SHOULD BooleanQuery of the same ids gives. Instead highlight throws BytesRefHash$MaxBytesLengthExceededException 'bytes can be at most 32766 in length; got 32786' from PassageScorer.score. For a multi-term set query the highlighter labels each match with the query's whole toString, which lists every term, and PassageScorer groups those labels in a BytesRefHash, which rejects entries over 32766 bytes; 885 ids (a 32,749-byte toString) still work.
+You search with a TermInSetQuery of 886 UUID-shaped ids (or 4,000 short terms) on a field indexed with offsets, get the hit, and call the default UnifiedHighlighter's highlight() on that field, expecting the snippet with the matching id in &lt;b&gt;, as the equivalent ConstantScoreQuery over a SHOULD BooleanQuery of the same ids gives. Instead highlight() throws BytesRefHash$MaxBytesLengthExceededException 'bytes can be at most 32766 in length; got 32786' from PassageScorer.score. For a multi-term set query the highlighter labels each match with the query's whole toString(), which lists every term, and PassageScorer groups those labels in a BytesRefHash, which rejects entries over 32766 bytes; 885 ids (a 32,749-byte toString()) still work.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: highlight throws BytesRefHash$MaxBytesLengthExceededException 'bytes can be at most 32766 in length; got 32786' from PassageScorer.score.
+- Actual: highlight() throws BytesRefHash$MaxBytesLengthExceededException 'bytes can be at most 32766 in length; got 32786' from PassageScorer.score.
 
 ## Files
 
@@ -20,7 +20,7 @@ You search with a TermInSetQuery of 886 UUID-shaped ids (or 4,000 short terms) o
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,12 +1,12 @@
-# GroupingSearch#search never rewrites its group sort or within-group sort against the searcher, unlike IndexSearcher#search(Query, int, Sort): sorts that need a rewrite throw, and a legacy query function sort silently orders groups, group documents and group heads with the default Similarity
+# GroupingSearch#search never rewrites its group sort or within-group sort against the searcher, unlike IndexSearcher#search(Query, int, Sort): sorts that need a rewrite throw, and a legacy query() function sort silently orders groups, group documents and group heads with the default Similarity
 
-Bug LFV-816 · Area: grouping / GroupingSearch (convenience API) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-816 · Area: grouping / GroupingSearch (convenience API) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You group with GroupingSearch and set a group sort or within-group sort that depends on the query or the searcher, for example a sort on new QueryValueSource(q, 0).asDoubleValuesSource, and expect the groups and their documents in the order IndexSearcher#search(query, n, sort) gives for the same Sort on the same searcher, because IndexSearcher rewrites the Sort and GroupingSearch#search is handed that searcher. Instead GroupingSearch passes both Sorts to its collectors as given (GroupingSearch.java:148, 160, 201-202, 228-233): on a ClassicSimilarity searcher the documents of one group come back as doc0=0.101, doc1=0.088, doc2=0.088 (default-BM25 scores) instead of doc1=1.0, doc2=1.0, doc0=0.894, the first group is g0 instead of g1, and ValueSource sort fields or fromQuery sorts throw. Rewriting both Sorts against the searcher at the start of groupByFieldOrFunction and groupByDocBlock fixes every case.
+You group with GroupingSearch and set a group sort or within-group sort that depends on the query or the searcher, for example a sort on new QueryValueSource(q, 0).asDoubleValuesSource(), and expect the groups and their documents in the order IndexSearcher#search(query, n, sort) gives for the same Sort on the same searcher, because IndexSearcher rewrites the Sort and GroupingSearch#search is handed that searcher. Instead GroupingSearch passes both Sorts to its collectors as given (GroupingSearch.java:148, 160, 201-202, 228-233): on a ClassicSimilarity searcher the documents of one group come back as doc0=0.101, doc1=0.088, doc2=0.088 (default-BM25 scores) instead of doc1=1.0, doc2=1.0, doc0=0.894, the first group is g0 instead of g1, and ValueSource sort fields or fromQuery sorts throw. Rewriting both Sorts against the searcher at the start of groupByFieldOrFunction and groupByDocBlock fixes every case.
 
 ## Expected vs actual
 
@@ -21,7 +21,7 @@ You group with GroupingSearch and set a group sort or within-group sort that dep
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

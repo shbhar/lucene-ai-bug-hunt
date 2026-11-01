@@ -1,6 +1,8 @@
 # A float vector field routed to HnswBitVectorsFormat is rejected inside an aborting step of the indexing chain, so the one rejected document closes the IndexWriter and rolls back every document added since the last commit
 
-Bug LFV-121 · Area: codecs / HnswBitVectorsFormat x index / IndexingChain aborting-exception classification · Priority: low · Impact: crash · Novelty: new
+Finding LFV-121 · Area: codecs / HnswBitVectorsFormat x index / IndexingChain aborting-exception classification · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-121.html](../../bugs/LFV-121.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected `getTragicException()` to be null after the rejected document; actual: 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

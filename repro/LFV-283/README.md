@@ -1,6 +1,6 @@
 # QueryParser.setTimeZone (and StandardQueryParser.setTimeZone) is used only to round the inclusive end of a date range to 23:59:59.999; both dates are still parsed in the JVM default time zone, so with a non-default zone d:[6/1/2005 TO 6/4/2005] covers a shifted window and exclusive ranges ignore the setting
 
-Bug LFV-283 · Area: queryparser / classic and flexible date ranges (QueryParserBase.getRangeQuery, TermRangeQueryNodeProcessor; setTimeZone and ConfigurationKeys.TIMEZONE) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-283 · Area: queryparser / classic and flexible date ranges (QueryParserBase.getRangeQuery, TermRangeQueryNodeProcessor; setTimeZone and ConfigurationKeys.TIMEZONE) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You give the query parser a time zone with setTimeZone (plus setLocale and setDa
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

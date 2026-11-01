@@ -1,18 +1,20 @@
-# A DirectoryReader opened with open(commit, minSupportedMajorVersion, leafSorter) forgets that minimum: isCurrent, openIfChanged and SearcherManager.maybeRefresh throw IndexFormatTooOldException even on an unchanged index
+# A DirectoryReader opened with open(commit, minSupportedMajorVersion, leafSorter) forgets that minimum: isCurrent(), openIfChanged() and SearcherManager.maybeRefresh() throw IndexFormatTooOldException even on an unchanged index
 
-Bug LFV-131 · Area: index / DirectoryReader reopen and isCurrent (expert old-index open) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-131 · Area: index / DirectoryReader reopen and isCurrent (expert old-index open) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-131.html](../../bugs/LFV-131.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You open an index whose segments come from an older Lucene major, which the default open refuses, through the expert DirectoryReader.open(commit, minSupportedMajorVersion, leafSorter) with a lower minimum, and it opens fine. With nothing committed since, you expect isCurrent to return true and openIfChanged(reader) to return null, so that SearcherManager.maybeRefresh does nothing. Instead all three throw IndexFormatTooOldException ('Index has segments derived from Lucene version 8.x and is not supported...'), because the reader does not keep the minimum it was opened with and re-reads the commit with the default Version.MIN_SUPPORTED_MAJOR.
+You open an index whose segments come from an older Lucene major, which the default open refuses, through the expert DirectoryReader.open(commit, minSupportedMajorVersion, leafSorter) with a lower minimum, and it opens fine. With nothing committed since, you expect isCurrent() to return true and openIfChanged(reader) to return null, so that SearcherManager.maybeRefresh() does nothing. Instead all three throw IndexFormatTooOldException ('Index has segments derived from Lucene version 8.x and is not supported ...'), because the reader does not keep the minimum it was opened with and re-reads the commit with the default Version.MIN_SUPPORTED_MAJOR.
 
 The test shows that a reader opened with the expert `DirectoryReader.open(commit, minSupportedMajorVersion, leafSorter)` (minimum 8) on an index whose segment is recorded as derived from Lucene 8.x cannot check itself: `isCurrent()` re-reads the commit with the default minimum (9).
 
 ## Expected vs actual
 
-Expected `isCurrent()` to return true on the unchanged index; actual: `IndexFormatTooOldException` ("Index has segments derived from Lucene version 8.x... minimum supported: 9"), with `-ea` and `-da`.
+Expected `isCurrent()` to return true on the unchanged index; actual: `IndexFormatTooOldException` ("Index has segments derived from Lucene version 8.x ... minimum supported: 9"), with `-ea` and `-da`.
 
 ## Files
 
@@ -22,7 +24,7 @@ Expected `isCurrent()` to return true on the unchanged index; actual: `IndexForm
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

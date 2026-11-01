@@ -1,12 +1,12 @@
-# ImpactsSource#advanceShallow javadoc does not say that the current document's freq, positions and docIDRunEnd become invalid after a shallow advance past its block: the default codec then returns another block's data, and a lazy freq breaks the next legal advance (javadoc and assertion gap; the codec behaviour is intended)
+# ImpactsSource#advanceShallow javadoc does not say that the current document's freq(), positions and docIDRunEnd() become invalid after a shallow advance past its block: the default codec then returns another block's data, and a lazy freq() breaks the next legal advance() (javadoc and assertion gap; the codec behaviour is intended)
 
-Bug LFV-156 · Area: index / ImpactsEnum shallow-advance contract (ImpactsSource javadoc, test-framework AssertingImpactsEnum); codecs / Lucene104 postings reader · Priority: low · Impact: minor · Novelty: new
+Finding LFV-156 · Area: index / ImpactsEnum shallow-advance contract (ImpactsSource javadoc, test-framework AssertingImpactsEnum); codecs / Lucene104 postings reader · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You take an ImpactsEnum from TermsEnum#impacts, stand on a document, call advanceShallow(target) with a target in a later 256-doc block to peek at upcoming impacts, and then read the current document's freq, positions or docIDRunEnd; the javadoc forbids only nextDoc and too-small advance targets afterwards and says docID does not change, so you expect the current document's own data and a working advance(target). Instead the default codec has already moved its streams to the target block on purpose: on main the positions of doc 0 read as [5] instead of [0], docIDRunEnd claims docs 0 to 3327 all match although only every third does, and after freq the legal advance(3000) returns doc 3005, which does not contain the term. Lucene's own callers always advance before reading, so the codec behaviour is intended; what is missing is this precondition in the ImpactsSource javadoc and a check for it in the test framework's AssertingImpactsEnum.
+You take an ImpactsEnum from TermsEnum#impacts, stand on a document, call advanceShallow(target) with a target in a later 256-doc block to peek at upcoming impacts, and then read the current document's freq(), positions or docIDRunEnd(); the javadoc forbids only nextDoc() and too-small advance() targets afterwards and says docID() does not change, so you expect the current document's own data and a working advance(target). Instead the default codec has already moved its streams to the target block on purpose: on main the positions of doc 0 read as [5] instead of [0], docIDRunEnd() claims docs 0 to 3327 all match although only every third does, and after freq() the legal advance(3000) returns doc 3005, which does not contain the term. Lucene's own callers always advance before reading, so the codec behaviour is intended; what is missing is this precondition in the ImpactsSource javadoc and a check for it in the test framework's AssertingImpactsEnum.
 
 The test shows that on a default-codec ImpactsEnum, the sequence nextDoc() (doc 0), advanceShallow(256), freq(), advance(256) returns the wrong doc. The `ImpactsSource#advanceShallow` javadoc allows this sequence; the javadoc gap is that it does not say per-doc reads are invalid after a shallow advance past the current block.
 
@@ -22,7 +22,7 @@ Expected: 256 (every one of the 1200 docs contains t). Actual on main with -ea a
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

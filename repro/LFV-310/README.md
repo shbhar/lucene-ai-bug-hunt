@@ -1,14 +1,14 @@
 # DoubleRangeFacetCounts orders -0.0 below +0.0 while DoubleRange.accept and getQuery treat the two zeros as equal: a document holding a zero of the opposite sign at an inclusive zero bound (for example -0.0 in [0, 1]) is matched by the range's own drill-down but not counted, and the accepted range [+0.0, -0.0] makes counting throw
 
-Bug LFV-310 · Area: facet / range facet counts (DoubleRange bounds and values converted to sortable longs in DoubleRangeFacetCounts, against DoubleRange.accept and getQuery) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-310 · Area: facet / range facet counts (DoubleRange bounds and values converted to sortable longs in DoubleRangeFacetCounts, against DoubleRange.accept and getQuery) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-310.html](../../bugs/LFV-310.html)
+Finding page: [../../bugs/LFV-310.html](../../bugs/LFV-310.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You count range facets over a double field with DoubleRangeFacetCounts and a range that starts at an inclusive 0.0, such as new DoubleRange("[0, 1]", 0.0, true, 1.0, true), and some documents hold -0.0 (Java's negative zero, which ordinary arithmetic such as Math.ceil(-0.25) or -1 * 0.0 produces). You expect the count to include every document the range accepts, because DoubleRange.accept and the range's own drill-down query getQuery compare with primitive &gt;= and &lt;=, treat -0.0 as equal to 0.0, and match those documents. Instead the counter converts bounds and values with NumericUtils.doubleToSortableLong, where -0.0 sorts below +0.0, so those documents are silently left out of the count (likewise +0.0 at an inclusive -0.0 upper bound), and the range [+0.0, -0.0], which the DoubleRange constructor accepts, makes DoubleRangeFacetCounts throw IllegalArgumentException 'matches nothing'.
+You count range facets over a double field with DoubleRangeFacetCounts and a range that starts at an inclusive 0.0, such as new DoubleRange("[0, 1]", 0.0, true, 1.0, true), and some documents hold -0.0 (Java's negative zero, which ordinary arithmetic such as Math.ceil(-0.25) or -1 * 0.0 produces). You expect the count to include every document the range accepts, because DoubleRange.accept and the range's own drill-down query getQuery() compare with primitive &gt;= and &lt;=, treat -0.0 as equal to 0.0, and match those documents. Instead the counter converts bounds and values with NumericUtils.doubleToSortableLong, where -0.0 sorts below +0.0, so those documents are silently left out of the count (likewise +0.0 at an inclusive -0.0 upper bound), and the range [+0.0, -0.0], which the DoubleRange constructor accepts, makes DoubleRangeFacetCounts throw IllegalArgumentException 'matches nothing'.
 
 The test shows that `DoubleRangeFacetCounts` does not count a document with value `-0.0` in the inclusive range `[0, 1]`, although `DoubleRange.accept(-0.0)` (and so the range's drill-down) is true.
 
@@ -24,7 +24,7 @@ Expected a facet count of 1; actual: 0 (`expected:<1> but was:<0>`), with `-ea` 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

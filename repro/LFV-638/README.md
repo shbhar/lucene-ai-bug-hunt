@@ -1,14 +1,14 @@
-# Hunspell getAllWordForms, generateAllSimpleWords and compress return words that spell rejects: the sanity check canStemToOriginal accepts any affix path that strips a form back to the stem text, so with 'NEEDAFFIX X', 'SFX A 0 s/XB', an unrelated 'SFX C 0 s' and foo/A, getAllWordForms("foo") returns foos
+# Hunspell getAllWordForms, generateAllSimpleWords and compress return words that spell() rejects: the sanity check canStemToOriginal accepts any affix path that strips a form back to the stem text, so with 'NEEDAFFIX X', 'SFX A 0 s/XB', an unrelated 'SFX C 0 s' and foo/A, getAllWordForms("foo") returns foos
 
-Bug LFV-638 · Area: analysis / hunspell (WordFormGenerator: canStemToOriginal, getAllWordForms, generateAllSimpleWords, compress) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-638 · Area: analysis / hunspell (WordFormGenerator: canStemToOriginal, getAllWordForms, generateAllSimpleWords, compress) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-638.html](../../bugs/LFV-638.html)
+Finding page: [../../bugs/LFV-638.html](../../bugs/LFV-638.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You load a Hunspell dictionary with 'NEEDAFFIX X', 'SFX A 0 s/XB' (so foos needs one more suffix), 'SFX B 0 en' and an unrelated class 'SFX C 0 s', with the entries foo/A and bar/C, and call Hunspell.getAllWordForms("foo"). You expect [foo, foosen]: spell rejects foos (C Hunspell 1.7.2 does too), and the generator's check canStemToOriginal is documented to keep only forms that are 'accepted by the spell-checker and analyzed to be the form of the original dictionary entry'. Instead you get [foo, foos, foosen], because canStemToOriginal accepts as soon as any affix-stripping path gives back the stem text, here class C, which foo does not even have, and ignores which affixes were stripped (WordFormGenerator.java:211); generateAllSimpleWords leaks the same words, and compress([kat, kater, katern]) suggests kat/PQ, which does not accept kater.
+You load a Hunspell dictionary with 'NEEDAFFIX X', 'SFX A 0 s/XB' (so foos needs one more suffix), 'SFX B 0 en' and an unrelated class 'SFX C 0 s', with the entries foo/A and bar/C, and call Hunspell.getAllWordForms("foo"). You expect [foo, foosen]: spell() rejects foos (C Hunspell 1.7.2 does too), and the generator's check canStemToOriginal is documented to keep only forms that are 'accepted by the spell-checker and analyzed to be the form of the original dictionary entry'. Instead you get [foo, foos, foosen], because canStemToOriginal accepts as soon as any affix-stripping path gives back the stem text, here class C, which foo does not even have, and ignores which affixes were stripped (WordFormGenerator.java:211); generateAllSimpleWords leaks the same words, and compress([kat, kater, katern]) suggests kat/PQ, which does not accept kater.
 
 The test shows that with `NEEDAFFIX X`, `SFX A 0 s/XB`, `SFX B 0 en`, an unused `SFX C 0 s` and the entry foo/A, `Hunspell.getAllWordForms("foo")` returns foos, which the same dictionary's `spell()` rejects.
 
@@ -24,7 +24,7 @@ Expected: every generated form passes `spell()` (empty list of rejected forms); 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

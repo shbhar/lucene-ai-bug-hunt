@@ -1,12 +1,12 @@
 # CheckHits.checkTopScores (test framework) fails on correct minimum-should-match disjunctions because it walks the COMPLETE and TOP_SCORES two-phase approximations in lockstep
 
-Bug LFV-102 · Area: test-framework / search checkers (CheckHits) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-102 · Area: test-framework / search checkers (CheckHits) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-In a test you call the test framework's CheckHits.checkTopScores on a BooleanQuery of three term clauses with setMinimumNumberShouldMatch(2), for example (f:a f:b f:c)~2. You expect it to pass, because the query returns the same matching docs with the same scores in COMPLETE and TOP_SCORES mode (checked in the same test). Instead it throws AssertionError 'expected:&lt;1&gt; but was:&lt;0&gt;' in CheckHits.doCheckMaxScores (CheckHits.java:751): the checker requires the two scorers' two-phase approximations, which only have to be supersets of the matches, to stop on the same docs, and the TOP_SCORES WANDScorer legitimately stops on doc 0 (it holds only 'c'), which matches then rejects.
+In a test you call the test framework's CheckHits.checkTopScores on a BooleanQuery of three term clauses with setMinimumNumberShouldMatch(2), for example (f:a f:b f:c)~2. You expect it to pass, because the query returns the same matching docs with the same scores in COMPLETE and TOP_SCORES mode (checked in the same test). Instead it throws AssertionError 'expected:&lt;1&gt; but was:&lt;0&gt;' in CheckHits.doCheckMaxScores (CheckHits.java:751): the checker requires the two scorers' two-phase approximations, which only have to be supersets of the matches, to stop on the same docs, and the TOP_SCORES WANDScorer legitimately stops on doc 0 (it holds only 'c'), which matches() then rejects.
 
 The test shows that the test-framework checker `CheckHits.checkTopScores` rejects the correct query `(f:a f:b f:c)~2` on a 2-doc index (doc 0 = "c", doc 1 = "a b"), because it walks the COMPLETE and TOP_SCORES two-phase approximations in lockstep and the TOP_SCORES WANDScorer's approximation also stops on doc 0.
 
@@ -22,7 +22,7 @@ Expected: the check passes (doc 1 is the only match, same score in both modes); 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

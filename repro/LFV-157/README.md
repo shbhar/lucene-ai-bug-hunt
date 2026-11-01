@@ -1,12 +1,14 @@
-# Block-tree TermsEnum.next after seekExact(term, TermState) on a never-positioned enum restarts at the field's first term instead of returning the next term
+# Block-tree TermsEnum.next() after seekExact(term, TermState) on a never-positioned enum restarts at the field's first term instead of returning the next term
 
-Bug LFV-157 · Area: codecs / block-tree terms dictionary (Lucene103 SegmentTermsEnum; also BlockTreeOrds and the Lucene90 block tree in backward-codecs) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-157 · Area: codecs / block-tree terms dictionary (Lucene103 SegmentTermsEnum; also BlockTreeOrds and the Lucene90 block tree in backward-codecs) · Priority: low · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-157.html](../../bugs/LFV-157.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You take the TermState of a term (say 'banana') from one TermsEnum, or from TermStates the way TermQuery does, and use it to position a brand-new TermsEnum of the same field and segment with seekExact(term, state); term and docFreq then correctly report 'banana'. You expect next to return the following term ('cherry'), as the comment inside next promises and as every other terms dictionary does. Instead, with the default block-tree terms dictionary, next returns the field's first term ('apple') and iteration starts over from the beginning, because next mistakes the not-yet-loaded enum for a fresh one and throws the TermState position away.
+You take the TermState of a term (say 'banana') from one TermsEnum, or from TermStates the way TermQuery does, and use it to position a brand-new TermsEnum of the same field and segment with seekExact(term, state); term() and docFreq() then correctly report 'banana'. You expect next() to return the following term ('cherry'), as the comment inside next() promises and as every other terms dictionary does. Instead, with the default block-tree terms dictionary, next() returns the field's first term ('apple') and iteration starts over from the beginning, because next() mistakes the not-yet-loaded enum for a fresh one and throws the TermState position away.
 
 The test shows that on the default (block-tree) terms dictionary, a new `TermsEnum` positioned with `seekExact(term, state)`, using the `TermState` that `TermStates.build` returns (as `TermQuery` does), restarts at the field's first term on `next()`.
 
@@ -22,7 +24,7 @@ Expected `next()` after the seek to "b" (terms a, b, c) to return "c"; actual: "
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,12 +1,14 @@
 # MultiCollectorManager wrapping exactly one manager whose collectors are MultiCollectors (for example a nested MultiCollectorManager) hands that manager the wrong collectors in reduce, so its second and later sub-managers return silently wrong results or throw ClassCastException
 
-Bug LFV-198 · Area: search / MultiCollectorManager (composition of CollectorManagers) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-198 · Area: search / MultiCollectorManager (composition of CollectorManagers) · Priority: low · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-198.html](../../bugs/LFV-198.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You wrap one collector manager in a MultiCollectorManager, for example new MultiCollectorManager(new MultiCollectorManager(top1, top5)) from code that builds the manager list dynamically, and expect the same results as searching with the inner manager directly. Instead, because MultiCollector.wrap returns a single collector unwrapped, the outer manager's reduce takes the inner manager's own MultiCollector for its wrapper and unwraps it, so the inner manager's second child is reduced over the first child's collectors. In the repro the top-5 list comes back with 0 hits instead of 5, and with a top-k child next to a hit-count child the count manager's reduce throws ClassCastException (TopScoreDocCollector cannot be cast to TotalHitCountCollector).
+You wrap one collector manager in a MultiCollectorManager, for example new MultiCollectorManager(new MultiCollectorManager(top1, top5)) from code that builds the manager list dynamically, and expect the same results as searching with the inner manager directly. Instead, because MultiCollector.wrap returns a single collector unwrapped, the outer manager's reduce takes the inner manager's own MultiCollector for its wrapper and unwraps it, so the inner manager's second child is reduced over the first child's collectors. In the finder's test the top-5 list comes back with 0 hits instead of 5, and with a top-k child next to a hit-count child the count manager's reduce throws ClassCastException (TopScoreDocCollector cannot be cast to TotalHitCountCollector).
 
 The test shows that a `MultiCollectorManager` wrapping exactly one `MultiCollectorManager(top1, top2)` reduces the inner manager's second child over the first child's collector.
 
@@ -22,7 +24,7 @@ Expected the inner top-2 result to have 2 hits, as when the inner manager is sea
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

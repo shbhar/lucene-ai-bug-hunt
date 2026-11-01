@@ -1,16 +1,16 @@
-# Intervals.ordered(X, X) with two equal sub-sources that span several positions lets the two copies of X overlap, so ordered(phrase(a, a), phrase(a, a)) matches 'a a' and ordered(unordered(a, b), unordered(a, b)) matches 'a b a' (one b), while the same query with an equivalent but unequal second source finds nothing
+# Intervals.ordered(X, X) with two equal sub-sources that span several positions lets the two copies of X overlap, so ordered(phrase(a, a), phrase(a, a)) matches 'a a a' and ordered(unordered(a, b), unordered(a, b)) matches 'a b a' (one b), while the same query with an equivalent but unequal second source finds nothing
 
-Bug LFV-807 · Area: queries / intervals (Intervals.ordered and unorderedNoOverlaps with equal consecutive sub-sources: OrderedIntervalsSource.deduplicate, RepeatingIntervalsSource) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-807 · Area: queries / intervals (Intervals.ordered and unorderedNoOverlaps with equal consecutive sub-sources: OrderedIntervalsSource.deduplicate, RepeatingIntervalsSource) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-807.html](../../bugs/LFV-807.html)
+Finding page: [../../bugs/LFV-807.html](../../bugs/LFV-807.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You ask for two occurrences of X in order with Intervals.ordered(X, X), for example X = unordered(a, b) ('a near b', twice) or X = phrase(a, a), and expect the usual ordered rule that the sub-intervals do not overlap (the fn:ordered documentation says 'Source intervals must not overlap'). Instead, because the two arguments are equal, OrderedIntervalsSource.build merges them into a RepeatingIntervalsSource, which joins consecutive intervals of a single sub-iterator without checking that they are disjoint, so ordered(unordered(a, b), unordered(a, b)) matches 'a b a', which has only one b, and ordered(phrase(a, a), phrase(a, a)) matches 'a a'. The same query with an equivalent but unequal second source, ordered(X, or(X, a term that occurs nowhere)), correctly finds nothing, and so did Lucene 8.4.1.
+You ask for two occurrences of X in order with Intervals.ordered(X, X), for example X = unordered(a, b) ('a near b', twice) or X = phrase(a, a), and expect the usual ordered rule that the sub-intervals do not overlap (the fn:ordered documentation says 'Source intervals must not overlap'). Instead, because the two arguments are equal, OrderedIntervalsSource.build merges them into a RepeatingIntervalsSource, which joins consecutive intervals of a single sub-iterator without checking that they are disjoint, so ordered(unordered(a, b), unordered(a, b)) matches 'a b a', which has only one b, and ordered(phrase(a, a), phrase(a, a)) matches 'a a a'. The same query with an equivalent but unequal second source, ordered(X, or(X, a term that occurs nowhere)), correctly finds nothing, and so did Lucene 8.4.1.
 
-The test shows that `Intervals.ordered(phrase(a, a), phrase(a, a))` matches the document `a a`, although its only two `a a` intervals, [0,1] and [1,2], overlap (the two equal sub-sources are merged into a `RepeatingIntervalsSource`).
+The test shows that `Intervals.ordered(phrase(a, a), phrase(a, a))` matches the document `a a a`, although its only two `a a` intervals, [0,1] and [1,2], overlap (the two equal sub-sources are merged into a `RepeatingIntervalsSource`).
 
 ## Expected vs actual
 
@@ -24,7 +24,7 @@ Expected: 0 hits, as for any ordered query whose sub-intervals would have to ove
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

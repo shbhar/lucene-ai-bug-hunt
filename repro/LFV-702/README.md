@@ -1,17 +1,17 @@
 # KoreanPartOfSpeechStopFilterFactory's class javadoc example tags="E,J" fails with IllegalArgumentException ('No enum constant org.apache.lucene.analysis.ko.POS.Tag.E') since 10.0.0: GITHUB#11778 replaced the POS tags E and J with fine-grained tags and updated the factory test, but not the javadoc example, and no CHANGES or MIGRATE note survives (documentation defect; the tag change is intended)
 
-Bug LFV-702 · Area: analysis-nori / KoreanPartOfSpeechStopFilterFactory (javadoc example of the stop tags) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-702 · Area: analysis-nori / KoreanPartOfSpeechStopFilterFactory (javadoc example of the stop tags) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You configure KoreanPartOfSpeechStopFilterFactory exactly as its class javadoc shows, tags="E,J" (verbal endings and particles), through the constructor, the SPI name koreanPartOfSpeechStop or CustomAnalyzer, and expect an analyzer that drops endings and particles, as the same setting does on 9.x. Since 10.0.0 the factory constructor instead throws IllegalArgumentException 'No enum constant org.apache.lucene.analysis.ko.POS.Tag.E', because GITHUB#11778 deliberately replaced E and J with fine-grained tags (EP, EF, EC, ETN, ETM and JKS... JC) and POS.resolveTag became an exact Tag.valueOf lookup. The tag change itself is intended; the defect is that the javadoc example (KoreanPartOfSpeechStopFilterFactory.java:28-36) was not updated and no CHANGES or MIGRATE entry tells 9.x users.
+You configure KoreanPartOfSpeechStopFilterFactory exactly as its class javadoc shows, tags="E,J" (verbal endings and particles), through the constructor, the SPI name koreanPartOfSpeechStop or CustomAnalyzer, and expect an analyzer that drops endings and particles, as the same setting does on 9.x. Since 10.0.0 the factory constructor instead throws IllegalArgumentException 'No enum constant org.apache.lucene.analysis.ko.POS.Tag.E', because GITHUB#11778 deliberately replaced E and J with fine-grained tags (EP, EF, EC, ETN, ETM and JKS ... JC) and POS.resolveTag became an exact Tag.valueOf lookup. The tag change itself is intended; the defect is that the javadoc example (KoreanPartOfSpeechStopFilterFactory.java:28-36) was not updated and no CHANGES or MIGRATE entry tells 9.x users.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -20,7 +20,7 @@ You configure KoreanPartOfSpeechStopFilterFactory exactly as its class javadoc s
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

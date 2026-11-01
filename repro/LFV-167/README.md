@@ -1,18 +1,20 @@
 # ParentsChildrenBlockJoinQuery throws IllegalStateException ('does not support intraSegment concurrency') when a scorer is requested twice for the same leaf, so IndexSearcher.explain of a BooleanQuery that contains it fails, even on a plain single-threaded searcher
 
-Bug LFV-167 · Area: join / block join (ParentsChildrenBlockJoinQuery: ParentsChildrenBlockJoinWeight#scorerSupplier intra-segment guard) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-167 · Area: join / block join (ParentsChildrenBlockJoinQuery: ParentsChildrenBlockJoinWeight#scorerSupplier intra-segment guard) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-167.html](../../bugs/LFV-167.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You search with a BooleanQuery that combines a ParentsChildrenBlockJoinQuery with another clause and call IndexSearcher.explain on a hit, and you expect an explanation, because the Weight#scorer and Weight#scorerSupplier javadoc say a scorer (supplier) for the same LeafReaderContext may be requested multiple times as part of a single search call. Instead explain throws IllegalStateException 'ParentsChildrenBlockJoinQuery does not support intraSegment concurrency. Context... was already seen.': the join query's Weight records every leaf it has built a scorer supplier for and refuses a second request, and BooleanWeight#explain makes exactly that second request (the join clause's own explain pulls a scorer, then BooleanWeight pulls its scorer for the same leaf to compute the score). The search itself returns the right hits; explain fails for every document that the BooleanQuery matches, including documents matched only by the other clause.
+You search with a BooleanQuery that combines a ParentsChildrenBlockJoinQuery with another clause and call IndexSearcher.explain on a hit, and you expect an explanation, because the Weight#scorer and Weight#scorerSupplier javadoc say a scorer (supplier) for the same LeafReaderContext may be requested multiple times as part of a single search call. Instead explain throws IllegalStateException 'ParentsChildrenBlockJoinQuery does not support intraSegment concurrency. Context ... was already seen.': the join query's Weight records every leaf it has built a scorer supplier for and refuses a second request, and BooleanWeight#explain makes exactly that second request (the join clause's own explain pulls a scorer, then BooleanWeight pulls its scorer for the same leaf to compute the score). The search itself returns the right hits; explain fails for every document that the BooleanQuery matches, including documents matched only by the other clause.
 
 The test shows that `IndexSearcher.explain` of `BooleanQuery(SHOULD ParentsChildrenBlockJoinQuery, SHOULD color:blue)` on a one-block index (child doc 0, parent doc 1) throws, because the join Weight refuses a second scorer request for the same leaf, which `BooleanWeight#explain` makes (`TestParentsChildrenBlockJoinExplain#testExplainOfBooleanQueryWithJoinClause`).
 
 ## Expected vs actual
 
-Expected: a match explanation for doc 0 (Weight javadoc: a scorer for the same leaf may be requested multiple times); actual: `IllegalStateException: ParentsChildrenBlockJoinQuery does not support intraSegment concurrency... was already seen` on a plain single-threaded searcher, with -ea and -da.
+Expected: a match explanation for doc 0 (Weight javadoc: a scorer for the same leaf may be requested multiple times); actual: `IllegalStateException: ParentsChildrenBlockJoinQuery does not support intraSegment concurrency ... was already seen` on a plain single-threaded searcher, with -ea and -da.
 
 ## Files
 
@@ -22,7 +24,7 @@ Expected: a match explanation for doc 0 (Weight javadoc: a scorer for the same l
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

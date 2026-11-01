@@ -1,6 +1,6 @@
 # ExitableDirectoryReader turns off filtered HNSW search on 9.x-format vector segments, so a filtered kNN query ignores the KnnSearchStrategy.Hnsw threshold even when the timeout never fires
 
-Bug LFV-423 · Area: search / filtered kNN (ExitableDirectoryReader with the 9.x HNSW vectors readers in backward-codecs) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-423 · Area: search / filtered kNN (ExitableDirectoryReader with the 9.x HNSW vectors readers in backward-codecs) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ On main you open an index whose vector segment was written by Lucene 9.8.0 (Luce
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
 - Before compiling, copy Lucene95RWHnswVectorsFormat.java and Lucene95HnswVectorsWriter.java, unchanged classes of Lucene's own test sources that the release jars do not contain, from lucene/backward-codecs/src/test/org/apache/lucene/backward_codecs/lucene95/ of the checkout into src/org/apache/lucene/backward_codecs/lucene95/ here.
 - Fixture (optional): testIndexWrittenByLucene980 also reads hnsw-9.8.0.zip, an index of 5,000 16-dimensional vectors written by Lucene 9.8.0, from its package on the class path, and is skipped without it. This site ships no binary index files, so the recipe first makes it with fixture-src/MakeOldHnswIndex.java and lucene-core-9.8.0.jar (Maven Central) and puts it in src/, which the run puts on the class path.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

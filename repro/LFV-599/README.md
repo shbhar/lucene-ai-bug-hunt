@@ -1,6 +1,6 @@
 # UnifiedHighlighter mistakes a U+0000 inside a stored value for its internal multi-value separator, so snippets are cut there and, with the ANALYSIS offset source, matches the query found are not highlighted
 
-Bug LFV-599 · Area: highlighter / UnifiedHighlighter (multi-value joining with the in-band MULTIVAL_SEP_CHAR U+0000: SplittingBreakIterator, ANALYSIS re-analysis) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-599 · Area: highlighter / UnifiedHighlighter (multi-value joining with the in-band MULTIVAL_SEP_CHAR U+0000: SplittingBreakIterator, ANALYSIS re-analysis) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You store and index one text value that contains a U+0000 character, for example
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

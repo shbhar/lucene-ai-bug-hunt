@@ -1,6 +1,8 @@
 # IndexWriter#addBatch does not validate tuple doc-ids on some doc-values column paths: a doc-values-only SORTED/SORTED_SET DictionaryColumn accepts a doc-id outside [0, numDocs) and writes the value onto a neighbouring document, and SORTED_NUMERIC/SORTED_SET columns check doc-id order only with a Java assert, so decreasing doc-ids close the writer (-ea) or are accepted and break later documents and commits (-da)
 
-Bug LFV-098 · Area: index / columnar addBatch (column pass: DictionaryColumn, SORTED_NUMERIC and SORTED_SET doc-values writers) · Priority: low · Impact: data corruption · Novelty: new
+Finding LFV-098 · Area: index / columnar addBatch (column pass: DictionaryColumn, SORTED_NUMERIC and SORTED_SET doc-values writers) · Priority: low · Impact: data corruption · Novelty: new
+
+Finding page: [../../bugs/LFV-098.html](../../bugs/LFV-098.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected: the document added after the batch has no "tag" value (or the batch is
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -4,11 +4,11 @@ Tools: Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- AxiomaticF2LOG and AxiomaticF2EXP scores drop by 1 ulp as term frequency crosses a power of two (bug LFV-063; [repro](../../repro/LFV-063/))
-- IBSimilarity with DistributionLL returns -0.0f scores (bug LFV-072; [repro](../../repro/LFV-072/))
-- BaseSimilarityTestCase's 'scores don't decrease as terms get rarer' check is dead code (bug LFV-073; [repro](../../repro/LFV-073/))
+- AxiomaticF2LOG and AxiomaticF2EXP scores drop by 1 ulp as term frequency crosses a power of two (finding LFV-063; [repro](../../repro/LFV-063/))
+- IBSimilarity with DistributionLL returns -0.0f scores (finding LFV-072; [repro](../../repro/LFV-072/))
+- BaseSimilarityTestCase's 'scores don't decrease as terms get rarer' check is dead code (finding LFV-073; [repro](../../repro/LFV-073/))
 
 ## Files
 

@@ -1,8 +1,8 @@
 # After a primary change, an NRT replica keeps a file it already copied from the old primary when the new primary's file has the same name, matching by name only, so the replica serves and commits the wrong documents with CheckIndex clean
 
-Bug LFV-241 · Area: replicator / NRT segment replication (CopyJob.transferAndCancel, ReplicaNode.newNRTPoint) · Priority: medium · Impact: data corruption · Novelty: new
+Finding LFV-241 · Area: replicator / NRT segment replication (CopyJob.transferAndCancel, ReplicaNode.newNRTPoint) · Priority: medium · Impact: data corruption · Novelty: new
 
-Bug page: [../../bugs/LFV-241.html](../../bugs/LFV-241.html)
+Finding page: [../../bugs/LFV-241.html](../../bugs/LFV-241.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -10,7 +10,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You run Lucene's NRT segment replication with failover: replica A is promoted to primary (a higher primaryGen) while replica B is still copying an NRT point from the old primary and has already finished one of its files, for example _1_1.liv. You expect B, once it has installed the new primary's NRT point, to search exactly the new primary's documents, because the module discards pre-copied data on a primary change and treats two files as the same only if name, header and footer match. Instead CopyJob._transferAndCancel keeps the old primary's finished temp file because the new primary's file has the same name, so B, at the new primary's version, shows [a0, b1] instead of [a0, a1], commits that state, and CheckIndex reports the index clean.
 
-The test shows that after a failover (P1 crashes, replica A becomes P2), replica B keeps a.liv file it had already copied from P1 because P2's file has the same name, so B at P2's NRT version serves a mix of both primaries' deletes.
+The test shows that after a failover (P1 crashes, replica A becomes P2), replica B keeps a .liv file it had already copied from P1 because P2's file has the same name, so B at P2's NRT version serves a mix of both primaries' deletes.
 
 ## Expected vs actual
 
@@ -24,7 +24,7 @@ Expected B to show P2's live docs `[a0, a1]`; actual `[a0, b1]` (`expected:<[a0,
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,17 +1,17 @@
 # IndexUpgrader's command line and default constructors use a bare IndexWriterConfig, so upgrading a sorted index silently and permanently removes its index sort (the application's sorted IndexWriter then refuses to open the index), and an index with a parent field or a soft-deletes field cannot be upgraded at all
 
-Bug LFV-615 · Area: core index / IndexUpgrader (command line and default-config upgrade path); IndexWriter index-sort validation · Priority: medium · Impact: index unusable · Novelty: known upstream
+Finding LFV-615 · Area: core index / IndexUpgrader (command line and default-config upgrade path); IndexWriter index-sort validation · Priority: medium · Impact: index unusable · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You run Lucene's documented upgrade tool (java... org.apache.lucene.index.IndexUpgrader indexDir, or new IndexUpgrader(dir).upgrade) on an index that has an index sort, for example Lucene's own backward-compatibility fixture sorted.9.10.0.zip, and expect only the segment format to change. Instead the tool rewrites the old segments with a writer whose config has no sort, so the new segment records indexSort=null: all 50 documents survive, but the sort is gone for good, and the application's IndexWriter configured with the original sort, which opened the index before, now throws 'cannot change previous indexSort=null... to new indexSort=&lt;long: "dateDV"&gt;!'. On an index with a parent field or a soft-deletes field, the same default tool throws IllegalArgumentException and cannot upgrade the index at all.
+You run Lucene's documented upgrade tool (java ... org.apache.lucene.index.IndexUpgrader indexDir, or new IndexUpgrader(dir).upgrade()) on an index that has an index sort, for example Lucene's own backward-compatibility fixture sorted.9.10.0.zip, and expect only the segment format to change. Instead the tool rewrites the old segments with a writer whose config has no sort, so the new segment records indexSort=null: all 50 documents survive, but the sort is gone for good, and the application's IndexWriter configured with the original sort, which opened the index before, now throws 'cannot change previous indexSort=null ... to new indexSort=&lt;long: "dateDV"&gt;!'. On an index with a parent field or a soft-deletes field, the same default tool throws IllegalArgumentException and cannot upgrade the index at all.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: The tool rewrites the old segments with a writer whose config has no sort, so the new segment records indexSort=null: all 50 documents survive, but the sort is gone for good, and the application's IndexWriter configured with the original sort, which opened the index before, now throws 'cannot change previous indexSort=null... to new indexSort=&lt;long: "dateDV"&gt;!'.
+- Actual: The tool rewrites the old segments with a writer whose config has no sort, so the new segment records indexSort=null: all 50 documents survive, but the sort is gone for good, and the application's IndexWriter configured with the original sort, which opened the index before, now throws 'cannot change previous indexSort=null ... to new indexSort=&lt;long: "dateDV"&gt;!'.
 
 ## Files
 
@@ -21,7 +21,7 @@ You run Lucene's documented upgrade tool (java... org.apache.lucene.index.IndexU
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
 - Fixtures: the test reads sorted.9.10.0.zip and sorted.10.5.2.zip, test resources of Lucene's backward-codecs module (lucene/backward-codecs/src/test/org/apache/lucene/backward_index/ in the checkout), so the run puts $LUCENE/lucene/backward-codecs/src/test on the class path; without them every test is skipped.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

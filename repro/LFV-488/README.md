@@ -1,14 +1,14 @@
 # ConcatenatingTokenStream loses a source's trailing position increment (for example a removed stop word) when the next source produces no tokens, so later tokens are indexed too close and phrase queries over-match
 
-Bug LFV-488 · Area: analysis / common miscellaneous (ConcatenatingTokenStream#incrementToken and #end: carry-over of child final position increments) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-488 · Area: analysis / common miscellaneous (ConcatenatingTokenStream#incrementToken and #end: carry-over of child final position increments) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-488.html](../../bugs/LFV-488.html)
+Finding page: [../../bugs/LFV-488.html](../../bugs/LFV-488.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build one field from several token streams with ConcatenatingTokenStream, for example the values 'alpha the', '' and 'beta', each run through a StopFilter that removes 'the'. You expect the hole left by the removed 'the' to survive, as it does when no empty value sits in between and as IndexWriter keeps it for the same values in a multi-valued field, because LUCENE-8650 (7.7.0) made the class carry each source's final position increment over to the next token. Instead each exhausted source overwrites the pending increment instead of adding to it, and end reports only the last source's own increment, so a source with no tokens erases the hole: 'beta' is indexed directly after 'alpha', the exact phrase "alpha beta" matches this document but not the single value 'alpha the beta', and with an empty last source end reports 0 instead of 1.
+You build one field from several token streams with ConcatenatingTokenStream, for example the values 'alpha the', '' and 'beta', each run through a StopFilter that removes 'the'. You expect the hole left by the removed 'the' to survive, as it does when no empty value sits in between and as IndexWriter keeps it for the same values in a multi-valued field, because LUCENE-8650 (7.7.0) made the class carry each source's final position increment over to the next token. Instead each exhausted source overwrites the pending increment instead of adding to it, and end() reports only the last source's own increment, so a source with no tokens erases the hole: 'beta' is indexed directly after 'alpha', the exact phrase "alpha beta" matches this document but not the single value 'alpha the beta', and with an empty last source end() reports 0 instead of 1.
 
 The test shows that ConcatenatingTokenStream loses the hole of a removed trailing stop word when the next source is empty: ('alpha the' with 'the' stopped, empty, 'beta').
 
@@ -24,7 +24,7 @@ Expected position increments [1, 2] (as without the empty source); actual [1, 1]
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

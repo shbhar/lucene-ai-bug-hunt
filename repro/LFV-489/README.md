@@ -1,12 +1,14 @@
 # SearcherTaxonomyManager's IndexWriter (near-real-time) constructors open the taxonomy reader before the index reader, so a manager created while another thread indexes can hand out a first pair whose searcher holds documents with categories the paired taxonomy reader does not know (facet counting throws ArrayIndexOutOfBoundsException until the index changes and the manager refreshes)
 
-Bug LFV-489 · Area: facet / taxonomy (SearcherTaxonomyManager NRT constructors: index and taxonomy reader open order) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-489 · Area: facet / taxonomy (SearcherTaxonomyManager NRT constructors: index and taxonomy reader open order) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-489.html](../../bugs/LFV-489.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index documents with taxonomy facets in one thread and meanwhile create a SearcherTaxonomyManager from the IndexWriter and DirectoryTaxonomyWriter. You expect its first SearcherAndTaxonomy, documented as 'a matched pair', to know every category its searcher's documents use, because TaxonomyReader's javadoc says to open the taxonomy after the main index and the manager's own refresh does exactly that. Instead the constructor opens the taxonomy reader first, so a document indexed in between is visible to the searcher while its category is missing from the taxonomy reader: getOrdinal returns -1, FastTaxonomyFacetCounts throws ArrayIndexOutOfBoundsException, and maybeRefresh keeps the broken pair until the index changes again.
+You index documents with taxonomy facets in one thread and meanwhile create a SearcherTaxonomyManager from the IndexWriter and DirectoryTaxonomyWriter. You expect its first SearcherAndTaxonomy, documented as 'a matched pair', to know every category its searcher's documents use, because TaxonomyReader's javadoc says to open the taxonomy after the main index and the manager's own refresh does exactly that. Instead the constructor opens the taxonomy reader first, so a document indexed in between is visible to the searcher while its category is missing from the taxonomy reader: getOrdinal returns -1, FastTaxonomyFacetCounts throws ArrayIndexOutOfBoundsException, and maybeRefresh() keeps the broken pair until the index changes again.
 
 The test shows that `SearcherTaxonomyManager`'s IndexWriter constructor opens the taxonomy reader before the index reader, so a document indexed in between (here added from the IndexWriter's InfoStream when the constructor's getReader starts) is in the first searcher while the paired taxonomy reader does not know its category.
 
@@ -22,7 +24,7 @@ Expected the first pair's taxonomy to return a valid ordinal for Author/Bob, the
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -47,7 +49,7 @@ The module(s) facet also need their third-party runtime jars; `./gradlew -p luce
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/taxonomy-index-pair-tla/](../../models/taxonomy-index-pair-tla/)
+Formal models and scripts this finding's part of the hunt used: [../../models/taxonomy-index-pair-tla/](../../models/taxonomy-index-pair-tla/)
 
 ## Feedback
 

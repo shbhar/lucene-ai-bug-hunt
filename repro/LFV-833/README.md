@@ -1,12 +1,14 @@
-# SpanPayloadCheckQuery.toString and IndexSearcher.explain throw NullPointerException when payloadToMatch contains a null entry, although the matcher accepts null as 'no payload at this position' and the query searches and counts correctly (since 5.4.0, LUCENE-6716)
+# SpanPayloadCheckQuery.toString() and IndexSearcher.explain() throw NullPointerException when payloadToMatch contains a null entry, although the matcher accepts null as 'no payload at this position' and the query searches and counts correctly (since 5.4.0, LUCENE-6716)
 
-Bug LFV-833 · Area: queries / payloads (SpanPayloadCheckQuery.toString, reached from SpanWeight.explain) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-833 · Area: queries / payloads (SpanPayloadCheckQuery.toString, reached from SpanWeight.explain) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-833.html](../../bugs/LFV-833.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a SpanPayloadCheckQuery over the span 'a b' with payloadToMatch = [null, 'p'], meaning that 'a' must have no payload and 'b' the payload 'p'; the matcher supports exactly this (a null entry matches a position without a payload, a non-null entry never does), and the search finds the document. You expect toString to print the query and IndexSearcher.explain to explain the hit. Both throw NullPointerException ('Cannot read field "bytes" because "termText" is null'), because toString hands every entry, null included, to Term.toString(BytesRef), and explain builds its description from the query string.
+You build a SpanPayloadCheckQuery over the span 'a b' with payloadToMatch = [null, 'p'], meaning that 'a' must have no payload and 'b' the payload 'p'; the matcher supports exactly this (a null entry matches a position without a payload, a non-null entry never does), and the search finds the document. You expect toString() to print the query and IndexSearcher.explain() to explain the hit. Both throw NullPointerException ('Cannot read field "bytes" because "termText" is null'), because toString() hands every entry, null included, to Term.toString(BytesRef), and explain builds its description from the query string.
 
 The test shows that SpanPayloadCheckQuery.toString() throws NullPointerException when payloadToMatch holds a null entry, which the matcher accepts as 'no payload at this position'.
 
@@ -22,7 +24,7 @@ Expected: a string that describes the query. Actual (-ea and -da): NullPointerEx
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

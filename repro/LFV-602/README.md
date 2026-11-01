@@ -1,17 +1,17 @@
 # UnifiedHighlighter and MatchRegionRetriever throw IllegalArgumentException on a MultiReader whose indexes differ in any field's schema, even only in norms or in an unrelated field, because FieldInfos.getMergedFieldInfos applies the single-index consistency check across the indexes
 
-Bug LFV-602 · Area: highlighter / uhighlight + matchhighlight: default offset-source choice on composite readers (core index FieldInfos.getMergedFieldInfos) · Priority: medium · Impact: crash · Novelty: known upstream
+Finding LFV-602 · Area: highlighter / uhighlight + matchhighlight: default offset-source choice on composite readers (core index FieldInfos.getMergedFieldInfos) · Priority: medium · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build two indexes in which a field is declared slightly differently, for example 'body' with norms in one and without norms in the other (both with offsets), open them together as new MultiReader(r1, r2), search body:alpha and get both hits. You expect UnifiedHighlighter.highlight("body", query, topDocs) to return both snippets ('&lt;b&gt;alpha&lt;/b&gt; beta', '&lt;b&gt;alpha&lt;/b&gt; gamma'), as it does when both indexes use the same options or when each index is highlighted on its own. Instead it throws IllegalArgumentException 'cannot change field "body" from omitNorms=false to inconsistent omitNorms=true' (and 'cannot change field "tag"...' when only an unrelated field differs), because the default offset-source choice builds FieldInfos.getMergedFieldInfos over the whole MultiReader, which applies the per-index field-consistency check across the two indexes; MatchRegionRetriever's default strategies fail the same way.
+You build two indexes in which a field is declared slightly differently, for example 'body' with norms in one and without norms in the other (both with offsets), open them together as new MultiReader(r1, r2), search body:alpha and get both hits. You expect UnifiedHighlighter.highlight("body", query, topDocs) to return both snippets ('&lt;b&gt;alpha&lt;/b&gt; beta', '&lt;b&gt;alpha&lt;/b&gt; gamma'), as it does when both indexes use the same options or when each index is highlighted on its own. Instead it throws IllegalArgumentException 'cannot change field "body" from omitNorms=false to inconsistent omitNorms=true' (and 'cannot change field "tag" ...' when only an unrelated field differs), because the default offset-source choice builds FieldInfos.getMergedFieldInfos over the whole MultiReader, which applies the per-index field-consistency check across the two indexes; MatchRegionRetriever's default strategies fail the same way.
 
 ## Expected vs actual
 
 - Expected: You expect UnifiedHighlighter.highlight("body", query, topDocs) to return both snippets ('&lt;b&gt;alpha&lt;/b&gt; beta', '&lt;b&gt;alpha&lt;/b&gt; gamma'), as it does when both indexes use the same options or when each index is highlighted on its own.
-- Actual: It throws IllegalArgumentException 'cannot change field "body" from omitNorms=false to inconsistent omitNorms=true' (and 'cannot change field "tag"...' when only an unrelated field differs), because the default offset-source choice builds FieldInfos.getMergedFieldInfos over the whole MultiReader, which applies the per-index field-consistency check across the two indexes; MatchRegionRetriever's default strategies fail the same way.
+- Actual: It throws IllegalArgumentException 'cannot change field "body" from omitNorms=false to inconsistent omitNorms=true' (and 'cannot change field "tag" ...' when only an unrelated field differs), because the default offset-source choice builds FieldInfos.getMergedFieldInfos over the whole MultiReader, which applies the per-index field-consistency check across the two indexes; MatchRegionRetriever's default strategies fail the same way.
 
 ## Files
 
@@ -21,7 +21,7 @@ You build two indexes in which a field is declared slightly differently, for exa
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

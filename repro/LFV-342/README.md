@@ -1,6 +1,6 @@
 # MemoryIndex takes omitNorms from the first instance of a field name, so a doc-values or stored-only instance added first gives an omitNorms text or keyword field norms and different scores than IndexWriter
 
-Bug LFV-342 · Area: memory / MemoryIndex field schema (FieldInfo built once from the first IndexableField of a name: omitNorms and norms); reached in-tree through monitor single-document batches · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-342 · Area: memory / MemoryIndex field schema (FieldInfo built once from the first IndexableField of a name: omitNorms and norms); reached in-tree through monitor single-document batches · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You put a document into a MemoryIndex in which a SortedDocValuesField (or a Nume
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

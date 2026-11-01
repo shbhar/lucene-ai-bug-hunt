@@ -1,14 +1,14 @@
 # TeluguAnalyzer runs its StopFilter after Indic and Telugu normalization, but its default stop list is not normalized, so 13 of the 43 single-word default stop words (for example కూడా, 'also') are never removed
 
-Bug LFV-677 · Area: analysis-common / language analyzers (TeluguAnalyzer default stop set te/stopwords.txt, applied after IndicNormalizationFilter and TeluguNormalizationFilter) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-677 · Area: analysis-common / language analyzers (TeluguAnalyzer default stop set te/stopwords.txt, applied after IndicNormalizationFilter and TeluguNormalizationFilter) · Priority: low · Impact: minor · Novelty: new
 
-Bug page: [../../bugs/LFV-677.html](../../bugs/LFV-677.html)
+Finding page: [../../bugs/LFV-677.html](../../bugs/LFV-677.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You analyze Telugu text with the stock new TeluguAnalyzer, whose default stop list (te/stopwords.txt) holds common function words such as కూడా ('also') that the analyzer should drop. The analyzer normalizes every token before its StopFilter and folds long vowel signs to short ones (ూ to ు, ీ to ి, ే to ె, ో to ొ), but the list holds only the unnormalized spellings, so the StopFilter sees కుడా and never matches the entry కూడా. As a result 13 of the 43 single-word default stop words are never removed and are indexed and searched as ordinary terms, while the Hindi analyzer, which has the same chain, ships the normalized forms in its list and removes all of its stop words.
+You analyze Telugu text with the stock new TeluguAnalyzer(), whose default stop list (te/stopwords.txt) holds common function words such as కూడా ('also') that the analyzer should drop. The analyzer normalizes every token before its StopFilter and folds long vowel signs to short ones (ూ to ు, ీ to ి, ే to ె, ో to ొ), but the list holds only the unnormalized spellings, so the StopFilter sees కుడా and never matches the entry కూడా. As a result 13 of the 43 single-word default stop words are never removed and are indexed and searched as ordinary terms, while the Hindi analyzer, which has the same chain, ships the normalized forms in its list and removes all of its stop words.
 
 The test shows that the stock `new TeluguAnalyzer()` does not remove its own default stop word కూడా ('also'), because its StopFilter runs after normalization and the list is not normalized.
 
@@ -24,7 +24,7 @@ Expected no token; actual one token: `TokenStream has more tokens than expected 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

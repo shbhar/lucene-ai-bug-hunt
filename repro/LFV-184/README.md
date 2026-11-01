@@ -1,17 +1,17 @@
-# addIndexes(CodecReader...) can register a merge and start a merge thread after a concurrent rollback has returned, because AddIndexesMergeSource.registerMerge does not re-check that merges are enabled
+# addIndexes(CodecReader...) can register a merge and start a merge thread after a concurrent rollback() has returned, because AddIndexesMergeSource.registerMerge does not re-check that merges are enabled
 
-Bug LFV-184 · Area: index / IndexWriter addIndexes(CodecReader...) vs rollback (AddIndexesMergeSource, ConcurrentMergeScheduler) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-184 · Area: index / IndexWriter addIndexes(CodecReader...) vs rollback (AddIndexesMergeSource, ConcurrentMergeScheduler) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You call addIndexes(CodecReader...) on one thread while another thread calls rollback on the same writer (or the writer closes itself after a tragic error). You expect that once rollback has returned the writer is closed and starts no more merges, so the addIndexes call just fails; Lucene's own TestAddIndexes rollback tests assert that no merge thread is left. Instead, if rollback lands while addIndexes is asking the merge policy for its merges, the merge is registered after rollback has already aborted all merges, and ConcurrentMergeScheduler starts a new merge thread after rollback and the scheduler's close have returned; that thread throws an uncaught MergeException (AlreadyClosedException 'Lock instance already released' on 10.3.0 and later, 'this IndexWriter is closed' on 9.4.0-10.2.2) and addIndexes throws AlreadyClosedException.
+You call addIndexes(CodecReader...) on one thread while another thread calls rollback() on the same writer (or the writer closes itself after a tragic error). You expect that once rollback() has returned the writer is closed and starts no more merges, so the addIndexes call just fails; Lucene's own TestAddIndexes rollback tests assert that no merge thread is left. Instead, if rollback() lands while addIndexes is asking the merge policy for its merges, the merge is registered after rollback has already aborted all merges, and ConcurrentMergeScheduler starts a new merge thread after rollback() and the scheduler's close() have returned; that thread throws an uncaught MergeException (AlreadyClosedException 'Lock instance already released' on 10.3.0 and later, 'this IndexWriter is closed' on 9.4.0-10.2.2) and addIndexes throws AlreadyClosedException.
 
 ## Expected vs actual
 
-- Expected: You expect that once rollback has returned the writer is closed and starts no more merges, so the addIndexes call just fails; Lucene's own TestAddIndexes rollback tests assert that no merge thread is left.
-- Actual: If rollback lands while addIndexes is asking the merge policy for its merges, the merge is registered after rollback has already aborted all merges, and ConcurrentMergeScheduler starts a new merge thread after rollback and the scheduler's close have returned; that thread throws an uncaught MergeException (AlreadyClosedException 'Lock instance already released' on 10.3.0 and later, 'this IndexWriter is closed' on 9.4.0-10.2.2) and addIndexes throws AlreadyClosedException.
+- Expected: You expect that once rollback() has returned the writer is closed and starts no more merges, so the addIndexes call just fails; Lucene's own TestAddIndexes rollback tests assert that no merge thread is left.
+- Actual: If rollback() lands while addIndexes is asking the merge policy for its merges, the merge is registered after rollback has already aborted all merges, and ConcurrentMergeScheduler starts a new merge thread after rollback() and the scheduler's close() have returned; that thread throws an uncaught MergeException (AlreadyClosedException 'Lock instance already released' on 10.3.0 and later, 'this IndexWriter is closed' on 9.4.0-10.2.2) and addIndexes throws AlreadyClosedException.
 
 ## Files
 
@@ -21,7 +21,7 @@ You call addIndexes(CodecReader...) on one thread while another thread calls rol
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

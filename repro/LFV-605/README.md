@@ -1,8 +1,8 @@
 # Kuromoji's romaji reading (ToStringUtil.getRomanization, used by JapaneseReadingFormFilter with useRomaji=true) writes the small tsu ッ as a doubled consonant only before the k, s, t and p rows and silently drops it before any other kana, so loanwords with ッ before g, z/j, d, b or h/f lose it: バッグ 'bag' and バグ 'bug' both become 'bagu', ベッド becomes 'bedo'
 
-Bug LFV-605 · Area: analysis / kuromoji romanization (ToStringUtil.getRomanization; JapaneseReadingFormFilter romaji mode) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-605 · Area: analysis / kuromoji romanization (ToStringUtil.getRomanization; JapaneseReadingFormFilter romaji mode) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-605.html](../../bugs/LFV-605.html)
+Finding page: [../../bugs/LFV-605.html](../../bugs/LFV-605.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected `getRomanization("バッグ")` to be "baggu"; actual "bagu" (the romaji
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

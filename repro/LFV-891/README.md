@@ -1,12 +1,14 @@
 # CompiledAutomaton.floor throws NullPointerException for NONE, ALL and SINGLE automata (what the documented one-argument constructor builds from an empty, any-string or single-string automaton) and, since 10.0.0, for NFA-backed NORMAL automata
 
-Bug LFV-891 · Area: util / automaton · Priority: low · Impact: crash · Novelty: new
+Finding LFV-891 · Area: util / automaton · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-891.html](../../bugs/LFV-891.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a CompiledAutomaton with the documented one-argument constructor, for example from new RegExp("m").toAutomaton (type SINGLE), Automata.makeEmpty (NONE), Automata.makeAnyString (ALL) or, on 10.x, the non-deterministic RegExp("(a|ab)c").toAutomaton (type NORMAL, run by NFARunAutomaton), and call floor(input, output). You expect what the javadoc promises, the largest accepted term &lt;= input or null: floor("x") = "m", null, "x", and floor("b") = "ac" (the value the determinized form of the same language returns). Instead floor throws NullPointerException ('Cannot invoke ByteRunAutomaton.step(int, int) because this.runAutomaton is null'), because it always walks runAutomaton and the constructor leaves runAutomaton null for these four shapes.
+You build a CompiledAutomaton with the documented one-argument constructor, for example from new RegExp("m").toAutomaton() (type SINGLE), Automata.makeEmpty() (NONE), Automata.makeAnyString() (ALL) or, on 10.x, the non-deterministic RegExp("(a|ab)c").toAutomaton() (type NORMAL, run by NFARunAutomaton), and call floor(input, output). You expect what the javadoc promises, the largest accepted term &lt;= input or null: floor("x") = "m", null, "x", and floor("b") = "ac" (the value the determinized form of the same language returns). Instead floor throws NullPointerException ('Cannot invoke ByteRunAutomaton.step(int, int) because this.runAutomaton is null'), because it always walks runAutomaton and the constructor leaves runAutomaton null for these four shapes.
 
 The test shows that `new CompiledAutomaton(Automata.makeString("m")).floor("x")` throws a NullPointerException, because the one-argument constructor builds type SINGLE with `runAutomaton == null` and `floor` always walks `runAutomaton`.
 
@@ -22,7 +24,7 @@ Expected: the largest accepted term &lt;= "x", i.e. "m". Actual on main with -ea
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

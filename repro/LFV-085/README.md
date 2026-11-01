@@ -1,17 +1,17 @@
-# With raw vectors dropped from a Lucene104 scalar-quantized field, rescorer.bulk reads quantized bytes as float32 vectors and returns wrong scores
+# With raw vectors dropped from a Lucene104 scalar-quantized field, rescorer().bulk() reads quantized bytes as float32 vectors and returns wrong scores
 
-Bug LFV-085 · Area: codecs / vectors · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-085 · Area: codecs / vectors · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You drop the raw float vectors from a Lucene104 scalar-quantized field (the read-only fallback added by #15415), open the index with MMapDirectory and the Panama vector provider, and score documents with FloatVectorValues#rescorer(q).bulk(...). You expect the same scores as rescorer(q).score, which compares the query with each document's dequantized vector. Instead bulk reads the quantized.veq bytes as if they were float32 vectors at the wrong stride and returns, for example, 8.9e-16 instead of 0.84, or NaN, 0.0 or huge values such as 5.3e37; with the 1-bit and 2-bit encodings it throws instead (IndexOutOfBoundsException from bulk, or IllegalArgumentException when the rescorer is created).
+You drop the raw float vectors from a Lucene104 scalar-quantized field (the read-only fallback added by #15415), open the index with MMapDirectory and the Panama vector provider, and score documents with FloatVectorValues#rescorer(q).bulk(...). You expect the same scores as rescorer(q).score(), which compares the query with each document's dequantized vector. Instead bulk() reads the quantized .veq bytes as if they were float32 vectors at the wrong stride and returns, for example, 8.9e-16 instead of 0.84, or NaN, 0.0 or huge values such as 5.3e37; with the 1-bit and 2-bit encodings it throws instead (IndexOutOfBoundsException from bulk(), or IllegalArgumentException when the rescorer is created).
 
 ## Expected vs actual
 
-- Expected: You expect the same scores as rescorer(q).score, which compares the query with each document's dequantized vector.
-- Actual: bulk reads the quantized.veq bytes as if they were float32 vectors at the wrong stride and returns, for example, 8.9e-16 instead of 0.84, or NaN, 0.0 or huge values such as 5.3e37; with the 1-bit and 2-bit encodings it throws instead (IndexOutOfBoundsException from bulk, or IllegalArgumentException when the rescorer is created).
+- Expected: You expect the same scores as rescorer(q).score(), which compares the query with each document's dequantized vector.
+- Actual: bulk() reads the quantized .veq bytes as if they were float32 vectors at the wrong stride and returns, for example, 8.9e-16 instead of 0.84, or NaN, 0.0 or huge values such as 5.3e37; with the 1-bit and 2-bit encodings it throws instead (IndexOutOfBoundsException from bulk(), or IllegalArgumentException when the rescorer is created).
 
 ## Files
 
@@ -22,7 +22,7 @@ You drop the raw float vectors from a Lucene104 scalar-quantized field (the read
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

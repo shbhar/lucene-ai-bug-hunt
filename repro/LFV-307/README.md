@@ -1,17 +1,17 @@
 # MappingCharFilterFactory throws ArrayIndexOutOfBoundsException ('Index 256 out of bounds for length 256') when a mapping rule's source or target is longer than 256 characters, because it unescapes every rule string into a fixed char[256] buffer, so the analyzer cannot be built
 
-Bug LFV-307 · Area: analysis / char filters (MappingCharFilterFactory mapping-file parser) · Priority: low · Impact: wrong error · Novelty: known upstream
+Finding LFV-307 · Area: analysis / char filters (MappingCharFilterFactory mapping-file parser) · Priority: low · Impact: wrong error · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You configure the mapping char filter with a mapping file that contains one rule whose source or target is longer than 256 characters, for example "abc" =&gt; "&lt;257 x&gt;" or a long boilerplate phrase mapped to "", and expect the factory to build the map (NormalizeCharMap.Builder accepts such strings when called directly, and no limit is documented) or to reject the rule with an IllegalArgumentException that names it, as it does for other bad rules. Instead MappingCharFilterFactory.inform throws java.lang.ArrayIndexOutOfBoundsException: Index 256 out of bounds for length 256 from parseString, which copies each unescaped rule string into a fixed 256-character instance buffer without a bounds check. A 256-character string still works, and the limit counts characters after unescaping (256 \uNNNN escapes, 1536 raw characters, pass).
+You configure the mapping char filter with a mapping file that contains one rule whose source or target is longer than 256 characters, for example "abc" =&gt; "&lt;257 x&gt;" or a long boilerplate phrase mapped to "", and expect the factory to build the map (NormalizeCharMap.Builder accepts such strings when called directly, and no limit is documented) or to reject the rule with an IllegalArgumentException that names it, as it does for other bad rules. Instead MappingCharFilterFactory.inform() throws java.lang.ArrayIndexOutOfBoundsException: Index 256 out of bounds for length 256 from parseString, which copies each unescaped rule string into a fixed 256-character instance buffer without a bounds check. A 256-character string still works, and the limit counts characters after unescaping (256 \uNNNN escapes, 1536 raw characters, pass).
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: MappingCharFilterFactory.inform throws java.lang.ArrayIndexOutOfBoundsException: Index 256 out of bounds for length 256 from parseString, which copies each unescaped rule string into a fixed 256-character instance buffer without a bounds check.
+- Actual: MappingCharFilterFactory.inform() throws java.lang.ArrayIndexOutOfBoundsException: Index 256 out of bounds for length 256 from parseString, which copies each unescaped rule string into a fixed 256-character instance buffer without a bounds check.
 
 ## Files
 
@@ -21,7 +21,7 @@ You configure the mapping char filter with a mapping file that contains one rule
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

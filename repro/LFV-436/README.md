@@ -1,17 +1,17 @@
 # A failed addIndexes(CodecReader...) leaves its unstarted merges in the writer-wide addIndexes queue, so the next addIndexes call runs them on the earlier call's readers and fails with AlreadyClosedException if those readers were closed
 
-Bug LFV-436 · Area: index / IndexWriter addIndexes(CodecReader...) failure path (AddIndexesMergeSource queue, SerialMergeScheduler) · Priority: low · Impact: crash · Novelty: known upstream
+Finding LFV-436 · Area: index / IndexWriter addIndexes(CodecReader...) failure path (AddIndexesMergeSource queue, SerialMergeScheduler) · Priority: low · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You call addIndexes(CodecReader...) with a merge policy that turns the readers into several merges and with SerialMergeScheduler, and the first merge fails (for example disk full); the call throws, adds nothing, and the writer stays open and not tragic. You expect that failed call to be over, so you close its readers and later call addIndexes with other, valid readers, which should merge exactly those readers. Instead the failed call's unstarted merges are still in the writer's shared addIndexes queue, so the next call runs them first and throws AlreadyClosedException 'this IndexReader is closed', leaving its own merge queued in turn, so later calls keep failing this way until rollback or close; if you kept the old readers open, the next call silently runs the stale merge and writes a segment that is never used.
+You call addIndexes(CodecReader...) with a merge policy that turns the readers into several merges and with SerialMergeScheduler, and the first merge fails (for example disk full); the call throws, adds nothing, and the writer stays open and not tragic. You expect that failed call to be over, so you close its readers and later call addIndexes with other, valid readers, which should merge exactly those readers. Instead the failed call's unstarted merges are still in the writer's shared addIndexes queue, so the next call runs them first and throws AlreadyClosedException 'this IndexReader is closed', leaving its own merge queued in turn, so later calls keep failing this way until rollback() or close(); if you kept the old readers open, the next call silently runs the stale merge and writes a segment that is never used.
 
 ## Expected vs actual
 
 - Expected: You expect that failed call to be over, so you close its readers and later call addIndexes with other, valid readers, which should merge exactly those readers.
-- Actual: The failed call's unstarted merges are still in the writer's shared addIndexes queue, so the next call runs them first and throws AlreadyClosedException 'this IndexReader is closed', leaving its own merge queued in turn, so later calls keep failing this way until rollback or close; if you kept the old readers open, the next call silently runs the stale merge and writes a segment that is never used.
+- Actual: The failed call's unstarted merges are still in the writer's shared addIndexes queue, so the next call runs them first and throws AlreadyClosedException 'this IndexReader is closed', leaving its own merge queued in turn, so later calls keep failing this way until rollback() or close(); if you kept the old readers open, the next call silently runs the stale merge and writes a segment that is never used.
 
 ## Files
 
@@ -21,7 +21,7 @@ You call addIndexes(CodecReader...) with a merge policy that turns the readers i
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,12 +1,14 @@
 # Flexible StandardQueryParser: the (...)@N min-should-match operator throws ClassCastException when the group does not build a BooleanQuery, e.g. (the fox)@1 with a stop-word analyzer or the boosted group (fox dog)^2@1
 
-Bug LFV-732 · Area: queryparser / flexible: standard query builders (MinShouldMatchNodeBuilder for the @N min-should-match operator, composed with the grammar's group boost and the single-child Boolean optimization) · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-732 · Area: queryparser / flexible: standard query builders (MinShouldMatchNodeBuilder for the @N min-should-match operator, composed with the grammar's group boost and the single-child Boolean optimization) · Priority: low · Impact: wrong error · Novelty: new
+
+Finding page: [../../bugs/LFV-732.html](../../bugs/LFV-732.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You parse (the fox)@1 ('at least one of the, fox') with the flexible StandardQueryParser and an analyzer that drops the stopword 'the', or the boosted group (fox dog)^2@1; the class javadoc documents @N for disjunction groups and boosts on grouped clauses, and parse declares QueryNodeException for failures, so you expect a query (at least one of the remaining clauses, boosted as written). Instead parse throws java.lang.ClassCastException ('TermQuery / BoostQuery cannot be cast to BooleanQuery') from MinShouldMatchNodeBuilder.build, which casts the group's query to BooleanQuery without a check: after the stopword is removed the one-clause group is collapsed to a TermQuery, and the grammar puts the boost inside the min-should-match node, so the group's query is a BoostQuery. Groups holding a single term, phrase, prefix or other non-Boolean query, such as (fox)@1 or ("quick fox")@1, fail the same way, while (fox dog)@1 works.
+You parse (the fox)@1 ('at least one of the, fox') with the flexible StandardQueryParser and an analyzer that drops the stopword 'the', or the boosted group (fox dog)^2@1; the class javadoc documents @N for disjunction groups and boosts on grouped clauses, and parse() declares QueryNodeException for failures, so you expect a query (at least one of the remaining clauses, boosted as written). Instead parse() throws java.lang.ClassCastException ('TermQuery / BoostQuery cannot be cast to BooleanQuery') from MinShouldMatchNodeBuilder.build, which casts the group's query to BooleanQuery without a check: after the stopword is removed the one-clause group is collapsed to a TermQuery, and the grammar puts the boost inside the min-should-match node, so the group's query is a BoostQuery. Groups holding a single term, phrase, prefix or other non-Boolean query, such as (fox)@1 or ("quick fox")@1, fail the same way, while (fox dog)@1 works.
 
 The test shows that StandardQueryParser with a stop-word analyzer cannot parse the documented min-should-match group "(the fox)@1".
 
@@ -22,7 +24,7 @@ Expected: parse() returns a query (at least 1 of {fox}); actual: ClassCastExcept
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

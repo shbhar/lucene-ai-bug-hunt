@@ -1,14 +1,14 @@
-# RandomSamplingFacetsCollector.createManager samples the hits twice when a search has more than one slice: the reduce reads each slice's already-sampled getMatchingDocs as its original hits, so the sample is far too small and every amortized facet count is biased low (regression from #13542, 10.0.0 onward)
+# RandomSamplingFacetsCollector.createManager samples the hits twice when a search has more than one slice: the reduce reads each slice's already-sampled getMatchingDocs() as its original hits, so the sample is far too small and every amortized facet count is biased low (regression from #13542, 10.0.0 onward)
 
-Bug LFV-765 · Area: facet / sampling (RandomSamplingFacetsCollector.createManager reduce, FacetsCollectorManager.reduceMatchingDocs) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-765 · Area: facet / sampling (RandomSamplingFacetsCollector.createManager reduce, FacetsCollectorManager.reduceMatchingDocs) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-765.html](../../bugs/LFV-765.html)
+Finding page: [../../bugs/LFV-765.html](../../bugs/LFV-765.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You count facets on a sample of a large result set with RandomSamplingFacetsCollector.createManager(sampleSize, seed) on an IndexSearcher that has an executor, and expect what a one-slice search gives: about sampleSize sampled hits, taken at the rate sampleSize / totalHits that getSamplingRate reports, so that amortizeFacetCounts estimates the real counts. Instead, with two or more slices the reduce fills the reduced collector's original hits from FacetsCollectorManager.reduceMatchingDocs, which calls each slice collector's getMatchingDocs, the accessor RandomSamplingFacetsCollector overrides to return that slice's sample; the reduced collector then samples those samples again. The sample shrinks to about sampleSize^2 x numSlices / totalHits and every amortized count is low by the per-slice ratio, with no error: 2 segments of 1,024 matching docs with sampleSize 128 and one slice per segment give 16 sampled hits and an amortized count of 256 instead of 128 and 2,048, and default slicing on 2 segments of 262,144 docs with sampleSize 4,096 gives 64 sampled hits and 8,192 instead of 4,096 and 524,288.
+You count facets on a sample of a large result set with RandomSamplingFacetsCollector.createManager(sampleSize, seed) on an IndexSearcher that has an executor, and expect what a one-slice search gives: about sampleSize sampled hits, taken at the rate sampleSize / totalHits that getSamplingRate() reports, so that amortizeFacetCounts estimates the real counts. Instead, with two or more slices the reduce fills the reduced collector's original hits from FacetsCollectorManager.reduceMatchingDocs, which calls each slice collector's getMatchingDocs(), the accessor RandomSamplingFacetsCollector overrides to return that slice's sample; the reduced collector then samples those samples again. The sample shrinks to about sampleSize^2 x numSlices / totalHits and every amortized count is low by the per-slice ratio, with no error: 2 segments of 1,024 matching docs with sampleSize 128 and one slice per segment give 16 sampled hits and an amortized count of 256 instead of 128 and 2,048, and default slicing on 2 segments of 262,144 docs with sampleSize 4,096 gives 64 sampled hits and 8,192 instead of 4,096 and 524,288.
 
 The test shows that with two slices (one per segment), RandomSamplingFacetsCollector.createManager samples the hits twice: the reduce samples again the per-slice samples it reads through the overridden getMatchingDocs().
 
@@ -24,7 +24,7 @@ Expected: 128 sampled hits out of 2,048 (the reported rate 0.0625), as a one-sli
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

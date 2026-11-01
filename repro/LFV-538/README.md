@@ -1,8 +1,8 @@
 # WordBreakSpellChecker.suggestWordBreaks drops better suggestions when maxChanges &gt;= 3: the full-queue early return added in 9.12.0 (GITHUB#12100) assumes a breadth-first order that the depth-first recursion does not follow
 
-Bug LFV-538 · Area: suggest / spell (WordBreakSpellChecker word breaks) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-538 · Area: suggest / spell (WordBreakSpellChecker word breaks) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-538.html](../../bugs/LFV-538.html)
+Finding page: [../../bugs/LFV-538.html](../../bugs/LFV-538.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -14,7 +14,7 @@ The test shows that `WordBreakSpellChecker.suggestWordBreaks` with `setMaxChange
 
 ## Expected vs actual
 
-Expected the 3-break split `ab c d e` (fewest breaks first); actual the 4-break `a b c d e` (`expected:<a[]b c d e> but was:<ab c d e>`), with `-ea` and `-da`.
+Expected the 3-break split `ab c d e` (fewest breaks first); actual the 4-break `a b c d e` (`expected:<a[]b c d e> but was:<a[ ]b c d e>`), with `-ea` and `-da`.
 
 ## Files
 
@@ -24,7 +24,7 @@ Expected the 3-break split `ab c d e` (fewest breaks first); actual the 4-break 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

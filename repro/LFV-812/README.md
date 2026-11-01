@@ -1,17 +1,17 @@
-# IndexWriter.deleteAll javadoc says deleteDocuments(MatchAllDocsQuery) is slower and only marks documents deleted, but since 5.2.0 (LUCENE-6379) deleteDocuments(Query...) runs an exact MatchAllDocsQuery as deleteAll, which also resets the field schema (javadoc only; the routing is intended)
+# IndexWriter.deleteAll() javadoc says deleteDocuments(MatchAllDocsQuery) is slower and only marks documents deleted, but since 5.2.0 (LUCENE-6379) deleteDocuments(Query...) runs an exact MatchAllDocsQuery as deleteAll(), which also resets the field schema (javadoc only; the routing is intended)
 
-Bug LFV-812 · Area: index / IndexWriter delete APIs (deleteAll and deleteDocuments(Query...) javadoc) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-812 · Area: index / IndexWriter delete APIs (deleteAll and deleteDocuments(Query...) javadoc) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index a NUMERIC doc values field "f", commit, call deleteDocuments(MatchAllDocsQuery.INSTANCE) and then add "f" as SORTED. You expect the 'cannot change doc values type' IllegalArgumentException, because the deleteAll javadoc calls deleteAll 'much faster than' that call and says a delete query 'only marks documents as deleted' while deleteAll clears doc values types. Instead the SORTED document is accepted and getFieldNames is empty: since LUCENE-6379 (5.2.0), deleteDocuments(Query...) returns deleteAll whenever a query's class is exactly MatchAllDocsQuery, while the same delete wrapped in a ConstantScoreQuery keeps the schema; the routing is deliberate, only the javadoc is wrong.
+You index a NUMERIC doc values field "f", commit, call deleteDocuments(MatchAllDocsQuery.INSTANCE) and then add "f" as SORTED. You expect the 'cannot change doc values type' IllegalArgumentException, because the deleteAll() javadoc calls deleteAll() 'much faster than' that call and says a delete query 'only marks documents as deleted' while deleteAll() clears doc values types. Instead the SORTED document is accepted and getFieldNames() is empty: since LUCENE-6379 (5.2.0), deleteDocuments(Query...) returns deleteAll() whenever a query's class is exactly MatchAllDocsQuery, while the same delete wrapped in a ConstantScoreQuery keeps the schema; the routing is deliberate, only the javadoc is wrong.
 
 ## Expected vs actual
 
-- Expected: You expect the 'cannot change doc values type' IllegalArgumentException, because the deleteAll javadoc calls deleteAll 'much faster than' that call and says a delete query 'only marks documents as deleted' while deleteAll clears doc values types.
-- Actual: The SORTED document is accepted and getFieldNames is empty: since LUCENE-6379 (5.2.0), deleteDocuments(Query...) returns deleteAll whenever a query's class is exactly MatchAllDocsQuery, while the same delete wrapped in a ConstantScoreQuery keeps the schema; the routing is deliberate, only the javadoc is wrong.
+- Expected: You expect the 'cannot change doc values type' IllegalArgumentException, because the deleteAll() javadoc calls deleteAll() 'much faster than' that call and says a delete query 'only marks documents as deleted' while deleteAll() clears doc values types.
+- Actual: The SORTED document is accepted and getFieldNames() is empty: since LUCENE-6379 (5.2.0), deleteDocuments(Query...) returns deleteAll() whenever a query's class is exactly MatchAllDocsQuery, while the same delete wrapped in a ConstantScoreQuery keeps the schema; the routing is deliberate, only the javadoc is wrong.
 
 ## Files
 
@@ -21,7 +21,7 @@ You index a NUMERIC doc values field "f", commit, call deleteDocuments(MatchAllD
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

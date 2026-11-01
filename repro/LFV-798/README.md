@@ -1,8 +1,8 @@
 # The document suggester checks its reserved end byte U+0000 only in the raw SuggestField value, not in the analyzed form, so an analyzer that emits U+0000 (for example HTMLStripCharFilter decoding '&amp;#0;') hides another document's suggestion or its own and adds FST inputs out of order at flush (with assertions enabled the IndexWriter closes)
 
-Bug LFV-798 · Area: suggest / document (NRT) suggester (SuggestField's raw-value reserved-character check vs. the analyzed form that CompletionTokenStream passes to NRTSuggesterBuilder's FST encoding) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-798 · Area: suggest / document (NRT) suggester (SuggestField's raw-value reserved-character check vs. the analyzed form that CompletionTokenStream passes to NRTSuggesterBuilder's FST encoding) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-798.html](../../bugs/LFV-798.html)
+Finding page: [../../bugs/LFV-798.html](../../bugs/LFV-798.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected PrefixCompletionQuery "a" to return docs [1, 0]; actual [1] on main 645
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,14 +1,14 @@
 # Monitor HighlightsMatch drops a hit when another hit has the same positions but different offsets (for example shingles or multi-word synonyms), because HighlightsMatch.Hit.compareTo ignores offsets
 
-Bug LFV-915 · Area: monitor / HighlightsMatch hit set (Hit.compareTo used as TreeSet identity) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-915 · Area: monitor / HighlightsMatch hit set (Hit.compareTo used as TreeSet identity) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-915.html](../../bugs/LFV-915.html)
+Finding page: [../../bugs/LFV-915.html](../../bugs/LFV-915.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You register a query such as wi OR "wi fi" (or the prefix query wi*, or guinea OR cavy with a 'guinea pig =&gt; cavy' synonym rule) in a Monitor whose analyzer stacks tokens at one position, match a document with HighlightsMatch.MATCHER, and expect both hits that Weight#matches reports: for 'wi fi' with ShingleFilter(2,2) and unigrams these are 0(0)-&gt;0(2) for 'wi' and 0(0)-&gt;0(5) for 'wi fi'. Instead HighlightsMatch keeps only one of them and getHitCount is 1, because Hit.compareTo compares start and end positions only and the hits are kept in TreeSets, which treat compareTo == 0 as a duplicate, although Hit's own equals (a record over all four fields) says the two hits differ. Which hit survives depends on clause order, and the same root cause makes getHits(field).contains(...) ignore offsets and lets HighlightsMatch.equals return true for two objects whose hashCodes differ.
+You register a query such as wi OR "wi fi" (or the prefix query wi*, or guinea OR cavy with a 'guinea pig =&gt; cavy' synonym rule) in a Monitor whose analyzer stacks tokens at one position, match a document with HighlightsMatch.MATCHER, and expect both hits that Weight#matches reports: for 'wi fi' with ShingleFilter(2,2) and unigrams these are 0(0)-&gt;0(2) for 'wi' and 0(0)-&gt;0(5) for 'wi fi'. Instead HighlightsMatch keeps only one of them and getHitCount() is 1, because Hit.compareTo compares start and end positions only and the hits are kept in TreeSets, which treat compareTo == 0 as a duplicate, although Hit's own equals (a record over all four fields) says the two hits differ. Which hit survives depends on clause order, and the same root cause makes getHits(field).contains(...) ignore offsets and lets HighlightsMatch.equals return true for two objects whose hashCodes differ.
 
 The test shows that Monitor's `HighlightsMatch` drops one of two hits at the same positions with different offsets, because `HighlightsMatch.Hit.compareTo` ignores offsets and the hits are kept in a `TreeSet`.
 
@@ -24,7 +24,7 @@ Expected 2 hits for `f:wi OR f:"wi fi"` (two TermQuery clauses, the second on th
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,8 +1,8 @@
 # HTMLStripCharFilter silently drops all text after a &lt;!-- --&gt;-wrapped &lt;script&gt; or &lt;style&gt; block whose content has an unbalanced quote (for example the apostrophe in a JS comment '// Don't remove' or a CSS comment '/* client's fix */'): the quote opens a quoted-string state that ignores '--&gt;' and the end tag, and at end of input everything after the quote is removed, including the text after the closed &lt;/script&gt; or &lt;/style&gt;
 
-Bug LFV-311 · Area: analysis / HTMLStripCharFilter (JFlex grammar: SCRIPT_COMMENT, STYLE_COMMENT, SINGLE_/DOUBLE_QUOTED_STRING and the %eof exclude list; also the 'htmlStrip' char filter SPI) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-311 · Area: analysis / HTMLStripCharFilter (JFlex grammar: SCRIPT_COMMENT, STYLE_COMMENT, SINGLE_/DOUBLE_QUOTED_STRING and the %eof exclude list; also the 'htmlStrip' char filter SPI) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-311.html](../../bugs/LFV-311.html)
+Finding page: [../../bugs/LFV-311.html](../../bugs/LFV-311.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected the output of `<script><!--\n// Don't remove\n//--></script><p>Welcome 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

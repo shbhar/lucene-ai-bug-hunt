@@ -1,17 +1,17 @@
-# LeafCollector's class javadoc example ('collect docIDs into a BitSet') does not compile on any release since 5.1.0: its anonymous Collector has no scoreMode (the abstract needsScores before 8.0.0) and its setScorer(Scorer) does not implement LeafCollector.setScorer(Scorable) (documentation defect)
+# LeafCollector's class javadoc example ('collect docIDs into a BitSet') does not compile on any release since 5.1.0: its anonymous Collector has no scoreMode() (the abstract needsScores() before 8.0.0) and its setScorer(Scorer) does not implement LeafCollector.setScorer(Scorable) (documentation defect)
 
-Bug LFV-1018 · Area: core / search (LeafCollector class javadoc example) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-1018 · Area: core / search (LeafCollector class javadoc example) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-The LeafCollector class javadoc explains that collect receives segment-relative doc IDs and shows 'a simple example showing how to collect docIDs into a BitSet' with an anonymous Collector and LeafCollector. Copied into code on any current release it does not compile: the anonymous Collector does not implement the abstract scoreMode (needsScores from 5.1.0 to 7.x), and the anonymous LeafCollector does not implement setScorer(Scorable), because the example's setScorer(Scorer) has only been an overload since 8.0.0. With scoreMode returning ScoreMode.COMPLETE_NO_SCORES and a Scorable parameter the example compiles and collects exactly the expected global doc IDs, so only the javadoc is wrong.
+The LeafCollector class javadoc explains that collect() receives segment-relative doc IDs and shows 'a simple example showing how to collect docIDs into a BitSet' with an anonymous Collector and LeafCollector. Copied into code on any current release it does not compile: the anonymous Collector does not implement the abstract scoreMode() (needsScores() from 5.1.0 to 7.x), and the anonymous LeafCollector does not implement setScorer(Scorable), because the example's setScorer(Scorer) has only been an overload since 8.0.0. With scoreMode() returning ScoreMode.COMPLETE_NO_SCORES and a Scorable parameter the example compiles and collects exactly the expected global doc IDs, so only the javadoc is wrong.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -20,7 +20,7 @@ The LeafCollector class javadoc explains that collect receives segment-relative 
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

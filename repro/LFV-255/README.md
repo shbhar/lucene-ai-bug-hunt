@@ -1,14 +1,14 @@
-# The file-format javadoc of the default term-vectors format (Lucene90TermVectorsFormat) contradicts the.tvd bytes in three places: the Flags bit meaning is inverted, FieldNums are called delta-encoded but are the plain field numbers, and AvgCharsPerTerm is called absent without positions but is written whenever a field has offsets (documentation defect; the writer and reader agree)
+# The file-format javadoc of the default term-vectors format (Lucene90TermVectorsFormat) contradicts the .tvd bytes in three places: the Flags bit meaning is inverted, FieldNums are called delta-encoded but are the plain field numbers, and AvgCharsPerTerm is called absent without positions but is written whenever a field has offsets (documentation defect; the writer and reader agree)
 
-Bug LFV-255 · Area: codecs / term vectors (Lucene90TermVectorsFormat.tvd file-format javadoc vs Lucene90CompressingTermVectorsWriter / Reader) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-255 · Area: codecs / term vectors (Lucene90TermVectorsFormat .tvd file-format javadoc vs Lucene90CompressingTermVectorsWriter / Reader) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You decode a.tvd chunk of the default term-vectors format by following its javadoc, which says the Flags Bit is 1 when all fields of the chunk have the same options, that FieldNums is a delta-encoded list, and that AvgCharsPerTerm is absent unless some field has both positions and offsets. The writer does the opposite on all three: it writes 0 for 'same options' (then one flag per distinct field) and 1 otherwise, it stores the plain sorted field numbers (fields 1, 3, 6 are stored as 1, 3, 6, which summed as deltas give 1, 4, 10), and it writes one AvgCharsPerTerm value per distinct field whenever any field has offsets, so a parser built from the text misreads the chunk. Lucene's own reader matches the writer, so nothing breaks at runtime; only the documentation is wrong, and it has been since it was written in 2013.
+You decode a .tvd chunk of the default term-vectors format by following its javadoc, which says the Flags Bit is 1 when all fields of the chunk have the same options, that FieldNums is a delta-encoded list, and that AvgCharsPerTerm is absent unless some field has both positions and offsets. The writer does the opposite on all three: it writes 0 for 'same options' (then one flag per distinct field) and 1 otherwise, it stores the plain sorted field numbers (fields 1, 3, 6 are stored as 1, 3, 6, which summed as deltas give 1, 4, 10), and it writes one AvgCharsPerTerm value per distinct field whenever any field has offsets, so a parser built from the text misreads the chunk. Lucene's own reader matches the writer, so nothing breaks at runtime; only the documentation is wrong, and it has been since it was written in 2013.
 
-The test shows that the `Lucene90TermVectorsFormat` javadoc inverts the.tvd Flags bit: a chunk whose fields all have the same options is written with Bit 0, not 1 (documentation defect; writer and reader agree).
+The test shows that the `Lucene90TermVectorsFormat` javadoc inverts the .tvd Flags bit: a chunk whose fields all have the same options is written with Bit 0, not 1 (documentation defect; writer and reader agree).
 
 ## Expected vs actual
 
@@ -22,7 +22,7 @@ Expected (javadoc): Bit 1 for a one-document, one-field chunk. Actual: `Flags Bi
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

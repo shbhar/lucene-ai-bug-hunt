@@ -1,17 +1,17 @@
 # Polygon.fromGeoJSON garbles every \uXXXX string escape (it appends the code point as decimal digits and then reads the four hex digits again), so valid GeoJSON with an escaped letter in a key or type value is rejected with ParseException, and a malformed escape throws NumberFormatException (every release since 6.2.0)
 
-Bug LFV-569 · Area: core / geo GeoJSON parsing (Polygon.fromGeoJSON, SimpleGeoJSONPolygonParser) · Priority: low · Impact: wrong error · Novelty: known upstream
+Finding LFV-569 · Area: core / geo GeoJSON parsing (Polygon.fromGeoJSON, SimpleGeoJSONPolygonParser) · Priority: low · Impact: wrong error · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You call Polygon.fromGeoJSON on valid GeoJSON in which one character of a key or of the type value is written as a JSON \uXXXX escape, for example {"type": "\u0050olygon", "coordinates":...}, and expect the same polygon as for {"type": "Polygon",...}, because JSON (RFC 8259 section 7) lets any string character be escaped and the parser has a branch commented '4 hex digit unicode BMP escape'. Instead that branch appends the code point with StringBuilder.append(int), that is as decimal digits, and does not skip the four hex digits, so "\u0050olygon" becomes "800050olygon" and the call throws ParseException 'can only handle type... but got 800050olygon' (an escaped key such as "\u0074ype" gives 'did not see type: Polygon or MultiPolygon'). A malformed escape such as \uZZZZ throws an unchecked NumberFormatException instead of ParseException, and because a garbled key no longer matches, a non-CRS84 crs whose 'name' key is escaped, or a second feature whose 'coordinates' key is escaped, is silently accepted instead of rejected.
+You call Polygon.fromGeoJSON on valid GeoJSON in which one character of a key or of the type value is written as a JSON \uXXXX escape, for example {"type": "\u0050olygon", "coordinates": ...}, and expect the same polygon as for {"type": "Polygon", ...}, because JSON (RFC 8259 section 7) lets any string character be escaped and the parser has a branch commented '4 hex digit unicode BMP escape'. Instead that branch appends the code point with StringBuilder.append(int), that is as decimal digits, and does not skip the four hex digits, so "\u0050olygon" becomes "800050olygon" and the call throws ParseException 'can only handle type ... but got 800050olygon' (an escaped key such as "\u0074ype" gives 'did not see type: Polygon or MultiPolygon'). A malformed escape such as \uZZZZ throws an unchecked NumberFormatException instead of ParseException, and because a garbled key no longer matches, a non-CRS84 crs whose 'name' key is escaped, or a second feature whose 'coordinates' key is escaped, is silently accepted instead of rejected.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: That branch appends the code point with StringBuilder.append(int), that is as decimal digits, and does not skip the four hex digits, so "\u0050olygon" becomes "800050olygon" and the call throws ParseException 'can only handle type... but got 800050olygon' (an escaped key such as "\u0074ype" gives 'did not see type: Polygon or MultiPolygon').
+- Actual: That branch appends the code point with StringBuilder.append(int), that is as decimal digits, and does not skip the four hex digits, so "\u0050olygon" becomes "800050olygon" and the call throws ParseException 'can only handle type ... but got 800050olygon' (an escaped key such as "\u0074ype" gives 'did not see type: Polygon or MultiPolygon').
 
 ## Files
 
@@ -21,7 +21,7 @@ You call Polygon.fromGeoJSON on valid GeoJSON in which one character of a key or
 ## Run it
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

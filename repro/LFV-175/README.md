@@ -1,14 +1,14 @@
 # StoredFieldDataInput(ByteArrayDataInput) takes the input's end position as its length, so a ByteArrayDataInput that does not start at position 0 (a slice at a non-zero offset, or a partly read input) silently stores extra trailing bytes, or makes addDocument fail and close IndexWriter
 
-Bug LFV-175 · Area: index / stored fields (StoredFieldDataInput: DataInput-backed StoredField values, #14213) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-175 · Area: index / stored fields (StoredFieldDataInput: DataInput-backed StoredField values, #14213) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-175.html](../../bugs/LFV-175.html)
+Finding page: [../../bugs/LFV-175.html](../../bugs/LFV-175.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You add new StoredField(name, new StoredFieldDataInput(new ByteArrayDataInput(bytes, offset, len))) and expect the stored value to be exactly those len bytes, because the record's length is documented as 'the length of the data input'. The convenience constructor copies ByteArrayDataInput.length, which is the end position offset + len, so for an 8-byte slice at offset 4 of a 16-byte array the document stores 12 bytes, the slice plus the next 4, with no error. If fewer bytes than the offset follow the slice, the stored fields writer reads past the array, addDocument throws ArrayIndexOutOfBoundsException and IndexWriter closes itself.
+You add new StoredField(name, new StoredFieldDataInput(new ByteArrayDataInput(bytes, offset, len))) and expect the stored value to be exactly those len bytes, because the record's length is documented as 'the length of the data input'. The convenience constructor copies ByteArrayDataInput.length(), which is the end position offset + len, so for an 8-byte slice at offset 4 of a 16-byte array the document stores 12 bytes, the slice plus the next 4, with no error. If fewer bytes than the offset follow the slice, the stored fields writer reads past the array, addDocument throws ArrayIndexOutOfBoundsException and IndexWriter closes itself.
 
 The test shows that `StoredFieldDataInput(ByteArrayDataInput)` uses the input's end position as its length, so a slice that does not start at 0 is stored with extra trailing bytes.
 
@@ -24,7 +24,7 @@ Expected: the stored value of `new ByteArrayDataInput(buf16, 4, 8)` is those 8 b
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

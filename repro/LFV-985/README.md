@@ -1,12 +1,14 @@
 # TSTLookup recurses once per ternary-tree level in add/build, store, load and ramBytesUsed, so a deep tree (short keys added in sorted order, or one suggestion thousands of characters long) throws StackOverflowError, often only when the lookup is stored or loaded (every release since 3.3.0)
 
-Bug LFV-985 · Area: suggest / ternary search tree suggester (TSTLookup add, build, store, load and ramBytesUsed; TSTAutocomplete.insert; TernaryTreeNode.sizeInBytes) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-985 · Area: suggest / ternary search tree suggester (TSTLookup add, build, store, load and ramBytesUsed; TSTAutocomplete.insert; TernaryTreeNode.sizeInBytes) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-985.html](../../bugs/LFV-985.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You add the 20,992 CJK Unified Ideographs to a TSTLookup in code-point order, or build one from a single suggestion of 20,000 characters, and expect to store it, load it back and ask its size, as Lookup.store and Lookup.load promise (they document failure only as a false return or an IOException) and as WFSTCompletionLookup does with the same 20,000-character suggestion. Instead add, get and lookup work, but store, load and ramBytesUsed throw StackOverflowError on the JVM's default thread stack, and for the long suggestion build itself overflows, because TSTAutocomplete.insert, TSTLookup.writeRecursively and readRecursively and TernaryTreeNode.sizeInBytes each use one Java stack frame per tree level. Adding keys in sorted order turns each level's lo/hi links into a chain (that sorted insertion unbalances this tree was noted by its author, Ankul Garg, on SOLR-1316 in 2009, as a speed concern), so the tree gets about as deep as the number of distinct first characters, and every character of a key adds one more level even in build.
+You add the 20,992 CJK Unified Ideographs to a TSTLookup in code-point order, or build one from a single suggestion of 20,000 characters, and expect to store it, load it back and ask its size, as Lookup.store and Lookup.load promise (they document failure only as a false return or an IOException) and as WFSTCompletionLookup does with the same 20,000-character suggestion. Instead add(), get() and lookup() work, but store(), load() and ramBytesUsed() throw StackOverflowError on the JVM's default thread stack, and for the long suggestion build() itself overflows, because TSTAutocomplete.insert, TSTLookup.writeRecursively and readRecursively and TernaryTreeNode.sizeInBytes each use one Java stack frame per tree level. Adding keys in sorted order turns each level's lo/hi links into a chain (that sorted insertion unbalances this tree was noted by its author, Ankul Garg, on SOLR-1316 in 2009, as a speed concern), so the tree gets about as deep as the number of distinct first characters, and every character of a key adds one more level even in build().
 
 The test shows that a `TSTLookup` filled with `add()` in sorted order (the 20,992 CJK Unified Ideographs U+4E00..U+9FFF, one character each, on a thread with a fixed 2 MiB stack) answers `lookup()` but cannot be stored.
 
@@ -22,7 +24,7 @@ Expected: `store()` returns true (Lookup#store documents only false or IOExcepti
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

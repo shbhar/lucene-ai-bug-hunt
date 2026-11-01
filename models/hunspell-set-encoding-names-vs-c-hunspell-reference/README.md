@@ -4,10 +4,10 @@ Tools: Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- Hunspell Dictionary fails to load with 'Too many collisions' when its entry count is a multiple of 961, because WordStorage takes the raw String.hashCode modulo the table size (for example the en_US dictionary plus a 300-word custom list) (bug LFV-933; [repro](../../repro/LFV-933/))
-- Hunspell Dictionary cannot load SET ISO8859-10, or ISO8859-14 spelled any way except exactly "ISO8859-14" (UnsupportedCharsetException at load) (bug LFV-928; [repro](../../repro/LFV-928/))
+- Hunspell Dictionary can fail to load with 'Too many collisions' when its entry count is a multiple of 961, because WordStorage takes the raw String.hashCode() modulo the table size (for example the en_US dictionary plus a 300-word custom list) (finding LFV-933; [repro](../../repro/LFV-933/), [finding page](../../bugs/LFV-933.html))
+- Hunspell Dictionary cannot load SET ISO8859-10, or ISO8859-14 spelled any way except exactly "ISO8859-14" (UnsupportedCharsetException at load) (finding LFV-928; [repro](../../repro/LFV-928/), [finding page](../../bugs/LFV-928.html))
 
 ## Files
 

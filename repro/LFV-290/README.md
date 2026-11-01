@@ -1,6 +1,6 @@
 # HTMLStripCharFilter drops the visible text after a tag when a quoted attribute value ends with whitespace, a name and '=' (title="a b=", alt="x y ="): the scanner re-reads the value's closing quote as the opening quote of a new attribute value, so the tag runs on to the next quote of the same kind; the GITHUB#15754 fix (#15756) covers only the shape without whitespace
 
-Bug LFV-290 · Area: analysis / HTMLStripCharFilter (JFlex grammar: OpenTagAttribute, EventAttribute, OpenTagContent) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-290 · Area: analysis / HTMLStripCharFilter (JFlex grammar: OpenTagAttribute, EventAttribute, OpenTagContent) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You strip '&lt;p title="a b="&gt;one&lt;/p&gt; two &lt;p title="c"&gt;three&lt;/
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

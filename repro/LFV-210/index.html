@@ -18,19 +18,19 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>Tessellator bridges a hole whose left-most vertex touches an outer-ring edge to a vertex off that edge, so LatLonShape and XYShape index the hole (in some shapes also area outside the polygon) as part of the shape, or reject a valid polygon</h1>
-<p class="facts small"><span>Bug LFV-210</span><span>Area: geo / Tessellator hole elimination (polygon indexing for LatLonShape and XYShape)</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: known upstream</span></p>
+<p class="facts small"><span>Finding LFV-210</span><span>Area: geo / Tessellator hole elimination (polygon indexing for LatLonShape and XYShape)</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: known upstream</span></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index a polygon whose hole touches the outer boundary at one corner, which the Tessellator javadoc allows (&#x27;Holes may only touch at one vertex&#x27;), for example the outer ring (2,0) (1,1) (0,2) (3,3) with the hole (1,1) (1,2) (2,2), and you expect a point inside the hole not to match. To cut the polygon into triangles Lucene first joins the hole to the outer ring with a bridge; when the hole&#x27;s left-most corner lies on an outer edge, Tessellator.fetchHoleBridge links it to the vertex before that edge instead of the edge&#x27;s own endpoint, so the bridge runs across the hole. The triangles then cover the hole and an INTERSECTS query for a point in it matches the document with no error, or, for other shapes such as a hole corner touching the middle of an outer edge, the valid polygon is rejected with &#x27;Unable to Tessellate shape&#x27;.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect a point inside the hole not to match.</li><li><b>Actual:</b> While the bug is present the test fails; the failure message states expected against actual.</li></ul>
+<ul><li><b>Expected:</b> You expect a point inside the hole not to match.</li><li><b>Actual:</b> While the reported behaviour is present the test fails; the failure message states expected against actual.</li></ul>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/geo/TestTessellatorHoleTouchingShell.java"><code>src/org/apache/lucene/geo/TestTessellatorHoleTouchingShell.java</code></a> <span class="dim">(JUnit test)</span></li>
 <li><a href="src/HoleTouchingShellMain.java"><code>src/HoleTouchingShellMain.java</code></a> <span class="dim">(main() class)</span></li>
 </ul><h2>Run it</h2><ul>
 <li>Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.</li>
 <li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.</li>
+<li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
@@ -51,4 +51,4 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; HoleTouchingShellMain</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-30. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-01. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

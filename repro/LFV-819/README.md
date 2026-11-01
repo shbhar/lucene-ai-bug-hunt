@@ -1,8 +1,8 @@
 # ASCIIFoldingFilter folds the ligature ﬆ (U+FB06) to 'st' but has no entry for its sibling ﬅ (U+FB05 LATIN SMALL LIGATURE LONG S T, NFKD 'st'), so 'faﬅ' is indexed unchanged and the ASCII query 'fast' does not find it
 
-Bug LFV-819 · Area: analysis-common / ASCIIFoldingFilter mapping table (foldToASCII switch) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-819 · Area: analysis-common / ASCIIFoldingFilter mapping table (foldToASCII switch) · Priority: low · Impact: minor · Novelty: new
 
-Bug page: [../../bugs/LFV-819.html](../../bugs/LFV-819.html)
+Finding page: [../../bugs/LFV-819.html](../../bugs/LFV-819.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected the term "fast" (the proposed value "st" is the NFKD of U+FB05, not a p
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

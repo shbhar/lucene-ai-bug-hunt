@@ -1,6 +1,6 @@
 # MoreLikeThis.retrieveInterestingTerms(int) throws NullPointerException after the documented setFieldNames(null) ('determined at runtime from the IndexReader'), unless like(int) or like(Map) ran first on the same instance
 
-Bug LFV-577 · Area: queries / MoreLikeThis field-name resolution (setFieldNames(null) and the convenience method retrieveInterestingTerms(int)) · Priority: low · Impact: crash · Novelty: known upstream
+Finding LFV-577 · Area: queries / MoreLikeThis field-name resolution (setFieldNames(null) and the convenience method retrieveInterestingTerms(int)) · Priority: low · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You create a MoreLikeThis, call setFieldNames(null), which its javadoc documents
 ## Run it
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

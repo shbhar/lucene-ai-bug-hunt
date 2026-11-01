@@ -1,6 +1,8 @@
 # Two overlapping IndexWriter.forceMerge calls with different maxNumSegments share one writer-wide target, so forceMerge(1) returns normally with 2 segments when a forceMerge(2) starts on another thread while its merges are still running
 
-Bug LFV-592 · Area: index / IndexWriter forced merge (writer-wide forced-merge target shared by concurrent forceMerge calls) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-592 · Area: index / IndexWriter forced merge (writer-wide forced-merge target shared by concurrent forceMerge calls) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-592.html](../../bugs/LFV-592.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected, per the `forceMerge` javadoc (maxNumSegments is the "maximum number of
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,7 +46,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/iw-forcemerge-wait-protocol-tla/](../../models/iw-forcemerge-wait-protocol-tla/)
+Formal models and scripts this finding's part of the hunt used: [../../models/iw-forcemerge-wait-protocol-tla/](../../models/iw-forcemerge-wait-protocol-tla/)
 
 ## Feedback
 

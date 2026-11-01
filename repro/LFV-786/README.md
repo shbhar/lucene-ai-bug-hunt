@@ -1,12 +1,14 @@
-# TSTLookup.build empties its tree before it reads the new input but resets its count only after the input is sorted, so a rebuild that throws while the input is read or sorted leaves a lookup that suggests nothing while getCount and store/load still report the previous build; lookups made while a rebuild reads its input also find nothing
+# TSTLookup.build empties its tree before it reads the new input but resets its count only after the input is sorted, so a rebuild that throws while the input is read or sorted leaves a lookup that suggests nothing while getCount() and store()/load() still report the previous build; lookups made while a rebuild reads its input also find nothing
 
-Bug LFV-786 · Area: suggest / ternary search tree suggester (TSTLookup.build: rebuild failure atomicity and rebuild consistency) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-786 · Area: suggest / ternary search tree suggester (TSTLookup.build: rebuild failure atomicity and rebuild consistency) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-786.html](../../bugs/LFV-786.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a TSTLookup from {foo/10, bar/5}, rebuild it from a dictionary whose stream throws IOException after its first line, catch the exception and keep using the lookup. You expect either the previous build (lookup('fo') returns foo and getCount 2), which FSTCompletionLookup, WFSTCompletionLookup and AnalyzingSuggester keep after the same failed rebuild, or an empty lookup with getCount 0. Instead lookup('fo') returns nothing while getCount still returns 2, and store+load carry that state into a new lookup, because build replaces the tree with an empty one before it reads and sorts the input and resets the count only after that; for the same reason a lookup made while a rebuild is still reading its input finds nothing.
+You build a TSTLookup from {foo/10, bar/5}, rebuild it from a dictionary whose stream throws IOException after its first line, catch the exception and keep using the lookup. You expect either the previous build (lookup('fo') returns foo and getCount() 2), which FSTCompletionLookup, WFSTCompletionLookup and AnalyzingSuggester keep after the same failed rebuild, or an empty lookup with getCount() 0. Instead lookup('fo') returns nothing while getCount() still returns 2, and store()+load() carry that state into a new lookup, because build() replaces the tree with an empty one before it reads and sorts the input and resets the count only after that; for the same reason a lookup made while a rebuild is still reading its input finds nothing.
 
 The test shows that `TSTLookup` returns no suggestions while `build()` is still reading its new input, using upstream's own `SuggestRebuildTestUtil.testLookupsDuringReBuild` (LUCENE-10292), which the FST/WFST/Analyzing suggesters pass.
 
@@ -22,7 +24,7 @@ Expected `lookup("ba")` to keep returning `bar` during the rebuild; actual: no s
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

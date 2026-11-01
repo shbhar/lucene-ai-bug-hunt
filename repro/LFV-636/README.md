@@ -1,6 +1,8 @@
 # DrillSideways with an ExecutorService reports every failure of its drill-down and drill-sideways searches as RuntimeException(ExecutionException(cause)), while sequential DrillSideways, and IndexSearcher with an executor since 9.8.0, throw the cause itself (for example IndexSearcher.TooManyClauses, ExitableDirectoryReader.ExitingReaderException or the declared IOException)
 
-Bug LFV-636 · Area: facet / DrillSideways concurrent mode (ExecutorService constructor, searchConcurrently) · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-636 · Area: facet / DrillSideways concurrent mode (ExecutorService constructor, searchConcurrently) · Priority: low · Impact: wrong error · Novelty: new
+
+Finding page: [../../bugs/LFV-636.html](../../bugs/LFV-636.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected: the same `IOException` in both modes (as sequential DrillSideways and 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

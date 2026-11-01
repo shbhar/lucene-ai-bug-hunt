@@ -1,17 +1,17 @@
 # MultiFacets.getAllDims, the Facets of every DrillSideways result with a drill-down dim, lists the mapped (sideways) dims first in HashMap order instead of sorted by value and returns null for a mapped dim without hits, so the inherited getTopDims returns the wrong dims
 
-Bug LFV-524 · Area: facet / MultiFacets and DrillSideways results (MultiFacets#getAllDims, the default DrillSideways#buildFacetsResult, the inherited Facets#getTopDims) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-524 · Area: facet / MultiFacets and DrillSideways results (MultiFacets#getAllDims, the default DrillSideways#buildFacetsResult, the inherited Facets#getTopDims) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You run a DrillSideways search that drills down on Author=Lisa and Publish Date=2010, where the sideways counts are Author 3 and Publish Date 1, and call getAllDims(10) on the result's facets, expecting what Facets#getAllDims documents, the dims that had hits sorted by value ([Author (3), Publish Date (1)]), with getTopDims(1, 10) returning its first entry. Instead the MultiFacets that DrillSideways returns lists the sideways dims in HashMap order without sorting ([Publish Date (1), Author (3)]), so getTopDims(1, 10) returns Publish Date, and when the base query has no hits getAllDims returns [null] where FastTaxonomyFacetCounts returns . The cause is MultiFacets#getAllDims, which appends getTopChildren of every mapped dim without a null check, then the default Facets' dims, and never sorts.
+You run a DrillSideways search that drills down on Author=Lisa and Publish Date=2010, where the sideways counts are Author 3 and Publish Date 1, and call getAllDims(10) on the result's facets, expecting what Facets#getAllDims documents, the dims that had hits sorted by value ([Author (3), Publish Date (1)]), with getTopDims(1, 10) returning its first entry. Instead the MultiFacets that DrillSideways returns lists the sideways dims in HashMap order without sorting ([Publish Date (1), Author (3)]), so getTopDims(1, 10) returns Publish Date, and when the base query has no hits getAllDims returns [null] where FastTaxonomyFacetCounts returns []. The cause is MultiFacets#getAllDims, which appends getTopChildren of every mapped dim without a null check, then the default Facets' dims, and never sorts.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: The MultiFacets that DrillSideways returns lists the sideways dims in HashMap order without sorting ([Publish Date (1), Author (3)]), so getTopDims(1, 10) returns Publish Date, and when the base query has no hits getAllDims returns [null] where FastTaxonomyFacetCounts returns .
+- Actual: The MultiFacets that DrillSideways returns lists the sideways dims in HashMap order without sorting ([Publish Date (1), Author (3)]), so getTopDims(1, 10) returns Publish Date, and when the base query has no hits getAllDims returns [null] where FastTaxonomyFacetCounts returns [].
 
 ## Files
 
@@ -20,7 +20,7 @@ You run a DrillSideways search that drills down on Author=Lisa and Publish Date=
 ## Run it
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

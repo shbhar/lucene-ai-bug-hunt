@@ -1,17 +1,17 @@
-# Classic QueryParser and MultiFieldQueryParser: a negative phrase slop such as "a b"~-1 makes parse throw IllegalArgumentException instead of ParseException
+# Classic QueryParser and MultiFieldQueryParser: a negative phrase slop such as "a b"~-1 makes parse() throw IllegalArgumentException instead of ParseException
 
-Bug LFV-300 · Area: queryparser / classic (QueryParserBase.handleQuotedTerm and getFieldQuery, MultiFieldQueryParser.applySlop; the negative-slop check of PhraseQuery and MultiPhraseQuery.Builder) · Priority: low · Impact: wrong error · Novelty: known upstream
+Finding LFV-300 · Area: queryparser / classic (QueryParserBase.handleQuotedTerm and getFieldQuery, MultiFieldQueryParser.applySlop; the negative-slop check of PhraseQuery and MultiPhraseQuery.Builder) · Priority: low · Impact: wrong error · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You parse "a b"~-1, a quoted phrase with a negative proximity, with the classic QueryParser or MultiFieldQueryParser. You expect a ParseException, which parse documents and which the same parser gives for the negative fuzzy distance a~-1 (or the slop to be ignored, as SimpleQueryParser does). Instead parse throws IllegalArgumentException 'Slop must be &gt;= 0, got -1' from the PhraseQuery constructor ('slop value cannot be negative' from MultiPhraseQuery.Builder when the analyzer adds synonyms), because the lexer accepts '~-1' and handleQuotedTerm passes the negative number on unchecked.
+You parse "a b"~-1, a quoted phrase with a negative proximity, with the classic QueryParser or MultiFieldQueryParser. You expect a ParseException, which parse() documents and which the same parser gives for the negative fuzzy distance a~-1 (or the slop to be ignored, as SimpleQueryParser does). Instead parse() throws IllegalArgumentException 'Slop must be &gt;= 0, got -1' from the PhraseQuery constructor ('slop value cannot be negative' from MultiPhraseQuery.Builder when the analyzer adds synonyms), because the lexer accepts '~-1' and handleQuotedTerm passes the negative number on unchecked.
 
 ## Expected vs actual
 
-- Expected: You expect a ParseException, which parse documents and which the same parser gives for the negative fuzzy distance a~-1 (or the slop to be ignored, as SimpleQueryParser does).
-- Actual: parse throws IllegalArgumentException 'Slop must be &gt;= 0, got -1' from the PhraseQuery constructor ('slop value cannot be negative' from MultiPhraseQuery.Builder when the analyzer adds synonyms), because the lexer accepts '~-1' and handleQuotedTerm passes the negative number on unchecked.
+- Expected: You expect a ParseException, which parse() documents and which the same parser gives for the negative fuzzy distance a~-1 (or the slop to be ignored, as SimpleQueryParser does).
+- Actual: parse() throws IllegalArgumentException 'Slop must be &gt;= 0, got -1' from the PhraseQuery constructor ('slop value cannot be negative' from MultiPhraseQuery.Builder when the analyzer adds synonyms), because the lexer accepts '~-1' and handleQuotedTerm passes the negative number on unchecked.
 
 ## Files
 
@@ -21,7 +21,7 @@ You parse "a b"~-1, a quoted phrase with a negative proximity, with the classic 
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

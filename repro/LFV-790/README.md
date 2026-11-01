@@ -1,17 +1,17 @@
 # SortedInputIterator leaves its temp input file (and, when reopening the sorted file fails, the sorted file too) in the temp Directory when its constructor fails, so every WFSTCompletionLookup or TSTLookup build that fails while reading or sorting its input leaks a temp file (regression since 6.0.0)
 
-Bug LFV-790 · Area: suggest / SortedInputIterator temp-file cleanup (used by WFSTCompletionLookup and TSTLookup) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-790 · Area: suggest / SortedInputIterator temp-file cleanup (used by WFSTCompletionLookup and TSTLookup) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a WFSTCompletionLookup or a TSTLookup and the build fails while the input is being read or sorted, for example because the dictionary's next throws an IOException, or an entry has weight -1, which WFSTCompletionLookup documents it rejects; you expect the failed build to remove the temp files it created, as AnalyzingSuggester and FSTCompletionLookup do. Instead SortedInputIterator, which both suggesters use to sort their input, leaves its temp input file behind: its constructor copies and sorts the input in sort without any cleanup on failure and throws before the caller has an object it could close, so three failed builds leave suggest_input_0.tmp, suggest_input_1.tmp and suggest_input_2.tmp. This is a regression from LUCENE-7113 (6.0.0), which rewrote sort and dropped the failure cleanup that 5.5.x still had.
+You build a WFSTCompletionLookup or a TSTLookup and the build fails while the input is being read or sorted, for example because the dictionary's next() throws an IOException, or an entry has weight -1, which WFSTCompletionLookup documents it rejects; you expect the failed build to remove the temp files it created, as AnalyzingSuggester and FSTCompletionLookup do. Instead SortedInputIterator, which both suggesters use to sort their input, leaves its temp input file behind: its constructor copies and sorts the input in sort() without any cleanup on failure and throws before the caller has an object it could close, so three failed builds leave suggest_input_0.tmp, suggest_input_1.tmp and suggest_input_2.tmp. This is a regression from LUCENE-7113 (6.0.0), which rewrote sort() and dropped the failure cleanup that 5.5.x still had.
 
 ## Expected vs actual
 
 - Expected: You expect the failed build to remove the temp files it created, as AnalyzingSuggester and FSTCompletionLookup do.
-- Actual: SortedInputIterator, which both suggesters use to sort their input, leaves its temp input file behind: its constructor copies and sorts the input in sort without any cleanup on failure and throws before the caller has an object it could close, so three failed builds leave suggest_input_0.tmp, suggest_input_1.tmp and suggest_input_2.tmp.
+- Actual: SortedInputIterator, which both suggesters use to sort their input, leaves its temp input file behind: its constructor copies and sorts the input in sort() without any cleanup on failure and throws before the caller has an object it could close, so three failed builds leave suggest_input_0.tmp, suggest_input_1.tmp and suggest_input_2.tmp.
 
 ## Files
 
@@ -20,7 +20,7 @@ You build a WFSTCompletionLookup or a TSTLookup and the build fails while the in
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

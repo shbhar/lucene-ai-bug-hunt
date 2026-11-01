@@ -1,6 +1,6 @@
 # Geo3DPoint distance queries with a radius below about 1 km silently return wrong results in both directions: each document's decoded point lies a few millimetres off the planet surface and is tested against a circle plane nearly tangent to the surface, so a 10 m query misses documents at its own centre and matches documents about 100 m away
 
-Bug LFV-209 · Area: spatial3d / Geo3DPoint shape queries (PointInShapeIntersectVisitor per-document test against GeoStandardCircle and other cap-shaped boundaries) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-209 · Area: spatial3d / Geo3DPoint shape queries (PointInShapeIntersectVisitor per-document test against GeoStandardCircle and other cap-shaped boundaries) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You index locations as Geo3DPoint on the default WGS84 model and run Geo3DPoint.
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,7 +44,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/spatial3d-geometry/](../../models/spatial3d-geometry/)
+Formal models and scripts this finding's part of the hunt used: [../../models/spatial3d-geometry/](../../models/spatial3d-geometry/)
 
 ## Feedback
 

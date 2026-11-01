@@ -1,14 +1,14 @@
-# IndriDirichletSimilarity(float mu) uses LMSimilarity's default (cf+1)/(|C|+1) collection model instead of IndriCollectionModel (cf/|C|), so new IndriDirichletSimilarity(2000f) scores differently from new IndriDirichletSimilarity although both print the same name
+# IndriDirichletSimilarity(float mu) uses LMSimilarity's default (cf+1)/(|C|+1) collection model instead of IndriCollectionModel (cf/|C|), so new IndriDirichletSimilarity(2000f) scores differently from new IndriDirichletSimilarity() although both print the same name
 
-Bug LFV-744 · Area: search / similarities (IndriDirichletSimilarity constructors and the LMSimilarity collection model) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-744 · Area: search / similarities (IndriDirichletSimilarity constructors and the LMSimilarity collection model) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-744.html](../../bugs/LFV-744.html)
+Finding page: [../../bugs/LFV-744.html](../../bugs/LFV-744.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You install new IndriDirichletSimilarity(2000f) and expect the same similarity as new IndriDirichletSimilarity, which is documented as using 'the default mu value of 2000', and Indri's Dirichlet smoothing log((tf + mu*cf/|C|)/(|D| + mu)) for any mu. Instead the mu-only constructor passes no collection model, so its implicit super installs LMSimilarity's DefaultCollectionModel, (cf+1)/(|C|+1), while only the no-argument constructor installs the class's own IndriCollectionModel, cf/|C|. On a 25-token index the term 'president' (cf 3) scores -1.871553 instead of -2.119101 in the same document, although both instances print 'LM IndriDirichlet(2000.000000)'.
+You install new IndriDirichletSimilarity(2000f) and expect the same similarity as new IndriDirichletSimilarity(), which is documented as using 'the default mu value of 2000', and Indri's Dirichlet smoothing log((tf + mu*cf/|C|)/(|D| + mu)) for any mu. Instead the mu-only constructor passes no collection model, so its implicit super() installs LMSimilarity's DefaultCollectionModel, (cf+1)/(|C|+1), while only the no-argument constructor installs the class's own IndriCollectionModel, cf/|C|. On a 25-token index the term 'president' (cf 3) scores -1.871553 instead of -2.119101 in the same document, although both instances print 'LM IndriDirichlet(2000.000000)'.
 
 The test shows that `new IndriDirichletSimilarity(2000f)` scores differently from `new IndriDirichletSimilarity()` (documented as mu = 2000), because the mu-only constructor falls back to LMSimilarity's (cf+1)/(|C|+1) collection model instead of IndriCollectionModel's cf/|C|.
 
@@ -24,7 +24,7 @@ Expected equal explain() scores for term `a` in the one-document index `a b`; ac
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

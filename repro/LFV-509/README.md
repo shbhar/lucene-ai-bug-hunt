@@ -1,17 +1,17 @@
 # SoftDeletesRetentionMergePolicy's OneMerge wrapper forwards only wrapForMerge, so a reordering policy nested inside it (BPReorderingMergePolicy, or any OneMerge#reorder override) silently never reorders natural or forced merges, and BPReorderingMergePolicy's bp.reordered diagnostic is never written (since 9.9.0)
 
-Bug LFV-509 · Area: index / merge policies (SoftDeletesRetentionMergePolicy OneMerge wrapping); misc / BP merge-time reordering (BPReorderingMergePolicy) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-509 · Area: index / merge policies (SoftDeletesRetentionMergePolicy OneMerge wrapping); misc / BP merge-time reordering (BPReorderingMergePolicy) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You configure IndexWriter with new SoftDeletesRetentionMergePolicy(field, query, new BPReorderingMergePolicy(base, reorderer)) to keep soft-deleted history and to reorder doc IDs on merge, then call forceMerge or let natural merges run. You expect the merged segments to be reordered, as BPReorderingMergePolicy documents for all forced merges and as the reverse nesting does on the same documents. Instead the retention policy replaces each merge with a new OneMerge that forwards only wrapForMerge, so IndexWriter's call to reorder reaches the default that returns null: the merged segment silently keeps its original doc order and carries no bp.reordered diagnostic.
+You configure IndexWriter with new SoftDeletesRetentionMergePolicy(field, query, new BPReorderingMergePolicy(base, reorderer)) to keep soft-deleted history and to reorder doc IDs on merge, then call forceMerge or let natural merges run. You expect the merged segments to be reordered, as BPReorderingMergePolicy documents for all forced merges and as the reverse nesting does on the same documents. Instead the retention policy replaces each merge with a new OneMerge that forwards only wrapForMerge, so IndexWriter's call to reorder() reaches the default that returns null: the merged segment silently keeps its original doc order and carries no bp.reordered diagnostic.
 
 ## Expected vs actual
 
 - Expected: You expect the merged segments to be reordered, as BPReorderingMergePolicy documents for all forced merges and as the reverse nesting does on the same documents.
-- Actual: The retention policy replaces each merge with a new OneMerge that forwards only wrapForMerge, so IndexWriter's call to reorder reaches the default that returns null: the merged segment silently keeps its original doc order and carries no bp.reordered diagnostic.
+- Actual: The retention policy replaces each merge with a new OneMerge that forwards only wrapForMerge, so IndexWriter's call to reorder() reaches the default that returns null: the merged segment silently keeps its original doc order and carries no bp.reordered diagnostic.
 
 ## Files
 
@@ -20,7 +20,7 @@ You configure IndexWriter with new SoftDeletesRetentionMergePolicy(field, query,
 ## Run it
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

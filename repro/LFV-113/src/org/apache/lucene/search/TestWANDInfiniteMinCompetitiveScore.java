@@ -52,7 +52,8 @@ public class TestWANDInfiniteMinCompetitiveScore extends LuceneTestCase {
         Sort sort = new Sort(SortField.FIELD_SCORE, new SortField("rank", SortField.Type.INT));
         TopDocs top =
             new IndexSearcher(reader).search(query, new TopFieldCollectorManager(sort, 3, null, 3));
-        // each doc scores 3 x 2e38 = +Infinity, so rank breaks the tie: expected docs 9, 8, 7
+        // each clause scores about 2e38, and the sum of three overflows to +Infinity, so rank
+        // breaks the tie: expected docs 9, 8, 7
         assertEquals(
             "[9, 8, 7]",
             Arrays.toString(Arrays.stream(top.scoreDocs).mapToInt(sd -> sd.doc).toArray()));

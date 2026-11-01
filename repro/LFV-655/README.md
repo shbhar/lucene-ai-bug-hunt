@@ -1,12 +1,14 @@
-# TermVectorLeafReader.getMetaData always throws IllegalArgumentException ('minVersion must be set when createdVersionMajor is &gt;= 7'), so a TermVectorLeafReader cannot be searched with a Sort, wrapped in a ParallelLeafReader or copied with addIndexes
+# TermVectorLeafReader.getMetaData() always throws IllegalArgumentException ('minVersion must be set when createdVersionMajor is &gt;= 7'), so a TermVectorLeafReader cannot be searched with a Sort, wrapped in a ParallelLeafReader or copied with addIndexes
 
-Bug LFV-655 · Area: highlighter / TermVectorLeafReader (LeafReader over one document's term vectors; LeafMetaData invariant) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-655 · Area: highlighter / TermVectorLeafReader (LeafReader over one document's term vectors; LeafMetaData invariant) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-655.html](../../bugs/LFV-655.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a TermVectorLeafReader over one document's term vectors (new TermVectorLeafReader(field, terms), the public helper that 'wraps a Terms with a LeafReader') and use it like any other LeafReader, expecting getMetaData to return metadata with no index sort, as MemoryIndex's in-memory reader does. Instead getMetaData throws IllegalArgumentException('minVersion must be set when createdVersionMajor is &gt;= 7') on every call, because it passes minVersion=null together with createdVersionMajor=Version.LATEST.major, a combination the LeafMetaData constructor rejects. So a field-sorted search (even with Sort.RELEVANCE), new ParallelLeafReader(reader) and addIndexes(SlowCodecReaderWrapper.wrap(reader)) all fail; a plain relevance search without a Sort works.
+You build a TermVectorLeafReader over one document's term vectors (new TermVectorLeafReader(field, terms), the public helper that 'wraps a Terms with a LeafReader') and use it like any other LeafReader, expecting getMetaData() to return metadata with no index sort, as MemoryIndex's in-memory reader does. Instead getMetaData() throws IllegalArgumentException('minVersion must be set when createdVersionMajor is &gt;= 7') on every call, because it passes minVersion=null together with createdVersionMajor=Version.LATEST.major, a combination the LeafMetaData constructor rejects. So a field-sorted search (even with Sort.RELEVANCE), new ParallelLeafReader(reader) and addIndexes(SlowCodecReaderWrapper.wrap(reader)) all fail; a plain relevance search without a Sort works.
 
 The test shows that a `TermVectorLeafReader` cannot be searched with a Sort, because its `getMetaData()` always builds `LeafMetaData` with `minVersion=null` and `createdVersionMajor=Version.LATEST.major`, which the `LeafMetaData` constructor rejects.
 
@@ -22,7 +24,7 @@ Expected: 1 hit from `search(MatchAllDocsQuery, 1, new Sort(SortField.FIELD_DOC)
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

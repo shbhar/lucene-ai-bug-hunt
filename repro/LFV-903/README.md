@@ -1,17 +1,17 @@
-# MultiSimilarity does not document that only sims[0] computes the field norm, so the other sub-similarities' index-time norm settings (discountOverlaps, a computeNorm override) are silently ignored and the array order decides the stored norm, and its inherited getDiscountOverlaps always returns true (documentation defect; on one index the score is an exact sum in either order)
+# MultiSimilarity does not document that only sims[0] computes the field norm, so the other sub-similarities' index-time norm settings (discountOverlaps, a computeNorm override) are silently ignored and the array order decides the stored norm, and its inherited getDiscountOverlaps() always returns true (documentation defect; on one index the score is an exact sum in either order)
 
-Bug LFV-903 · Area: core / search similarities (MultiSimilarity: undocumented norm ownership, inherited getDiscountOverlaps) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-903 · Area: core / search similarities (MultiSimilarity: undocumented norm ownership, inherited getDiscountOverlaps) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You combine two sub-similarities in a MultiSimilarity, for example BM25 with discountOverlaps=true and BM25 with discountOverlaps=false, and use it for indexing and searching; the javadoc says only that it 'will sum the scores of the provided sims' (CombSUM), so you expect both sub-similarities' settings to count. In fact computeNorm returns sims[0].computeNorm(state), so only the first sub-similarity writes the field's single norm and every sub-scorer decodes that norm: the second one's discountOverlaps (or its own computeNorm encoding) is silently ignored, swapping the array order changes the stored norms and therefore the scores (0.7534208 for [discount, noDiscount] vs 0.6862843 for [noDiscount, discount] in an independent repro), and the inherited getDiscountOverlaps returns true even when sims[0] counts overlap tokens. The single norm is the intended one-norm-per-field design and on any one index the score is an exact sum in either order; what is missing is the documentation (and a correct getter), so the fix is a javadoc sentence, optionally plus passing sims[0].getDiscountOverlaps to the super constructor.
+You combine two sub-similarities in a MultiSimilarity, for example BM25 with discountOverlaps=true and BM25 with discountOverlaps=false, and use it for indexing and searching; the javadoc says only that it 'will sum the scores of the provided sims' (CombSUM), so you expect both sub-similarities' settings to count. In fact computeNorm returns sims[0].computeNorm(state), so only the first sub-similarity writes the field's single norm and every sub-scorer decodes that norm: the second one's discountOverlaps (or its own computeNorm encoding) is silently ignored, swapping the array order changes the stored norms and therefore the scores (0.7534208 for [discount, noDiscount] vs 0.6862843 for [noDiscount, discount] in an independent repro), and the inherited getDiscountOverlaps() returns true even when sims[0] counts overlap tokens. The single norm is the intended one-norm-per-field design and on any one index the score is an exact sum in either order; what is missing is the documentation (and a correct getter), so the fix is a javadoc sentence, optionally plus passing sims[0].getDiscountOverlaps() to the super constructor.
 
 ## Expected vs actual
 
 - Expected: You expect both sub-similarities' settings to count.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -20,7 +20,7 @@ You combine two sub-similarities in a MultiSimilarity, for example BM25 with dis
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

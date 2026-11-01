@@ -23,13 +23,15 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.NamedThreadFactory;
 
 public class TestPartitionMatcherUncheckedQueryError extends LuceneTestCase {
 
   public void testUncheckedQueryErrorIsReportedPerQuery() throws Exception {
     Document doc = new Document();
     doc.add(new LongPoint("num", 5));
-    try (ExecutorService executor = Executors.newFixedThreadPool(2);
+    try (ExecutorService executor =
+            Executors.newFixedThreadPool(2, new NamedThreadFactory("matchers"));
         Monitor monitor = new Monitor(new StandardAnalyzer())) {
       monitor.register(
           new MonitorQuery("long", LongPoint.newExactQuery("num", 5)),

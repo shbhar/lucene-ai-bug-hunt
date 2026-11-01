@@ -1,14 +1,14 @@
-# DoubleDocValuesStats and SortedDoubleDocValuesStats (lucene/misc) return mean = NaN instead of +/-Infinity when any value is collected after an infinite value, so the mean of {+Infinity, 1.0} is NaN while the mean of {1.0, +Infinity} is +Infinity
+# DoubleDocValuesStats and SortedDoubleDocValuesStats (lucene/misc) return mean() = NaN instead of +/-Infinity when any value is collected after an infinite value, so the mean of {+Infinity, 1.0} is NaN while the mean of {1.0, +Infinity} is +Infinity
 
-Bug LFV-879 · Area: misc / DocValuesStats double statistics (DocValuesStatsCollector, DocValuesStatsCollectorManager) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-879 · Area: misc / DocValuesStats double statistics (DocValuesStatsCollector, DocValuesStatsCollectorManager) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-879.html](../../bugs/LFV-879.html)
+Finding page: [../../bugs/LFV-879.html](../../bugs/LFV-879.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You collect statistics for a double doc-values field with DocValuesStats.DoubleDocValuesStats (or SortedDoubleDocValuesStats) and expect mean, documented as 'the mean of all values of the field', to be +Infinity for the values {+Infinity, 1.0}: that is sum/count, and it is what java.util.DoubleSummaryStatistics, the oracle of the upstream test, returns. Instead mean is NaN, because the running update mean += (val - mean) / count computes Infinity - Infinity as soon as the running mean is infinite and another value arrives; {+Infinity, +Infinity} also gives NaN, while sum and max report +Infinity. The answer depends on document order ({1.0, +Infinity} gives +Infinity) and, since 10.5.0, on the searcher: with an executor and one segment per slice, DocValuesStatsCollectorManager rebuilds the mean from the sums and returns +Infinity.
+You collect statistics for a double doc-values field with DocValuesStats.DoubleDocValuesStats (or SortedDoubleDocValuesStats) and expect mean(), documented as 'the mean of all values of the field', to be +Infinity for the values {+Infinity, 1.0}: that is sum()/count(), and it is what java.util.DoubleSummaryStatistics, the oracle of the upstream test, returns. Instead mean() is NaN, because the running update mean += (val - mean) / count computes Infinity - Infinity as soon as the running mean is infinite and another value arrives; {+Infinity, +Infinity} also gives NaN, while sum() and max() report +Infinity. The answer depends on document order ({1.0, +Infinity} gives +Infinity) and, since 10.5.0, on the searcher: with an executor and one segment per slice, DocValuesStatsCollectorManager rebuilds the mean from the sums and returns +Infinity.
 
 The test shows that `DoubleDocValuesStats.mean()` is NaN for a double doc-values field holding +Infinity then 1.0 (the running update computes Infinity - Infinity).
 
@@ -24,7 +24,7 @@ Expected `mean()` = +Infinity (= `sum()` / `count()`); actual NaN (-ea and -da).
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

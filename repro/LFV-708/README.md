@@ -1,8 +1,8 @@
 # WikipediaTokenizer silently drops Chinese and Japanese text inside wiki markup (links, categories, headings, bold/italics, templates, citations, external-link labels): its grammar has a CJ token rule only for plain text, and every markup state matches ALPHANUM only
 
-Bug LFV-708 · Area: analysis-common / wikipedia: WikipediaTokenizer (JFlex grammar lexical states, WikipediaTokenizerImpl.jflex) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-708 · Area: analysis-common / wikipedia: WikipediaTokenizer (JFlex grammar lexical states, WikipediaTokenizerImpl.jflex) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-708.html](../../bugs/LFV-708.html)
+Finding page: [../../bugs/LFV-708.html](../../bugs/LFV-708.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected the terms to spell `日本`; actual no token at all (`expected:<[日本
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

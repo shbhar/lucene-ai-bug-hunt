@@ -1,6 +1,6 @@
 # Since 10.4.0 Lucene opens indexes created by Lucene 8 once Lucene 9 has rewritten every segment, but without Lucene 9's field-consistency leniency for them (LUCENE-10518), so FieldExistsQuery returns documents that lack the doc value (or throws) and IndexWriter refuses the index
 
-Bug LFV-490 · Area: search / FieldExistsQuery and index / FieldInfos field-schema consistency on Lucene-8-created indexes (SegmentInfos per-segment open gate, #14607) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-490 · Area: search / FieldExistsQuery and index / FieldInfos field-schema consistency on Lucene-8-created indexes (SegmentInfos per-segment open gate, #14607) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -23,7 +23,7 @@ You have an index first created by Lucene 8 that Lucene 9 later rewrote complete
 
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
 - Fixtures: the test reads legacy8-exists.zip and legacy8-exists-merged.zip, an index created by Lucene 8.11.4 whose segments 9.12.3 rewrote (the second one force-merged), from its package on the class path. This site ships no binary index files, so the recipe first makes them with fixture-src/CreateWith8x.java, fixture-src/ReindexWith9x.java and the 8.11.4 and 9.12.3 release jars (Maven Central) and puts them in src/, which the run puts on the class path; without them every test fails for another reason.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,14 +1,16 @@
 # matchhighlight PassageSelector can cut a passage or a truncated match between the two halves of a supplementary character, so FieldValueHighlighters.maxLeadingCharacters and highlighted return a snippet with an unpaired surrogate
 
-Bug LFV-774 · Area: highlighter / matchhighlight: PassageSelector passage windows and long-match truncation, BreakIteratorShrinkingAdjuster (through FieldValueHighlighters.maxLeadingCharacters and highlighted) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-774 · Area: highlighter / matchhighlight: PassageSelector passage windows and long-match truncation, BreakIteratorShrinkingAdjuster (through FieldValueHighlighters.maxLeadingCharacters and highlighted) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-774.html](../../bugs/LFV-774.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You highlight a stored value with matchhighlight's FieldValueHighlighters, for example maxLeadingCharacters(5, '...', fields) on a value that starts with the word BOLD written in mathematical bold capitals (U+1D401 U+1D40E U+1D40B U+1D403, two UTF-16 units each), or highlighted(5,...) with a term query that matches that word. You expect a snippet of whole characters within the 5-unit budget, for example the first two letters and '...', just as the ASCII value 'boldtext' is cut inside the word but between characters ('boldt...'). Instead the snippet ends with the first half of the third letter ('\uD835\uDC01\uD835\uDC0E\uD835...' and '&gt;\uD835\uDC01\uD835\uDC0E\uD835&lt;...'), because PassageSelector cuts windows and long matches at a raw UTF-16 offset and BreakIteratorShrinkingAdjuster keeps that raw edge when no word boundary fits in the window.
+You highlight a stored value with matchhighlight's FieldValueHighlighters, for example maxLeadingCharacters(5, '...', fields) on a value that starts with the word BOLD written in mathematical bold capitals (U+1D401 U+1D40E U+1D40B U+1D403, two UTF-16 units each), or highlighted(5, ...) with a term query that matches that word. You expect a snippet of whole characters within the 5-unit budget, for example the first two letters and '...', just as the ASCII value 'boldtext' is cut inside the word but between characters ('boldt...'). Instead the snippet ends with the first half of the third letter ('\uD835\uDC01\uD835\uDC0E\uD835...' and '&gt;\uD835\uDC01\uD835\uDC0E\uD835&lt;...'), because PassageSelector cuts windows and long matches at a raw UTF-16 offset and BreakIteratorShrinkingAdjuster keeps that raw edge when no word boundary fits in the window.
 
-The test shows that the default matchhighlight PassageSelector (as used by `FieldValueHighlighters.maxLeadingCharacters(5,...)`) ends a 5-unit passage between the two halves of a supplementary character, so the snippet carries an unpaired high surrogate.
+The test shows that the default matchhighlight PassageSelector (as used by `FieldValueHighlighters.maxLeadingCharacters(5, ...)`) ends a 5-unit passage between the two halves of a supplementary character, so the snippet carries an unpaired high surrogate.
 
 ## Expected vs actual
 
@@ -22,7 +24,7 @@ Expected a passage ending on a code point boundary; actual `[[from=0, to=5], mar
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

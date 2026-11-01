@@ -4,9 +4,9 @@ Tools: Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- Rectangle.fromPointDistance throws 'invalid longitude NaN' for some legal circles whose edge stops just short of a pole, so LatLon distance queries on them fail with IllegalArgumentException (bug LFV-771; [repro](../../repro/LFV-771/))
+- Rectangle.fromPointDistance throws 'invalid longitude NaN' for some legal circles whose edge stops just short of a pole, so LatLon distance queries on them fail with IllegalArgumentException (finding LFV-771; [repro](../../repro/LFV-771/))
 
 ## Files
 

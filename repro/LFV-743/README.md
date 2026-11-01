@@ -1,17 +1,17 @@
 # ParallelLeafReader stored fields ignore StoredFieldVisitor.Status.STOP: the later parallel readers still offer and deliver fields after the visitor answered STOP
 
-Bug LFV-743 · Area: core / index (ParallelLeafReader and ParallelCompositeReader stored fields, StoredFieldVisitor protocol) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-743 · Area: core / index (ParallelLeafReader and ParallelCompositeReader stored fields, StoredFieldVisitor protocol) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You split a document over two lockstep indexes (title in index A, price in index B), open them as a ParallelLeafReader, and load the document with a StoredFieldVisitor that answers STOP at title and YES otherwise, expecting the visit to end at title, as STOP promises ('stop processing any other fields for this document') and as a single index holding the same document does. Instead the second parallel reader still asks needsField(price) and delivers price=42 after the STOP, because ParallelLeafReader.storedFields.document hands the visitor to each parallel reader in turn and never checks its answer. ParallelCompositeReader builds ParallelLeafReaders, so it behaves the same.
+You split a document over two lockstep indexes (title in index A, price in index B), open them as a ParallelLeafReader, and load the document with a StoredFieldVisitor that answers STOP at title and YES otherwise, expecting the visit to end at title, as STOP promises ('stop processing any other fields for this document') and as a single index holding the same document does. Instead the second parallel reader still asks needsField(price) and delivers price=42 after the STOP, because ParallelLeafReader.storedFields().document() hands the visitor to each parallel reader in turn and never checks its answer. ParallelCompositeReader builds ParallelLeafReaders, so it behaves the same.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: The second parallel reader still asks needsField(price) and delivers price=42 after the STOP, because ParallelLeafReader.storedFields.document hands the visitor to each parallel reader in turn and never checks its answer.
+- Actual: The second parallel reader still asks needsField(price) and delivers price=42 after the STOP, because ParallelLeafReader.storedFields().document() hands the visitor to each parallel reader in turn and never checks its answer.
 
 ## Files
 
@@ -20,7 +20,7 @@ You split a document over two lockstep indexes (title in index A, price in index
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

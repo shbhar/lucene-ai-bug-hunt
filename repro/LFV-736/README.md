@@ -1,8 +1,8 @@
 # On WGS84, geo3d path end caps are shifted toward the equator, so Geo3DPoint.newPathQuery and Geo3DDocValuesField.newPathSort miss documents just beyond a poleward path end (sort value +Infinity) and match documents tens of km beyond an equatorward end
 
-Bug LFV-736 · Area: spatial3d / geom path membership (GeoStandardPath end caps; Geo3DPoint.newPathQuery, Geo3DDocValuesField.newPathSort) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-736 · Area: spatial3d / geom path membership (GeoStandardPath end caps; Geo3DPoint.newPathQuery, Geo3DDocValuesField.newPathSort) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-736.html](../../bugs/LFV-736.html)
+Finding page: [../../bugs/LFV-736.html](../../bugs/LFV-736.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected isWithin = false (about 20 times the path width away); actual true on m
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

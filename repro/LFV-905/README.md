@@ -1,12 +1,14 @@
-# SimpleBindings.validate copies the whole binding path into a new set at every step and re-checks every binding once per origin, so validating a plain chain of 2000 expression bindings takes about 45 s instead of about 100 ms (cubic since 8.6.0, a regression from LUCENE-9338)
+# SimpleBindings.validate() copies the whole binding path into a new set at every step and re-checks every binding once per origin, so validating a plain chain of 2000 expression bindings takes about 45 s instead of about 100 ms (cubic since 8.6.0, a regression from LUCENE-9338)
 
-Bug LFV-905 · Area: expressions / SimpleBindings.validate (cycle and missing-reference check, CycleDetectionBindings) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-905 · Area: expressions / SimpleBindings.validate() (cycle and missing-reference check, CycleDetectionBindings) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-905.html](../../bugs/LFV-905.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build a chain of named expressions with SimpleBindings.add(String, Expression), each using the previous one (x1 = x0 + 1, x2 = x1 + 1,..., x2000 = x1999 + 1), and call bindings.validate, whose javadoc says it 'Traverses the graph of bindings, checking there are no cycles or missing references'. You expect a graph check that costs about as much as resolving every binding once, as on 8.5.2, where validate of these 2000 bindings took about 100 ms. Instead, since 8.6.0 validate starts a fresh walk from every binding, re-walks everything below it, and copies the whole current path into a new LinkedHashSet at every step, so its cost grows with the cube of the chain length: about 45 s for 2000 bindings and about 575 s for 4000 (at 1000 bindings it allocates 389.9 times the bytes of resolving every binding once), although the answer is still correct.
+You build a chain of named expressions with SimpleBindings.add(String, Expression), each using the previous one (x1 = x0 + 1, x2 = x1 + 1, ..., x2000 = x1999 + 1), and call bindings.validate(), whose javadoc says it 'Traverses the graph of bindings, checking there are no cycles or missing references'. You expect a graph check that costs about as much as resolving every binding once, as on 8.5.2, where validate() of these 2000 bindings took about 100 ms. Instead, since 8.6.0 validate() starts a fresh walk from every binding, re-walks everything below it, and copies the whole current path into a new LinkedHashSet at every step, so its cost grows with the cube of the chain length: about 45 s for 2000 bindings and about 575 s for 4000 (at 1000 bindings it allocates 389.9 times the bytes of resolving every binding once), although the answer is still correct.
 
 The test shows that SimpleBindings.validate() on a plain chain of 500 expression bindings costs far more than resolving every binding once (its cost up to 8.5.2), because it copies the path at every step.
 
@@ -22,7 +24,7 @@ Expected validate() within 10x of resolving each binding once; actual about 70x 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

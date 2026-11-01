@@ -1,14 +1,14 @@
-# PositiveScoresOnlyCollector inherits its wrapped collector's scoreMode and setWeight, so a wrapped sort-by-field TopFieldCollector or TotalHitCountCollector silently gets the wrong hits or count instead of exactly the hits that score &gt; 0 (score-mode leg since 5.1.0, count leg since 9.3.0)
+# PositiveScoresOnlyCollector inherits its wrapped collector's scoreMode() and setWeight(), so a wrapped sort-by-field TopFieldCollector or TotalHitCountCollector silently gets the wrong hits or count instead of exactly the hits that score &gt; 0 (score-mode leg since 5.1.0, count leg since 9.3.0)
 
-Bug LFV-900 · Area: core / search collectors (PositiveScoresOnlyCollector; FilterCollector scoreMode and setWeight forwarding; TotalHitCountCollector Weight#count shortcut) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-900 · Area: core / search collectors (PositiveScoresOnlyCollector; FilterCollector scoreMode and setWeight forwarding; TotalHitCountCollector Weight#count shortcut) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-900.html](../../bugs/LFV-900.html)
+Finding page: [../../bugs/LFV-900.html](../../bugs/LFV-900.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You wrap a collector in PositiveScoresOnlyCollector, whose javadoc says it 'makes sure only documents with scores &gt; 0 are collected' and which Collector's overview says 'wraps any other Collector', and expect the wrapped collector to see exactly the matches that score &gt; 0: in the repro 6 hits for the TermQuery g:y with a TopFieldCollector sorted by a field, and counts 0 for (f:x)^0 and 6 for (g:y)^2 OR (f:x)^0 with a TotalHitCountCollector. Instead the sort-by-field collector receives 0 hits and the counter reports 12 for both queries, because PositiveScoresOnlyCollector, which reads scorer.score itself, inherits two FilterCollector hooks: scoreMode reports the wrapped collector's no-score mode, so the search builds scorers without scores and the &gt; 0 test reads placeholder values (0 for TermQuery, so real hits are dropped; a constant positive value for FunctionScoreQuery over MatchAllDocsQuery, so zero-score hits get through), and setWeight hands the wrapped TotalHitCountCollector the Weight, so it counts whole segments with Weight#count and never goes through the filter. Overriding scoreMode to return COMPLETE when the wrapped collector needs no scores, and passing on a Weight whose count returns -1 (or not forwarding setWeight at all), fixes both.
+You wrap a collector in PositiveScoresOnlyCollector, whose javadoc says it 'makes sure only documents with scores &gt; 0 are collected' and which Collector's overview says 'wraps any other Collector', and expect the wrapped collector to see exactly the matches that score &gt; 0: in the repro 6 hits for the TermQuery g:y with a TopFieldCollector sorted by a field, and counts 0 for (f:x)^0 and 6 for (g:y)^2 OR (f:x)^0 with a TotalHitCountCollector. Instead the sort-by-field collector receives 0 hits and the counter reports 12 for both queries, because PositiveScoresOnlyCollector, which reads scorer.score() itself, inherits two FilterCollector hooks: scoreMode() reports the wrapped collector's no-score mode, so the search builds scorers without scores and the &gt; 0 test reads placeholder values (0 for TermQuery, so real hits are dropped; a constant positive value for FunctionScoreQuery over MatchAllDocsQuery, so zero-score hits get through), and setWeight() hands the wrapped TotalHitCountCollector the Weight, so it counts whole segments with Weight#count and never goes through the filter. Overriding scoreMode() to return COMPLETE when the wrapped collector needs no scores, and passing on a Weight whose count() returns -1 (or not forwarding setWeight at all), fixes both.
 
 The test shows that PositiveScoresOnlyCollector inherits scoreMode() and setWeight() from FilterCollector, so on a one-document index a wrapped sort-by-field TopFieldCollector loses the positive-score hit and a wrapped TotalHitCountCollector counts the zero-score hit (TestPositiveScoresOnlyCollectorWrapsNoScoreCollector, one test per leg).
 
@@ -24,7 +24,7 @@ Expected: 1 hit for TermQuery f:x sorted by field, count 0 for (f:x)^0; actual: 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 2 test(s) run, 2 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

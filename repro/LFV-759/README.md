@@ -1,8 +1,8 @@
 # IndexWriter accepts doc-values updates of a field that a custom index-sort key reads (such as a BinarySortField subclass that derives its key from another doc-values field), so the segment keeps its old order while still declaring the index sort: CheckIndex rejects it, sorted searches that terminate early return wrong top hits, and merges carry the disorder forward
 
-Bug LFV-759 · Area: index / IndexWriter doc-values updates with index sorting (BinarySortField, custom IndexSorter) · Priority: low · Impact: data corruption · Novelty: new
+Finding LFV-759 · Area: index / IndexWriter doc-values updates with index sorting (BinarySortField, custom IndexSorter) · Priority: low · Impact: data corruption · Novelty: new
 
-Bug page: [../../bugs/LFV-759.html](../../bugs/LFV-759.html)
+Finding page: [../../bugs/LFV-759.html](../../bugs/LFV-759.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: the update is rejected (as it is for the sort's own field) or the segm
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,17 +1,17 @@
-# Intervals.term(term, payloadFilter) match iterators throw UnsupportedOperationException from getQuery, so Weight#matches of ordered/unordered/maxgaps/atLeast over such a term, and Matches-based (default UnifiedHighlighter) highlighting of most positional combinations, throw for every matching document
+# Intervals.term(term, payloadFilter) match iterators throw UnsupportedOperationException from getQuery(), so Weight#matches of ordered/unordered/maxgaps/atLeast over such a term, and Matches-based (default UnifiedHighlighter) highlighting of most positional combinations, throw for every matching document
 
-Bug LFV-463 · Area: queries / intervals (PayloadFilteredTermIntervalsSource Matches API; UnifiedHighlighter WEIGHT_MATCHES) · Priority: low · Impact: crash · Novelty: known upstream
+Finding LFV-463 · Area: queries / intervals (PayloadFilteredTermIntervalsSource Matches API; UnifiedHighlighter WEIGHT_MATCHES) · Priority: low · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-Index a field with payloads (for example 'big|adj dog|noun' through DelimitedPayloadTokenFilter), search it with Intervals.ordered(Intervals.term("big"), Intervals.term("dog", payloadFilter)), then ask Weight#matches for the match positions of a hit or highlight the hit with the UnifiedHighlighter. You expect the positions and a highlighted snippet, as with the plain Intervals.term("dog"). Instead Weight#matches throws UnsupportedOperationException for every matching document (ordered, unordered, maxgaps, atLeast), and highlighting throws for those and also for phrase, containing and containedBy, because the payload-filtered term's match iterator throws from getQuery, which MatchesIterator#getQuery says returns a TermQuery for the current match; search and count still return the right hits.
+Index a field with payloads (for example 'big|adj dog|noun' through DelimitedPayloadTokenFilter), search it with Intervals.ordered(Intervals.term("big"), Intervals.term("dog", payloadFilter)), then ask Weight#matches for the match positions of a hit or highlight the hit with the UnifiedHighlighter. You expect the positions and a highlighted snippet, as with the plain Intervals.term("dog"). Instead Weight#matches throws UnsupportedOperationException for every matching document (ordered, unordered, maxgaps, atLeast), and highlighting throws for those and also for phrase, containing and containedBy, because the payload-filtered term's match iterator throws from getQuery(), which MatchesIterator#getQuery says returns a TermQuery for the current match; search and count still return the right hits.
 
 ## Expected vs actual
 
 - Expected: You expect the positions and a highlighted snippet, as with the plain Intervals.term("dog").
-- Actual: Weight#matches throws UnsupportedOperationException for every matching document (ordered, unordered, maxgaps, atLeast), and highlighting throws for those and also for phrase, containing and containedBy, because the payload-filtered term's match iterator throws from getQuery, which MatchesIterator#getQuery says returns a TermQuery for the current match; search and count still return the right hits.
+- Actual: Weight#matches throws UnsupportedOperationException for every matching document (ordered, unordered, maxgaps, atLeast), and highlighting throws for those and also for phrase, containing and containedBy, because the payload-filtered term's match iterator throws from getQuery(), which MatchesIterator#getQuery says returns a TermQuery for the current match; search and count still return the right hits.
 
 ## Files
 
@@ -21,7 +21,7 @@ Index a field with payloads (for example 'big|adj dog|noun' through DelimitedPay
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -4,9 +4,9 @@ Tools: Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- ByteBuffersDataOutput.copyBytes narrows its long length to a signed int, so a copy of 2 GiB or more (for example Directory.copyFrom into a ByteBuffersDirectory) silently copies nothing or only (int) numBytes bytes (bug LFV-107; [repro](../../repro/LFV-107/))
+- ByteBuffersDataOutput.copyBytes narrows its long length to a signed int, so a copy of 2 GiB or more (for example Directory.copyFrom into a ByteBuffersDirectory) silently copies nothing or only (int) numBytes bytes (finding LFV-107; [repro](../../repro/LFV-107/), [finding page](../../bugs/LFV-107.html))
 
 ## Files
 

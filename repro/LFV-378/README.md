@@ -1,12 +1,12 @@
 # Geo3d reports two shapes that touch at a single point as nested (WITHIN/CONTAINS) instead of overlapping when the touch point is a circle's one sampled edge point, so IsWithin and Contains spatial queries (SerializedDVStrategy, CompositeSpatialStrategy) return circles that lie mostly outside the query shape
 
-Bug LFV-378 · Area: spatial3d / geom shape relationships (GeoBaseAreaShape.getRelationship with GeoStandardCircle's single edge point and Plane.intersects' tangency test), reached through the spatial-extras Geo3d spatial4j adapter (Geo3dShape.relate, SpatialOperation IsWithin/Contains, SerializedDVStrategy, CompositeSpatialStrategy) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-378 · Area: spatial3d / geom shape relationships (GeoBaseAreaShape.getRelationship with GeoStandardCircle's single edge point and Plane.intersects' tangency test), reached through the spatial-extras Geo3d spatial4j adapter (Geo3dShape.relate, SpatialOperation IsWithin/Contains, SerializedDVStrategy, CompositeSpatialStrategy) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You create a circle and a box (or a second circle) that touch at exactly one point, for example with the Geo3d spatial context a 20-degree circle centred at latitude 55 and a box whose southern edge is latitude 75, and expect relate to report INTERSECTS (shapes that share a point intersect, and spatial3d may only weaken WITHIN to OVERLAPS, never the reverse). Instead it reports WITHIN or CONTAINS, as if one shape were inside the other: GeoBaseAreaShape.getRelationship infers nesting from sampled edge points plus a plane-intersection test, a standard circle has a single edge point, and when that point lies on the other shape's boundary the 1e-12 membership test counts it as inside while Plane.intersects' one-solution test misses the touch. So SerializedDVStrategy's IsWithin(box) returns the circle although its centre is 20 degrees outside the box, while radius 19.9 or 20.1 degrees gives the correct DISJOINT or INTERSECTS.
+You create a circle and a box (or a second circle) that touch at exactly one point, for example with the Geo3d spatial context a 20-degree circle centred at latitude 55 and a box whose southern edge is latitude 75, and expect relate() to report INTERSECTS (shapes that share a point intersect, and spatial3d may only weaken WITHIN to OVERLAPS, never the reverse). Instead it reports WITHIN or CONTAINS, as if one shape were inside the other: GeoBaseAreaShape.getRelationship infers nesting from sampled edge points plus a plane-intersection test, a standard circle has a single edge point, and when that point lies on the other shape's boundary the 1e-12 membership test counts it as inside while Plane.intersects' one-solution test misses the touch. So SerializedDVStrategy's IsWithin(box) returns the circle although its centre is 20 degrees outside the box, while radius 19.9 or 20.1 degrees gives the correct DISJOINT or INTERSECTS.
 
 ## Expected vs actual
 
@@ -21,7 +21,7 @@ You create a circle and a box (or a second circle) that touch at exactly one poi
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

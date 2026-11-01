@@ -1,8 +1,8 @@
 # ThaiTokenizer and ThaiAnalyzer silently drop a number written directly after a period, '#' or currency sign (2567 in 'พ.ศ.2567', 1,500 in 'ราคา ฿1,500', 42 in 'page.42'), because a word segment is skipped whole when its first character is not a letter or digit
 
-Bug LFV-225 · Area: analysis / Thai (ThaiTokenizer#incrementWord skip loop; ThaiAnalyzer and the 'thai' tokenizer SPI) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-225 · Area: analysis / Thai (ThaiTokenizer#incrementWord skip loop; ThaiAnalyzer and the 'thai' tokenizer SPI) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-225.html](../../bugs/LFV-225.html)
+Finding page: [../../bugs/LFV-225.html](../../bugs/LFV-225.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected tokens: [พ, ศ, 2567]. Actual: [พ, ศ] (`AssertionError: token 2 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

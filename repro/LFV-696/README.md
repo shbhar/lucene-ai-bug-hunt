@@ -1,14 +1,14 @@
-# Stempel's Trie.reduce with Gener or Lift rewrites the cells of the trie it is given, so reducing PolishAnalyzer.getDefaultTable, documented as unmodifiable, silently changes the stems of every later PolishAnalyzer and StempelPolishStemFilterFactory in the JVM
+# Stempel's Trie.reduce with Gener or Lift rewrites the cells of the trie it is given, so reducing PolishAnalyzer.getDefaultTable(), documented as unmodifiable, silently changes the stems of every later PolishAnalyzer and StempelPolishStemFilterFactory in the JVM
 
-Bug LFV-696 · Area: analysis/stempel / egothor stemmer trie reductions (Trie.reduce with Lift and Gener; the shared PolishAnalyzer.getDefaultTable table) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-696 · Area: analysis/stempel / egothor stemmer trie reductions (Trie.reduce with Lift and Gener; the shared PolishAnalyzer.getDefaultTable() table) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-696.html](../../bugs/LFV-696.html)
+Finding page: [../../bugs/LFV-696.html](../../bugs/LFV-696.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You call reduce(new Gener) or reduce(new Lift(..)) on a stempel Trie, for example on PolishAnalyzer.getDefaultTable, which is documented as 'an unmodifiable instance of the default stemmer table', and expect what Trie.reduce's javadoc says, 'the newly reduced Trie', with the input left as it was (Optimizer and Optimizer2 behave so). Instead Lift.optimize and Gener.optimize take the input's own row list and rewrite its cells in place (Lift moves commands up a level and clears references, Gener drops infrequent commands and references) before copying them into the result, so the input answers differently afterwards: after PolishAnalyzer.getDefaultTable.reduce(new Gener) every new PolishAnalyzer stems 'książkami rzekami pracowali' to [książk, rzekami, pracowali] instead of [książek, rzekść, pracować], and a one-key trie {aa -&gt; Da} reduced with Lift(false) starts to answer getLastOnPath('a') = Da instead of nothing. Copying the rows before the rewrite fixes it; upstream TestStemmer, which reduces one trie five times, then needs a fresh trie per reduction.
+You call reduce(new Gener()) or reduce(new Lift(..)) on a stempel Trie, for example on PolishAnalyzer.getDefaultTable(), which is documented as 'an unmodifiable instance of the default stemmer table', and expect what Trie.reduce's javadoc says, 'the newly reduced Trie', with the input left as it was (Optimizer and Optimizer2 behave so). Instead Lift.optimize and Gener.optimize take the input's own row list and rewrite its cells in place (Lift moves commands up a level and clears references, Gener drops infrequent commands and references) before copying them into the result, so the input answers differently afterwards: after PolishAnalyzer.getDefaultTable().reduce(new Gener()) every new PolishAnalyzer stems 'książkami rzekami pracowali' to [książk, rzekami, pracowali] instead of [książek, rzekść, pracować], and a one-key trie {aa -&gt; Da} reduced with Lift(false) starts to answer getLastOnPath('a') = Da instead of nothing. Copying the rows before the rewrite fixes it; upstream TestStemmer, which reduces one trie five times, then needs a fresh trie per reduction.
 
 The test shows that `Trie.reduce(new Lift(false))` on a one-key `MultiTrie2` {aa -&gt; Da} built by the caller rewrites the input trie in place (Lift.optimize works on `orig.rows`), although reduce is documented to return "the newly reduced Trie"; Gener has the same root cause.
 
@@ -24,7 +24,7 @@ Expected: the input still answers `getLastOnPath("a")` = "" after the reduction.
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

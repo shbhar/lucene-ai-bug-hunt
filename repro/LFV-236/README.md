@@ -1,6 +1,6 @@
 # ToChildBlockJoinQuery and JoinUtil's scoring global-ordinals join inherit FilterWeight#matches, so Weight#matches reports the wrapped query's documents instead of the join's hits (child hits lose their highlights, Lucene Monitor's HighlightsMatch matcher reports the wrong documents)
 
-Bug LFV-236 · Area: join / block-join and global-ordinals join Weight#matches (ToChildBlockJoinQuery, GlobalOrdinalsWithScoreQuery) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-236 · Area: join / block-join and global-ordinals join Weight#matches (ToChildBlockJoinQuery, GlobalOrdinalsWithScoreQuery) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -23,7 +23,7 @@ You index parent/child blocks, search +ToChildBlockJoinQuery(color:red) +body:sh
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

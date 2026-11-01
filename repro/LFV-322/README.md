@@ -1,6 +1,6 @@
 # Monitor with RegexpQueryHandler silently misses matching RegexpQuery queries, because the handler indexes each one under a fragment of its pattern text (for example 'cat|dog', 'colou' or '?mail') that matching terms do not contain
 
-Bug LFV-322 · Area: monitor / presearcher (RegexpQueryHandler custom query handler) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-322 · Area: monitor / presearcher (RegexpQueryHandler custom query handler) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You build a Monitor whose presearcher uses RegexpQueryHandler, register ordinary
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

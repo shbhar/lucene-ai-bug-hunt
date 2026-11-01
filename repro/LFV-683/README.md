@@ -1,14 +1,14 @@
 # DatasetSplitter.split can silently leave a whole labelled class out of all three output indexes when some documents have no class value, and throws NullPointerException, leaving the output writers locked, when a segment has no class field
 
-Bug LFV-683 · Area: classification / utils: DatasetSplitter (split: class count used as the GroupingSearch group limit) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-683 · Area: classification / utils: DatasetSplitter (split: class count used as the GroupingSearch group limit) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-683.html](../../bugs/LFV-683.html)
+Finding page: [../../bugs/LFV-683.html](../../bugs/LFV-683.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You split an index with DatasetSplitter.split(reader, train, test, cv, analyzer, false, "cls"), where one segment holds d0 without a class value, d1 of class a and d2 of class b. You expect every live document in one of the three new indexes, and every class present, which is what the grouping by class was added for (LUCENE-7196). Instead d2, and with it all of class b, is in none of the outputs: split asks GroupingSearch for as many groups as there are class values, but the documents without a value form one more (null) group that takes one of those slots; and if a segment has no class field at all, split throws NullPointerException from terms(classFieldName).size before its try block, so its three IndexWriters are never closed.
+You split an index with DatasetSplitter.split(reader, train, test, cv, analyzer, false, "cls"), where one segment holds d0 without a class value, d1 of class a and d2 of class b. You expect every live document in one of the three new indexes, and every class present, which is what the grouping by class was added for (LUCENE-7196). Instead d2, and with it all of class b, is in none of the outputs: split asks GroupingSearch for as many groups as there are class values, but the documents without a value form one more (null) group that takes one of those slots; and if a segment has no class field at all, split throws NullPointerException from terms(classFieldName).size() before its try block, so its three IndexWriters are never closed.
 
 The test shows that `DatasetSplitter(0.1, 0.1).split(..., "cls")` on one segment `d0` (no class value), `d1` (class a), `d2` (class b) asks `GroupingSearch` for 2 groups (the class count), but the unlabelled document forms a third (null) group that takes a slot, so class b is cut.
 
@@ -24,7 +24,7 @@ Expected `d2` (the only document of class b) in one of the three outputs; actual
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

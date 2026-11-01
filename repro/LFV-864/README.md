@@ -1,17 +1,17 @@
 # Vector-similarity threshold queries (Float/Byte/Float16VectorSimilarityQuery at the default decay) explain every document whose exact similarity clears the threshold as a match, but return only what the approximate graph search collected, so explain calls documents the query does not return matches; inside a BooleanQuery or FunctionScoreQuery that explain then reports another document's score, fails an assertion or throws NullPointerException
 
-Bug LFV-864 · Area: core / search: vector-similarity queries (AbstractVectorSimilarityQuery Weight.explain vs scorerSupplier), with consequences in BooleanWeight.explain and FunctionScoreQuery.explain · Priority: low · Impact: crash · Novelty: known upstream
+Finding LFV-864 · Area: core / search: vector-similarity queries (AbstractVectorSimilarityQuery Weight.explain vs scorerSupplier), with consequences in BooleanWeight.explain and FunctionScoreQuery.explain · Priority: low · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You run a FloatVectorSimilarityQuery.Adaptive (or the Byte or Float16 variant) with the default decay and call IndexSearcher.explain for a document, and you expect explain to agree with the hits, as the kNN queries do: a document the query does not return is explained as a non-match. Instead explain applies the exact threshold test, so a document above the threshold that the approximate graph search did not collect is explained as '... = Score above threshold' although it is not a hit, and Weight.matches of the same Weight returns null for it. Wrapped in a BooleanQuery, explain of such a non-hit returns a match with the next hit's score (-da), fails 'assert advanced == doc' (-ea) or throws NullPointerException when the segment has no vector hits, FunctionScoreQuery's explain throws the same NullPointerException, and the hits of a hybrid 'term OR vector' query can be explained with a vector contribution that is not in their score.
+You run a FloatVectorSimilarityQuery.Adaptive (or the Byte or Float16 variant) with the default decay and call IndexSearcher.explain for a document, and you expect explain to agree with the hits, as the kNN queries do: a document the query does not return is explained as a non-match. Instead explain applies the exact threshold test, so a document above the threshold that the approximate graph search did not collect is explained as '... = Score above threshold' although it is not a hit, and Weight.matches() of the same Weight returns null for it. Wrapped in a BooleanQuery, explain of such a non-hit returns a match with the next hit's score (-da), fails 'assert advanced == doc' (-ea) or throws NullPointerException when the segment has no vector hits, FunctionScoreQuery's explain throws the same NullPointerException, and the hits of a hybrid 'term OR vector' query can be explained with a vector contribution that is not in their score.
 
 ## Expected vs actual
 
 - Expected: You expect explain to agree with the hits, as the kNN queries do: a document the query does not return is explained as a non-match.
-- Actual: Explain applies the exact threshold test, so a document above the threshold that the approximate graph search did not collect is explained as '... = Score above threshold' although it is not a hit, and Weight.matches of the same Weight returns null for it.
+- Actual: Explain applies the exact threshold test, so a document above the threshold that the approximate graph search did not collect is explained as '... = Score above threshold' although it is not a hit, and Weight.matches() of the same Weight returns null for it.
 
 ## Files
 
@@ -20,7 +20,7 @@ You run a FloatVectorSimilarityQuery.Adaptive (or the Byte or Float16 variant) w
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

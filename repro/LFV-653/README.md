@@ -1,8 +1,8 @@
 # ICUTokenizer with cjkAsWords=false silently drops the Japanese iteration mark 々 (U+3005), as in 人々, 時々 and 様々, and the other Han-script letters that are not Ideographic (U+303B, U+16FE3), because Default.rbbi gives them rule status 0
 
-Bug LFV-653 · Area: analysis / ICU (DefaultICUTokenizerConfig break rules Default.rbbi / Default.brk, used for CJK text when cjkAsWords=false; ICUTokenizerFactory 'icu' with cjkAsWords="false") · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-653 · Area: analysis / ICU (DefaultICUTokenizerConfig break rules Default.rbbi / Default.brk, used for CJK text when cjkAsWords=false; ICUTokenizerFactory 'icu' with cjkAsWords="false") · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-653.html](../../bugs/LFV-653.html)
+Finding page: [../../bugs/LFV-653.html](../../bugs/LFV-653.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected tokens `[人, 々]` (as StandardTokenizer gives); actual `[人]` (`expe
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

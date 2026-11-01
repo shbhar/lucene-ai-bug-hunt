@@ -1,14 +1,14 @@
 # Intervals.atLeast stops early when the sub-iterator it just used runs out, so it loses minimal intervals and misses documents when nested; the same hand-over also lets a stale sub-iterator re-enter and return a non-minimal interval out of order
 
-Bug LFV-286 · Area: queries / intervals (Intervals.atLeast: MinimumShouldMatchIntervalsSource) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-286 · Area: queries / intervals (Intervals.atLeast: MinimumShouldMatchIntervalsSource) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-286.html](../../bugs/LFV-286.html)
+Finding page: [../../bugs/LFV-286.html](../../bugs/LFV-286.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index 'a b' and read the intervals of Intervals.atLeast(1, term a, term b), or search ordered(c, atLeast(1, a, b)) over 'a c b'; you expect [0,0] and [1,1], exactly what or(a, b) returns, and one hit. Instead atLeast returns only [0,0] and the ordered query finds nothing: when the sub-iterator just popped from atLeast's proximity queue has no further interval, nextInterval does not pull a replacement from its background queue and ends, although the other source still has intervals. The same hand-over never advances waiting sub-iterators past the current start, so atLeast(1, b, phrase(a, b)) on 'a b b' returns [1,1] then [0,1] (out of order, and [0,1] contains [1,1]) and loses [2,2].
+You index 'a b' and read the intervals of Intervals.atLeast(1, term a, term b), or search ordered(c, atLeast(1, a, b)) over 'a c b'; you expect [0,0] and [1,1], exactly what or(a, b) returns, and one hit. Instead atLeast returns only [0,0] and the ordered query finds nothing: when the sub-iterator just popped from atLeast's proximity queue has no further interval, nextInterval() does not pull a replacement from its background queue and ends, although the other source still has intervals. The same hand-over never advances waiting sub-iterators past the current start, so atLeast(1, b, phrase(a, b)) on 'a b b' returns [1,1] then [0,1] (out of order, and [0,1] contains [1,1]) and loses [2,2].
 
 The test shows that Intervals.atLeast(1, term a, term b) over the text "a b" stops after the first interval (TestAtLeastOneLosesLastInterval#testAtLeastOneOfTwoTerms).
 
@@ -24,7 +24,7 @@ Expected intervals [0,0] and [1,1] (what or(a, b) returns); actual only [0,0], w
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

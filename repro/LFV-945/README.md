@@ -1,12 +1,12 @@
-# On main, the javadocs of LRUQueryCache.clearQuery and clearCoreCacheKey still say 'Remove all cache entries', but since #15558 both methods only mark the entries for the next cleanUp, so the entries stay counted and keep producing cache hits until then; MIGRATE.md does not mention the deferred removal or the new cleanUp duty (documentation defect, main only)
+# On main, the javadocs of LRUQueryCache.clearQuery and clearCoreCacheKey still say 'Remove all cache entries', but since #15558 both methods only mark the entries for the next cleanUp(), so the entries stay counted and keep producing cache hits until then; MIGRATE.md does not mention the deferred removal or the new cleanUp() duty (documentation defect, main only)
 
-Bug LFV-945 · Area: search / query cache (LRUQueryCache method javadocs and MIGRATE.md) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-945 · Area: search / query cache (LRUQueryCache method javadocs and MIGRATE.md) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-On main you install an LRUQueryCache, run a query so that it is cached, and call clearQuery(query) or clearCoreCacheKey(key), whose javadocs say 'Remove all cache entries for the given query' and '... for the given core cache key'. You expect the entries to be gone when the call returns, as on 10.x; instead #15558 made both methods only add the query or key to a pending set, so getCacheSize still counts the entry and the next search is a cache hit (with correct documents) until cleanUp runs. The deferral is deliberate and the class javadoc describes it, but the two method javadocs were left unchanged, and MIGRATE.md, whose 11.0 recipe builds a cache with no cleanup, never mentions the new cleanUp or CacheCleanUpParameters duty.
+On main you install an LRUQueryCache, run a query so that it is cached, and call clearQuery(query) or clearCoreCacheKey(key), whose javadocs say 'Remove all cache entries for the given query' and '... for the given core cache key'. You expect the entries to be gone when the call returns, as on 10.x; instead #15558 made both methods only add the query or key to a pending set, so getCacheSize() still counts the entry and the next search is a cache hit (with correct documents) until cleanUp() runs. The deferral is deliberate and the class javadoc describes it, but the two method javadocs were left unchanged, and MIGRATE.md, whose 11.0 recipe builds a cache with no cleanup, never mentions the new cleanUp() or CacheCleanUpParameters duty.
 
 The test shows that on main `LRUQueryCache.clearQuery(q)` and `clearCoreCacheKey(key)` leave the cache entry in place until `cleanUp()`, although their javadocs still say "Remove all cache entries for the given query" / "... core cache key" (a documentation defect; the deferral itself is the intended #15558 design).
 
@@ -22,7 +22,7 @@ Expected (method javadocs): cache size 0 after each call. Actual: `cache size af
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

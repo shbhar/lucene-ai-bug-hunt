@@ -1,12 +1,14 @@
-# NearestFuzzyQuery (used by KNearestFuzzyClassifier) computes idf from reader.numDocs (live documents) and reader.docFreq (which still counts deleted documents), so when deleted documents that are not yet merged away make up most of the index the idf is negative and rewrite throws 'boost must be a positive float' (released since 8.0.0)
+# NearestFuzzyQuery (used by KNearestFuzzyClassifier) computes idf from reader.numDocs() (live documents) and reader.docFreq() (which still counts deleted documents), so when deleted documents that are not yet merged away make up most of the index the idf is negative and rewrite throws 'boost must be a positive float' (released since 8.0.0)
 
-Bug LFV-393 · Area: classification / NearestFuzzyQuery (KNearestFuzzyClassifier) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-393 · Area: classification / NearestFuzzyQuery (KNearestFuzzyClassifier) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-393.html](../../bugs/LFV-393.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index 6 documents containing 'apple' (class fruit), delete 5 of them under NoMergePolicy (or soft-delete them and keep them with SoftDeletesRetentionMergePolicy), and then search NearestFuzzyQuery('apple') or call KNearestFuzzyClassifier.assignClass('apple'), expecting the one live document and the class fruit. Instead both throw IllegalArgumentException 'boost must be a positive float, got -0.25276297'. NearestFuzzyQuery computes idf = ln((numDocs+1)/(docFreq+1)) + 1 from reader.numDocs, which counts only live documents, and reader.docFreq, which still counts the 5 deleted copies, so idf = ln(2/7) + 1 &lt; 0, and since LUCENE-7996 (8.0.0) BoostQuery rejects the resulting negative boost.
+You index 6 documents containing 'apple' (class fruit), delete 5 of them under NoMergePolicy (or soft-delete them and keep them with SoftDeletesRetentionMergePolicy), and then search NearestFuzzyQuery('apple') or call KNearestFuzzyClassifier.assignClass('apple'), expecting the one live document and the class fruit. Instead both throw IllegalArgumentException 'boost must be a positive float, got -0.25276297'. NearestFuzzyQuery computes idf = ln((numDocs+1)/(docFreq+1)) + 1 from reader.numDocs(), which counts only live documents, and reader.docFreq(), which still counts the 5 deleted copies, so idf = ln(2/7) + 1 &lt; 0, and since LUCENE-7996 (8.0.0) BoostQuery rejects the resulting negative boost.
 
 The test shows that `NearestFuzzyQuery` pairs live `numDocs()` with a `docFreq()` that still counts deleted documents, so with 5 "apple" documents, 4 deleted and not merged away (`NoMergePolicy`), its idf is negative and the rewrite fails.
 
@@ -22,7 +24,7 @@ Expected `count` = 1 (the live document); actual `IllegalArgumentException: boos
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

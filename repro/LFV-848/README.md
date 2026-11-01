@@ -1,14 +1,14 @@
 # Kuromoji's completion table romaji_map.txt has three typo rows: the ッヘ row uses a hiragana へ (U+3078) in its key, so katakana ッヘ is romanized 'xtuhe' instead of 'hhe' and a word like ヨッヘン is not suggested for 'yohhen', and the ッスォ and ッドゥ rows carry the copied spellings 'suxo' and 'ddoxi'
 
-Bug LFV-848 · Area: analysis / kuromoji (JapaneseCompletionFilter and JapaneseCompletionAnalyzer romanization table romaji_map.txt, read by KatakanaRomanizer) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-848 · Area: analysis / kuromoji (JapaneseCompletionFilter and JapaneseCompletionAnalyzer romanization table romaji_map.txt, read by KatakanaRomanizer) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-848.html](../../bugs/LFV-848.html)
+Finding page: [../../bugs/LFV-848.html](../../bugs/LFV-848.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index the katakana name ヨッヘン with JapaneseCompletionAnalyzer and type its romaji 'yohhen' into a suggester, and expect the name to be suggested, just as ヨッハン is suggested for 'yohhan'. Instead nothing is suggested: the table row meant for ッヘ, 'ッへ,hhe' (romaji_map.txt line 219), has the look-alike HIRAGANA LETTER HE (U+3078) in its key, and romanize only ever receives katakana or a-z, so the row can never match and ッヘ falls back to 'ッ'-&gt;'xtu' plus 'ヘ'-&gt;'he' (indexed as 'yoxtuhen'). The same table gives ッスォ the undoubled spelling 'suxo' (line 281, the spelling of スォ) and ッドゥ the spelling 'ddoxi' (line 289, copied from ッドィ) instead of 'ssuxo' and 'ddoxu'; a three-character table edit fixes all three.
+You index the katakana name ヨッヘン with JapaneseCompletionAnalyzer and type its romaji 'yohhen' into a suggester, and expect the name to be suggested, just as ヨッハン is suggested for 'yohhan'. Instead nothing is suggested: the table row meant for ッヘ, 'ッへ,hhe' (romaji_map.txt line 219), has the look-alike HIRAGANA LETTER HE (U+3078) in its key, and romanize() only ever receives katakana or a-z, so the row can never match and ッヘ falls back to 'ッ'-&gt;'xtu' plus 'ヘ'-&gt;'he' (indexed as 'yoxtuhen'). The same table gives ッスォ the undoubled spelling 'suxo' (line 281, the spelling of スォ) and ッドゥ the spelling 'ddoxi' (line 289, copied from ッドィ) instead of 'ssuxo' and 'ddoxu'; a three-character table edit fixes all three.
 
 The test shows that Kuromoji's romaji_map.txt row 'ッへ,hhe' has a hiragana へ key, so katakana ッヘ never gets the row's romaji.
 
@@ -24,7 +24,7 @@ Expected: KatakanaRomanizer.romanize(ッヘ) contains hhe (as ッハ -&gt; hha).
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -49,7 +49,7 @@ The module(s) analysis-kuromoji also need their third-party runtime jars; `./gra
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/kuromoji-completion-romaji-map-vs-hepburn-kunrei-wapuro-tables/](../../models/kuromoji-completion-romaji-map-vs-hepburn-kunrei-wapuro-tables/)
+Formal models and scripts this finding's part of the hunt used: [../../models/kuromoji-completion-romaji-map-vs-hepburn-kunrei-wapuro-tables/](../../models/kuromoji-completion-romaji-map-vs-hepburn-kunrei-wapuro-tables/)
 
 ## Feedback
 

@@ -1,8 +1,8 @@
 # With doc-values overlays (on by default on main), a second advanceExact on the same document does not restart a multi-valued SORTED_NUMERIC column's values, so SortedNumericSortField sorts return the wrong top hits (or throw)
 
-Bug LFV-1051 · Area: index / doc-values overlays (OverlaySortedNumericDocValues over DocValuesOverlayMerger), seen through search / field sorting (SortedNumericSelector, LongComparator, TopFieldCollector) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-1051 · Area: index / doc-values overlays (OverlaySortedNumericDocValues over DocValuesOverlayMerger), seen through search / field sorting (SortedNumericSelector, LongComparator, TopFieldCollector) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-1051.html](../../bugs/LFV-1051.html)
+Finding page: [../../bugs/LFV-1051.html](../../bugs/LFV-1051.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ You index three documents with a multi-valued SortedNumericDocValuesField m = {5
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,7 +44,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-## Files shown on the bug page
+## Files shown on the finding page
 
 - [TestOverlaySortedNumericSort.java](TestOverlaySortedNumericSort.java)
 

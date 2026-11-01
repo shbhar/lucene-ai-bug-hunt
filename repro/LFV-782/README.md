@@ -1,8 +1,8 @@
 # Geo3D outside distance to a lat/lon box that reaches a pole (GeoNorthRectangle / GeoSouthRectangle) ignores the pole, so Geo3DDocValuesField.newOutsideBoxSort gives documents beyond the pole the distance to a far corner (39.88 instead of 10 degrees for the box lat 60..90 x lon -10..10 and the point (80, 180)) and sorts them after nearer documents
 
-Bug LFV-782 · Area: spatial3d / geom polar rectangles outside distance (GeoNorthRectangle, GeoSouthRectangle) and the Geo3DDocValuesField outside-box sort · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-782 · Area: spatial3d / geom polar rectangles outside distance (GeoNorthRectangle, GeoSouthRectangle) and the Geo3DDocValuesField outside-box sort · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-782.html](../../bugs/LFV-782.html)
+Finding page: [../../bugs/LFV-782.html](../../bugs/LFV-782.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: 10 degrees (the distance to the pole, which is in the box); actual (-e
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

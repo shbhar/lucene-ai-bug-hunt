@@ -1,17 +1,17 @@
 # ICUTokenizer silently drops Korean words when a Hangul syllable is followed by a combining mark, soft hyphen, ZWNJ, ZWJ or U+FEFF: the Hangul rules of Default.rbbi do not attach the trailing Extend/Format character, so the segment gets rule status 0 and is skipped as a non-word (U+D55C U+AD6D U+00AD U+C5B4 keeps only U+C5B4; since 4.7.0, LUCENE-4381)
 
-Bug LFV-657 · Area: analysis-icu / segmentation (ICUTokenizer with DefaultICUTokenizerConfig; break rules Default.rbbi -> Default.brk) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-657 · Area: analysis-icu / segmentation (ICUTokenizer with DefaultICUTokenizerConfig; break rules Default.rbbi -> Default.brk) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You tokenize the Korean word U+D55C U+AD6D U+C5B4 ('Korean language') with the default ICUTokenizer, once as is, once with an invisible soft hyphen (U+00AD) after its second syllable and once with a combining mark after each syllable, and expect the word to be indexed every time, because ICUTokenizer 'Breaks text into words according to UAX #29' (ICUTokenizer.java:31), whose rule WB4 attaches Extend and Format characters to the preceding letter, and StandardTokenizer indeed keeps U+D55C U+AD6D U+00AD U+C5B4 as one &lt;HANGUL&gt; token. Instead, the two Hangul rules of Default.rbbi (:127 '$HangulSyllable {200};',:191 '$HangulSyllable $HangulSyllable {200};') have no trailing $ExFm*, unlike every other rule of their group, so the generic status-0 rule (:122) gives the longer match, the segment ending in that character gets rule status 0, and ICUTokenizer skips every status-0 segment as a non-word (:209-214): U+D55C U+AD6D U+00AD U+C5B4 yields only U+C5B4, and U+D55C U+0336 U+AD6D U+0336 U+C5B4 U+0336 (strikethrough), U+D55C U+AD6D U+C5B4 U+FEFF and the Middle Korean tone-marked U+B098 U+302E U+B78F U+302E yield no token at all, silently. Lucene 4.6.1 kept all of these words; the gap came with the ICU 52.1 rule import in 4.7.0 (LUCENE-4381) and is in every release since.
+You tokenize the Korean word U+D55C U+AD6D U+C5B4 ('Korean language') with the default ICUTokenizer, once as is, once with an invisible soft hyphen (U+00AD) after its second syllable and once with a combining mark after each syllable, and expect the word to be indexed every time, because ICUTokenizer 'Breaks text into words according to UAX #29' (ICUTokenizer.java:31), whose rule WB4 attaches Extend and Format characters to the preceding letter, and StandardTokenizer indeed keeps U+D55C U+AD6D U+00AD U+C5B4 as one &lt;HANGUL&gt; token. Instead, the two Hangul rules of Default.rbbi (:127 '$HangulSyllable {200};', :191 '$HangulSyllable $HangulSyllable {200};') have no trailing $ExFm*, unlike every other rule of their group, so the generic status-0 rule (:122) gives the longer match, the segment ending in that character gets rule status 0, and ICUTokenizer skips every status-0 segment as a non-word (:209-214): U+D55C U+AD6D U+00AD U+C5B4 yields only U+C5B4, and U+D55C U+0336 U+AD6D U+0336 U+C5B4 U+0336 (strikethrough), U+D55C U+AD6D U+C5B4 U+FEFF and the Middle Korean tone-marked U+B098 U+302E U+B78F U+302E yield no token at all, silently. Lucene 4.6.1 kept all of these words; the gap came with the ICU 52.1 rule import in 4.7.0 (LUCENE-4381) and is in every release since.
 
 ## Expected vs actual
 
 - Expected: The test passes: it asserts the documented behaviour.
-- Actual: The two Hangul rules of Default.rbbi (:127 '$HangulSyllable {200};',:191 '$HangulSyllable $HangulSyllable {200};') have no trailing $ExFm*, unlike every other rule of their group, so the generic status-0 rule (:122) gives the longer match, the segment ending in that character gets rule status 0, and ICUTokenizer skips every status-0 segment as a non-word (:209-214): U+D55C U+AD6D U+00AD U+C5B4 yields only U+C5B4, and U+D55C U+0336 U+AD6D U+0336 U+C5B4 U+0336 (strikethrough), U+D55C U+AD6D U+C5B4 U+FEFF and the Middle Korean tone-marked U+B098 U+302E U+B78F U+302E yield no token at all, silently.
+- Actual: The two Hangul rules of Default.rbbi (:127 '$HangulSyllable {200};', :191 '$HangulSyllable $HangulSyllable {200};') have no trailing $ExFm*, unlike every other rule of their group, so the generic status-0 rule (:122) gives the longer match, the segment ending in that character gets rule status 0, and ICUTokenizer skips every status-0 segment as a non-word (:209-214): U+D55C U+AD6D U+00AD U+C5B4 yields only U+C5B4, and U+D55C U+0336 U+AD6D U+0336 U+C5B4 U+0336 (strikethrough), U+D55C U+AD6D U+C5B4 U+FEFF and the Middle Korean tone-marked U+B098 U+302E U+B78F U+302E yield no token at all, silently.
 
 ## Files
 
@@ -21,7 +21,7 @@ You tokenize the Korean word U+D55C U+AD6D U+C5B4 ('Korean language') with the d
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

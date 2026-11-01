@@ -1,18 +1,20 @@
 # A rejected document leaves its doc-values skip index type in the field's per-document schema state, so later valid documents with that field are rejected until the in-memory segment is flushed
 
-Bug LFV-116 · Area: index / IndexingChain per-field schema validation (FieldSchema) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-116 · Area: index / IndexingChain per-field schema validation (FieldSchema) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-116.html](../../bugs/LFV-116.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index a document in which field f carries a skip-indexed doc-values field (for example SortedDocValuesField.indexedField, new in 10.0), IndexWriter correctly rejects it with IllegalArgumentException because f is already indexed without doc values (or because another field of that document is invalid), and you keep adding documents that have f without doc values. You expect only the bad document to be rejected, as for any non-aborting exception, and the next valid documents to be accepted, as they are when the rejected document used doc values without a skip index. Instead every later document with f and no doc values in the same in-memory segment is rejected ("doc values skip index type: expected 'NONE', but it has 'RANGE'", or "field 'f' cannot have docValuesSkipIndexType=RANGE with doc values type NONE") until the next flush, because IndexingChain.FieldSchema.reset clears the per-document doc-values type but not the skip index type, so the rejected document's RANGE is left behind.
+You index a document in which field f carries a skip-indexed doc-values field (for example SortedDocValuesField.indexedField, new in 10.0), IndexWriter correctly rejects it with IllegalArgumentException because f is already indexed without doc values (or because another field of that document is invalid), and you keep adding documents that have f without doc values. You expect only the bad document to be rejected, as for any non-aborting exception, and the next valid documents to be accepted, as they are when the rejected document used doc values without a skip index. Instead every later document with f and no doc values in the same in-memory segment is rejected ("doc values skip index type: expected 'NONE', but it has 'RANGE'", or "field 'f' cannot have docValuesSkipIndexType=RANGE with doc values type NONE") until the next flush, because IndexingChain.FieldSchema.reset() clears the per-document doc-values type but not the skip index type, so the rejected document's RANGE is left behind.
 
 The test shows that after IndexWriter rejects a document that adds `SortedDocValuesField.indexedField("f")` to a postings-only field `f`, the next valid document with only `StringField f` is rejected too, because `FieldSchema.reset()` keeps the rejected document's skip index type.
 
 ## Expected vs actual
 
-Expected the third document (same schema as the first) to be accepted; actual: `IllegalArgumentException... doc values skip index type: expected 'NONE', but it has 'RANGE'`, with `-ea` and `-da`.
+Expected the third document (same schema as the first) to be accepted; actual: `IllegalArgumentException ... doc values skip index type: expected 'NONE', but it has 'RANGE'`, with `-ea` and `-da`.
 
 ## Files
 
@@ -22,7 +24,7 @@ Expected the third document (same schema as the first) to be accepted; actual: `
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,7 +46,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/indexingchain-schema/](../../models/indexingchain-schema/)
+Formal models and scripts this finding's part of the hunt used: [../../models/indexingchain-schema/](../../models/indexingchain-schema/)
 
 ## Feedback
 

@@ -1,6 +1,6 @@
 # A sloppy PhraseQuery in which two different terms each repeat (for example "a b a b"~1) misses documents of a segment, exact-phrase matches included, when the segment's first candidate document has two of those terms stacked at one position, because SloppyPhraseMatcher builds its repetition groups once, from that document, by position instead of by term
 
-Bug LFV-187 · Area: search / phrase queries (SloppyPhraseMatcher repetition groups: gatherRptGroups, non-multi-term branch) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-187 · Area: search / phrase queries (SloppyPhraseMatcher repetition groups: gatherRptGroups, non-multi-term branch) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -11,7 +11,7 @@ You index text into a field whose analysis can put two words at one position (fo
 ## Expected vs actual
 
 - Expected: You expect every document within the slop, and certainly every document that holds the exact phrase, to match, whatever other documents share its segment.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
 
 ## Files
 
@@ -21,7 +21,7 @@ You index text into a field whose analysis can put two words at one position (fo
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

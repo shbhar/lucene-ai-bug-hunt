@@ -1,12 +1,12 @@
-# A doc-values update racing IndexWriter.deleteAll can be queued after deleteAll has cleared its field from the writer's field schema; applying it then makes every commit, NRT reopen and close fail (a tragic close with assertions on), or, if a document added in between gives the field another doc-values type, commits a segment whose field cannot be read
+# A doc-values update racing IndexWriter.deleteAll() can be queued after deleteAll has cleared its field from the writer's field schema; applying it then makes every commit, NRT reopen and close() fail (a tragic close with assertions on), or, if a document added in between gives the field another doc-values type, commits a segment whose field cannot be read
 
-Bug LFV-635 · Area: index / IndexWriter doc-values updates vs deleteAll (writer-wide field schema, FieldInfos.FieldNumbers) · Priority: medium · Impact: data corruption · Novelty: known upstream
+Finding LFV-635 · Area: index / IndexWriter doc-values updates vs deleteAll (writer-wide field schema, FieldInfos.FieldNumbers) · Priority: medium · Impact: data corruption · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-One thread calls deleteAll on an IndexWriter while another thread updates a doc-values field with updateDocValues, updateNumericDocValue or softUpdateDocument. You expect the update either to be dropped with everything else (if it came first) or to apply to the documents indexed after deleteAll, as on a fresh writer. Instead, when the update checked its field before deleteAll cleared the writer's field schema and is queued just after, the writer can no longer commit, refresh or close (NullPointerException with assertions off, a tragic AssertionError with them on), and when a document added in between gives the field another doc-values type, the commit succeeds but writes a segment whose field cannot be read.
+One thread calls deleteAll() on an IndexWriter while another thread updates a doc-values field with updateDocValues, updateNumericDocValue or softUpdateDocument. You expect the update either to be dropped with everything else (if it came first) or to apply to the documents indexed after deleteAll, as on a fresh writer. Instead, when the update checked its field before deleteAll cleared the writer's field schema and is queued just after, the writer can no longer commit, refresh or close (NullPointerException with assertions off, a tragic AssertionError with them on), and when a document added in between gives the field another doc-values type, the commit succeeds but writes a segment whose field cannot be read.
 
 ## Expected vs actual
 
@@ -20,7 +20,7 @@ One thread calls deleteAll on an IndexWriter while another thread updates a doc-
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

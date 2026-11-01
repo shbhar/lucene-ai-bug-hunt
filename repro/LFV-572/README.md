@@ -1,12 +1,14 @@
 # MergePolicy.isMerged checks a segment read from disk against the codec instance it was loaded with (the shared Codec.forName instance, with default compound-file settings) instead of the writer's codec, so forceMerge(1) with a LogMergePolicy rewrites an already merged segment after every writer reopen
 
-Bug LFV-572 · Area: index / merge policy compound-file check (MergePolicy.isMerged vs CompoundFormat settings) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-572 · Area: index / merge policy compound-file check (MergePolicy.isMerged vs CompoundFormat settings) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-572.html](../../bugs/LFV-572.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You give IndexWriter its own codec instance, for example new Lucene104Codec(Mode.BEST_COMPRESSION), turn compound files off on it as MIGRATE.md says (iwc.getCodec.compoundFormat.setShouldUseCompoundFile(false)), use a LogByteSizeMergePolicy and force-merge the index to one segment. You expect a later forceMerge(1) to leave that already merged segment alone, as it does in the same writer session and as 10.x does with the equivalent merge-policy settings. Instead, after the writer is closed and reopened, MergePolicy.isMerged asks the codec instance the segment was read with (the shared Codec.forName instance, whose settings are the defaults), decides the non-compound segment should have been compound, and forceMerge(1) rewrites it (_3 becomes _4); the merge itself uses the writer's codec and writes a non-compound segment again, so the same rewrite happens in every later writer session.
+You give IndexWriter its own codec instance, for example new Lucene104Codec(Mode.BEST_COMPRESSION), turn compound files off on it as MIGRATE.md says (iwc.getCodec().compoundFormat().setShouldUseCompoundFile(false)), use a LogByteSizeMergePolicy and force-merge the index to one segment. You expect a later forceMerge(1) to leave that already merged segment alone, as it does in the same writer session and as 10.x does with the equivalent merge-policy settings. Instead, after the writer is closed and reopened, MergePolicy.isMerged asks the codec instance the segment was read with (the shared Codec.forName instance, whose settings are the defaults), decides the non-compound segment should have been compound, and forceMerge(1) rewrites it (_3 becomes _4); the merge itself uses the writer's codec and writes a non-compound segment again, so the same rewrite happens in every later writer session.
 
 The test shows that with its own codec instance configured for no compound files (MIGRATE.md) and a LogByteSizeMergePolicy, `forceMerge(1)` after a writer reopen rewrites an already merged segment, because `MergePolicy.isMerged` asks the codec instance the segment was read with (the shared `Codec.forName` one, default settings).
 
@@ -22,7 +24,7 @@ Expected the merged segment `_2` to be kept; actual it is rewritten into `_3` (`
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

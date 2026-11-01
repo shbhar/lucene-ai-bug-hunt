@@ -1,17 +1,19 @@
 # NRT PrimaryNode: one I/O error during flushAndRefresh leaves the new point unpublished to replicas, and the retry reports no changes
 
-Bug LFV-1024 · Area: replicator / NRT segment replication (PrimaryNode.flushAndRefresh, setCurrentInfos: NRT point publication) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-1024 · Area: replicator / NRT segment replication (PrimaryNode.flushAndRefresh, setCurrentInfos: NRT point publication) · Priority: low · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-1024.html](../../bugs/LFV-1024.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You run Lucene's NRT segment replication, index a document and call PrimaryNode.flushAndRefresh; it throws because opening one of the new files hits a transient I/O error, and once the error is gone you call flushAndRefresh again. You expect the retry to publish the new point to replicas, or the failed call to have left the previous point fully in place. Instead the failed call had already switched the primary's current point and released the previous point's files, but not the copy state that replicas are given, so the retry returns false ('no changes'), getCopyStateVersion stays behind getCurrentSearchingVersion, and replicas are not offered the new point until the index changes again.
+You run Lucene's NRT segment replication, index a document and call PrimaryNode.flushAndRefresh; it throws because opening one of the new files hits a transient I/O error, and once the error is gone you call flushAndRefresh again. You expect the retry to publish the new point to replicas, or the failed call to have left the previous point fully in place. Instead the failed call had already switched the primary's current point and released the previous point's files, but not the copy state that replicas are given, so the retry returns false ('no changes'), getCopyStateVersion() stays behind getCurrentSearchingVersion(), and replicas are not offered the new point until the index changes again.
 
 ## Expected vs actual
 
-- Expected: You expect the retry to publish the new point to replicas, or the failed call to have left the previous point fully in place.
-- Actual: The failed call had already switched the primary's current point and released the previous point's files, but not the copy state that replicas are given, so the retry returns false ('no changes'), getCopyStateVersion stays behind getCurrentSearchingVersion, and replicas are not offered the new point until the index changes again.
+- Expected: After the retry, replicas are offered the point being searched: `getCopyStateVersion()` == `getCurrentSearchingVersion()` == 3.
+- Actual: The retry returns `false` and the offered point stays at version 1: `expected:<3> but was:<1>`.
 
 ## Files
 
@@ -20,7 +22,7 @@ You run Lucene's NRT segment replication, index a document and call PrimaryNode.
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -45,6 +47,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) facet, replicator also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestPrimaryRetryAfterFailedPublish.java](TestPrimaryRetryAfterFailedPublish.java)
 
 ## Feedback
 

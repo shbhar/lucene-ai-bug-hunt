@@ -1,6 +1,6 @@
-# Classic QueryParser and flexible StandardQueryParser: the query syntax docs never say that only space, TAB, LF, CR and U+3000 separate clauses, so AND, OR or '-' written next to any other Unicode space (EN, EM or THIN space, U+205F, NBSP,...) silently becomes part of a search term and a field prefix spreads to the following words: 'title:foo&lt;EM SPACE&gt;AND&lt;EM SPACE&gt;-bar' parses as 'title:foo title:and title:bar'
+# Classic QueryParser and flexible StandardQueryParser: the query syntax docs never say that only space, TAB, LF, CR and U+3000 separate clauses, so AND, OR or '-' written next to any other Unicode space (EN, EM or THIN space, U+205F, NBSP, ...) silently becomes part of a search term and a field prefix spreads to the following words: 'title:foo&lt;EM SPACE&gt;AND&lt;EM SPACE&gt;-bar' parses as 'title:foo title:and title:bar'
 
-Bug LFV-847 · Area: queryparser / classic and flexible standard grammars (_WHITESPACE, _TERM_START_CHAR) and the query syntax documentation · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-847 · Area: queryparser / classic and flexible standard grammars (_WHITESPACE, _TERM_START_CHAR) and the query syntax documentation · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You parse 'title:foo AND -bar' with the classic or the flexible query parser, bu
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,12 +1,14 @@
-# AnalyzingSuggester and FuzzySuggester getCount counts analyzed paths instead of entries when the analyzer produces a token graph (synonyms, word-delimiter graphs), and store/load persist the inflated count
+# AnalyzingSuggester and FuzzySuggester getCount() counts analyzed paths instead of entries when the analyzer produces a token graph (synonyms, word-delimiter graphs), and store()/load() persist the inflated count
 
-Bug LFV-431 · Area: suggest / analyzing suggester (AnalyzingSuggester.build and getCount, inherited by FuzzySuggester) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-431 · Area: suggest / analyzing suggester (AnalyzingSuggester.build and getCount, inherited by FuzzySuggester) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-431.html](../../bugs/LFV-431.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build an AnalyzingSuggester or FuzzySuggester from the two entries 'fast car' and 'red car' with an analyzer whose synonym rule maps fast to {fast, quick}, and you expect getCount to return 2, because Lookup#getCount is documented as 'the number of entries the lookup was built with'. It returns 3: build increments its counter once for every analyzed path of an entry ('fast car' and 'quick car' here), not once per entry, so each entry counts as often as its token graph has paths (8 for the single entry 'wifi wifi wifi' with one stacked synonym), and store and load keep the inflated number. Lookups are correct, and analyzers that produce no token graph give the right count.
+You build an AnalyzingSuggester or FuzzySuggester from the two entries 'fast car' and 'red car' with an analyzer whose synonym rule maps fast to {fast, quick}, and you expect getCount() to return 2, because Lookup#getCount is documented as 'the number of entries the lookup was built with'. It returns 3: build() increments its counter once for every analyzed path of an entry ('fast car' and 'quick car' here), not once per entry, so each entry counts as often as its token graph has paths (8 for the single entry 'wifi wifi wifi' with one stacked synonym), and store() and load() keep the inflated number. Lookups are correct, and analyzers that produce no token graph give the right count.
 
 The test shows that AnalyzingSuggester.getCount() counts analyzed paths, not entries: one entry 'fast' with the synonym fast -&gt; {fast, quick} is counted twice.
 
@@ -22,7 +24,7 @@ Expected getCount() 1 (Lookup#getCount: "the number of entries the lookup was bu
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

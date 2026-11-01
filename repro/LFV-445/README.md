@@ -1,14 +1,14 @@
-# ICUTokenizer loses a supplementary character (an emoji, a CJK Extension B ideograph) whose surrogate pair straddles the end of its 4096-char read chunk in text with no whitespace, because refill cuts the pair in half
+# ICUTokenizer loses a supplementary character (an emoji, a CJK Extension B ideograph) whose surrogate pair straddles the end of its 4096-char read chunk in text with no whitespace, because refill() cuts the pair in half
 
-Bug LFV-445 · Area: analysis / ICU (ICUTokenizer chunked buffer refill; ICUTokenizerFactory 'icu') · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-445 · Area: analysis / ICU (ICUTokenizer chunked buffer refill; ICUTokenizerFactory 'icu') · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-445.html](../../bugs/LFV-445.html)
+Finding page: [../../bugs/LFV-445.html](../../bugs/LFV-445.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index a long Chinese paragraph with no spaces or line breaks through the stock ICUTokenizer, and it contains an emoji or a rare ideograph such as U+20000; you expect that character to be a token wherever it falls, as it is one position earlier or later. Instead, when its first UTF-16 half is the last char of the tokenizer's 4096-char read chunk, refill gives the word breaker a chunk that ends in a lone high surrogate and starts the next chunk with the lone low surrogate; both halves get rule status 0 and are skipped, so the character is in no token. A TermQuery for it finds 0 documents instead of 1, with no error.
+You index a long Chinese paragraph with no spaces or line breaks through the stock ICUTokenizer, and it contains an emoji or a rare ideograph such as U+20000; you expect that character to be a token wherever it falls, as it is one position earlier or later. Instead, when its first UTF-16 half is the last char of the tokenizer's 4096-char read chunk, refill() gives the word breaker a chunk that ends in a lone high surrogate and starts the next chunk with the lone low surrogate; both halves get rule status 0 and are skipped, so the character is in no token. A TermQuery for it finds 0 documents instead of 1, with no error.
 
 The test shows that ICUTokenizer drops U+20000 when its high surrogate is the last char (char 4095) of a whitespace-free 4096-char read chunk, because refill() splits the surrogate pair.
 
@@ -24,7 +24,7 @@ Expected U+20000 to be 1 token (as at any other position); actual 0 tokens.
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

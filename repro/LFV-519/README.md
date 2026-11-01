@@ -1,6 +1,6 @@
 # WordBreakSpellChecker.suggestWordCombinations does not honour maxEvaluations: the counter is compared with == and the break leaves only the inner loop, so every later left term is still evaluated and a limit of 0 or less is ignored (the #12077 fix in 9.5.0 covered only suggestWordBreaks)
 
-Bug LFV-519 · Area: suggest / spell (WordBreakSpellChecker word combinations) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-519 · Area: suggest / spell (WordBreakSpellChecker word combinations) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ Expected at most 1 suggestion, because only 1 combination may be evaluated. Actu
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

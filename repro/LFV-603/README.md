@@ -1,6 +1,6 @@
 # KoreanTokenizer gives the parts of a decompounded word offsets counted back from the end of the word while their text is cut from the start of the word, so when the parts do not cover the whole word (a user-dictionary entry with a shorter segmentation such as '세종시 세종', or 7 compounds of the bundled dictionary such as 픽토그램) the offsets point at other characters (픽토 at [1,3) covers '토그')
 
-Bug LFV-603 · Area: analysis / nori KoreanTokenizer (Viterbi decompound backtrace; UserDictionary and bundled-dictionary compounds) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-603 · Area: analysis / nori KoreanTokenizer (Viterbi decompound backtrace; UserDictionary and bundled-dictionary compounds) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You analyze text containing 픽토그램 ('pictogram') with the default KoreanAn
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -45,7 +45,7 @@ The module(s) analysis-nori also need their third-party runtime jars; `./gradlew
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/subtoken-offset-containment-sweep/](../../models/subtoken-offset-containment-sweep/)
+Formal models and scripts this finding's part of the hunt used: [../../models/subtoken-offset-containment-sweep/](../../models/subtoken-offset-containment-sweep/)
 
 ## Feedback
 

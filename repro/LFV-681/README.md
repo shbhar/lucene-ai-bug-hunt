@@ -1,8 +1,8 @@
 # DatasetSplitter.split with explicit fieldNames copies only the first value of each multi-valued field into the split indexes
 
-Bug LFV-681 · Area: classification / utils: DatasetSplitter (split, createNewDoc fieldNames branch) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-681 · Area: classification / utils: DatasetSplitter (split, createNewDoc fieldNames branch) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-681.html](../../bugs/LFV-681.html)
+Finding page: [../../bugs/LFV-681.html](../../bugs/LFV-681.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: the training document stores both values `[first, second]`; actual (-e
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

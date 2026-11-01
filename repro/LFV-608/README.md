@@ -1,6 +1,8 @@
 # DOCS_AND_CUSTOM_FREQS fields (10.5.0+): the norm length counts terms but sumTotalTermFreq and totalTermFreq sum the custom frequencies, contradicting the FieldInfo#isTermDocField, IndexOptions and FieldStats javadocs and putting BM25's dl and avgdl in different units
 
-Bug LFV-608 · Area: core index / DOCS_AND_CUSTOM_FREQS (termdoc) field length vs term statistics; search similarities (BM25, SimilarityBase) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-608 · Area: core index / DOCS_AND_CUSTOM_FREQS (termdoc) field length vs term statistics; search similarities (BM25, SimilarityBase) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-608.html](../../bugs/LFV-608.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected `sumTotalTermFreq` 1 (one document whose field length is 1: one term `a
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

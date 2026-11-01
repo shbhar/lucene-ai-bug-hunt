@@ -1,12 +1,14 @@
 # Flexible query parser: SlopQueryNode and PhraseSlopQueryNode print their int slop through a float, so toQueryString changes every slop above 2^24 (~16777217 prints ~16777216, ~2147483647 prints ~2147483648, which the parser rejects)
 
-Bug LFV-892 · Area: queryparser / flexible parser node serialization (SlopQueryNode and PhraseSlopQueryNode toQueryString/toString) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-892 · Area: queryparser / flexible parser node serialization (SlopQueryNode and PhraseSlopQueryNode toQueryString/toString) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-892.html](../../bugs/LFV-892.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You parse "a b"~16777217, or the 'any distance' phrase "a b"~2147483647, with the flexible StandardSyntaxParser, print the node tree with toQueryString, and expect the same slop back, since QueryNode#toQueryString is documented as 'convert to a query string understood by the query parser' and the package documentation says the string 'can be parsed back by the original text parser'. Instead SlopQueryNode prints ~16777216, and ~2147483648 for the second query, which the same parser rejects with NumberFormatException, because getValueString boxes the int slop into a Float and prints its long value, so every slop above 2^24 is rounded to the nearest float. PhraseSlopQueryNode has the same helper (123456789 prints ~123456792), and toString of both nodes uses it too.
+You parse "a b"~16777217, or the 'any distance' phrase "a b"~2147483647, with the flexible StandardSyntaxParser, print the node tree with toQueryString, and expect the same slop back, since QueryNode#toQueryString is documented as 'convert to a query string understood by the query parser' and the package documentation says the string 'can be parsed back by the original text parser'. Instead SlopQueryNode prints ~16777216, and ~2147483648 for the second query, which the same parser rejects with NumberFormatException, because getValueString boxes the int slop into a Float and prints its long value, so every slop above 2^24 is rounded to the nearest float. PhraseSlopQueryNode has the same helper (123456789 prints ~123456792), and toString() of both nodes uses it too.
 
 The test shows that the flexible StandardSyntaxParser parses `f:"a b"~2147483647` into a SlopQueryNode that keeps the int slop, but SlopQueryNode.toQueryString prints the slop through a Float, so the text does not round-trip.
 
@@ -22,7 +24,7 @@ Expected `f:"a b"~2147483647`; actual `f:"a b"~2147483648` (a slop the parser re
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,14 +1,14 @@
 # FSTMetadata.save always writes the current version, so re-saving a pre-9.0 BYTE2 FST breaks its lookups
 
-Bug LFV-052 · Area: util / FST · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-052 · Area: util / FST · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-052.html](../../bugs/LFV-052.html)
+Finding page: [../../bugs/LFV-052.html](../../bugs/LFV-052.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You load an FST that was written before 9.0 with BYTE2 labels and save it again with Lucene 9.0 or later. You expect the re-saved FST to work like the original. Instead save writes the header version VERSION_CURRENT, so readers decode the labels with the wrong byte order and the lookups fail (0 of 9 keys found in the repro); FSTs built with setVersion(VERSION_90) are also labelled 9 and rejected by 9.8.
+You load an FST that was written before 9.0 with BYTE2 labels and save it again with Lucene 9.0 or later. You expect the re-saved FST to work like the original. Instead save() writes the header version VERSION_CURRENT, so readers decode the labels with the wrong byte order and the lookups fail (0 of 9 keys found in the repro); FSTs built with setVersion(VERSION_90) are also labelled 9 and rejected by 9.8.
 
 The test shows that an FST saved by Lucene 8.11.4 (FST version 7, BYTE2 labels, one key "a" -&gt; 1) loads correctly on main, but after `FST#save` and reloading, the copy no longer finds "a": `FSTMetadata#save` writes the header version `VERSION_CURRENT`, so the copied big-endian BYTE2 labels are read little-endian.
 
@@ -24,7 +24,7 @@ Expected `Util.get(copy, "a") == 1` as in the loaded FST; actual `null` (`expect
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -46,7 +46,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/study-fst-verification/](../../models/study-fst-verification/)
+Formal models and scripts this finding's part of the hunt used: [../../models/study-fst-verification/](../../models/study-fst-verification/)
 
 ## Feedback
 

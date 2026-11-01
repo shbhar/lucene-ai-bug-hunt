@@ -1,12 +1,14 @@
 # TopSuggestDocs.merge, documented as analogous to TopDocs.merge, sizes its priority queue by topN before it reads any shard, so merging with topN = Integer.MAX_VALUE ('all') throws IllegalArgumentException 'maxSize must be &gt;= 0 and &lt; 2147483631' even for 3 hits or no shards (NegativeArraySizeException before 7.5.0), while TopDocs.merge returns the hits; a large legal topN allocates topN + 1 queue slots for a few hits
 
-Bug LFV-1002 · Area: suggest / document suggester: TopSuggestDocs.merge (merging per-shard suggestion results) · Priority: low · Impact: crash · Novelty: new
+Finding LFV-1002 · Area: suggest / document suggester: TopSuggestDocs.merge (merging per-shard suggestion results) · Priority: low · Impact: crash · Novelty: new
+
+Finding page: [../../bugs/LFV-1002.html](../../bugs/LFV-1002.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You collect suggestions from two index shards (for example SuggestIndexSearcher.suggest(query, 5, false) on each, giving 3 and 2 hits) and combine them with TopSuggestDocs.merge(Integer.MAX_VALUE, shards) to keep them all; its javadoc calls it 'Analogous to TopDocs#merge(int, TopDocs)' and sets no bound on topN, so you expect the 5 hits that merge(10,...) returns and that TopDocs.merge(Integer.MAX_VALUE,...) returns for ordinary hits. Instead merge throws IllegalArgumentException 'maxSize must be &gt;= 0 and &lt; 2147483631; got: 2147483647', even for a single empty shard, because it creates its PriorityQueue with topN slots before it looks at any shard (TopSuggestDocs.java:116-117), while TopDocs.merge sizes its queue by the number of shards and its result by the hits it received. Below that limit, a large topN such as 10^8 makes merge allocate topN + 1 slots for a handful of hits.
+You collect suggestions from two index shards (for example SuggestIndexSearcher.suggest(query, 5, false) on each, giving 3 and 2 hits) and combine them with TopSuggestDocs.merge(Integer.MAX_VALUE, shards) to keep them all; its javadoc calls it 'Analogous to TopDocs#merge(int, TopDocs[])' and sets no bound on topN, so you expect the 5 hits that merge(10, ...) returns and that TopDocs.merge(Integer.MAX_VALUE, ...) returns for ordinary hits. Instead merge throws IllegalArgumentException 'maxSize must be &gt;= 0 and &lt; 2147483631; got: 2147483647', even for a single empty shard, because it creates its PriorityQueue with topN slots before it looks at any shard (TopSuggestDocs.java:116-117), while TopDocs.merge sizes its queue by the number of shards and its result by the hits it received. Below that limit, a large topN such as 10^8 makes merge allocate topN + 1 slots for a handful of hits.
 
 The test shows that TopSuggestDocs.merge of two one-hit shards with topN = Integer.MAX_VALUE ("all hits") throws, because it sizes its PriorityQueue by topN before it reads any shard (TopSuggestDocs.java:117).
 
@@ -22,7 +24,7 @@ Expected: the 2 merged hits, as with topN = 10 and as TopDocs.merge, its documen
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

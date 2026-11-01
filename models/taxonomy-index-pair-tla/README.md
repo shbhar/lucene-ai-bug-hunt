@@ -4,10 +4,10 @@ Tools: TLA+/TLC.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- ReindexingEnrichedDirectoryTaxonomyWriter.reindexWithNewOrdinalData rebuilds only the last committed taxonomy, so categories added since that commit are dropped and their ordinals are later reused for other categories (bug LFV-481; [repro](../../repro/LFV-481/), [bug page](../../bugs/LFV-481.html))
-- SearcherTaxonomyManager's IndexWriter (near-real-time) constructors open the taxonomy reader before the index reader, so a manager created while another thread indexes can hand out a first pair whose searcher holds documents with categories the paired taxonomy reader does not know (facet counting throws ArrayIndexOutOfBoundsException until the index changes and the manager refreshes) (bug LFV-489; [repro](../../repro/LFV-489/))
+- ReindexingEnrichedDirectoryTaxonomyWriter.reindexWithNewOrdinalData rebuilds only the last committed taxonomy, so categories added since that commit are dropped and their ordinals are later reused for other categories (finding LFV-481; [repro](../../repro/LFV-481/), [finding page](../../bugs/LFV-481.html))
+- SearcherTaxonomyManager's IndexWriter (near-real-time) constructors open the taxonomy reader before the index reader, so a manager created while another thread indexes can hand out a first pair whose searcher holds documents with categories the paired taxonomy reader does not know (facet counting throws ArrayIndexOutOfBoundsException until the index changes and the manager refreshes) (finding LFV-489; [repro](../../repro/LFV-489/), [finding page](../../bugs/LFV-489.html))
 
 ## Files
 
@@ -26,4 +26,4 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## How to run
 
-- TLA+ with TLC: `java -cp tla2tools.jar tlc2.TLC -config <Model>.cfg <Model>.tla` (a counterexample trace is the bug when the model encodes the current code).
+- TLA+ with TLC: `java -cp tla2tools.jar tlc2.TLC -config <Model>.cfg <Model>.tla` (a counterexample trace is the finding when the model encodes the current code).

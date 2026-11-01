@@ -1,6 +1,6 @@
-# IndexWriterConfig setters called after the IndexWriter was created still change that writer (index sort, parent field, soft-deletes field, codec, similarity,...), although the class javadoc says such changes have no effect; a late index sort or parent field makes merges fail and closes the writer, and a late soft-deletes field can drop a live document
+# IndexWriterConfig setters called after the IndexWriter was created still change that writer (index sort, parent field, soft-deletes field, codec, similarity, ...), although the class javadoc says such changes have no effect; a late index sort or parent field makes merges fail and closes the writer, and a late soft-deletes field can drop a live document
 
-Bug LFV-580 · Area: index / IndexWriterConfig and IndexWriter configuration (creation-only settings re-read from the caller's config object) · Priority: medium · Impact: index unusable · Novelty: known upstream
+Finding LFV-580 · Area: index / IndexWriterConfig and IndexWriter configuration (creation-only settings re-read from the caller's config object) · Priority: medium · Impact: index unusable · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You create an IndexWriter from an IndexWriterConfig and later call a setter such
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

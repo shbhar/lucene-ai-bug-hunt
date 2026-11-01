@@ -1,14 +1,14 @@
-# Geo3dRectangleShape.getCrossesDateLine tests whether a box spans longitude 0 instead of whether it crosses the dateline, so PointVectorStrategy and BBoxStrategy return wrong hits for Geo3d boxes and circles at the dateline or the prime meridian
+# Geo3dRectangleShape.getCrossesDateLine() tests whether a box spans longitude 0 instead of whether it crosses the dateline, so PointVectorStrategy and BBoxStrategy return wrong hits for Geo3d boxes and circles at the dateline or the prime meridian
 
-Bug LFV-671 · Area: spatial-extras / spatial4j bridge to spatial3d (Geo3dRectangleShape.getCrossesDateLine), read by PointVectorStrategy and BBoxStrategy · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-671 · Area: spatial-extras / spatial4j bridge to spatial3d (Geo3dRectangleShape.getCrossesDateLine), read by PointVectorStrategy and BBoxStrategy · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-671.html](../../bugs/LFV-671.html)
+Finding page: [../../bugs/LFV-671.html](../../bugs/LFV-671.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You use the Geo3d spatial context (Geo3dSpatialContextFactory) with PointVectorStrategy or BBoxStrategy and query or index a box that crosses the dateline, such as rect(170, -170, -10, 10), or one that spans longitude 0, such as rect(-10, 10, -10, 10). You expect getCrossesDateLine to follow the spatial4j Rectangle contract (true exactly when the box crosses the -180/180 meridian, that is minX &gt; maxX, as spatial4j's RectangleImpl and this class's own getWidth assume), so a point at longitude 175 is found inside 170..-170 and an indexed box -10..10 does not match a query box at 100..110. Instead Geo3dRectangleShape.getCrossesDateLine returns getMaxX &gt; 0 &amp;&amp; getMinX &lt; 0 ('spans longitude 0'), which is false for 170..-170 and true for -10..10: PointVectorStrategy searches the empty range 170..-170 and returns 0 hits (also for circle(180, 0, 5)), and BBoxStrategy stores xdl=F for the dateline box and misses it (0 hits instead of 1), but stores xdl=T for -10..10, reads it as [-10, 180] plus [-180, 10] and matches it against 100..110 (1 hit instead of 0).
+You use the Geo3d spatial context (Geo3dSpatialContextFactory) with PointVectorStrategy or BBoxStrategy and query or index a box that crosses the dateline, such as rect(170, -170, -10, 10), or one that spans longitude 0, such as rect(-10, 10, -10, 10). You expect getCrossesDateLine() to follow the spatial4j Rectangle contract (true exactly when the box crosses the -180/180 meridian, that is minX &gt; maxX, as spatial4j's RectangleImpl and this class's own getWidth() assume), so a point at longitude 175 is found inside 170..-170 and an indexed box -10..10 does not match a query box at 100..110. Instead Geo3dRectangleShape.getCrossesDateLine() returns getMaxX() &gt; 0 &amp;&amp; getMinX() &lt; 0 ('spans longitude 0'), which is false for 170..-170 and true for -10..10: PointVectorStrategy searches the empty range 170..-170 and returns 0 hits (also for circle(180, 0, 5)), and BBoxStrategy stores xdl=F for the dateline box and misses it (0 hits instead of 1), but stores xdl=T for -10..10, reads it as [-10, 180] plus [-180, 10] and matches it against 100..110 (1 hit instead of 0).
 
 The test shows that `PointVectorStrategy` in the Geo3d spatial context misses a point at longitude 175 for `Intersects(rect(170, -170, -10, 10))`, because `Geo3dRectangleShape.getCrossesDateLine()` tests `maxX > 0 && minX < 0` (spans longitude 0) instead of `minX > maxX`.
 
@@ -24,7 +24,7 @@ Expected 1 hit; actual: 0 (`expected:<1> but was:<0>`), with `-ea` and `-da`.
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,8 +1,8 @@
 # BooleanPerceptronClassifier with batchSize &gt; 1 can silently lose the weight updates of misclassified training documents: the weight FST is rebuilt only when a misclassified document sits at a multiple of batchSize and never after the last batch, and updates inside a batch are computed from the last FST build and overwrite each other, so the trained model is wrong (released since 5.0.0)
 
-Bug LFV-680 · Area: classification / BooleanPerceptronClassifier (batched training) · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-680 · Area: classification / BooleanPerceptronClassifier (batched training) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-680.html](../../bugs/LFV-680.html)
+Finding page: [../../bugs/LFV-680.html](../../bugs/LFV-680.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: assignClass("aa aa") = false, as with batchSize 1 on the same data. Ac
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

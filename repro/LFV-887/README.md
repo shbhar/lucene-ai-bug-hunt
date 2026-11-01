@@ -1,6 +1,6 @@
 # GradientFormatter and SpanGradientFormatter reverse the colour gradient on every channel where the min colour is larger than the max colour, so with the javadoc's own white-to-black example the top-scoring term is drawn white
 
-Bug LFV-887 · Area: highlighter / classic Highlighter formatters (GradientFormatter, SpanGradientFormatter) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-887 · Area: highlighter / classic Highlighter formatters (GradientFormatter, SpanGradientFormatter) · Priority: low · Impact: minor · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You build new GradientFormatter(maxScore, "#FFFFFF", "#000000", null, null), the
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

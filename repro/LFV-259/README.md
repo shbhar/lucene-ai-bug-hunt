@@ -1,12 +1,14 @@
 # PerFieldSimilarityWrapper does not forward Similarity#computeQueryTermWeight, so a BM25Similarity or StableTflSimilarity k3 (query-term saturation) setting silently has no effect behind a per-field wrapper
 
-Bug LFV-259 · Area: search / similarities (PerFieldSimilarityWrapper, Similarity#computeQueryTermWeight) and BooleanQuery duplicate-clause rewrite · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-259 · Area: search / similarities (PerFieldSimilarityWrapper, Similarity#computeQueryTermWeight) and BooleanQuery duplicate-clause rewrite · Priority: low · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-259.html](../../bugs/LFV-259.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You configure BM25Similarity with its opt-in k3 parameter (new BM25Similarity(1.2f, 0.75f, true, 7f)), whose javadoc promises that a term repeated in a query is weighted ((k3 + 1) * qtf) / (k3 + qtf) instead of linearly, and you install it through a PerFieldSimilarityWrapper, the documented way to use per-field similarities, even one whose get returns that same instance for every field. You expect the query 'apple apple' to score as it does with the bare BM25Similarity, where BooleanQuery's duplicate-clause rewrite gives (body:apple)^1.7777778. Instead the rewrite asks the wrapper, which does not forward Similarity#computeQueryTermWeight and inherits its linear default, so the query becomes (body:apple)^2.0 and the document scores 0.63013375 instead of 0.5601189; StableTflSimilarity's k3 is ignored the same way.
+You configure BM25Similarity with its opt-in k3 parameter (new BM25Similarity(1.2f, 0.75f, true, 7f)), whose javadoc promises that a term repeated in a query is weighted ((k3 + 1) * qtf) / (k3 + qtf) instead of linearly, and you install it through a PerFieldSimilarityWrapper, the documented way to use per-field similarities, even one whose get() returns that same instance for every field. You expect the query 'apple apple' to score as it does with the bare BM25Similarity, where BooleanQuery's duplicate-clause rewrite gives (body:apple)^1.7777778. Instead the rewrite asks the wrapper, which does not forward Similarity#computeQueryTermWeight and inherits its linear default, so the query becomes (body:apple)^2.0 and the document scores 0.63013375 instead of 0.5601189; StableTflSimilarity's k3 is ignored the same way.
 
 The test shows that `BM25Similarity(1.2, 0.75, true, 7)` behind a `PerFieldSimilarityWrapper` that returns it for every field scores the query "apple apple" differently from the bare similarity, because the wrapper does not forward `computeQueryTermWeight` (k3 is ignored).
 
@@ -22,7 +24,7 @@ Expected: the bare BM25 score 0.23247036 (duplicate-clause boost 1.7777778); act
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

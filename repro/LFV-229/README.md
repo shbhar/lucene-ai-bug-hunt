@@ -1,8 +1,8 @@
 # ThaiTokenizer with a user dictionary silently drops the vowel or tone marks that follow a dictionary word ending inside a character cluster (with {แม่น}, 'แม่น้ำ' (river) is tokenized as just [แม่น] (accurate)), because the match is accepted at a non-boundary and the remainder, which now starts with a mark, is skipped
 
-Bug LFV-229 · Area: analysis / Thai (ThaiTokenizer#incrementWord user-dictionary loop and re-anchor, GITHUB#16722; ThaiTokenizerFactory 'dictionary') · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-229 · Area: analysis / Thai (ThaiTokenizer#incrementWord user-dictionary loop and re-anchor, GITHUB#16722; ThaiTokenizerFactory 'dictionary') · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-229.html](../../bugs/LFV-229.html)
+Finding page: [../../bugs/LFV-229.html](../../bugs/LFV-229.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected: the tokens together hold all of แม่น้ำ. Actual: `expected:
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

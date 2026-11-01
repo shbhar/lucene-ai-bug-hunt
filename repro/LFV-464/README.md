@@ -1,6 +1,8 @@
 # Intervals.term(term, payloadFilter) returns non-null Weight#matches for documents in which the filter rejects every position of the term (documents the query does not match), so a BooleanQuery that excludes such a clause has no Matches for its own hits
 
-Bug LFV-464 · Area: queries / intervals (PayloadFilteredTermIntervalsSource Matches API; Weight#matches consumers) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-464 · Area: queries / intervals (PayloadFilteredTermIntervalsSource Matches API; Weight#matches consumers) · Priority: low · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-464.html](../../bugs/LFV-464.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected `Weight#matches(ctx, 0) == null` (count is 0); actual: a non-null `Matc
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,8 +1,8 @@
 # RegExp no longer parses an escaped range start such as [\.-z] as a range
 
-Bug LFV-019 · Area: util / automaton · Priority: medium · Impact: silent wrong results · Novelty: new
+Finding LFV-019 · Area: util / automaton · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-019.html](../../bugs/LFV-019.html)
+Finding page: [../../bugs/LFV-019.html](../../bugs/LFV-019.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -14,7 +14,7 @@ The test shows that `new RegExp("[\\.-z]")` (a character-class range whose start
 
 ## Expected vs actual
 
-Expected: the automaton accepts "a" (javadoc grammar: charclass::= charexp '-' charexp, charexp::= '\' char). Actual: it rejects "a"; the class is parsed as the three characters '.', '-', 'z'.
+Expected: the automaton accepts "a" (javadoc grammar: charclass ::= charexp '-' charexp, charexp ::= '\' char). Actual: it rejects "a"; the class is parsed as the three characters '.', '-', 'z'.
 
 ## Files
 
@@ -24,7 +24,7 @@ Expected: the automaton accepts "a" (javadoc grammar: charclass::= charexp '-' c
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

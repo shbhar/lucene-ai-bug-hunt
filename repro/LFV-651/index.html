@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TeeSinkTokenFilter: a sink never clears attributes that only its own filter chain adds (SinkTokenStream.incrementToken calls restoreState without clearAttributes), so a keyword marker or StemmerOverrideFilter before a stemmer on a sink silently leaves every token after the first protected word unstemmed (LFV-651)</title><style>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TeeSinkTokenFilter: a sink never clears attributes that only its own filter chain adds (SinkTokenStream.incrementToken() calls restoreState() without clearAttributes()), so a keyword marker or StemmerOverrideFilter before a stemmer on a sink silently leaves every token after the first protected word unstemmed (LFV-651)</title><style>
 :root{--fg:#1d2329;--dim:#5a6570;--line:#d8dee4;--bg:#fff;--soft:#f5f7f9;--link:#0b5cad}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
 font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
@@ -17,12 +17,12 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 .scroll{overflow-x:auto}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
-</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>TeeSinkTokenFilter: a sink never clears attributes that only its own filter chain adds (SinkTokenStream.incrementToken calls restoreState without clearAttributes), so a keyword marker or StemmerOverrideFilter before a stemmer on a sink silently leaves every token after the first protected word unstemmed</h1>
-<p class="facts small"><span>Bug LFV-651</span><span>Area: analysis / TeeSinkTokenFilter (SinkTokenStream replay through AttributeSource.restoreState without clearAttributes: attributes that only the sink&#x27;s chain adds)</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
-<p><a href="../../bugs/LFV-651.html">Bug page for LFV-651</a></p>
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>TeeSinkTokenFilter: a sink never clears attributes that only its own filter chain adds (SinkTokenStream.incrementToken() calls restoreState() without clearAttributes()), so a keyword marker or StemmerOverrideFilter before a stemmer on a sink silently leaves every token after the first protected word unstemmed</h1>
+<p class="facts small"><span>Finding LFV-651</span><span>Area: analysis / TeeSinkTokenFilter (SinkTokenStream replay through AttributeSource.restoreState without clearAttributes(): attributes that only the sink&#x27;s chain adds)</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-651.html">Finding page for LFV-651</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
-<p>You index one field from a TeeSinkTokenFilter and a second field from one of its sinks, wrapped in a keyword marker and a stemmer (for example SetKeywordMarkerFilter protecting &#x27;quick&#x27;, then PorterStemFilter), and expect the sink field to get what the same chain gives on the tokenizer: [the, quick, fox, jump] for &#x27;The quick foxes jumped&#x27;. Instead it gets [the, quick, foxes, jumped]: the sink replays each token with restoreState but never calls clearAttributes, and the KeywordAttribute that only the sink&#x27;s chain added is not in the tee&#x27;s captured states, so once &#x27;quick&#x27; is marked as a keyword every later token stays marked and is not stemmed. Nothing is thrown; a query for stemmed:fox finds nothing.</p>
+<p>You index one field from a TeeSinkTokenFilter and a second field from one of its sinks, wrapped in a keyword marker and a stemmer (for example SetKeywordMarkerFilter protecting &#x27;quick&#x27;, then PorterStemFilter), and expect the sink field to get what the same chain gives on the tokenizer: [the, quick, fox, jump] for &#x27;The quick foxes jumped&#x27;. Instead it gets [the, quick, foxes, jumped]: the sink replays each token with restoreState() but never calls clearAttributes(), and the KeywordAttribute that only the sink&#x27;s chain added is not in the tee&#x27;s captured states, so once &#x27;quick&#x27; is marked as a keyword every later token stays marked and is not stemmed. Nothing is thrown; a query for stemmed:fox finds nothing.</p>
 <p>The test shows that a TeeSinkTokenFilter sink never clears attributes that only its own chain adds, so SetKeywordMarkerFilter&#x27;s keyword flag for &quot;quick&quot; sticks to every later token and PorterStemFilter stops stemming.</p>
 <h2>Expected vs actual</h2>
 <p>Expected: the sink chain on &quot;quick foxes&quot; gives [quick, fox], as the same chain on the tokenizer does. Actual (-ea and -da): [quick, foxes].</p>
@@ -31,7 +31,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </ul><h2>Run it</h2><ul>
 <li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
 <li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
-<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
+<li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
@@ -49,4 +49,4 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.analysis.sinks.TestTeeSinkSinkOnlyAttribute</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-30. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-01. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

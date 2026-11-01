@@ -1,6 +1,8 @@
 # SortedSetDocValues facets size the child priority queue from topN instead of the number of labels, so getTopChildren, getAllDims and getTopDims(.., topNChildren) with topN = Integer.MAX_VALUE throw IllegalArgumentException where taxonomy facets return every label, and a large topN allocates topN + 1 queue slots even for a 3-label dim
 
-Bug LFV-994 · Area: facet / SortedSetDocValues child queue (AbstractSortedSetDocValueFacetCounts.computeTopChildren, inherited by SortedSetDocValuesFacetCounts and ConcurrentSortedSetDocValuesFacetCounts) · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-994 · Area: facet / SortedSetDocValues child queue (AbstractSortedSetDocValueFacetCounts.computeTopChildren, inherited by SortedSetDocValuesFacetCounts and ConcurrentSortedSetDocValuesFacetCounts) · Priority: low · Impact: wrong error · Novelty: new
+
+Finding page: [../../bugs/LFV-994.html](../../bugs/LFV-994.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected: all 3 labels, as taxonomy facets return. Actual (-ea and -da): Illegal
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -47,7 +49,7 @@ The module(s) facet also need their third-party runtime jars; `./gradlew -p luce
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/facets-topn-and-topndims-queues-presized-uncapped/](../../models/facets-topn-and-topndims-queues-presized-uncapped/)
+Formal models and scripts this finding's part of the hunt used: [../../models/facets-topn-and-topndims-queues-presized-uncapped/](../../models/facets-topn-and-topndims-queues-presized-uncapped/)
 
 ## Feedback
 

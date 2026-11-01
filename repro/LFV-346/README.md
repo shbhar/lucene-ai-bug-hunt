@@ -1,8 +1,8 @@
-# JapaneseCompletionFilter expands a reading into every combination of romaji spellings with no bound, so 24-32 kana (for example 32 x "ン", or 32 x "し" in QUERY mode) throw OutOfMemoryError inside one incrementToken call
+# JapaneseCompletionFilter expands a reading into every combination of romaji spellings with no bound, so 24-32 kana (for example 32 x "ン", or 32 x "し" in QUERY mode) throw OutOfMemoryError inside one incrementToken() call
 
-Bug LFV-346 · Area: analysis / kuromoji (JapaneseCompletionFilter and JapaneseCompletionAnalyzer romanization, KatakanaRomanizer) · Priority: medium · Impact: crash · Novelty: new
+Finding LFV-346 · Area: analysis / kuromoji (JapaneseCompletionFilter and JapaneseCompletionAnalyzer romanization, KatakanaRomanizer) · Priority: medium · Impact: crash · Novelty: new
 
-Bug page: [../../bugs/LFV-346.html](../../bugs/LFV-346.html)
+Finding page: [../../bugs/LFV-346.html](../../bugs/LFV-346.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -14,7 +14,7 @@ The test shows that JapaneseCompletionAnalyzer expands every combination of roma
 
 ## Expected vs actual
 
-Expected: each token once, 10 tokens (the surface form and n x 8.. n x 16). Actual (-ea and -da): 257 tokens (expected:&lt;10&gt; but was:&lt;257&gt;).
+Expected: each token once, 10 tokens (the surface form and n x 8 .. n x 16). Actual (-ea and -da): 257 tokens (expected:&lt;10&gt; but was:&lt;257&gt;).
 
 ## Files
 
@@ -24,7 +24,7 @@ Expected: each token once, 10 tokens (the surface form and n x 8.. n x 16). Actu
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -49,7 +49,7 @@ The module(s) analysis-kuromoji also need their third-party runtime jars; `./gra
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
 
-Formal models and scripts this bug's part of the hunt used: [../../models/japanese-completion-fifo/](../../models/japanese-completion-fifo/)
+Formal models and scripts this finding's part of the hunt used: [../../models/japanese-completion-fifo/](../../models/japanese-completion-fifo/)
 
 ## Feedback
 

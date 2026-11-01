@@ -1,14 +1,14 @@
-# The merged vector values of SlowCompositeCodecReaderWrapper throw NullPointerException from copy when one merged segment has no vectors for the field, so merges through BPReorderingMergePolicy with BpVectorReorderer fail and close the IndexWriter, again after every reopen
+# The merged vector values of SlowCompositeCodecReaderWrapper throw NullPointerException from copy() when one merged segment has no vectors for the field, so merges through BPReorderingMergePolicy with BpVectorReorderer fail and close the IndexWriter, again after every reopen
 
-Bug LFV-269 · Area: index / merged CodecReader view (SlowCompositeCodecReaderWrapper vector values); misc / BP merge-time reordering · Priority: medium · Impact: index unusable · Novelty: new
+Finding LFV-269 · Area: index / merged CodecReader view (SlowCompositeCodecReaderWrapper vector values); misc / BP merge-time reordering · Priority: medium · Impact: index unusable · Novelty: new
 
-Bug page: [../../bugs/LFV-269.html](../../bugs/LFV-269.html)
+Finding page: [../../bugs/LFV-269.html](../../bugs/LFV-269.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You use BPReorderingMergePolicy with a BpVectorReorderer on a float vector field, and one segment holds only documents without that optional field, for example a batch of documents without embeddings that was flushed on its own. You expect merges to combine it with the other segments, as they do when every segment has vectors. Instead the merged view's FloatVectorValues.copy throws NullPointerException ('Cannot invoke KnnVectorValues.copy because this.sub is null'), IndexWriter treats the failed merge as a tragic event, closes itself and drops every change since the last commit, and the same merge fails again after each reopen.
+You use BPReorderingMergePolicy with a BpVectorReorderer on a float vector field, and one segment holds only documents without that optional field, for example a batch of documents without embeddings that was flushed on its own. You expect merges to combine it with the other segments, as they do when every segment has vectors. Instead the merged view's FloatVectorValues.copy() throws NullPointerException ('Cannot invoke KnnVectorValues.copy() because this.sub is null'), IndexWriter treats the failed merge as a tragic event, closes itself and drops every change since the last commit, and the same merge fails again after each reopen.
 
 The test shows that `forceMerge(1)` through `BPReorderingMergePolicy` with a `BpVectorReorderer` fails when one segment (here one empty document) has no vector for the field and the other has 64 vectors.
 
@@ -24,7 +24,7 @@ Expected: the two segments merge. Actual (-ea and -da): `NullPointerException: C
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

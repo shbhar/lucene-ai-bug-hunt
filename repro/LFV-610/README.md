@@ -1,6 +1,8 @@
 # DateRangePrefixTree prints a date range whose end is the last year of a thousand- or million-year block (a year X999, or 2 BC) with that end shown as the block's FIRST year, e.g. [1990 TO 1999] prints as "[1990 TO 1000]", so parseShape rejects the printed string ('Wrong order') or reads it as a much shorter range ([* TO 1999-12-31] prints as "[* TO 1000]")
 
-Bug LFV-610 · Area: spatial-extras / prefix trees (DateRangePrefixTree / NumberRangePrefixTree range-shape string form: SpanUnitsNRShape.toString of a range whose end normalizes to a thousand- or million-year cell; also shown in the 'queryShape=' part of the prefix-tree queries' toString) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-610 · Area: spatial-extras / prefix trees (DateRangePrefixTree / NumberRangePrefixTree range-shape string form: SpanUnitsNRShape.toString of a range whose end normalizes to a thousand- or million-year cell; also shown in the 'queryShape=' part of the prefix-tree queries' toString) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-610.html](../../bugs/LFV-610.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected `parseShape(shape.toString())` to equal the shape (NRShape#toString: "s
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

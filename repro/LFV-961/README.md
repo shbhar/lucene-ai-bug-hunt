@@ -1,12 +1,12 @@
 # The grouping package documentation says groupOffset 3 with topNGroups 10 returns 7 groups, but FirstPassGroupingCollectorManager and BlockGroupingCollectorManager, which the page names and shows since #16385 (10.6.0), return 10: for them topNGroups is the page size after the offset (documentation defect; the inputs list has also disagreed with the page's own example code since 3.2)
 
-Bug LFV-961 · Area: grouping / package documentation (package-info.java inputs list vs the collector managers it names) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-961 · Area: grouping / package documentation (package-info.java inputs list vs the collector managers it names) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You read the grouping package overview, which says topNGroups is 'how many top groups to keep' and that groupOffset 3 'means you'll get 7 groups back (assuming topNGroups is 10)', and which names FirstPassGroupingCollectorManager as the first pass and builds BlockGroupingCollectorManager(groupSort, groupOffset, topNGroups,...), so you expect groupOffset 3 with topNGroups 10 to return 7 groups. Instead both managers, like GroupingSearch, treat topNGroups as the number of groups to return after the offset and return 10 groups (ranks 4 to 13). The '7 groups' sentence is right only for the plain FirstPassGroupingCollector and BlockGroupingCollector, which the page named until #16385 rewrote it for the managers, so paging code written from the sentence gets oversized, overlapping pages.
+You read the grouping package overview, which says topNGroups is 'how many top groups to keep' and that groupOffset 3 'means you'll get 7 groups back (assuming topNGroups is 10)', and which names FirstPassGroupingCollectorManager as the first pass and builds BlockGroupingCollectorManager(groupSort, groupOffset, topNGroups, ...), so you expect groupOffset 3 with topNGroups 10 to return 7 groups. Instead both managers, like GroupingSearch, treat topNGroups as the number of groups to return after the offset and return 10 groups (ranks 4 to 13). The '7 groups' sentence is right only for the plain FirstPassGroupingCollector and BlockGroupingCollector, which the page named until #16385 rewrote it for the managers, so paging code written from the sentence gets oversized, overlapping pages.
 
 The test shows that the grouping package overview's example ("groupOffset 3 means you'll get 7 groups back, assuming topNGroups is 10") does not hold for FirstPassGroupingCollectorManager, the first-pass class the page names (documentation defect).
 
@@ -22,7 +22,7 @@ Expected 7 groups (the documented example), actual 10 (`expected:<7> but was:<10
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

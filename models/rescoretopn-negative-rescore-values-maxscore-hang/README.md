@@ -4,10 +4,10 @@ Tools: SMT-LIB (Z3/cvc5), Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- RescoreTopNQuery passes negative DoubleValuesSource values through as negative scores, so a top-k BooleanQuery that ORs it with another clause silently returns no hits (bug LFV-1015; [repro](../../repro/LFV-1015/), [bug page](../../bugs/LFV-1015.html))
-- ScorerUtil.minRequiredScore (new in 10.3.0, #14827) never terminates when the remaining clauses' max score is negative at a minimum competitive score of 0, so with assertions disabled a top-k BooleanQuery with a negative-scoring SHOULD clause spins forever in MaxScoreBulkScorer, the infinite loop that LUCENE-10428 had turned into an exception (bug LFV-1016; [repro](../../repro/LFV-1016/))
+- RescoreTopNQuery passes negative DoubleValuesSource values through as negative scores, so a top-k BooleanQuery that ORs it with another clause silently returns no hits (finding LFV-1015; [repro](../../repro/LFV-1015/), [finding page](../../bugs/LFV-1015.html))
+- ScorerUtil.minRequiredScore (new in 10.3.0, #14827) never terminates when the remaining clauses' max score is negative at a minimum competitive score of 0, so with assertions disabled a top-k BooleanQuery with a negative-scoring SHOULD clause spins forever in MaxScoreBulkScorer, the infinite loop that LUCENE-10428 had turned into an exception (finding LFV-1016; [repro](../../repro/LFV-1016/))
 
 ## Files
 

@@ -4,9 +4,9 @@ Tools: Python.
 
 These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as `$LUCENE` (a Lucene checkout) and `$WORK`.
 
-## Bugs found
+## Findings
 
-- Doc-values exact and range queries silently miss or add documents on a skip-indexed field that holds raw float/double bits and that the index is sorted by as FLOAT or DOUBLE: SortedNumericDocValuesRangeQuery's index-sort shortcut checks the sort field's name but not its type (bug LFV-1047; [repro](../../repro/LFV-1047/), [bug page](../../bugs/LFV-1047.html))
+- Doc-values exact and range queries silently miss or add documents on a skip-indexed field that holds raw float/double bits and that the index is sorted by as FLOAT or DOUBLE: SortedNumericDocValuesRangeQuery's index-sort shortcut checks the sort field's name but not its type (finding LFV-1047; [repro](../../repro/LFV-1047/), [finding page](../../bugs/LFV-1047.html))
 
 ## Files
 

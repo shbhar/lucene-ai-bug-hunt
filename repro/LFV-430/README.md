@@ -1,17 +1,17 @@
-# If tryDeleteDocument removes a segment's last live document and closing that segment's pooled reader throws, IndexWriter stays open but never counts the change, so NRT readers hide the document while commit and close keep it
+# If tryDeleteDocument removes a segment's last live document and closing that segment's pooled reader throws, IndexWriter stays open but never counts the change, so NRT readers hide the document while commit() and close() keep it
 
-Bug LFV-430 · Area: index / IndexWriter tryDeleteDocument (dropDeletedSegment, change accounting) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-430 · Area: index / IndexWriter tryDeleteDocument (dropDeletedSegment, change accounting) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You call tryDeleteDocument on the only live document of a segment, and closing that segment's pooled reader inside IndexWriter throws an IOException; the writer stays open and you keep using it. You expect what the writer serves to its NRT readers to be what commit persists, and hasUncommittedChanges to report the pending change. Instead the segment is already gone from the writer's SegmentInfos but checkpoint and changed were skipped, so new NRT readers no longer show the document while hasUncommittedChanges is false, commit returns -1 and, after close, the committed index still contains the document.
+You call tryDeleteDocument on the only live document of a segment, and closing that segment's pooled reader inside IndexWriter throws an IOException; the writer stays open and you keep using it. You expect what the writer serves to its NRT readers to be what commit() persists, and hasUncommittedChanges() to report the pending change. Instead the segment is already gone from the writer's SegmentInfos but checkpoint() and changed() were skipped, so new NRT readers no longer show the document while hasUncommittedChanges() is false, commit() returns -1 and, after close(), the committed index still contains the document.
 
 ## Expected vs actual
 
-- Expected: You expect what the writer serves to its NRT readers to be what commit persists, and hasUncommittedChanges to report the pending change.
-- Actual: The segment is already gone from the writer's SegmentInfos but checkpoint and changed were skipped, so new NRT readers no longer show the document while hasUncommittedChanges is false, commit returns -1 and, after close, the committed index still contains the document.
+- Expected: You expect what the writer serves to its NRT readers to be what commit() persists, and hasUncommittedChanges() to report the pending change.
+- Actual: The segment is already gone from the writer's SegmentInfos but checkpoint() and changed() were skipped, so new NRT readers no longer show the document while hasUncommittedChanges() is false, commit() returns -1 and, after close(), the committed index still contains the document.
 
 ## Files
 
@@ -21,7 +21,7 @@ You call tryDeleteDocument on the only live document of a segment, and closing t
 
 - Tested on Lucene main a9779ef3c193 (2026-10-26): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

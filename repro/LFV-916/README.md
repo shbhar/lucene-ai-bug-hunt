@@ -1,6 +1,8 @@
-# Float/Byte/Float16VectorSimilarityQuery.visit never visits the filter, so the filter's clauses escape IndexSearcher's cumulative maxClauseCount check and QueryVisitor term collection
+# Float/Byte/Float16VectorSimilarityQuery.visit() never visits the filter, so the filter's clauses escape IndexSearcher's cumulative maxClauseCount check and QueryVisitor term collection
 
-Bug LFV-916 · Area: search / vector similarity queries (AbstractVectorSimilarityQuery QueryVisitor traversal; consumers: IndexSearcher's cumulative clause limit, QueryVisitor.termCollector, RamUsageEstimator.sizeOf(Query)) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-916 · Area: search / vector similarity queries (AbstractVectorSimilarityQuery QueryVisitor traversal; consumers: IndexSearcher's cumulative clause limit, QueryVisitor.termCollector, RamUsageEstimator.sizeOf(Query)) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-916.html](../../bugs/LFV-916.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected `TooManyNestedClauses` for BooleanQuery(MUST 600-term disjunction, MUST
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

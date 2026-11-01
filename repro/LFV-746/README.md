@@ -1,8 +1,8 @@
 # Geo3D distance and path sorts (Geo3DDocValuesField.newDistanceSort, newPathSort) skip the secondary SortField for hits outside the shape's bounding box once the queue bottom is +Infinity, so top-N keeps the earliest out-of-radius documents in doc order instead of the first N of the sorted order (released since 6.1.0)
 
-Bug LFV-746 · Area: spatial3d / Geo3D distance sort comparator (Geo3DPointDistanceComparator.compareBottom bounds shortcut; Geo3DDocValuesField.newDistanceSort and newPathSort) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-746 · Area: spatial3d / Geo3D distance sort comparator (Geo3DPointDistanceComparator.compareBottom bounds shortcut; Geo3DDocValuesField.newDistanceSort and newPathSort) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Bug page: [../../bugs/LFV-746.html](../../bugs/LFV-746.html)
+Finding page: [../../bugs/LFV-746.html](../../bugs/LFV-746.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ Expected (Sort breaks the +Infinity tie with the second SortField): `search(q, 2
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

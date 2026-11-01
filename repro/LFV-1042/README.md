@@ -1,6 +1,6 @@
 # Luke: Optimize and Add document open an IndexWriter without the index's sort, so on a sorted index they silently write unsorted segments and the application's IndexWriter configured with that sort then refuses to open the index
 
-Bug LFV-1042 · Area: luke / IndexTools write operations (IndexToolsImpl.optimize and addDocument through IndexUtils.createWriter) behind Tools > Optimize and Documents > Add document; IndexWriter index-sort validation · Priority: low · Impact: index unusable · Novelty: known upstream
+Finding LFV-1042 · Area: luke / IndexTools write operations (IndexToolsImpl.optimize and addDocument through IndexUtils.createWriter) behind Tools > Optimize and Documents > Add document; IndexWriter index-sort validation · Priority: low · Impact: index unusable · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,7 +20,7 @@ You open a sorted index (written with IndexWriterConfig.setIndexSort) in Luke wi
 ## Run it
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -1,6 +1,8 @@
 # geo3d NORMAL and NORMAL_SQUARED point distances are wrong on WGS84 and other ellipsoids because Vector.normalDistance assumes a unit-length vector, so the NORMAL distance from a point to itself is up to about 0.0045 planet units (0.00165, about 10.5 km, at latitude 0.3 rad) instead of 0
 
-Bug LFV-740 · Area: spatial3d / geom distance styles (Vector.normalDistance[Squared]; DistanceStyle.NORMAL and NORMAL_SQUARED point-to-point distances in GeoCircle and GeoPath) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-740 · Area: spatial3d / geom distance styles (Vector.normalDistance[Squared]; DistanceStyle.NORMAL and NORMAL_SQUARED point-to-point distances in GeoCircle and GeoPath) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-740.html](../../bugs/LFV-740.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +24,7 @@ Expected 0 for `p.normalDistance(p)` (WGS84 point at latitude 0.3 rad); actual `
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
