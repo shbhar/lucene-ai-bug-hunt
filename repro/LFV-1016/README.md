@@ -1,6 +1,6 @@
 # ScorerUtil.minRequiredScore (new in 10.3.0, #14827) never terminates when the remaining clauses' max score is negative at a minimum competitive score of 0, so with assertions disabled a top-k BooleanQuery with a negative-scoring SHOULD clause spins forever in MaxScoreBulkScorer, the infinite loop that LUCENE-10428 had turned into an exception
 
-Finding LFV-1016 · Area: search / top-k dynamic pruning (ScorerUtil.minRequiredScore, called by MaxScoreBulkScorer) · Priority: unranked · Impact: hang · Novelty: known upstream
+Finding LFV-1016 · Area: search / top-k dynamic pruning (ScorerUtil.minRequiredScore, called by MaxScoreBulkScorer) · Priority: medium · Impact: hang · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -19,13 +19,14 @@ You run IndexSearcher.search(q, 10) on a 3-document index, where q ORs a clause 
 
 ## Run it
 
+- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
 # Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
-LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
+LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar

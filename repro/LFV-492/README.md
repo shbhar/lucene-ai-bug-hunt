@@ -21,13 +21,15 @@ You read an index through NIOFSDirectory (or any BufferedIndexInput), one read f
 
 ## Run it
 
+- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Recorded outcome of run 2 on Lucene main e1faeba08bde: 2 test(s) run, 2 failed (testRetriedDocumentIsTheRightDocument, testRetriedSmallDocuments).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
 # Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
-LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
+LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
@@ -41,10 +43,12 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.store.TestBufferedIndexInputReadAfterFailedRefill
 
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 2: assertions on, seed B1F00005
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=B1F00005 \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.index.TestStoredFieldsRetryAfterReadFailure
+
+# run 3: assertions on, seed DEADBEEF, default flags
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" NIOFSReadAfterFailedRefillMain
 ```

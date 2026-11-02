@@ -1,6 +1,6 @@
 # JapaneseNumberFilter and KoreanNumberFilter emit a composed number on the attribute state of the token after it, so the number takes that token's part of speech, reading, position increment and position length (車は三台 with は removed by a StopFilter gives 3 +1 名詞-接尾-助数詞 instead of 3 +2 名詞-数) (known: #10130, Japanese part of speech) (released since 6.0.0 / 8.2.0)
 
-Finding LFV-1058 · Area: analysis / kuromoji and nori number filters (JapaneseNumberFilter, KoreanNumberFilter: attribute state of the composed number token) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-1058 · Area: analysis / kuromoji and nori number filters (JapaneseNumberFilter, KoreanNumberFilter: attribute state of the composed number token) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -19,13 +19,14 @@ You add JapaneseNumberFilter (or KoreanNumberFilter) to an analysis chain and ex
 
 ## Run it
 
+- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
 # Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
-LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
+LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
@@ -35,8 +36,8 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.analysis.ja.TestJapaneseNumberFilterAttributes
 ```

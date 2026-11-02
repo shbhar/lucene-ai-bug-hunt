@@ -2,11 +2,13 @@
 
 Finding LFV-1077 · Area: index / IndexWriter delete queue (DeleteSlice of an idle DocumentsWriterPerThread, flush-by-RAM on pure deletes) · Priority: low · Impact: crash · Novelty: new
 
+Finding page: [../../bugs/LFV-1077.html](../../bugs/LFV-1077.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You add a document to an IndexWriter with the default config and then, without a commit, NRT reopen or flush(), send a long stream of deleteDocuments(Term) or doc-values update calls, and expect the heap held by those buffered deletes to stay around the RAM buffer, because the writer applies and drops them each time they reach it, as it does when nothing is buffered. Instead the in-memory segment that holds the one document keeps a pointer into the shared delete queue that moves only when that segment indexes again or is flushed, so every later delete stays reachable after it was applied. IndexWriter.ramBytesUsed() does not count it, nothing flushes that segment, and the heap grows with every call until OutOfMemoryError.
+You add a document to an IndexWriter with the default config and then, without a commit, NRT reopen or flush(), send a long stream of deleteDocuments(Term) or doc-values update calls, and expect the heap held by those buffered deletes to stay around the RAM buffer, because the writer applies and drops them each time they reach it, as it does when nothing is buffered. Instead the in-memory segment that holds the one document keeps a pointer into the shared delete queue that moves only when that segment indexes again or is flushed, so every later delete stays reachable after it was applied. IndexWriter.ramBytesUsed() does not count it, nothing flushes that segment, and the heap grows with every call until OutOfMemoryError. The same happens without any delete-only run when two threads indexed at once and then one thread keeps calling updateDocument: the second in-memory segment stays idle and pins every later delete term until the active segment fills the RAM buffer and is flushed.
 
 ## Expected vs actual
 
@@ -19,13 +21,14 @@ You add a document to an IndexWriter with the default config and then, without a
 
 ## Run it
 
+- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
 # Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
-LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
+LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
@@ -41,6 +44,10 @@ java -da -dsa -Dtests.asserts=false -Xmx512m --add-modules jdk.incubator.vector 
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestIdleSegmentPinsAppliedDeletes.java](TestIdleSegmentPinsAppliedDeletes.java)
 
 ## Feedback
 

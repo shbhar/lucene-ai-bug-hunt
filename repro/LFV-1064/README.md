@@ -1,6 +1,6 @@
 # JapaneseKatakanaUppercaseFilterFactory and JapaneseHiraganaUppercaseFilterFactory do not override normalize(), so CustomAnalyzer.normalize leaves small kana unmapped and query-parser prefix, wildcard, regexp, fuzzy and range terms that contain them silently miss the indexed documents
 
-Finding LFV-1064 · Area: analysis-kuromoji / sutegana (small kana) token filter factories (JapaneseKatakanaUppercaseFilterFactory, JapaneseHiraganaUppercaseFilterFactory) and Analyzer.normalize via CustomAnalyzer, which the query parsers use for multi-term queries · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-1064 · Area: analysis-kuromoji / sutegana (small kana) token filter factories (JapaneseKatakanaUppercaseFilterFactory, JapaneseHiraganaUppercaseFilterFactory) and Analyzer.normalize via CustomAnalyzer, which the query parsers use for multi-term queries · Priority: medium · Impact: silent wrong results · Novelty: new
 
 Finding page: [../../bugs/LFV-1064.html](../../bugs/LFV-1064.html)
 
@@ -21,13 +21,14 @@ You build a CustomAnalyzer with the kuromoji small-kana filters (withTokenizer("
 
 ## Run it
 
+- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
 # Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
-LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
+LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
@@ -38,8 +39,8 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.analysis.ja.TestSuteganaFactoriesNormalize
 ```

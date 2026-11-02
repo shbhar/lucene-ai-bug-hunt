@@ -1,6 +1,6 @@
 # MultiPhraseQuery.Builder does not validate an empty Term[]: it throws ArrayIndexOutOfBoundsException at the first position but accepts one at later positions, and toString() of the accepted query then throws, which also breaks explain and the 'indexed without position data' error
 
-Finding LFV-963 · Area: core / search (MultiPhraseQuery.Builder input validation and MultiPhraseQuery.toString) · Priority: unranked · Impact: crash · Novelty: known upstream
+Finding LFV-963 · Area: core / search (MultiPhraseQuery.Builder input validation and MultiPhraseQuery.toString) · Priority: low · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -20,13 +20,14 @@ You build a phrase with MultiPhraseQuery.Builder and pass an empty Term[] for on
 
 ## Run it
 
+- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
 # Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
-LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
+LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar

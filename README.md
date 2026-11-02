@@ -1,15 +1,15 @@
 # AI-assisted bug hunt in Apache Lucene
 
-A dated snapshot (2026-11-02) of AI-assisted work: findings in [Apache Lucene](https://github.com/apache/lucene). Every finding the hunt made and confirmed went through AI-run checks: a prior-report search. This is an independent list: per the Apache Lucene project’s AI policy, nothing here is filed in Lucene unless a person files it by hand.
+A dated snapshot (2026-11-02) of AI-assisted work: findings in [Apache Lucene](https://github.com/apache/lucene). The findings the hunt made and confirmed went through AI-run checks. This is an independent list: per the Apache Lucene project’s AI policy, nothing here is filed in Lucene unless a person files it by hand.
 
 Browse the table: open `index.html` (published with GitHub Pages).
 
 ## What is in this snapshot
 
-- 1048 registered findings: 783 new, for which the automated prior-report search found no earlier report (a keyword search; private reports are not visible), and 265 already known upstream (others reported or discussed the same behaviour; tracked, but not counted as new).
+- 1076 registered findings: 792 new, for which the automated prior-report search found no earlier report (a keyword search; private reports are not visible), and 284 already known upstream (others reported or discussed the same behaviour; tracked, but not counted as new).
 - 2 of them are withheld pending security review: they appear in the table and in every count, but only with their id, module, priority tier, novelty (new or known upstream) and the line "Details withheld pending security review".
-- Priority tiers: 9 high, 228 medium, 804 low, 7 not yet ranked.
-- 783 public finding pages (`bugs/`), 1046 repro directories (`repro/`) and 144 units of formal models and scripts (`models/`).
+- Priority tiers: 9 high, 240 medium, 827 low, 0 not yet ranked.
+- 792 public finding pages (`bugs/`), 1074 repro directories (`repro/`) and 149 units of formal models and scripts (`models/`).
 - The full table as data: `data/bugs.csv` and `data/bugs.json`.
 
 ## Share a filtered view
@@ -18,11 +18,11 @@ The table keeps its filters, search and sort in the page address, so a link open
 
 ## How the findings were found
 
-The hunt used AI models (Anthropic Claude Opus and OpenAI GPT-5.6) with formal methods (TLA+/TLC model checking, Alloy, Z3/cvc5 SMT solving, Dafny proofs and bounded model checking) alongside fuzzing, model-based, property-based and differential testing, and static analysis. Of the 781 new findings the hunt made that are shown in full, a formal tool's own output gave the first signal for 45; a semi-formal check (a check of the real jar against exact semantics over a bounded input space, exhaustive or for some harnesses randomly sampled, or a hypothesis formed while modelling that a tool then witnessed) for 426; code reading or other testing for 283; and a testing baseline for 27. Every finding ends in a minimal executable test that fails while the reported behaviour is present (on Lucene main, or on the release branch for a finding only a release branch has).
+The hunt used AI models (Anthropic Claude Opus and OpenAI GPT-5.6) with formal methods (TLA+/TLC model checking, Alloy, Z3/cvc5 SMT solving, Dafny proofs and bounded model checking) alongside fuzzing, model-based, property-based and differential testing, and static analysis. Of the 790 new findings the hunt made that are shown in full, a formal tool's own output gave the first signal for 45; a semi-formal check (a check of the real jar against exact semantics over a bounded input space, exhaustive or for some harnesses randomly sampled, or a hypothesis formed while modelling that a tool then witnessed) for 428; code reading or other testing for 290; and a testing baseline for 27. Every finding ends in a minimal executable test that fails while the reported behaviour is present (on Lucene main, or on the release branch for a finding only a release branch has).
 
 ## Lucene version
 
-The hunt began on Lucene main ea57360912ed (2026-10-24). On 2026-10-26, 456 of the repros then published were set up for a rerun on main a9779ef3c193. 454 ran and still reproduced (452 unchanged, 2 with changed behaviour: LFV-160, LFV-462, one of them with an adapted repro); 2 (LFV-003, LFV-069) could not be run, because the rerun host had too little memory for them. None had been fixed upstream. Since then, 727 of the findings shown in full got a smaller repro, one minimal test, which replaces their earlier repro files. The repros published now were last run on these commits: 784 on 645d4fe14a20, 223 on a9779ef3c193, 33 on ea57360912ed, 2 on Lucene branch_10_6 4ae946e5a9b9, 2 on b83101cdd2, 1 on 716d6f216f52, 1 on f815e679bf6; each repro page says where its repro was run, or that no run is on file.
+The hunt began on Lucene main ea57360912ed (2026-10-24). On 2026-11-02, 1054 of the repros then published were set up for a rerun on main e1faeba08bde. 1054 ran: 1052 still reproduced (1052 unchanged) and 2 no longer failed because upstream fixed them. Since then, 727 of the findings shown in full got a smaller repro, one minimal test, which replaces their earlier repro files. The repros published now were last run on these commits: 726 on 645d4fe14a20, 345 on e1faeba08bde, 1 on ea57360912ed, 1 on 716d6f216f52, 1 on Lucene branch_10_6 4ae946e5a9b9; each repro page says where its repro was run, or that no run is on file.
 
 ## Reproduce a finding
 

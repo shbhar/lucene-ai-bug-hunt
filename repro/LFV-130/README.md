@@ -2,7 +2,7 @@
 
 Finding LFV-130 · Area: store / MMapDirectory (MemorySegmentIndexInput sequential reads and seek) · Priority: low · Impact: wrong error · Novelty: new
 
-AI-assisted finding, confirmed by automated checks. Maintainer triage: Won't fix, triaged by Uwe Schindler (Lucene PMC) on 2026-10-29 (https://github.com/apache/lucene/issues/16937#issuecomment-6508981328). Uwe Schindler explained that once a read or seek throws an IOException (EOFException included), an IndexInput's state is undetermined and it should no longer be used, so the later seek and read are not a bug; Uwe opened #16951 to document this in IndexInput (and may still make it always throw EOFException if that is cheap). Uwe's comment names LFV-140 but links and describes this bug. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Maintainer triage: Won't fix, triaged by Uwe Schindler (Lucene PMC) on 2026-10-29 (https://github.com/apache/lucene/issues/16937#issuecomment-6508981328). Uwe Schindler explained that once a read or seek throws an IOException (EOFException included), an IndexInput's state is undetermined and it should no longer be used, so the later seek and read are not a bug; Uwe opened #16951 (documentation, milestone 11.0.0) to document this in IndexInput (and may still make it always throw EOFException if that is cheap), and on 2026-10-30 told a contributor who offered to write the javadoc change to go ahead and open a PR (none as of 2026-11-02). Uwe's comment names LFV-140 but links and describes this bug. This site files nothing upstream.
 
 ## What it shows
 

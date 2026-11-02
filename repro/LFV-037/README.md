@@ -2,7 +2,7 @@
 
 Finding LFV-037 · Area: store / MMapDirectory · Priority: low · Impact: minor · Novelty: known upstream
 
-AI-assisted finding, confirmed by automated checks. Maintainer triage: Fixed, triaged by Uwe Schindler (Lucene PMC) on 2026-10-28 (https://lists.apache.org/thread/qhqk32y1ot85rrm8t6m9x62brlv6pjdy). Uwe Schindler said it looks very relevant: Uwe had long felt something was wrong with shared arenas, and Gianluca Graziadei had privately reported a closely related problem. #16931 (Chris Hegarty) fixed it on main, merged on 2026-10-29. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Maintainer triage: Fixed, triaged by Uwe Schindler (Lucene PMC) on 2026-10-28 (https://github.com/apache/lucene/pull/16931#issuecomment-6480391899). Uwe Schindler said it looks very relevant: Uwe had long felt something was wrong with shared arenas, and Gianluca Graziadei had privately reported the same issue (Uwe on #16931, Chris Hegarty agreeing; Uwe's first dev@ message said closely related). Chris Hegarty fixed it in #16931 (merged 2026-10-29; Uwe Schindler cherry-picked it to branch_11x) and backported it for 10.6.1 in #16945. On #16931 Uwe Schindler noted that a single thread reproduces it and that it breaks nothing (no unclosed arenas, only some slowdown after many NRT reopens), so 10.6.0 was not respun for it. This site files nothing upstream.
 
 ## What it shows
 

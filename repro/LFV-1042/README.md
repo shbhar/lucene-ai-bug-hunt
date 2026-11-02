@@ -1,6 +1,6 @@
 # Luke: Optimize and Add document open an IndexWriter without the index's sort, so on a sorted index they silently write unsorted segments and the application's IndexWriter configured with that sort then refuses to open the index
 
-Finding LFV-1042 · Area: luke / IndexTools write operations (IndexToolsImpl.optimize and addDocument through IndexUtils.createWriter) behind Tools > Optimize and Documents > Add document; IndexWriter index-sort validation · Priority: low · Impact: index unusable · Novelty: known upstream
+Finding LFV-1042 · Area: luke / IndexTools write operations (IndexToolsImpl.optimize and addDocument through IndexUtils.createWriter) behind Tools > Optimize and Documents > Add document; IndexWriter index-sort validation · Priority: medium · Impact: index unusable · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -19,13 +19,14 @@ You open a sorted index (written with IndexWriterConfig.setIndexSort) in Luke wi
 
 ## Run it
 
+- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
 # Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
-LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
+LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar

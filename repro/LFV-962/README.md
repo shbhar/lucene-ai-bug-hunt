@@ -1,6 +1,6 @@
 # RegExp builds about n^2/2 transitions for a run of n repeated nullable atoms (a.*.*...b, a(x?)^n b, [a-z]*, (bc)?), and on main RegexpQuery keeps that automaton: a 2,002-character regexp of language a.*b holds 502,502 transitions and 170 MB (10.5.2: 4 states, 7 KB)
 
-Finding LFV-962 · Area: util / automaton (RegExp, Operations.concatenate; reached from RegexpQuery and the classic and flexible query parsers) · Priority: unranked · Impact: crash · Novelty: known upstream
+Finding LFV-962 · Area: util / automaton (RegExp, Operations.concatenate; reached from RegexpQuery and the classic and flexible query parsers) · Priority: low · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,13 +21,14 @@ You build a RegexpQuery, directly or by typing /regexp/ syntax into the classic 
 
 ## Run it
 
+- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
 # Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
-LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
+LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
