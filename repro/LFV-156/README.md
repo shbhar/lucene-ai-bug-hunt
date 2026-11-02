@@ -2,6 +2,8 @@
 
 Finding LFV-156 · Area: index / ImpactsEnum shallow-advance contract (ImpactsSource javadoc, test-framework AssertingImpactsEnum); codecs / Lucene104 postings reader · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-156.html](../../bugs/LFV-156.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

@@ -2,11 +2,13 @@
 
 Finding LFV-931 · Area: analysis-common, analysis-kuromoji, analysis-phonetic, analysis-opennlp / analysis factories (class javadoc <fieldType> schema examples) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-931.html](../../bugs/LFV-931.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You copy the &lt;fieldType&gt; example from the class javadoc of one of eight analysis factories (StopFilterFactory, for example) into a schema and expect well-formed XML whose elements name registered factories, as the other 325 example elements in Lucene's factory javadocs do. Instead six snippets are not well-formed XML (a class attribute with no closing quote, start tags with no '&gt;' or '/&gt;', a stray '/&gt;' line, and '&lt;-- other filters --&gt;' instead of an XML comment), and two name a class that is not a factory: LimitTokenOffsetFilterFactory's example says solr.LimitTokenOffsetFilter (the filter, not its factory) and PatternTypingFilterFactory's own element says com.example.PatternTypingFilter. The PatternTyping example also lists solr.TokenAnalyzerFilter, a companion filter from a Solr patch that was never committed (a stale reference, not a typo), and its first javadoc sentence describes that companion filter rather than PatternTypingFilter.
+You copy the &lt;fieldType&gt; example from the class javadoc of one of eight analysis factories (StopFilterFactory, for example) into a schema and expect well-formed XML whose elements name registered factories, as the other factory examples do (141 of the 149 example blocks are well-formed; 328 of the 332 elements name a registered factory). Instead six snippets are not well-formed XML (a class attribute with no closing quote after the class name, start tags with no '&gt;' or '/&gt;', a stray '/&gt;' line, and '&lt;-- other filters --&gt;' instead of an XML comment), and two name a class that is not a factory: LimitTokenOffsetFilterFactory's example says solr.LimitTokenOffsetFilter (the filter, not its factory) and PatternTypingFilterFactory's own element says com.example.PatternTypingFilter. The PatternTyping example also lists solr.TokenAnalyzerFilter, a companion filter from a Solr patch that was never committed (a stale reference, not a typo), and its first javadoc sentence describes that companion filter rather than PatternTypingFilter.
 
 The test shows that the `StopFilterFactory` class-javadoc schema example (copied verbatim) is not well-formed XML; it is one of the eight broken factory examples in this row (documentation defect).
 

@@ -2,6 +2,8 @@
 
 Finding LFV-972 · Area: codecs / default codec file-format overview (codecs/lucene104 package-info 'Summary of File Extensions' table and the Lucene104PostingsFormat 'Files and detailed format' list vs the files the default codec writes) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-972.html](../../bugs/LFV-972.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

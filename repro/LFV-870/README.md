@@ -2,6 +2,8 @@
 
 Finding LFV-870 · Area: analysis-common / synonym.word2vec (Word2VecSynonymFilter minAcceptedSimilarity javadoc vs Word2VecSynonymProvider threshold test) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-870.html](../../bugs/LFV-870.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

@@ -2,6 +2,8 @@
 
 Finding LFV-449 · Area: index / sorted-set doc values terms enum (SortedSetDocValuesTermsEnum, the default SortedSetDocValues#termsEnum()) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Finding page: [../../bugs/LFV-449.html](../../bugs/LFV-449.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

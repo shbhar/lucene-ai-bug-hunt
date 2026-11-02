@@ -2,6 +2,8 @@
 
 Finding LFV-992 · Area: analysis-icu / module overview documentation (overview.html 'Example Usages') · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-992.html](../../bugs/LFV-992.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

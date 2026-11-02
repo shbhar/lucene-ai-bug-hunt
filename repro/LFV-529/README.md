@@ -2,6 +2,8 @@
 
 Finding LFV-529 · Area: facet / taxonomy (TaxonomyFacetLabels, per-document facet label retrieval) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-529.html](../../bugs/LFV-529.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

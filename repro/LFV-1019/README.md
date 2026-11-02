@@ -2,6 +2,8 @@
 
 Finding LFV-1019 · Area: core / geo (Circle class javadoc example) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-1019.html](../../bugs/LFV-1019.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ The javadoc of org.apache.lucene.geo.Circle shows 'Example usage': make a circle
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
+- Expected: The example compiles, and the query matches 1 of 2 points (500 m in, 5 km out), as the corrected call does on main.
+- Actual: The compiler, called by the test through `javax.tools`, reports 1 error at the query line: `incompatible types: org.apache.lucene.geo.Circle cannot be converted to org.apache.lucene.document.ShapeField.QueryRelation`; the same with assertions off. (Command-line javac prints the same error with short names: `incompatible types: Circle cannot be converted to QueryRelation`.)
 
 ## Files
 
@@ -41,6 +43,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestCircleJavadocExample.java](TestCircleJavadocExample.java)
 
 ## Feedback
 

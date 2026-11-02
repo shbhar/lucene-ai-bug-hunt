@@ -2,6 +2,8 @@
 
 Finding LFV-1032 · Area: memory / MemoryIndex (class javadoc example) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-1032.html](../../bugs/LFV-1032.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,7 +12,7 @@ The MemoryIndex class javadoc shows an 'Example Usage' program that adds two fie
 
 ## Expected vs actual
 
-- Expected: The 12-line example compiles and, when run, prints "it's a match".
+- Expected: With the imports and a declared `version`, the 12-line example compiles and, when run, prints "it's a match" (what a reader expects of an "Example Usage" block; Lucene does not compile javadoc code).
 - Actual: javac: `SimpleAnalyzer` "cannot be applied to given types" and "no suitable constructor found for QueryParser(Version,String,Analyzer)", with assertions on and off.
 
 ## Files
@@ -49,6 +51,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestMemoryIndexJavadocExample.java](TestMemoryIndexJavadocExample.java)
 
 ## Feedback
 

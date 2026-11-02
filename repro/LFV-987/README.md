@@ -2,6 +2,8 @@
 
 Finding LFV-987 · Area: analysis / stemming filters (PorterStemFilter and StempelFilter class javadoc) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-987.html](../../bugs/LFV-987.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

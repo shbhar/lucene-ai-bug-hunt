@@ -2,6 +2,8 @@
 
 Finding LFV-536 · Area: analysis-common / ConcatenateGraphFilter and ConcatenateGraphFilterFactory (maxGraphExpansions javadoc); also suggest / CompletionAnalyzer · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-536.html](../../bugs/LFV-536.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

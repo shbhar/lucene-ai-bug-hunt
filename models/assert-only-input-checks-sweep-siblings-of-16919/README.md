@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- Four Lucene test methods never run because their names do not start with lowercase 'test' (TestXYRectangle.tesInvalidMinMaxX/Y, TestOperations.TestOptionalOptionalAcceptsState0, TestCommonGramsFilter.TestFirstAndLastStopWord); the two TestXYRectangle ones would also fail if run, because they look for '5 &gt; 4' while XYRectangle reports '5.0 &gt; 4.0', so XYRectangle's reversed-bounds check has had no running test since 2020 (finding LFV-1013; [repro](../../repro/LFV-1013/))
+- Four Lucene test methods never run because their names do not start with lowercase 'test' (TestXYRectangle.tesInvalidMinMaxX/Y, TestOperations.TestOptionalOptionalAcceptsState0, TestCommonGramsFilter.TestFirstAndLastStopWord); the two TestXYRectangle ones would also fail if run, because they look for '5 &gt; 4' while XYRectangle reports '5.0 &gt; 4.0', so XYRectangle's reversed-bounds check has had no running test since 2020 (finding LFV-1013; [repro](../../repro/LFV-1013/), [finding page](../../bugs/LFV-1013.html))
 
 ## Files
 

@@ -2,6 +2,8 @@
 
 Finding LFV-255 · Area: codecs / term vectors (Lucene90TermVectorsFormat .tvd file-format javadoc vs Lucene90CompressingTermVectorsWriter / Reader) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-255.html](../../bugs/LFV-255.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

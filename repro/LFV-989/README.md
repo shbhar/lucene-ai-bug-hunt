@@ -2,6 +2,8 @@
 
 Finding LFV-989 · Area: core / analysis (org.apache.lucene.analysis package overview, package-info.java: the TokenStream API tutorial) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-989.html](../../bugs/LFV-989.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

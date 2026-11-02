@@ -1,6 +1,8 @@
-# MIGRATE.md's 11.0 'Upgrade Example' says forceMerge(1) 'Rewrites all segments to latest format', but with the default merge policy it leaves an index that already has one segment and no deletions unchanged in its 9.x or 10.x format (documentation defect, main only; the code is correct)
+# MIGRATE.md's 11.0 'Upgrade Example' says forceMerge(1) 'Rewrites all segments to latest format', but with the default merge policy it leaves an index that already has one segment and no deletions unchanged in its 9.x or 10.x format (documentation defect, unreleased; the code is correct)
 
 Finding LFV-1030 · Area: index / forceMerge and index upgrade (lucene/MIGRATE.md 11.0 'Relaxed Index Upgrade Policy': Scenario 1 and 'Upgrade Example') · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-1030.html](../../bugs/LFV-1030.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -10,8 +12,8 @@ Lucene main's MIGRATE.md tells users who open a Lucene 9.x or 10.x index to upgr
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
+- Expected: After `forceMerge(1)` the only segment is at version 11.0.0 (`Version.LATEST`).
+- Actual: `expected:<11.0.0> but was:<9.0.0>`: segment `_0` keeps version 9.0.0 and codec `Lucene90`, with assertions on and off.
 
 ## Files
 
@@ -43,6 +45,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestMigrateUpgradeExample.java](TestMigrateUpgradeExample.java)
 
 Formal models and scripts this finding's part of the hunt used: [../../models/migrate-upgrade-example-forcemerge-keeps-old-format/](../../models/migrate-upgrade-example-forcemerge-keeps-old-format/)
 

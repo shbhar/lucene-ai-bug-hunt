@@ -7,7 +7,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 ## Findings
 
 - IndexedDISI returns its jump-table entry count as a signed short, so a sparse doc-values, norms or vector field whose last doc id is &gt;= 2,147,352,576 stores a negative count and every reader ignores the jump table that was written (advance walks block by block; results stay correct) (finding LFV-169; [repro](../../repro/LFV-169/), [finding page](../../bugs/LFV-169.html))
-- With an index sort, the flush-time iterator that IndexWriter hands to a doc-values or norms consumer for a numeric field that every document has ends intoBitSet(upTo &gt;= maxDoc) on docID() == maxDoc instead of NO_MORE_DOCS, so a custom consumer that bulk-loads it and loops until NO_MORE_DOCS never finishes (latent: Lucene's own consumers skip the bulk load for such fields) (finding LFV-165; [repro](../../repro/LFV-165/))
+- With an index sort, the flush-time iterator that IndexWriter hands to a doc-values or norms consumer for a numeric field that every document has ends intoBitSet(upTo &gt;= maxDoc) on docID() == maxDoc instead of NO_MORE_DOCS, so a custom consumer that bulk-loads it and loops until NO_MORE_DOCS never finishes (latent: Lucene's own consumers skip the bulk load for such fields) (finding LFV-165; [repro](../../repro/LFV-165/), [finding page](../../bugs/LFV-165.html))
 
 ## Files
 

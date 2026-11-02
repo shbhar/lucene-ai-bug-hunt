@@ -6,9 +6,9 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- AxiomaticF2LOG and AxiomaticF2EXP scores drop by 1 ulp as term frequency crosses a power of two (finding LFV-063; [repro](../../repro/LFV-063/))
-- IBSimilarity with DistributionLL returns -0.0f scores (finding LFV-072; [repro](../../repro/LFV-072/))
-- BaseSimilarityTestCase's 'scores don't decrease as terms get rarer' check is dead code (finding LFV-073; [repro](../../repro/LFV-073/))
+- AxiomaticF2LOG and AxiomaticF2EXP scores drop by 1 ulp as term frequency crosses a power of two (finding LFV-063; [repro](../../repro/LFV-063/), [finding page](../../bugs/LFV-063.html))
+- IBSimilarity with DistributionLL returns -0.0f scores (finding LFV-072; [repro](../../repro/LFV-072/), [finding page](../../bugs/LFV-072.html))
+- BaseSimilarityTestCase's 'scores don't decrease as terms get rarer' check is dead code (finding LFV-073; [repro](../../repro/LFV-073/), [finding page](../../bugs/LFV-073.html))
 
 ## Files
 

@@ -2,6 +2,8 @@
 
 Finding LFV-1021 · Area: core / index (UpgradeIndexMergePolicy class javadoc example) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-1021.html](../../bugs/LFV-1021.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ The UpgradeIndexMergePolicy javadoc says that for a fully customizable upgrade y
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
+- Expected: The copied example compiles (with a real version in for `LUCENE_XX`).
+- Actual: One javac error, `no suitable constructor found for IndexWriterConfig(Version,KeywordAnalyzer)`, with assertions on and off, on main and on the 10.6.0 jars.
 
 ## Files
 
@@ -42,6 +44,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestUpgradeIndexMergePolicyJavadocExample.java](TestUpgradeIndexMergePolicyJavadocExample.java)
 
 ## Feedback
 

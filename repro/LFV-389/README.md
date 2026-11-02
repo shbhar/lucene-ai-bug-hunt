@@ -2,6 +2,8 @@
 
 Finding LFV-389 · Area: test infrastructure / JUnit 4 test discovery (core, core.tests, monitor, distribution.tests, analysis-common hunspell) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-389.html](../../bugs/LFV-389.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

@@ -2,6 +2,8 @@
 
 Finding LFV-1013 · Area: tests / test-method discovery (core geo TestXYRectangle, core automaton TestOperations, analysis-common TestCommonGramsFilter) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-1013.html](../../bugs/LFV-1013.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

@@ -31,6 +31,7 @@ LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
+CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
 CP=$CP:$LUCENE/lucene/analysis/icu/build/libs/lucene-analysis-icu-$V.jar
 CP=$CP:$LUCENE/lucene/facet/build/libs/lucene-facet-$V.jar
 CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
@@ -41,8 +42,8 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions off (production-like), seed DEADBEEF
+java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.analysis.icu.TestICUCollationKeyAnalyzerRange
 ```

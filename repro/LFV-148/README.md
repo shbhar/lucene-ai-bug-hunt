@@ -2,6 +2,8 @@
 
 Finding LFV-148 · Area: util / packed ints (MonotonicBlockPackedWriter, MonotonicBlockPackedReader) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-148.html](../../bugs/LFV-148.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

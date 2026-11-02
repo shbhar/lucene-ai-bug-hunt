@@ -83,7 +83,7 @@ public class TestLRUQueryCacheCallbacksOverlap extends LuceneTestCase {
         t.join();
       }
     }
-    // expected (javadoc: "called synchronously and under a lock"): 1 at a time; actual: 2
+    // 10.x (one cache-wide lock): 1 at a time; main (one lock per partition): 2
     assertEquals("insertion callbacks running at the same time", 1, maxInside.get());
   }
 

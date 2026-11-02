@@ -2,6 +2,8 @@
 
 Finding LFV-957 · Area: release notes / lucene/CHANGES.txt 10.6.0 Improvements (CheckIndex / CorruptSegmentInfoException entry, GITHUB#7820) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-957.html](../../bugs/LFV-957.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -20,11 +22,12 @@ Expected `GITHUB#7820` (the issue CheckIndex.java links); actual `GITHUB#17820` 
 
 ## Run it
 
-- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced with the 10.6.0 release's lucene/CHANGES.txt as the input; main's own CHANGES.txt passes.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- The test reads the CHANGES.txt file named by the system property changes.txt, so add -Dchanges.txt=&lt;file&gt; to the java command. To reproduce, give it the 10.6.0 release's text: git show releases/lucene/10.6.0:lucene/CHANGES.txt &gt; CHANGES-10.6.0.txt. The Lucene jars play no part, so any recent build runs it. Main's own lucene/CHANGES.txt passes, because main cites GITHUB#7820.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
-- Not runnable from this site as is: this repro also needs extra JVM setup (such as an instrumentation hook) that is not exported here; see the comments at the top of the source.
+- Not runnable from this site as is: this repro also needs extra JVM setup (a system property or an instrumentation hook, for example) that is not exported here; see the comments at the top of the source.
 
 ```bash
 # Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

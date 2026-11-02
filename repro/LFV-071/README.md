@@ -2,11 +2,13 @@
 
 Finding LFV-071 · Area: codecs / vectors · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-071.html](../../bugs/LFV-071.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You scalar-quantize vectors with the Panama vector provider. You expect the same bytes as the default implementation. Instead Panama rounds with (int)fma(x, scale, 0.5f) instead of Math.round, so the two differ exactly when fl(scale*x) == 0.49999997f.
+You scalar-quantize vectors with the Panama vector provider. You expect the same bytes as the default implementation. Instead Panama rounds with (int)fma(x, scale, 0.5f), not Math.round, so the two can differ only when fl(scale*x) == 0.49999997f.
 
 The test shows that with the Panama vector provider (&gt;= 256-bit vectors), `ScalarQuantizer(0, 1, 8).quantize` rounds a value whose scaled offset is 0.49999997f up to byte 1, where Math.round (the default provider, the "nearest byte") gives 0.
 

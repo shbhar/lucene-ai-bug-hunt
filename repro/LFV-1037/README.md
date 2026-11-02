@@ -36,10 +36,11 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions off (production-like), seed DEADBEEF
+java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.TestStringSortMissingValue
+     execute --select-class org.apache.lucene.search.TestStringSortMissingValue \
+       --select-class org.apache.lucene.search.TestStringSortMissingValue
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).

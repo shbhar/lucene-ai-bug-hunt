@@ -2,6 +2,8 @@
 
 Finding LFV-1000 · Area: search / query cache (LRUQueryCache callback javadoc and MIGRATE.md) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-1000.html](../../bugs/LFV-1000.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

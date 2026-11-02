@@ -2,6 +2,8 @@
 
 Finding LFV-885 · Area: core / index merge scheduling (MultiIndexMergeScheduler visibility) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-885.html](../../bugs/LFV-885.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

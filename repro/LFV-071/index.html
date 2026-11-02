@@ -19,9 +19,10 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>Panama minMaxScalarQuantize rounds differently from the default implementation at one boundary value</h1>
 <p class="facts small"><span>Finding LFV-071</span><span>Area: codecs / vectors</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-071.html">Finding page for LFV-071</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
-<p>You scalar-quantize vectors with the Panama vector provider. You expect the same bytes as the default implementation. Instead Panama rounds with (int)fma(x, scale, 0.5f) instead of Math.round, so the two differ exactly when fl(scale*x) == 0.49999997f.</p>
+<p>You scalar-quantize vectors with the Panama vector provider. You expect the same bytes as the default implementation. Instead Panama rounds with (int)fma(x, scale, 0.5f), not Math.round, so the two can differ only when fl(scale*x) == 0.49999997f.</p>
 <p>The test shows that with the Panama vector provider (&gt;= 256-bit vectors), <code>ScalarQuantizer(0, 1, 8).quantize</code> rounds a value whose scaled offset is 0.49999997f up to byte 1, where Math.round (the default provider, the &quot;nearest byte&quot;) gives 0.</p>
 <h2>Expected vs actual</h2>
 <p>Expected: dest[0] == 0; actual (-ea and -da, preferredBitSize=256): <code>expected:&lt;0&gt; but was:&lt;1&gt;</code>; on 128-bit hosts or without the vector module the test passes.</p>
@@ -48,4 +49,4 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.util.quantization.TestScalarQuantizerNearestByte</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <p>Formal models and scripts this finding's part of the hunt used: <a href="../../models/study-simd-equivalence/index.html">study-simd-equivalence</a></p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-01. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-02. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

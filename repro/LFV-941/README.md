@@ -2,11 +2,13 @@
 
 Finding LFV-941 · Area: codecs / vectors (Lucene99FlatVectorsFormat .vemf and Lucene99HnswVectorsFormat .vem and .vex file-format javadoc vs their writers and readers) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-941.html](../../bugs/LFV-941.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You decode the vector metadata (.vemf, .vem) or the HNSW graph (.vex) files of the default codec by following the Lucene99FlatVectorsFormat and Lucene99HnswVectorsFormat javadocs, which list each field as '[int32] field number, [int32] vector similarity function ordinal, [vlong] offset, ...' and each neighbour list as '[vint] count, array[vint] delta-encoded ordinals'. Both writers instead store an extra int32, the vector encoding (BYTE or FLOAT32), between the field number and the similarity, and since 10.3 they write the neighbour deltas with group-varint, so a parser built from the text reads the encoding as the similarity (a COSINE float field comes out as DOT_PRODUCT), gets the offset, length, dimension and count wrong, and decodes wrong neighbours from the first node on. Lucene's own readers match the writers, so nothing breaks at runtime; only the documentation is wrong, the metadata part since 9.4.0 and the .vex part since 10.3.0.
+You decode the vector metadata (.vemf, .vem) or the HNSW graph (.vex) files of the default codec by following the Lucene99FlatVectorsFormat and Lucene99HnswVectorsFormat javadocs, which list each field as '[int32] field number, [int32] vector similarity function ordinal, [vlong] offset, ...' and each neighbour list as '[vint] count, array[vint] delta-encoded ordinals'. Both writers instead store an extra int32, the vector encoding (BYTE or FLOAT32), between the field number and the similarity, and since 10.3 they write the neighbour deltas with group-varint, so a parser built from the text reads the encoding as the similarity (a COSINE float field comes out as DOT_PRODUCT), gets the offset, length, dimension and count wrong, and decodes wrong neighbours from the first list of 4 or more neighbours on. Lucene's own readers match the writers, so nothing breaks at runtime; only the documentation is wrong, the metadata part since 9.4.0 and the .vex part since 10.3.0.
 
 The test shows that the vector metadata files of the default codec (.vemf of Lucene99FlatVectorsFormat, .vem of Lucene99HnswVectorsFormat), parsed with their javadoc lists ([int32] field number, [int32] vector similarity function ordinal, ...), misread the similarity: both writers put an undocumented int32 vector encoding between the field number and the similarity.
 

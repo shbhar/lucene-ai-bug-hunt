@@ -1,6 +1,8 @@
-# The file-format javadoc of the default field infos format (Lucene94FieldInfosFormat) gives a wrong .fnm grammar: the per-field sequence leaves out IndexOptions, the doc-values skip-index byte, PointIndexDimensionCount and the three vector bytes, and the value tables miss written values (doc-values codes 4 and 5, FieldBits 0x8 and 0x10, IndexOptions 5 since 10.5.0, VectorEncoding 2 on main) (documentation defect; the writer and reader agree)
+# The file-format javadoc of the default field infos format (Lucene94FieldInfosFormat) gives a wrong .fnm grammar: the per-field sequence leaves out IndexOptions, the doc-values skip-index byte, PointIndexDimensionCount and the three vector elements, and the value tables miss written values (doc-values codes 4 and 5, FieldBits 0x8 and 0x10, IndexOptions 5 since 10.5.0, VectorEncoding 2 on main) (documentation defect; the writer and reader agree)
 
 Finding LFV-942 · Area: codecs / field infos (Lucene94FieldInfosFormat .fnm file-format javadoc vs its writer and reader) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-942.html](../../bugs/LFV-942.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

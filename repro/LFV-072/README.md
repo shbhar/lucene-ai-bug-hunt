@@ -2,6 +2,8 @@
 
 Finding LFV-072 · Area: search / similarities · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-072.html](../../bugs/LFV-072.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

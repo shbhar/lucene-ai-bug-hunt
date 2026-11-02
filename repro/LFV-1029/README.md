@@ -2,6 +2,8 @@
 
 Finding LFV-1029 · Area: suggest / document suggesters (ContextSuggestField class javadoc example) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-1029.html](../../bugs/LFV-1029.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ The ContextSuggestField javadoc shows how to add a suggestion with two contexts:
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
+- Expected: The example compiles, and a context1 query for "sugg" returns "suggestion" with score 4, as the corrected call does on main.
+- Actual: javac reports 1 error at the constructor call: `incompatible types: no instance(s) of type variable(s) T exist so that List<T> conforms to int` (the test prints it as `java.util.List<T>`); the same with assertions off.
 
 ## Files
 
@@ -43,6 +45,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestContextSuggestFieldJavadocExample.java](TestContextSuggestFieldJavadocExample.java)
 
 ## Feedback
 

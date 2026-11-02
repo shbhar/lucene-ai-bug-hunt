@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- MIGRATE.md's 11.0 'Upgrade Example' says forceMerge(1) 'Rewrites all segments to latest format', but with the default merge policy it leaves an index that already has one segment and no deletions unchanged in its 9.x or 10.x format (documentation defect, main only; the code is correct) (finding LFV-1030; [repro](../../repro/LFV-1030/))
+- MIGRATE.md's 11.0 'Upgrade Example' says forceMerge(1) 'Rewrites all segments to latest format', but with the default merge policy it leaves an index that already has one segment and no deletions unchanged in its 9.x or 10.x format (documentation defect, unreleased; the code is correct) (finding LFV-1030; [repro](../../repro/LFV-1030/), [finding page](../../bugs/LFV-1030.html))
 
 ## Files
 

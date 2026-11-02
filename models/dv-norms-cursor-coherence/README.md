@@ -8,7 +8,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 - Sparse multi-valued SortedNumericDocValues#rangeIntoBitSet (default codec), called after advanceExact(d) returned false, judges doc d by a neighbouring document's values (or throws ArrayIndexOutOfBoundsException) (finding LFV-415; [repro](../../repro/LFV-415/))
 - SortedDocValues#ordinalRangeIntoBitSet's default implementation, called after advanceExact(d) returned false, reads ordValue() for doc d, which has no value, so it marks d using a neighbouring document's ordinal (or throws EOFException) (finding LFV-419; [repro](../../repro/LFV-419/), [finding page](../../bugs/LFV-419.html))
-- The flush-time doc-values iterators that IndexWriter hands to a DocValuesConsumer move only their doc-ID cursor in intoBitSet(), so values read afterwards belong to earlier documents (NUMERIC, BINARY, SORTED, SORTED_NUMERIC, SORTED_SET; latent: Lucene's own consumers never read values after intoBitSet on the same iterator) (finding LFV-418; [repro](../../repro/LFV-418/))
+- The flush-time doc-values iterators that IndexWriter hands to a DocValuesConsumer move only their doc-ID cursor in intoBitSet(), so values read afterwards belong to earlier documents (NUMERIC, BINARY, SORTED, SORTED_NUMERIC, SORTED_SET; latent: Lucene's own consumers never read values after intoBitSet on the same iterator) (finding LFV-418; [repro](../../repro/LFV-418/), [finding page](../../bugs/LFV-418.html))
 
 ## Files
 

@@ -25,7 +25,7 @@ You enable Lucene's opt-in native dot product (-Dlucene.useNativeDotProduct=true
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
 - How to read the outcome: a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
-- Not runnable from this site as is: this repro also needs extra JVM setup (such as an instrumentation hook) that is not exported here; see the comments at the top of the source.
+- Not runnable from this site as is: this repro also needs extra JVM setup (a system property or an instrumentation hook, for example) that is not exported here; see the comments at the top of the source.
 
 ```bash
 # Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

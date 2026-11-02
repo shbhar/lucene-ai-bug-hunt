@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- A PersistentSnapshotDeletionPolicy re-opened over its save file counts the persisted snapshots, but getSnapshots() is empty and getIndexCommit(gen) returns null until an IndexWriter has opened with it, and no javadoc states this precondition (documentation gap; the behaviour is by design) (finding LFV-890; [repro](../../repro/LFV-890/))
+- A PersistentSnapshotDeletionPolicy re-opened over its save file counts the persisted snapshots, but getSnapshots() is empty and getIndexCommit(gen) returns null until an IndexWriter has opened with it, and no javadoc states this precondition (documentation gap; the behaviour is by design) (finding LFV-890; [repro](../../repro/LFV-890/), [finding page](../../bugs/LFV-890.html))
 
 ## Files
 

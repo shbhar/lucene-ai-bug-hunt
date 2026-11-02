@@ -2,6 +2,8 @@
 
 Finding LFV-974 · Area: codecs / doc values (Lucene90DocValuesFormat class javadoc prose vs Lucene90DocValuesConsumer) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-974.html](../../bugs/LFV-974.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

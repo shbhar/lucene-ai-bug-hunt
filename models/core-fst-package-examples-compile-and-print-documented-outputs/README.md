@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- The org.apache.lucene.util.fst package overview's code examples do not compile on any release since 9.0.0: they call Util.getByOutput (removed in 9.0.0), the public FSTCompiler(INPUT_TYPE, Outputs) constructor (removed in 9.9.0) and the Util.Result fields input/output (private record components since 10.0.0) (documentation defect) (finding LFV-1027; [repro](../../repro/LFV-1027/))
+- The org.apache.lucene.util.fst package overview's code examples do not compile on any release since 9.0.0: they call Util.getByOutput (removed in 9.0.0), the public FSTCompiler(INPUT_TYPE, Outputs) constructor (removed in 9.9.0) and the Util.Result fields input/output (private record components since 10.0.0) (documentation defect) (finding LFV-1027; [repro](../../repro/LFV-1027/), [finding page](../../bugs/LFV-1027.html))
 
 ## Files
 

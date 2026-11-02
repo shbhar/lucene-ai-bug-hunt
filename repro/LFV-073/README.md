@@ -2,6 +2,8 @@
 
 Finding LFV-073 · Area: test-framework / similarities · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-073.html](../../bugs/LFV-073.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

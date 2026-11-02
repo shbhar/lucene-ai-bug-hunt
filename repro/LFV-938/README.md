@@ -2,6 +2,8 @@
 
 Finding LFV-938 · Area: codecs / norms (Lucene90NormsFormat .nvm file-format javadoc vs Lucene90NormsConsumer / Lucene90NormsProducer) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-938.html](../../bugs/LFV-938.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

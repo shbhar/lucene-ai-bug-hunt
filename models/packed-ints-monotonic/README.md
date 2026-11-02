@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- (Latent) MonotonicBlockPackedWriter writes a block whose values end close to Long.MAX_VALUE with too few bits, so MonotonicBlockPackedReader returns wrong values: min + (long) (avg * i) overflows in flush() (finding LFV-148; [repro](../../repro/LFV-148/))
+- (Latent) MonotonicBlockPackedWriter writes a block whose values end close to Long.MAX_VALUE with too few bits, so MonotonicBlockPackedReader returns wrong values: min + (long) (avg * i) overflows in flush() (finding LFV-148; [repro](../../repro/LFV-148/), [finding page](../../bugs/LFV-148.html))
 
 ## Files
 

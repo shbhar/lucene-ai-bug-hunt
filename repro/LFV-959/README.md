@@ -2,6 +2,8 @@
 
 Finding LFV-959 · Area: release notes (lucene/CHANGES.txt 11.0.0, lucene/MIGRATE.md 10.x -> 11.0) x index / doc-values updates (IndexWriterConfig#DEFAULT_MAX_DOC_VALUES_OVERLAYS, GITHUB#16418, GITHUB#16648) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-959.html](../../bugs/LFV-959.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You upgrade from Lucene 10.6 to 11.0 and use doc-values updates (for example Ind
 
 ## Expected vs actual
 
-- Expected: You expect the 11.0 release notes or the migration guide to say so if the default write path changed, as they do for the query cache, which 11.0 turns off by default.
-- Actual: Main turns incremental doc-values updates on by default (DEFAULT_MAX_DOC_VALUES_OVERLAYS = 8, against 0 in 10.6), so a one-document update writes a small sparse overlay (402 bytes of update files in the repro) instead of rewriting the column (2892 bytes), yet the only CHANGES.txt entry for the feature is the 10.6.0 one, which says 'Opt-in; enable with IndexWriterConfig#setMaxDocValuesOverlays(n)', and MIGRATE.md says nothing.
+- Expected: At least one 11.0 note on the new default: a line in the 11.0.0 section of CHANGES.txt or in MIGRATE.md, as the query-cache flip has in both.
+- Actual: `DEFAULT_MAX_DOC_VALUES_OVERLAYS = 8`; the only GITHUB#16418 entry is the 10.6.0 "Opt-in" one (lines 501-504); 0 lines in the 11.0.0 section, 0 in MIGRATE.md; exit status 1.
 
 ## Files
 
@@ -41,6 +43,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [check_11_0_notes.sh](check_11_0_notes.sh)
 
 ## Feedback
 

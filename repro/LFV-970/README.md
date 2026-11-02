@@ -2,6 +2,8 @@
 
 Finding LFV-970 · Area: codecs / live docs (Lucene90LiveDocsFormat .liv file-format javadoc vs its writer and reader) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-970.html](../../bugs/LFV-970.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

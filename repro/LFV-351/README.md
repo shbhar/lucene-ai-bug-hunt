@@ -2,6 +2,8 @@
 
 Finding LFV-351 · Area: facet / facet sets (MatchingFacetSetsCounts child counts vs. FacetSets.adoc and the demo javadoc) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-351.html](../../bugs/LFV-351.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- Word2VecSynonymFilter documents minAcceptedSimilarity as a cosine similarity, but Word2VecSynonymProvider compares it with the normalised score (1 + cosine) / 2, so the effective cosine cutoff is 2m - 1 (the default 0.8 accepts cosine 0.6, 0.5 accepts orthogonal terms, values below 0.5 accept negatively correlated terms); documentation defect, the javadoc fix is the default proposal (finding LFV-870; [repro](../../repro/LFV-870/))
+- Word2VecSynonymFilter documents minAcceptedSimilarity as a cosine similarity, but Word2VecSynonymProvider compares it with the normalised score (1 + cosine) / 2, so the effective cosine cutoff is 2m - 1 (the default 0.8 accepts cosine 0.6, 0.5 accepts orthogonal terms, values below 0.5 accept negatively correlated terms); documentation defect, the javadoc fix is the default proposal (finding LFV-870; [repro](../../repro/LFV-870/), [finding page](../../bugs/LFV-870.html))
 
 ## Files
 

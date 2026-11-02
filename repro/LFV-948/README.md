@@ -2,6 +2,8 @@
 
 Finding LFV-948 · Area: release notes / lucene/CHANGES.txt 10.6.0 New Features (GITHUB#16243 entry) x search / similarities (StableTflSimilarity) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-948.html](../../bugs/LFV-948.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

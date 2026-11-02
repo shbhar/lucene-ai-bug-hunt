@@ -2,6 +2,8 @@
 
 Finding LFV-1040 · Area: benchmark / search-quality package (quality/package-info.java: the package overview's TREC sample) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-1040.html](../../bugs/LFV-1040.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You start a search-quality evaluation from the benchmark quality package overvie
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
+- Expected: The sample's `execute` call compiles.
+- Actual: One javac error, `required: Judge,SubmissionReport,PrintWriter; found: int,Judge,SubmissionReport,PrintWriter`, with assertions on and off, on main and on the 10.6.0 jars.
 
 ## Files
 
@@ -44,6 +46,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) benchmark also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestQualityPackageSample.java](TestQualityPackageSample.java)
 
 Formal models and scripts this finding's part of the hunt used: [../../models/analysis-benchmark-backward-codecs-javadoc-examples-compile-on-main/](../../models/analysis-benchmark-backward-codecs-javadoc-examples-compile-on-main/)
 

@@ -2,6 +2,8 @@
 
 Finding LFV-961 · Area: grouping / package documentation (package-info.java inputs list vs the collector managers it names) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-961.html](../../bugs/LFV-961.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

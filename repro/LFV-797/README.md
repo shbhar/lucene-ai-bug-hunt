@@ -2,6 +2,8 @@
 
 Finding LFV-797 · Area: facet / taxonomy (DirectoryTaxonomyReader.getBulkPath: side effect on the ordinals argument of the category-cache path added by #15711) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-797.html](../../bugs/LFV-797.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

@@ -2,6 +2,8 @@
 
 Finding LFV-102 · Area: test-framework / search checkers (CheckHits) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-102.html](../../bugs/LFV-102.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

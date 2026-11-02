@@ -2,6 +2,8 @@
 
 Finding LFV-984 · Area: misc / index reordering (BPIndexReorderer class javadoc example) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-984.html](../../bugs/LFV-984.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

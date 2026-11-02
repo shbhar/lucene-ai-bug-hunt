@@ -28,6 +28,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [count-stats-modules](count-stats-modules/) | Python | LFV-428 |
 | [count-totalhits](count-totalhits/) | Alloy | LFV-086 |
 | [datainput-impls-strings](datainput-impls-strings/) | Python | LFV-107 |
+| [deleteall-during-addindexes-keeps-imported-field-schema](deleteall-during-addindexes-keeps-imported-field-schema/) | TLA+/TLC | LFV-1074 |
 | [directio-nrtcaching-dirs](directio-nrtcaching-dirs/) | Python | LFV-226 |
 | [dismax-synonym-combined](dismax-synonym-combined/) | Python | LFV-272 |
 | [distance-feature-pruning](distance-feature-pruning/) | SMT-LIB (Z3/cvc5), Python | LFV-379 |
@@ -105,9 +106,11 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [queryparser-classic](queryparser-classic/) | Python | LFV-319, LFV-284 |
 | [queryparser-flexible-simple-xml](queryparser-flexible-simple-xml/) | Python | LFV-356, LFV-398 |
 | [range-bound-cross-path](range-bound-cross-path/) | Python | LFV-409 |
+| [reader-open-leaf-sorter-failure-leaks](reader-open-leaf-sorter-failure-leaks/) | TLA+/TLC | LFV-1067 |
 | [reqexcl-bulkscorer-excluded-run-skip-16669](reqexcl-bulkscorer-excluded-run-skip-16669/) | Python | LFV-1044 |
 | [rescorers-nearest-and-rescoretopn-presized-by-unbounded-topn](rescorers-nearest-and-rescoretopn-presized-by-unbounded-topn/) | Python | LFV-997, LFV-995 |
 | [rescoretopn-negative-rescore-values-maxscore-hang](rescoretopn-negative-rescore-values-maxscore-hang/) | SMT-LIB (Z3/cvc5), Python | LFV-1015, LFV-1016 |
+| [searcherlifetime-prune-order](searcherlifetime-prune-order/) | TLA+/TLC | LFV-1066 |
 | [sloppymath-and-geo-distance-documented-error-bounds](sloppymath-and-geo-distance-documented-error-bounds/) | Python | LFV-771 |
 | [slow-codec-reader-vector-metadata-answered-past-wrappers](slow-codec-reader-vector-metadata-answered-past-wrappers/) | Alloy | LFV-911 |
 | [smartcn-hhmm-segmentation-reference](smartcn-hhmm-segmentation-reference/) | Python | LFV-709 |
@@ -139,6 +142,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [taxonomy-writer-concurrent-add](taxonomy-writer-concurrent-add/) | TLA+/TLC | LFV-521, LFV-520, LFV-512 |
 | [termvectors-compressing](termvectors-compressing/) | Python | LFV-244 |
 | [timeout-partial-results](timeout-partial-results/) | Python | LFV-465 |
+| [trydvupdate-bypasses-ram-buffer-unbounded-heap](trydvupdate-bypasses-ram-buffer-unbounded-heap/) | Python | LFV-1075 |
 | [twin-family-static-diff](twin-family-static-diff/) | Python | LFV-427 |
 | [uax29-word-boundaries-reference](uax29-word-boundaries-reference/) | Python | LFV-734 |
 | [unicode-conversions](unicode-conversions/) | Python | LFV-385 |

@@ -1,0 +1,451 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>BufferingKnnVectorsWriter&#x27;s flush-time vector values map each ordinal to itself, the wrong document for sparse or index-sorted fields</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.triage{margin:var(--s4) 0 0;padding:var(--s2) var(--s4);border-left:3px solid var(--info);background:var(--panel);
+max-width:var(--measure)}
+.triage p{margin:0;font-size:var(--step--1);line-height:1.5}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the finding in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All findings</a> &middot; Lucene finding &middot; LFV-298 &middot; buffering-knn-writer-ordtodoc-identity-sparse-or-sorted</p><h1 id='top'>BufferingKnnVectorsWriter&#x27;s flush-time vector values map each ordinal to itself, the wrong document for sparse or index-sorted fields</h1><p class='tldr'>A vector codec built on <code>BufferingKnnVectorsWriter</code> that asks its flush-time values which document a vector belongs to gets the ordinal back: with vectors on documents 0, 2 and 3, <code class='nw'>ordToDoc</code> answers 0, 1, 2, not 0, 2, 3. Lucene's own writers never ask, so only custom codecs are hit.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 938</span><span class='sub'>BufferingKnnVectorsWriter&#x27;s ordToDoc is wrong for sparse or sorted fields, but no shipped or known writer calls it.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>minor</span></dd></div><div><dt>Since</dt><dd>10.0.0 (#13779, 2024-09-28)<span class='sub'>introduced 2024-09-28 &middot; about 2 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>10.0.0 to 10.6.0 and main; latent (custom vector codecs only)</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>bounded-exhaustive checking of the real classes, then a JUnit repro</dd></div></dl><p class='ai-note'>AI-assisted page: this finding was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-11-02.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All findings</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The finding in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>One vector field, four documents, one flush: with vectors on documents 0, 2 and 3, the flush-time <code class='nw'>ordToDoc</code> answers 0, 1, 2 instead of 0, 2, 3.</p><div class='part' id='background'><div class="hd hd-3"><h3 id='background-h'>Background: vector ordinals</h3><a class="hlink" href="#background" target="_self" aria-label="Link to this section" aria-describedby="background-h"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span>In a segment, the vectors of a field are numbered 0, 1, 2, ... in document order. Only documents that have a vector get a number, its ordinal: with vectors on documents 0, 2 and 3, the ordinals are 0, 1, 2.</span></li><li><span><code>KnnVectorValues.ordToDoc(ord)</code> maps an ordinal back to its document. <code>getAcceptOrds(acceptDocs)</code> uses it to turn a set of accepted documents into a set of accepted ordinals.</span></li><li><span><code>BufferingKnnVectorsWriter</code> is a base class for vector codecs that keep a segment's vectors in memory: at flush it hands the subclass's <code class='nw'>writeField</code> one values object per field. SimpleText's writer is built on it.</span></li></ol></div><figure class='visual' id='buffering-knn-writer-ordtodoc-identity-sparse-or-sorted-short-visual'><div class='frame'><a class='still' href='../assets/LFV-298/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-298/bug.png' alt='Diagram of the bug: four documents, 0 to 3; documents 0, 2 and 3 have a vector, with ordinals 0, 1 and 2. The documents they belong to are 0, 2 and 3, but the flush-time values&#x27; ordToDoc answers 0, 1 and 2.' width='1920' height='1080'></a></div><figcaption>Vectors on documents 0, 2 and 3 get ordinals 0, 1, 2; <code class='nw'>ordToDoc</code> answers 0, 1, 2 instead of 0, 2, 3. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><div class="hd hd-3"><h3 id='the-bug-step-by-step'>The finding, step by step</h3><a class="hlink" href="#the-bug-step-by-step" target="_self" aria-label="Link to this section" aria-describedby="the-bug-step-by-step"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span>A custom vector codec's writer extends <code>BufferingKnnVectorsWriter</code>. At flush, its <code class='nw'>writeField</code> gets the buffered vectors of field <code class='nw'>v</code> and asks <code>values.ordToDoc(ord)</code> for each one: which document is this vector from?</span></li><li><span>Four documents are indexed and committed. Documents 0, 2 and 3 have a vector, document 1 has none, so the vector ordinals 0, 1, 2 belong to documents 0, 2, 3.</span></li><li><span>You expect <code class='nw'>ordToDoc</code> to answer 0, 2, 3: its javadoc says it returns "the docid of the document indexed with the given vector ordinal".</span></li><li><span>Instead it answers 0, 1, 2: it returns the ordinal itself. When an index sort reorders the documents, it does so even when every document has a vector (after a sort that reverses 4 documents, it answers 3, 2, 1, 0 for documents 0, 1, 2, 3), and <code class='nw'>getAcceptOrds</code>, built on it, keeps the wrong vectors.</span></li><li><span>Nothing throws, and iterating is right. Lucene's own writers only iterate, so stock indexes are correct; a custom codec that maps ordinals back to documents silently writes or filters vectors against the wrong documents.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Custom vector codecs only: a writer that extends the experimental <code>BufferingKnnVectorsWriter</code> and calls <code class='nw'>ordToDoc</code> or <code class='nw'>getAcceptOrds</code> in <code class='nw'>writeField</code> at flush, on a field some documents lack, or when an index sort reorders the segment. Every Lucene writer only iterates and writes correct indexes, and no such custom codec is known. 10.0.0 to 10.6.0 and main.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>528 words</span></summary><div class='body'><p>At flush, <code>BufferingKnnVectorsWriter</code> hands its subclass's <code class='nw'>writeField</code> a values object over the buffered vectors of each field. Its iterator visits only the documents that have a vector, so ordinal k is the k-th such document, but <code class='nw'>ordToDoc(ord)</code> returns <code class='nw'>ord</code>. For a field held by documents 0, 2 and 3 it answers 0, 1, 2 instead of 0, 2, 3; when an index sort reorders the segment, the sorting wrapper inherits the same identity, so even a dense field's ordinals map to themselves instead of to their sorted documents; and <code class='nw'>getAcceptOrds</code>, built on <code class='nw'>ordToDoc</code>, filters the wrong vectors. Nothing throws, iteration stays correct, and FLOAT32, BYTE and FLOAT16 behave the same with assertions on and off. It is latent: SimpleText's writer and the backward-codecs test writers only iterate, so stock indexes are correct, and only a custom codec on this experimental base class that maps ordinals back to documents is hit. It came with the random-access API in 10.0.0 (#13779) and is in every 10.x release and main; a lazily built ordinal-to-document table fixes it.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Flush-time values.</strong> <code>flush(maxDoc, sortMap)</code> wraps each field's buffered vectors and its <code class='nw'>docsWithField</code> set in <code>BufferedFloatVectorValues</code> (<code>BufferedByteVectorValues</code>, <code>BufferedFloat16VectorValues</code>) and, when an index sort reorders the segment (<code>sortMap != null</code>), in a private <code>Sorting*VectorValues</code>, then calls the subclass's <code class='nw'>writeField</code> (<code>BufferingKnnVectorsWriter.java:90-134</code> at <code class='nw'>645d4fe14a20</code>).</li><li><strong>Contract.</strong> <code>KnnVectorValues#ordToDoc</code>: "Return the docid of the document indexed with the given vector ordinal. This default implementation returns the argument and is appropriate for dense values implementations where every doc has a single value." (<code>KnnVectorValues.java:43-50</code>).</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code class='nw'>addValue</code> appends a vector only for documents that have one (<code>BufferingKnnVectorsWriter.java:310-322</code>), so the list index, the ordinal, counts only those documents.</li><li>The values' iterator is <code>fromDISI(docsWithField.iterator())</code> (<code class='nw'>:353</code>): <code class='nw'>index()</code> counts <code class='nw'>nextDoc()</code> calls, <code class='nw'>docID()</code> is the real document. That part is right.</li><li><code>BufferedFloatVectorValues.ordToDoc(int ord) { return ord; }</code> (<code class='nw'>:366-369</code>), the same in <code>BufferedFloat16VectorValues</code> (<code class='nw'>:412-415</code>); <code>BufferedByteVectorValues</code> (<code class='nw'>:433-472</code>) inherits the identity default. For a sparse field, ordinal and document differ.</li><li>The sorting wrappers (<code class='nw'>:137-250</code>) override no <code class='nw'>ordToDoc</code>. Their iterator's <code class='nw'>index()</code> is the delegate's ordinal for each sorted document (<code>SortingCodecReader.java:244-266</code>, <code class='nw'>:286-290</code>), so the inherited identity maps it to itself, not to its sorted document, even for a dense field, whenever the sort reorders the segment (an already-sorted segment gets no sort map: <code>IndexingChain.java:296</code>).</li><li>The default <code class='nw'>getAcceptOrds</code> returns <code>acceptDocs.get(ordToDoc(index))</code> (<code>KnnVectorValues.java:110-127</code>) and inherits the error.</li><li>For contrast, the merge-time values that <code class='nw'>mergeOneField</code> passes to the same <code class='nw'>writeField</code> (<code class='nw'>:262-281</code>) throw <code>UnsupportedOperationException</code> from <code class='nw'>ordToDoc</code> (<code>KnnVectorsWriter.java:498-500</code>, <code class='nw'>:596-597</code>, <code class='nw'>:698-699</code>).</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers-executed-on-main'>The numbers (executed on main)</h3><a class="hlink" href="#what-the-bug-is-the-numbers-executed-on-main" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers-executed-on-main"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>case</th><th>expected</th><th>got</th></tr></thead><tbody><tr><td>sparse (docs 0, 2, 3), <code>ordToDoc(index())</code></td><td>0-&gt;0, 2-&gt;2, 3-&gt;3</td><td>0-&gt;0, 2-&gt;1, 3-&gt;2</td></tr><tr><td>sparse, <code class='nw'>getAcceptOrds</code> accepting one doc</td><td>0-&gt;{0}, 2-&gt;{1}, 3-&gt;{2}</td><td>0-&gt;{0}, 2-&gt;{2}, 3-&gt;{}</td></tr><tr><td>dense, 4 docs, reversing index sort, <code>ordToDoc(index())</code></td><td>0-&gt;0, 1-&gt;1, 2-&gt;2, 3-&gt;3</td><td>0-&gt;3, 1-&gt;2, 2-&gt;1, 3-&gt;0</td></tr></tbody></table></div><p>FLOAT32, BYTE and FLOAT16 give the same values. Answers stay inside <code>[0, size)</code>: they are another vector's ordinal, never out of range. Only the first row is the minimal repro; the others come from the study's independent test, re-run for this doc.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>251 words</span></summary><div class='body'><ul><li><strong>Who is hit.</strong> Authors of a custom <code class='nw'>KnnVectorsFormat</code> whose writer extends the public abstract, <code>@lucene.experimental</code> <code>BufferingKnnVectorsWriter</code> (class javadoc: "Buffers up pending vector value(s) per doc, then flushes when segment flushes. Used for SimpleTextKnnVectorsWriter and for vectors writers before v 9.3 .") and whose <code class='nw'>writeField</code> calls <code class='nw'>ordToDoc</code> or <code class='nw'>getAcceptOrds</code> at flush, for example to write an ordinal-to-document table or to keep only accepted documents' vectors. They silently get another vector's document for every field that some documents lack, and for every field when an index sort reorders the segment.</li><li><strong>Not hit: Lucene's own writers.</strong> The only subclasses in the tree are <code>SimpleTextKnnVectorsWriter</code> and the backward-codecs test writers <code>Lucene90/91/92HnswVectorsWriter</code>; all take document ids from the iterator (the Lucene92 test writer builds its own ordinal-to-document table from the iterated documents). The production vector formats do not extend this class. None of them calls <code class='nw'>ordToDoc</code> or <code class='nw'>getAcceptOrds</code> on these values (code read); consistent with that, with <code class='nw'>ordToDoc</code> made to throw, the SimpleText and the three backward-codecs HNSW format suites still pass.</li><li><strong>Opt-in.</strong> It takes a third-party codec on an experimental base class; a read-only code search of Elasticsearch, OpenSearch, OpenSearch k-NN and Solr found no subclass (not exhaustive).</li><li><strong>Partly self-limiting.</strong> If such a writer's <code class='nw'>writeField</code> also calls <code class='nw'>ordToDoc</code> on the merge-time values, it hits <code>UnsupportedOperationException</code> at its first merge; avoiding that takes overriding <code class='nw'>mergeOneField</code> or treating the merge-time values differently, which makes an undetected production user unlikely.</li><li><strong>Scale.</strong> Any segment size; 4 documents are enough; deterministic; FLOAT32, BYTE and FLOAT16; assertions on and off.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>One JUnit test, 4 documents, one flush. A write-only vector format whose writer extends <code>BufferingKnnVectorsWriter</code> records <code class='nw'>docID()</code> and <code>ordToDoc(index())</code> for each document the flush-time iterator visits; documents 0, 2 and 3 have a 1-dimensional vector.</p><figure class='code'><figcaption><span class='fname'>TestBufferingKnnVectorsWriterOrdToDoc.java</span><span class='meta'>105 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.codecs;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.KnnFloatVectorField;
+import org.apache.lucene.index.ByteVectorValues;
+import org.apache.lucene.index.FieldInfo;
+import org.apache.lucene.index.Float16VectorValues;
+import org.apache.lucene.index.FloatVectorValues;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.KnnVectorValues;
+import org.apache.lucene.index.SegmentReadState;
+import org.apache.lucene.index.SegmentWriteState;
+import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+public class TestBufferingKnnVectorsWriterOrdToDoc extends LuceneTestCase {
+
+  public void testSparseFieldOrdToDoc() throws Exception {
+    List&lt;String&gt; seen = new ArrayList&lt;&gt;();
+    KnnVectorsFormat format =
+        new KnnVectorsFormat(&quot;Probe&quot;) {
+          @Override
+          public KnnVectorsWriter fieldsWriter(SegmentWriteState state) {
+            return new BufferingKnnVectorsWriter() {
+              @Override
+              protected void writeField(FieldInfo info, FloatVectorValues values, int maxDoc)
+                  throws IOException {
+                KnnVectorValues.DocIndexIterator it = values.iterator();
+                for (int doc = it.nextDoc();
+                    doc != DocIdSetIterator.NO_MORE_DOCS;
+                    doc = it.nextDoc()) {
+                  seen.add(doc + &quot;-&gt;&quot; + values.ordToDoc(it.index()));
+                }
+              }
+
+              @Override
+              protected void writeField(FieldInfo info, Float16VectorValues values, int maxDoc) {}
+
+              @Override
+              protected void writeField(FieldInfo info, ByteVectorValues values, int maxDoc) {}
+
+              @Override
+              public void finish() {}
+
+              @Override
+              public void close() {}
+            };
+          }
+
+          @Override
+          public KnnVectorsReader fieldsReader(SegmentReadState state) {
+            throw new UnsupportedOperationException();
+          }
+
+          @Override
+          public int getMaxDimensions(String fieldName) {
+            return 1024;
+          }
+        };
+    Codec base = TestUtil.getDefaultCodec();
+    Codec codec =
+        new FilterCodec(base.getName(), base) {
+          @Override
+          public KnnVectorsFormat knnVectorsFormat() {
+            return format;
+          }
+        };
+    try (Directory dir = new ByteBuffersDirectory();
+        IndexWriter w = new IndexWriter(dir, new IndexWriterConfig().setCodec(codec))) {
+      for (int d = 0; d &lt; 4; d++) {
+        Document doc = new Document();
+        if (d != 1) {
+          doc.add(new KnnFloatVectorField(&quot;v&quot;, new float[] {d}));
+        }
+        w.addDocument(doc);
+      }
+      w.commit();
+    }
+    // docID-&gt;ordToDoc(index()) at flush: expected each ordinal to map to its own doc, actual 2-&gt;1, 3-&gt;2
+    assertEquals(List.of(&quot;0-&gt;0&quot;, &quot;2-&gt;2&quot;, &quot;3-&gt;3&quot;), seen);
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/TestBufferingKnnVectorsWriterOrdToDoc.java $LUCENE/lucene/core/src/test/org/apache/lucene/codecs/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:core:test --tests org.apache.lucene.codecs.TestBufferingKnnVectorsWriterOrdToDoc -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# same failure with -Ptests.asserts=false
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code>[0-&gt;0, 2-&gt;2, 3-&gt;3]</code>: each vector's ordinal maps back to the document it was indexed with.</dd></div><div class='got'><dt>Observed</dt><dd><code>[0-&gt;0, 2-&gt;1, 3-&gt;2]</code>: <code class='nw'>ordToDoc</code> returns the ordinal, so documents 2 and 3 are reported as 1 and 2.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-298/'>repro/LFV-298/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>328 words</span></summary><div class='body'><p>Public and protected API only: an anonymous <code>BufferingKnnVectorsWriter</code> subclass (public abstract, <code>@lucene.experimental</code>; <code class='nw'>writeField</code> is protected) inside an anonymous <code class='nw'>KnnVectorsFormat</code>, plugged into a <code class='nw'>FilterCodec</code> over <code>TestUtil.getDefaultCodec()</code>; <code class='nw'>IndexWriter</code>, <code>KnnFloatVectorField</code>, <code>ByteBuffersDirectory</code>, <code class='nw'>LuceneTestCase</code>. The format is write-only (its reader throws) and the index is never opened. The <code>IndexWriterConfig</code> and the codec are not randomized (the test framework still randomizes settings such as locale and time zone, which this path does not use); two seeds gave the same failure. The package <code>org.apache.lucene.codecs</code> is only a convention. It passes once each document maps to itself, which the recommended fix gives; it can serve as the regression test.</p><p>It covers the sparse FLOAT32 case only. The index-sort, <code class='nw'>getAcceptOrds</code>, BYTE and FLOAT16 symptoms come from the same identity and were shown by the study's independent test; they are not part of the repro.</p><p>On a 10.x release, delete the <code>Float16VectorValues</code> import and the empty <code>writeField(FieldInfo, Float16VectorValues, int)</code> override (FLOAT16 came with #16383, which is on main and <code class='nw'>branch_11x</code> but in no release); nothing else changes.</p><p>Lint: <code class='nw'>ecjLintTest</code> and <code>forbiddenApisTest</code> pass with the test in <code>lucene/core/src/test</code>; <code>checkGoogleJavaFormat</code> flags its last comment line (104 columns).</p><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main 645d4fe14a20 (11.0.0-SNAPSHOT): fails with assertions on and off; 10.0.0 to 10.6.0: fails (10.x form); with the recommended fix: passes</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3</code></td></tr><tr><th scope='row'>os</th><td><code>Linux aarch64</code></td></tr></tbody></table></div><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, scratch worktree of main 645d4fe14a20, -Ptests.seed=DEADBEEF -Ptests.asserts=true (the same with asserts=false)
+TestBufferingKnnVectorsWriterOrdToDoc &gt; testSparseFieldOrdToDoc FAILED
+    java.lang.AssertionError: expected:&lt;[0-&gt;0, 2-&gt;2, 3-&gt;3]&gt; but was:&lt;[0-&gt;0, 2-&gt;1, 3-&gt;2]&gt;
+        at __randomizedtesting.SeedInfo.seed([DEADBEEF:E6A0A48A5C4E1EA8]:0)
+        at org.junit.Assert.fail(Assert.java:89)
+        at org.junit.Assert.failNotEquals(Assert.java:835)
+        at org.junit.Assert.assertEquals(Assert.java:120)
+        at org.junit.Assert.assertEquals(Assert.java:146)
+        at org.apache.lucene.codecs.TestBufferingKnnVectorsWriterOrdToDoc.testSparseFieldOrdToDoc(TestBufferingKnnVectorsWriterOrdToDoc.java:103)
+
+# standalone, same seed: the same message on main (-ea, -da) and on 10.0.0 to 10.6.0
+
+# the study&#x27;s independent test on main (not the repro): the other shapes, summarized from its JUnit failure messages
+sparse getAcceptOrds(only doc):              [0-&gt;[0], 2-&gt;[2], 3-&gt;[]]          expected [0-&gt;[0], 2-&gt;[1], 3-&gt;[2]]
+dense, reversing index sort, ordToDoc:       [0-&gt;3, 1-&gt;2, 2-&gt;1, 3-&gt;0]         expected [0-&gt;0, 1-&gt;1, 2-&gt;2, 3-&gt;3]
+FLOAT32, BYTE and FLOAT16 give the same values</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it looks unintended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code class='nw'>ordToDoc</code> is documented to "Return the docid of the document indexed with the given vector ordinal"; returning the argument is called appropriate "for dense values".</li><li>The introducing PR has partial implementations throw <code>UnsupportedOperationException</code>; the merge-time values for the same hook do, these return a wrong document.</li><li>Precedent: #13842 fixed the same kind of identity <code class='nw'>ordToDoc</code> in SimpleText's reader.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>275 words</span></summary><div class='body'><ul><li><strong>The contract is unconditional.</strong> <code>KnnVectorValues.java:43-47</code>: "Return the docid of the document indexed with the given vector ordinal. This default implementation returns the argument and is appropriate for dense values implementations where every doc has a single value." The buffered values iterate a sparse <code class='nw'>docsWithField</code> (<code>BufferingKnnVectorsWriter.java:353</code>) and still override <code class='nw'>ordToDoc</code> with the identity.</li><li><strong>Nothing documents a restriction.</strong> The <code class='nw'>writeField</code> hooks say only "Write the provided float vector field" (<code class='nw'>:283-293</code>). No javadoc, MIGRATE or CHANGES entry says flush-time values are forward-only; MIGRATE's 10.0 note is headed "Vector values APIs switched to primarily random-access" (<code>lucene/MIGRATE.md:1725-1727</code>).</li><li><strong>The convention is to throw.</strong> #13779's description: "Some of the methods on <code class='nw'>KnnVectorValues</code> have default impls that throw <code>UnsupportedOperationException</code> enabling subclasses to provide partial implementations and relying on testing to catch missing required methods." The merge-time values follow it; the flush-time values answer with a plausible wrong document.</li><li><strong>History.</strong> The identity override came in an intermediate #13779 commit (<code class='nw'>2bbf8f1feda6</code>, "adding some ordToDoc", 2024-09-02) while the base <code class='nw'>ordToDoc</code> still threw; a later commit (<code class='nw'>dce766c9751d</code>) made the base default <code>return ord</code>. No review comment discusses the overrides. #16383 copied the identity to FLOAT16 (on main and <code class='nw'>branch_11x</code>, in no release yet).</li><li><strong>Precedent.</strong> #13842 ("Fix simple text byte vector iteration", @benwtrent, merged 2024-10-01, milestone 10.0.0; its first attempt, the closed PR #13839: "SimpleText format wasn't overriding the byte vector's ordToDoc, causing multiple tests to fail") added <code>ordToDoc(int ord) { return entry.ordToDoc[ord]; }</code> to <code>SimpleTextKnnVectorsReader</code>. The writer was not touched.</li><li><strong>No test covers it.</strong> No test asserts <code class='nw'>ordToDoc</code> or <code class='nw'>getAcceptOrds</code> on writer-side values; with them made to throw, the related suites still pass.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>248 words</span></summary><div class='body'><p>The strongest case (rated moderate by every reviewer): the values given to <code class='nw'>writeField</code> are forward-only in practice. The merge-time values for the same hook throw from <code class='nw'>ordToDoc</code>, <code class='nw'>copy</code> and <code class='nw'>scorer</code> and enforce forward iteration ("only supports forward iteration with a single iterator", <code>KnnVectorsWriter.java:476-485</code>); the merge-time class javadoc says "View over multiple vector values supporting iterator-style access via DocIdMerger" (<code>KnnVectorsWriter.java:311</code>); every in-tree subclass only iterates; the class is experimental and documented as for SimpleText and pre-9.3 writers; and #13779's description accepts partial implementations ("Some of these readers would only ever be used iteratively." and "Can we live with a little less API purity and gain some simplicity and less boilerplate?").</p><p>Why it fails: the same description says partial implementations should throw so that tests catch them; these values instead answer with another vector's ordinal. Nothing tells a codec author that the hook's values are forward-only, <code class='nw'>ordToDoc</code>'s contract is unconditional, and the identity default is documented as right only for dense values. During review of #13779 its author wrote (2024-09-19): "I also added a test-and-throw ensuring that the vectorValues impls that require forward-iteration enforce it"; these values enforce nothing. The maintainers fixed the same kind of defect, an inherited identity <code class='nw'>ordToDoc</code> on sparse values, in a reader as a bug (#13842); it is analogous, not identical, since that one was visible to stock code and broke tests. What survives is the severity: latent, custom codecs only. <strong>Verdict: most likely not intended, a minor latent defect.</strong></p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>A. Correct mapping, built on first use</strong></p><p class='short'>Make <code class='nw'>ordToDoc</code> correct: each buffered and sorting values class looks the document up in an <code class='nw'>int[]</code> built on its first call (one file, +75/-2). Validated: the repro, the SimpleText and three backward-codecs vector format suites and the study's wider test pass. Writers that never call it never build the table.</p><pre class='snippet' tabindex='0'><code>// Buffered{Float,Float16,Byte}VectorValues; the Sorting* wrappers use
+// sortedDocIdsOf(iteratorSupplier.get(), size()) instead
+private int[] docIds; // ord -&gt; doc, built on first use
+
+@Override
+public int ordToDoc(int ord) {
+  if (docIds == null) {
+    docIds = docIdsOf(docsWithField, size()); // the documents of docsWithField, in order
+  }
+  return docIds[ord];
+}</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>3 options · 564 words</span></summary><div class='body'><p>Two fixes were built against <code class='nw'>645d4fe14a20</code> and run with gradle.</p><div class="hd hd-3"><h3 id='fix-cached-mapping'>A. Correct mapping, built on first use <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-cached-mapping" target="_self" aria-label="Link to this section" aria-describedby="fix-cached-mapping"><span aria-hidden="true">#</span></a></div><p>Give <code>Buffered{Float,Float16,Byte}VectorValues</code> an <code class='nw'>ordToDoc</code> that looks the document up in an <code class='nw'>int[]</code> of the documents of <code class='nw'>docsWithField</code>, in order, built on the first call; give the three <code>Sorting*VectorValues</code> the same, filled from the sorting iterator (<code>docIds[it.index()] = doc</code>). <code class='nw'>getAcceptOrds</code> becomes correct with no change. One file, <code>BufferingKnnVectorsWriter.java</code>, +75/-2 lines.</p><pre class='snippet' tabindex='0'><code>// Buffered{Float,Float16,Byte}VectorValues; the Sorting* wrappers use
+// sortedDocIdsOf(iteratorSupplier.get(), size()) instead
+private int[] docIds; // ord -&gt; doc, built on first use
+
+@Override
+public int ordToDoc(int ord) {
+  if (docIds == null) {
+    docIds = docIdsOf(docsWithField, size()); // the documents of docsWithField, in order
+  }
+  return docIds[ord];
+}</code></pre><p class='k'>Trade-offs</p><ul><li>No table and no extra pass for writers that never call <code class='nw'>ordToDoc</code> (SimpleText and every in-tree writer), only an unused field per values instance; a caller pays one O(size) pass and 4 bytes per vector, once per values instance.</li><li>Not thread-safe, like the rest of these values; <code class='nw'>copy()</code> starts without a table.</li><li>The helpers catch <code class='nw'>IOException</code> only because <code class='nw'>nextDoc()</code> declares it; neither iterator does I/O.</li><li>Flush and merge still differ (the merge-time values throw); a javadoc line on <code class='nw'>writeField</code> can say so.</li></ul><p class='k'>What the checks validated</p><ul><li>Gradle in a scratch worktree of <code class='nw'>645d4fe14a20</code> (<code class='nw'>--offline</code>, seed DEADBEEF, JDK 25.0.3). Stock: the repro fails with assertions on and off. With the fix: it passes with assertions on and off.</li><li><code>TestSimpleTextKnnVectorsFormat</code> (57 tests, 4 skipped) and <code>TestLucene90HnswVectorsFormat</code>, <code>TestLucene91HnswVectorsFormat</code>, <code>TestLucene92HnswVectorsFormat</code> (174 tests, 9 skipped) pass, 0 failures.</li><li>Core lint: <code class='nw'>ecjLintMain</code>, <code class='nw'>ecjLintTest</code>, <code>forbiddenApisMain</code>, <code>forbiddenApisTest</code> pass; <code>checkGoogleJavaFormat</code> finds nothing in the fixed file (it flags only the test's long comment line); eclint is not configured here and was skipped.</li><li>With the fixed class compiled ahead of the stock main jars (shadowed, not a rebuilt Lucene): the study's independent test passes 6 of 6 (sparse, sparse <code class='nw'>getAcceptOrds</code>, reversing sort; FLOAT32, BYTE, FLOAT16; <code class='nw'>-ea</code> and <code class='nw'>-da</code>), and the hunt's 2 tests (sparse; sparse with an index sort) pass.</li></ul><div class="hd hd-3"><h3 id='fix-forward-only-uoe'>B. Make flush-time <code class='nw'>ordToDoc</code> throw, like the merge-time values <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-forward-only-uoe" target="_self" aria-label="Link to this section" aria-describedby="fix-forward-only-uoe"><span aria-hidden="true">#</span></a></div><p>Make <code class='nw'>ordToDoc</code> throw <code>UnsupportedOperationException</code> in the three <code class='nw'>Buffered*</code> and three <code class='nw'>Sorting*</code> classes, and document on the <code class='nw'>writeField</code> hooks that the values support forward iteration only, at flush as at merge (one file, +43/-5).</p><p class='k'>Trade-offs</p><ul><li>Cheapest: <code class='nw'>ordToDoc</code>, and with it the default <code class='nw'>getAcceptOrds</code>, then fails at the first flush, as at merge, instead of writing wrong data. It does not make the buffered values forward-only in other respects: at flush <code class='nw'>vectorValue(ord)</code> in any order and <code class='nw'>copy()</code> still work, while the merge-time values reject both.</li><li>Removes an answer that is correct today for dense, unsorted fields; a custom writer relying on it breaks (it would already break at merge if it calls <code class='nw'>ordToDoc</code> on the merge-time values too).</li><li>The minimal test then fails with <code>UnsupportedOperationException</code>, so as a regression test it would have to expect the exception.</li></ul><p class='k'>What the checks validated</p><ul><li>Gradle: the repro fails with <code>UnsupportedOperationException</code> from <code>BufferedFloatVectorValues.ordToDoc</code>; <code>TestSimpleTextKnnVectorsFormat</code> and the three backward-codecs HNSW suites pass (57 + 174 tests, 0 failures), so nothing in the tree needs <code class='nw'>ordToDoc</code> on these values.</li></ul><div class="hd hd-3"><h3 id='fix-document-only'>C. Document the limitation only</h3><a class="hlink" href="#fix-document-only" target="_self" aria-label="Link to this section" aria-describedby="fix-document-only"><span aria-hidden="true">#</span></a></div><p>Say in the <code class='nw'>writeField</code> javadoc that <code class='nw'>ordToDoc</code> and <code class='nw'>getAcceptOrds</code> of the values are valid only for dense, unsorted fields.</p><p class='k'>Trade-offs</p><p>Leaves the silent wrong answer in place. Not run.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Downstream engines would be hit only through their own vector codec built on <code>BufferingKnnVectorsWriter</code>; a read-only code search of Elasticsearch, OpenSearch, OpenSearch k-NN and Solr found no such subclass.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Bounded-exhaustive checking: a harness tried every call sequence of up to 4 calls on the values <code class='nw'>writeField</code> receives, for every set of documents with a vector in segments of 1 to 8 documents, with and without an index sort, and checked <code>ordToDoc(index()) == docID()</code>. The smallest sparse case failed; a JUnit test through <code class='nw'>IndexWriter</code> confirmed it.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>172 words</span></summary><div class='body'><p><strong>Method: bounded-exhaustive translation validation</strong> (the hunt's "semi-formal" tier), hunt unit (vector document/ordinal mapping), 2026-10-26, main <code class='nw'>ea57360912ed</code>.</p><ul><li>The harness ran on the real classes of the main jars and checked them against the javadoc. Write side: every set of documents with a vector in segments of 1 to 8 documents and every call sequence of length up to 4 over the values <code>BufferingKnnVectorsWriter</code> hands to <code class='nw'>writeField</code>, with and without an index sort (<code class='nw'>nextDoc</code> only under the sort), for FLOAT32, BYTE and FLOAT16.</li><li>The first signal was its check <code>ordToDoc(index()) == docID()</code> on the smallest sparse case: document set {1} after one <code class='nw'>nextDoc()</code>, <code>ordToDoc(0) = 0</code> while <code>docID() = 1</code>.</li><li>The finder confirmed it with a hand-written JUnit through <code class='nw'>IndexWriter</code> (sparse; sparse with an index sort), and the hunt later minimized it to the one sparse test. The harness also showed that this fix removes only its own failures, and that with the fix for <code>fromDISI.advance()</code> (the root cause of another finding) as well, the write side is clean.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (searched 2026-10-26 and again 2026-11-01: 212 and 132 logged searches and checks over GitHub, the mailing lists, the JIRA archive and downstream projects, plus the changed files of every open PR). Closest: #13842, which fixed the same identity <code class='nw'>ordToDoc</code> in SimpleText's reader.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p>No issue, PR, review comment, commit, list thread, JIRA entry or downstream report describes the flush-time values of <code>BufferingKnnVectorsWriter</code> answering <code>ordToDoc(ord) = ord</code>. #13842 is read as precedent (a different class, fixed in that reader only), not as a report.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub apache/lucene issues and PRs, downstream repositories, all of GitHub</th><td class='when'>2026-10-26 and 2026-11-01</td><td>96 and 62 issue/PR queries (scripted, GraphQL and REST phrasings: the Buffered* and Sorting* class names, ordToDoc, getAcceptOrds, writeField, sparse, index sort); 45 items read in full in the first search</td><td>no report; closest #13842 / #13839, #13779, #16205, #15430, #16811, #16383</td></tr><tr><th scope='row'>Open PRs and code history</th><td class='when'>2026-11-01</td><td>changed files of all 409 open apache/lucene PRs; main, branch_11x, branch_10_6, branch_10_5 and the 10.6.0 tag</td><td>only #12636 (a rename) touches the file; not fixed anywhere</td></tr><tr><th scope='row'>Mailing lists and JIRA archive</th><td class='when'>2026-10-26 and 2026-11-01</td><td>80 and 41 queries over dev@, java-user@, issues@ and commits@; 17 and 4 JIRA-archive queries</td><td>no report</td></tr><tr><th scope='row'>Downstream (Elasticsearch, OpenSearch k-NN)</th><td class='when'>2026-10-26 and 2026-11-01</td><td>code and PR search</td><td>Elasticsearch #137862 and OpenSearch k-NN #3196 fix the same pitfall in their own wrappers, not in Lucene's writer</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced in 10.0.0 by #13779 (<code class='nw'>6053e1e3137</code>, merged 2024-09-28), which created <code class='nw'>ordToDoc</code> and gave the buffered values the identity answer; #16383 copied it to FLOAT16 on main. Fails on all 13 10.x releases and main; 9.x lacks the API.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>6 rows</span></summary><div class='body'><p><strong>Introduced by</strong> #13779 "First-class random access API for KnnVectorValues" (@msokolov, merged 2024-09-28 as <code class='nw'>6053e1e3137</code>, milestone 10.0.0). <code>git log -S'return ord;'</code> on the file returns only it and <code class='nw'>bfe5c847d3c</code> (#16383, FLOAT16, 2026-07-27; on main and <code class='nw'>branch_11x</code>, in no release); <code>git blame</code> gives the float <code>return ord;</code> line to it at 10.0.0, 10.5.2, 10.6.0 and <code class='nw'>645d4fe14a20</code>. Not a regression: before 10.0.0 these values had no ordinal-to-document method. Not fixed on upstream main <code class='nw'>f815e679bf6c</code> (2026-11-01), <code class='nw'>branch_11x</code> or <code class='nw'>branch_10_6</code> (read).</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>645d4fe14a20</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>minimal test fails, assertions on and off (gradle and standalone)</td></tr><tr><th scope='row'>10.6.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>fails, assertions on and off (10.x form of the test)</td></tr><tr><th scope='row'>10.0.0 to 10.5.2 (12 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>fails on each, the same <code>[0-&gt;0, 2-&gt;1, 3-&gt;2]</code> (10.0.0 also with assertions off)</td></tr><tr><th scope='row'>10.0.0 with only the identity line replaced</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> fix control</span></td><td>passes: the failure is that one line</td></tr><tr><th scope='row'>9.12.0, 9.12.3</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> API absent</span></td><td>the test does not compile: <code class='nw'>KnnVectorValues</code> does not exist</td></tr><tr><th scope='row'>fix A (cached mapping)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the minimal test passes; related suites pass</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>The finder, an independent reproducer, a devil's-advocate verifier, cross-model reviews (OpenAI GPT-5.6) and an adjudication agree on the root cause. The first refute review said not real only because it could not run Java; its executed re-run on 2026-11-01 said real (high).</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>267 words</span></summary><div class='body'><p>Every executed check reproduced the identity mapping; the debate is only about whether the hook's values were meant to be forward-only.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder (bounded-exhaustive harness, then JUnit)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced</span></td><td>2 tests (sparse; sparse with an index sort) fail on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.0.0 and 10.5.2; pass with the fix sketch.</td></tr><tr><th scope='row'>cross-model review, refute lens (OpenAI GPT-5.6, reading only)</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> not real (low), procedural</span></td><td>Agreed with the root cause and the trigger; voted not real on procedure only because it could not reproduce.</td></tr><tr><th scope='row'>cross-model review, intended lens (OpenAI GPT-5.6, reading only)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (medium)</span></td><td>Intended-behaviour argument moderate; 8 of its 11 evidence items support real.</td></tr><tr><th scope='row'>independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own test, 6 tests: sparse, sparse <code class='nw'>getAcceptOrds</code> and dense under a reversing sort fail on main (FLOAT32, BYTE, FLOAT16), 10.5.2 and 10.0.0 (<code class='nw'>-ea</code>, <code class='nw'>-da</code>); the controls pass.</td></tr><tr><th scope='row'>devil's-advocate verifier</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Strongest works-as-designed case moderate, not a refutation; showed the merge-time values throw from <code class='nw'>copy()</code> and <code class='nw'>ordToDoc(0)</code>; traced the override to #13779 commit <code class='nw'>2bbf8f1fed</code>.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high; minor</span></td><td>Re-ran the independent reproduction: 3 of 6 fail with <code class='nw'>-ea</code> and <code class='nw'>-da</code>.</td></tr><tr><th scope='row'>registry re-runs and credibility audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduces</span></td><td>Fresh seeds: the finder's and the independent reproduction's tests fail and pass with the fix sketch; audit re-run fails 2 of 2.</td></tr><tr><th scope='row'>re-verification and refute review on 645d4fe14a20 (OpenAI GPT-5.6, executed)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>The minimal test fails on main, 10.5.2 and 10.6.0 (<code class='nw'>-ea</code>, <code class='nw'>-da</code>); the reviewer's own sparse and sorted tests reproduced it and its dense control passed.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-298/bug.png' download='buffering-knn-writer-ordtodoc-identity-sparse-or-sorted-bug.png' target='_self'>PNG</a> <span class='n'>420 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Finding record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,406 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Finding record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-298, snapshot of 2026-11-02</p><dl class='card'><div><dt>Registry title</dt><dd>BufferingKnnVectorsWriter hands writeField vector values whose ordToDoc(ord) returns ord, which is wrong for sparse fields and, with an index sort, for every field (latent: no shipped writer calls it)</dd></div><div><dt>Area</dt><dd>codecs / BufferingKnnVectorsWriter flush-time vector values (KnnVectorValues.ordToDoc and getAcceptOrds)</dd></div><div><dt>Priority</dt><dd>Low, rank 938: BufferingKnnVectorsWriter&#x27;s ordToDoc is wrong for sparse or sorted fields, but no shipped or known writer calls it.</dd></div><div><dt>Impact class</dt><dd>minor</dd></div><div><dt>Impact note</dt><dd>Only third-party vector codecs that extend the public, @lucene.experimental BufferingKnnVectorsWriter and call ordToDoc or getAcceptOrds on the values their writeField receives at flush are hit, on 10.0.0 to 10.6.0 and main, with -ea and -da, at any index size: for a field that some documents lack, or for any field when the index has an index sort, they silently get a wrong document id (and getAcceptOrds filters the wrong vectors); no shipped Lucene codec is affected, because SimpleTextKnnVectorsWriter (the only shipped subclass) and the backward-codecs test writers only iterate, no such third-party writer is known, and the merge-time values passed to the same writeField throw UnsupportedOperationException from ordToDoc, so such a writer would also fail at its first merge unless it overrides mergeOneField.</dd></div><div><dt>Summary</dt><dd>You build a vector codec on BufferingKnnVectorsWriter and, in writeField, ask the flush-time vector values which document a vector ordinal belongs to (ordToDoc, or getAcceptOrds, which is built on it), expecting what the javadoc promises, 'the docid of the document indexed with the given vector ordinal'. Instead the buffered values answer ordToDoc(ord) = ord, which is right only when every document has a vector and there is no index sort: for a field that documents 0, 2 and 3 have, ordinals 1 and 2 map to documents 1 and 2 instead of 2 and 3, so a getAcceptOrds filter that accepts only document 2 accepts document 3's vector and one that accepts only document 3 accepts none; under a reversing index sort even a dense field's ordinals map to themselves instead of to their documents' sorted positions. Iteration (nextDoc, index, vectorValue) stays correct, nothing throws, and FLOAT32, BYTE and FLOAT16 behave the same.</dd></div><div><dt>Introduced</dt><dd>6053e1e31378378f6d310a05ea6d7dcdfc45f48b (#13779 'First-class random access API for KnnVectorValues', author msokolov, merged into main 2024-09-28, milestone 10.0.0) [read: git log -S and git blame in the full-history clone, the float values' 'return ord;' line blames to it at 10.0.0, 10.5.2 and main, and git tag --contains lists exactly the 12 10.x release tags; exec: the API is absent on 9.12.3 and the repro fails on 10.0.0]. Inside the PR (commits read through the read-only GitHub API, not built): 2bbf8f1fed (2024-09-02, 'adding some ordToDoc') gave BufferedFloatVectorValues ordToDoc(ord) { return ord; } while the base ordToDoc still threw UnsupportedOperationException; dce766c975 (2024-09-05) made the base default return ord, documented as right for dense values; ff7a317a81 (2024-09-12, 'fix case where index is reordered') made the sorting views hand out ordinals in the delegate's ordinal space without an ordToDoc override. Later extension: bfe5c847d3c4 (#16383, fp16 vector encoding, 2026-07-27; on main and branch_11x, in no release) copied the identity override to BufferedFloat16VectorValues and added SortingFloat16VectorValues without one. The defect came with the API; it is not a regression, because before 10.0.0 these values had no ordinal-to-document method (2024-09-28 (merge of #13779; the identity override was written in its commit 2bbf8f1fed on 2024-09-02); FLOAT16 copy 2026-07-27 (#16383; on main and branch_11x, in no release))</dd></div><div><dt>First affected version</dt><dd>10.0.0 [exec] (the first release with #13779); 9.x is not applicable: no KnnVectorValues class and no ordToDoc on these values [exec: on 9.12.3 the repro does not compile and an API-absence probe passes 2 of 2]</dd></div><div><dt>Affected versions</dt><dd>every 10.x release (10.0.0, 10.1.0, 10.2.0, 10.2.1, 10.2.2, 10.3.0, 10.3.1, 10.3.2, 10.4.0, 10.5.0, 10.5.1, 10.5.2, 10.6.0) and main (ea57360912ed and 645d4fe14a20) [exec: the minimal test fails on all 13 10.x release jars and on main 645d4fe14a20 (-ea; also -da on 10.0.0, 10.6.0 and main); the finder repro fails 2 of 2 on each of the 12 releases before 10.6.0 and on main ea57360912ed, with -da as well on 10.0.0, 10.5.2 and main, and 2 of 2 on 10.6.0 and main 645d4fe14a20; the independent reproduction's own test fails 3 of 6 on main, 10.5.2 and 10.0.0 with -ea and -da]; the FLOAT16 classes exist on main and branch_11x only, in no release (#16383) [exec on main by the independent reproduction]; not affected: 9.x and earlier, where the API does not exist [exec 9.12.3]; not fixed: upstream main cb19aecba8f3 (2026-10-26) has not changed BufferingKnnVectorsWriter.java since #16383 [read]; unreleased maintenance branches not checked</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-finding doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26: 212 logged queries, namely 96 GitHub issue and PR queries (a scripted prior-report search and GraphQL phrasings over apache/lucene, downstream repositories, all of GitHub), 7 commit queries, 2 downstream-repo queries, 80 mailing-list queries over dev@, java-user@, issues@ and commits@, 17 JIRA-archive queries and 10 web queries; 45 GitHub items read in full, the touched files of all 412 open apache/lucene PRs, the upstream commit history of the affected files, LUCENE-10592, LUCENE-9322 and LUCENE-9674; 26 hits judged, none the same bug; the independent reproduction and the intended-behaviour check found nothing either); not fixed upstream (upstream main cb19aecba8f3, 2026-10-26, has not changed BufferingKnnVectorsWriter.java since #16383; the only open PR that touches the file, #12636, is a 2023 rename that does not touch ordToDoc); closest items, not reports: #13842 / #13839 (merged 2024-10-01 for 10.0.0: a precedent of the same class of bug at a different site, SimpleTextKnnVectorsReader's sparse byte values inheriting the identity ordToDoc, fixed in that reader only), #13779 (the introducing PR; no review comment on these overrides), #16205 (closed unmerged, a reader-side getAcceptOrds default refactor), Elasticsearch #137862 and OpenSearch k-NN #3196 (the same pitfall in downstream wrappers, not in Lucene's writer)</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>645d4fe14a20</code> (2026-11-01): the minimal test fails through gradle in a scratch worktree with assertions on and off, and standalone on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>) and on all 13 10.x release jars, 10.0.0 to 10.6.0 (10.0.0 and 10.6.0 also <code class='nw'>-da</code>); 9.12.0 and 9.12.3 lack the API. With the recommended fix it passes, together with <code>TestSimpleTextKnnVectorsFormat</code> and the three backward-codecs HNSW format suites (231 tests together, 13 of them skipped) and the core lint of the fixed file (eclint is not configured here and was skipped); the study's wider test (sparse, <code class='nw'>getAcceptOrds</code>, reversing index sort, three encodings) passes with the fix too. <code>BufferingKnnVectorsWriter.java</code> is identical at <code class='nw'>ea57360912ed</code>, where the hunt ran; upstream main <code class='nw'>f815e679bf6c</code> (2026-11-01) still returns the ordinal (read).</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Finding record</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/codecs/BufferingKnnVectorsWriter.java:36-43 (at ea57360912ed) (class javadoc &#x27;Used for SimpleTextKnnVectorsWriter and for vectors writers before v 9.3&#x27;, @lucene.experimental), :137-250 (private Sorting{Float,Float16,Byte}VectorValues, no ordToDoc override), :283-294 (protected abstract writeField hooks, javadoc &#x27;Write the provided ... vector field&#x27;, no forward-only restriction), :341-369 (BufferedFloatVectorValues: iterator = fromDISI(docsWithField.iterator()), ordToDoc returns ord at :366-369), :412-415 (BufferedFloat16VectorValues.ordToDoc returns ord), :433-472 (BufferedByteVectorValues, inherits the default)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/KnnVectorValues.java:43-50 (at ea57360912ed) (ordToDoc javadoc &#x27;Return the docid of the document indexed with the given vector ordinal. This default implementation returns the argument and is appropriate for dense values implementations where every doc has a single value.&#x27;), :109-127 (getAcceptOrds built on ordToDoc, FIXME &#x27;provide this impl somewhere more specialized (in every non-dense impl)&#x27;)</code></li><li><code>lucene/core/src/java/org/apache/lucene/codecs/KnnVectorsWriter.java:494-500 (at ea57360912ed) (merged values: ordToDoc throws UnsupportedOperationException; also :596 and :698 per the independent reproduction)</code></li></ul></dd></div><div><dt>The finding in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/codecs/BufferingKnnVectorsWriter.java:90-134, 137-250, 262-281, 310-322, 341-385 (iterator :353, ordToDoc :366-369), 387-431 (ordToDoc :412-415), 433-472 (at 645d4fe14a20)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/KnnVectorValues.java:43-50, 110-127, 187-213 (fromDISI) (at 645d4fe14a20)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/SortingCodecReader.java:244-266 (iteratorSupplier), 268-308 (SortingValuesIterator, index() :286-290) (at 645d4fe14a20)</code></li><li><code>lucene/core/src/java/org/apache/lucene/codecs/KnnVectorsWriter.java:476-485, 497-510, 596-597, 698-699 (at 645d4fe14a20)</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/codecs/BufferingKnnVectorsWriter.java:38-44, 262-281 (at 645d4fe14a20); lucene/codecs/src/java/org/apache/lucene/codecs/simpletext/SimpleTextKnnVectorsWriter.java:75-130 (at 645d4fe14a20)</code></li><li><code>lucene/backward-codecs/src/test/org/apache/lucene/backward_codecs/lucene92/Lucene92HnswVectorsWriter.java:194-208, 253-266 (at 645d4fe14a20); grep &#x27;extends BufferingKnnVectorsWriter&#x27; over lucene/ (4 subclasses)</code></li></ul></dd></div><div><dt>Why it looks unintended</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/KnnVectorValues.java:43-50 (at 645d4fe14a20); lucene/core/src/java/org/apache/lucene/codecs/BufferingKnnVectorsWriter.java:283-293, 353, 366-369 (at 645d4fe14a20); lucene/MIGRATE.md:1725-1727 (at 645d4fe14a20)</code></li><li><code>lucene/core/src/java/org/apache/lucene/codecs/KnnVectorsWriter.java:311, 476-485, 497-510 (at 645d4fe14a20)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestBufferingKnnVectorsWriterOrdToDoc.java: <a href='../repro/LFV-298/src/org/apache/lucene/codecs/TestBufferingKnnVectorsWriterOrdToDoc.java'><code>repro/LFV-298/src/org/apache/lucene/codecs/TestBufferingKnnVectorsWriterOrdToDoc.java</code></a> (105 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>Made in parallel with this doc from the code at <code class='nw'>645d4fe14a20</code> and the repro's input and output.</p><ul class='paths'><li><a href='../assets/LFV-298/bug.png'><code>assets/LFV-298/bug.png</code></a> (420 KB)</li></ul><p class='meta built'>Built 2026-11-02 from the hunt's record of this finding and its doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-11-02. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All findings</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  var own = !base && window.top === window && /^(https?|file):$/.test(location.protocol);
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = (own ? String(location.href).split('#')[0] : base) + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

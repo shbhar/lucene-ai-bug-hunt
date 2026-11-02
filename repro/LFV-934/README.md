@@ -2,6 +2,8 @@
 
 Finding LFV-934 · Area: codecs / segment info (Lucene99SegmentInfoFormat .si file-format javadoc vs its writer and reader) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-934.html](../../bugs/LFV-934.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

@@ -2,6 +2,8 @@
 
 Finding LFV-162 · Area: codecs / block-tree terms dictionary (Lucene103 Stats, CheckIndex verbose statistics) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-162.html](../../bugs/LFV-162.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows

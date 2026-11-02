@@ -2,6 +2,8 @@
 
 Finding LFV-418 · Area: index / doc values flush (DocValuesWriter Buffered*DocValues iterators handed to DocValuesConsumer) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-418.html](../../bugs/LFV-418.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
