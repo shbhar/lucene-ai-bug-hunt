@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- PointRangeQuery rewrites a range that covers every indexed point to FieldExistsQuery without checking that each leaf has points, so on a MultiReader whose other index stores the field without points it also matches (or, under MUST_NOT, drops) documents that have no point (finding LFV-1109; [repro](../../repro/LFV-1109/))
+- PointRangeQuery rewrites a range that covers every indexed point to FieldExistsQuery without checking that each leaf has points, so on a MultiReader whose other index stores the field without points it also matches (or, under MUST_NOT, drops) documents that have no point (finding LFV-1109; [repro](../../repro/LFV-1109/), [finding page](../../bugs/LFV-1109.html))
 
 ## Files
 

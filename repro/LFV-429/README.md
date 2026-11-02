@@ -23,6 +23,7 @@ Expected the merged segment's docs, in pairs, to be the blocks `[c0p0, c1p1, c2p
 
 ## Run it
 
+- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - Fixture: the test reads blocks.9.8.0.zip, an index of 3 blocks (a child and its parent) in 2 segments written by Lucene 9.8.0, from its package on the class path. This site ships no binary index files, so the recipe first makes it with fixture-src/MakePre99BlockIndex.java and lucene-core-9.8.0.jar (Maven Central) and puts it in src/, which the run puts on the class path; without it the test fails for another reason.
@@ -31,7 +32,7 @@ Expected the merged segment's docs, in pairs, to be the blocks `[c0p0, c1p1, c2p
 
 ```bash
 # Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
-LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
+LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar

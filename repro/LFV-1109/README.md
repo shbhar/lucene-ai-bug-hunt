@@ -2,6 +2,8 @@
 
 Finding LFV-1109 · Area: core / search: PointRangeQuery.rewrite (GITHUB#14609 full-coverage rewrite to FieldExistsQuery, new in 10.3.0) on composite readers · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Finding page: [../../bugs/LFV-1109.html](../../bugs/LFV-1109.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -41,6 +43,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestPointRangeRewriteLeafWithoutPoints.java](TestPointRangeRewriteLeafWithoutPoints.java)
 
 Formal models and scripts this finding's part of the hunt used: [../../models/pointrange-rewrite-fieldexists-ignores-leaves-without-points/](../../models/pointrange-rewrite-fieldexists-ignores-leaves-without-points/)
 

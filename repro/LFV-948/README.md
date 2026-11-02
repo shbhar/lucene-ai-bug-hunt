@@ -22,15 +22,15 @@ The test shows that the Lucene 10.6.0 CHANGES entry for GITHUB#16243 (RC1 CHANGE
 
 ## Run it
 
+- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
 - Tested on Lucene branch_10_6 4ae946e5a9b9 (2026-10-26): reproduced on 10.6.0-SNAPSHOT jars built at this commit.
 - Recorded outcome of run 1 on Lucene branch_10_6 4ae946e5a9b9: 1 test(s) run, 1 failed.
-- Passes on Lucene main 645d4fe14a20 (2026-10-28).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
 # Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
-LUCENE=/path/to/lucene; V=10.6.0-SNAPSHOT
+LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar

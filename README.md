@@ -9,7 +9,7 @@ Browse the table: open `index.html` (published with GitHub Pages).
 - 1076 registered findings: 792 new, for which the automated prior-report search found no earlier report (a keyword search; private reports are not visible), and 284 already known upstream (others reported or discussed the same behaviour; tracked, but not counted as new).
 - 2 of them are withheld pending security review: they appear in the table and in every count, but only with their id, module, priority tier, novelty (new or known upstream) and the line "Details withheld pending security review".
 - Priority tiers: 9 high, 240 medium, 827 low, 0 not yet ranked.
-- 792 public finding pages (`bugs/`), 1074 repro directories (`repro/`) and 149 units of formal models and scripts (`models/`).
+- 794 public finding pages (`bugs/`), 1074 repro directories (`repro/`) and 149 units of formal models and scripts (`models/`).
 - The full table as data: `data/bugs.csv` and `data/bugs.json`.
 
 ## Share a filtered view
@@ -22,7 +22,7 @@ The hunt used AI models (Anthropic Claude Opus and OpenAI GPT-5.6) with formal m
 
 ## Lucene version
 
-The hunt began on Lucene main ea57360912ed (2026-10-24). On 2026-11-02, 1054 of the repros then published were set up for a rerun on main e1faeba08bde. 1054 ran: 1052 still reproduced (1052 unchanged) and 2 no longer failed because upstream fixed them. Since then, 727 of the findings shown in full got a smaller repro, one minimal test, which replaces their earlier repro files. The repros published now were last run on these commits: 726 on 645d4fe14a20, 345 on e1faeba08bde, 1 on ea57360912ed, 1 on 716d6f216f52, 1 on Lucene branch_10_6 4ae946e5a9b9; each repro page says where its repro was run, or that no run is on file.
+The hunt began on Lucene main ea57360912ed (2026-10-24). On 2026-11-02, 1054 of the repros then published were set up for a rerun on main e1faeba08bde. 1054 ran: 1052 still reproduced (1052 unchanged) and 2 no longer failed because upstream fixed them. Since then, 727 of the findings shown in full got a smaller repro, one minimal test, which replaces their earlier repro files. The repros published now were last run on these commits: 1070 on e1faeba08bde, 2 on 645d4fe14a20, 1 on ea57360912ed, 1 on 716d6f216f52; each repro page says where its repro was run, or that no run is on file.
 
 ## Reproduce a finding
 
