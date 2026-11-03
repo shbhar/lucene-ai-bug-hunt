@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- Facet-set DimRange.fromDoubles/fromFloats (and range-on-range DoubleRange) make an exclusive bound inclusive with Math.nextUp/Math.nextDown, which skip the other signed zero, so a facet set holding -0.0 is counted by neither of the adjacent ranges [-1, 0) and [0, 1] (finding LFV-1131; [repro](../../repro/LFV-1131/))
+- Facet-set DimRange.fromDoubles/fromFloats (and range-on-range DoubleRange) make an exclusive bound inclusive with Math.nextUp/Math.nextDown, which skip the other signed zero, so a facet set holding -0.0 is counted by neither of the adjacent ranges [-1, 0) and [0, 1] (finding LFV-1131; [repro](../../repro/LFV-1131/), [finding page](../../bugs/LFV-1131.html))
 
 ## Files
 

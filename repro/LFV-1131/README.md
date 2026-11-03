@@ -2,6 +2,8 @@
 
 Finding LFV-1131 · Area: facet / facetset and rangeonrange (exclusive-bound stepping of double and float ranges: facetset.DimRange.fromDoubles/fromFloats with RangeFacetSetMatcher, rangeonrange.DoubleRange with DoubleRangeOnRangeFacetCounts) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Finding page: [../../bugs/LFV-1131.html](../../bugs/LFV-1131.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -44,6 +46,10 @@ java -da -dsa -Dtests.asserts=false -Xmx512m --add-modules jdk.incubator.vector 
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestDimRangeExclusiveZeroBound.java](TestDimRangeExclusiveZeroBound.java)
 
 Formal models and scripts this finding's part of the hunt used: [../../models/facetset-dimrange-and-rangeonrange-exclusive-bound-signed-zero-gap/](../../models/facetset-dimrange-and-rangeonrange-exclusive-bound-signed-zero-gap/)
 
