@@ -4,7 +4,7 @@ Finding LFV-1079 · Area: queries / function queries: valuesource.VectorSimilari
 
 Finding page: [../../bugs/LFV-1079.html](../../bugs/LFV-1079.html)
 
-AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by sjs004 (PR #16974) on 2026-11-03 (https://github.com/apache/lucene/pull/16974). PR #16974 references this bug. This site files nothing upstream.
 
 ## What it shows
 
