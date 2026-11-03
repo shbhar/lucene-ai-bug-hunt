@@ -6,10 +6,10 @@ Browse the table: open `index.html` (published with GitHub Pages).
 
 ## What is in this snapshot
 
-- 1124 registered findings: 834 new, for which the automated prior-report search found no earlier report (a keyword search; private reports are not visible), and 290 already known upstream (others reported or discussed the same behaviour; tracked, but not counted as new).
+- 1136 registered findings: 846 new, for which the automated prior-report search found no earlier report (a keyword search; private reports are not visible), and 290 already known upstream (others reported or discussed the same behaviour; tracked, but not counted as new).
 - 2 of them are withheld pending security review: they appear in the table and in every count, but only with their id, module, priority tier, novelty (new or known upstream) and the line "Details withheld pending security review".
-- Priority tiers: 9 high, 250 medium, 865 low, 0 not yet ranked.
-- 838 public finding pages (`bugs/`), 1122 repro directories (`repro/`) and 153 units of formal models and scripts (`models/`).
+- Priority tiers: 9 high, 250 medium, 877 low, 0 not yet ranked.
+- 850 public finding pages (`bugs/`), 1134 repro directories (`repro/`) and 153 units of formal models and scripts (`models/`).
 - The full table as data: `data/bugs.csv` and `data/bugs.json`.
 
 ## Share a filtered view
@@ -18,11 +18,11 @@ The table keeps its filters, search and sort in the page address, so a link open
 
 ## How the findings were found
 
-The hunt used AI models (Anthropic Claude Opus and OpenAI GPT-5.6) with formal methods (TLA+/TLC model checking, Alloy, Z3/cvc5 SMT solving, Dafny proofs and bounded model checking) alongside fuzzing, model-based, property-based and differential testing, and static analysis. Of the 832 new findings the hunt made that are shown in full, a formal tool's own output gave the first signal for 45; a semi-formal check (a check of the real jar against exact semantics over a bounded input space, exhaustive or for some harnesses randomly sampled, or a hypothesis formed while modelling that a tool then witnessed) for 462; code reading or other testing for 298; and a testing baseline for 27. Every finding ends in a minimal executable test that fails while the reported behaviour is present (on Lucene main, or on the release branch for a finding only a release branch has).
+The hunt used AI models (Anthropic Claude Opus and OpenAI GPT-5.6) with formal methods (TLA+/TLC model checking, Alloy, Z3/cvc5 SMT solving, Dafny proofs and bounded model checking) alongside fuzzing, model-based, property-based and differential testing, and static analysis. Of the 844 new findings the hunt made that are shown in full, a formal tool's own output gave the first signal for 45; a semi-formal check (a check of the real jar against exact semantics over a bounded input space, exhaustive or for some harnesses randomly sampled, or a hypothesis formed while modelling that a tool then witnessed) for 474; code reading or other testing for 298; and a testing baseline for 27. Every finding ends in a minimal executable test that fails while the reported behaviour is present (on Lucene main, or on the release branch for a finding only a release branch has).
 
 ## Lucene version
 
-The hunt began on Lucene main ea57360912ed (2026-10-24). On 2026-11-02, 1054 of the repros then published were set up for a rerun on main e1faeba08bde. 1054 ran: 1052 still reproduced (1052 unchanged) and 2 no longer failed because upstream fixed them. Since then, 727 of the findings shown in full got a smaller repro, one minimal test, which replaces their earlier repro files. The repros published now were last run on these commits: 1076 on e1faeba08bde, 42 on 5adff78bb168, 2 on 645d4fe14a20, 1 on ea57360912ed, 1 on 716d6f216f52; each repro page says where its repro was run, or that no run is on file.
+The hunt began on Lucene main ea57360912ed (2026-10-24). On 2026-11-02, 1054 of the repros then published were set up for a rerun on main e1faeba08bde. 1054 ran: 1052 still reproduced (1052 unchanged) and 2 no longer failed because upstream fixed them. Since then, 727 of the findings shown in full got a smaller repro, one minimal test, which replaces their earlier repro files. The repros published now were last run on these commits: 1076 on e1faeba08bde, 54 on 5adff78bb168, 2 on 645d4fe14a20, 1 on ea57360912ed, 1 on 716d6f216f52; each repro page says where its repro was run, or that no run is on file.
 
 ## Reproduce a finding
 
