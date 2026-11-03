@@ -26,6 +26,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [columnar-addbatch](columnar-addbatch/) | Python | LFV-097, LFV-101, LFV-094 |
 | [concurrent-collector-managers](concurrent-collector-managers/) | Python | LFV-202 |
 | [core-fst-package-examples-compile-and-print-documented-outputs](core-fst-package-examples-compile-and-print-documented-outputs/) | Python | LFV-1027 |
+| [cosine-zero-query-vector-silent-empty-results-known-15540-row-or-dnp](cosine-zero-query-vector-silent-empty-results-known-15540-row-or-dnp/) | Python | LFV-1141 |
 | [count-stats-modules](count-stats-modules/) | Python | LFV-428 |
 | [count-totalhits](count-totalhits/) | Alloy | LFV-086 |
 | [datainput-impls-strings](datainput-impls-strings/) | Python | LFV-107 |
@@ -36,6 +37,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [docandscorequery-public-factory-count-and-iterator-contracts](docandscorequery-public-factory-count-and-iterator-contracts/) | Python | LFV-955 |
 | [docterms-range-scorer-float-ordinals-above-2p24](docterms-range-scorer-float-ordinals-above-2p24/) | Python | LFV-1108 |
 | [document-field-factories](document-field-factories/) | Python | LFV-140 |
+| [docvaluesstats-sorted-double-stats-decode-sortable-doubles-as-raw-bits](docvaluesstats-sorted-double-stats-decode-sortable-doubles-as-raw-bits/) | Python | LFV-1129 |
 | [dv-norms-cursor-coherence](dv-norms-cursor-coherence/) | Python | LFV-415, LFV-419, LFV-418 |
 | [dv-range-primary-sort-shortcut-ignores-sort-type](dv-range-primary-sort-shortcut-ignores-sort-type/) | Python | LFV-1047 |
 | [dw-flush-control-deletequeue-tla](dw-flush-control-deletequeue-tla/) | TLA+/TLC | LFV-473, LFV-474, LFV-471 |
@@ -45,6 +47,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [expressions-shallow-large-expression-escapes-documented-exceptions](expressions-shallow-large-expression-escapes-documented-exceptions/) | Python | LFV-906 |
 | [facet-top-ordinal-queues-nan-and-special-value-order](facet-top-ordinal-queues-nan-and-special-value-order/) | SMT-LIB (Z3/cvc5), Python | LFV-825, LFV-820 |
 | [facets-topn-and-topndims-queues-presized-uncapped](facets-topn-and-topndims-queues-presized-uncapped/) | Python | LFV-994, LFV-983 |
+| [facetset-dimrange-and-rangeonrange-exclusive-bound-signed-zero-gap](facetset-dimrange-and-rangeonrange-exclusive-bound-signed-zero-gap/) | Python | LFV-1131 |
 | [failed-commit-then-crash-durability-single-fault](failed-commit-then-crash-durability-single-fault/) | TLA+/TLC | LFV-839 |
 | [feature-saturation-sigmoid-cancellation](feature-saturation-sigmoid-cancellation/) | SMT-LIB (Z3/cvc5) | LFV-898 |
 | [featurefield](featurefield/) | SMT-LIB (Z3/cvc5) | LFV-258 |
@@ -121,6 +124,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [smartcn-hhmm-segmentation-reference](smartcn-hhmm-segmentation-reference/) | Python | LFV-709 |
 | [snapshot-deletion-policies-commit-retention-model-based](snapshot-deletion-policies-commit-retention-model-based/) | TLA+/TLC | LFV-890 |
 | [sort-leafstart-hitsthreshold-before-setscorer-points-intersect-16857](sort-leafstart-hitsthreshold-before-setscorer-points-intersect-16857/) | TLA+/TLC | LFV-1057 |
+| [sortednumeric-double-float-sortable-vs-raw-decoding-facet-and-join](sortednumeric-double-float-sortable-vs-raw-decoding-facet-and-join/) | Python | LFV-1111 |
 | [sortednumeric-dv-update](sortednumeric-dv-update/) | Alloy | LFV-134 |
 | [sorters-selectors](sorters-selectors/) | Python | LFV-372 |
 | [span-containing-within-lockstep-misses-nested-little-spans](span-containing-within-lockstep-misses-nested-little-spans/) | TLA+/TLC | LFV-909 |

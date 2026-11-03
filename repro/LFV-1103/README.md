@@ -1,6 +1,6 @@
 # BlendedTermQuery blends shard-local statistics in rewrite() and passes the blended values to IndexSearcher#termStats, so an override that returns per-term distributed statistics undoes the blend and the blended terms no longer score alike (known: elastic/elasticsearch#42957 and #9884, partial overlap) (released)
 
-Finding LFV-1103 · Area: search / BlendedTermQuery with IndexSearcher statistics overrides · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-1103 · Area: search / BlendedTermQuery with IndexSearcher statistics overrides · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
