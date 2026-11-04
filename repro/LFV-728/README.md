@@ -2,6 +2,8 @@
 
 Finding LFV-728 · Area: analysis-smartcn / HHMM segmenter character classes (Utility.getCharType SPACE_LIKE test -> HHMMSegmenter OTHER branch -> one-character STRING term; SmartChineseAnalyzer and HMMChineseTokenizer) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Finding page: [../../bugs/LFV-728.html](../../bugs/LFV-728.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -21,6 +23,8 @@ You index text with the stock SmartChineseAnalyzer, whose segmenter has a charac
 
 - Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Both tests also treat U+00A0 NO-BREAK SPACE as a space: smartcn removes it like punctuation, with a position gap, which is tested design and not part of this finding (the finding page's TestSmartChineseThinSpace.java is the minimal test).
+- Class path: analysis-smartcn depends on the analysis-common module (SegmentingTokenizerBase), so the recipe adds lucene-analysis-common to the class path before compiling.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -30,9 +34,12 @@ LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
+CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
 CP=$CP:$LUCENE/lucene/analysis/smartcn/build/libs/lucene-analysis-smartcn-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
+
+CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar   # analysis-smartcn needs analysis-common
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
@@ -43,6 +50,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestSmartChineseThinSpace.java](TestSmartChineseThinSpace.java)
 
 ## Feedback
 

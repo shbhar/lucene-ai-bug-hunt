@@ -2,6 +2,8 @@
 
 Finding LFV-816 · Area: grouping / GroupingSearch (convenience API) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Finding page: [../../bugs/LFV-816.html](../../bugs/LFV-816.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,18 +12,18 @@ You group with GroupingSearch and set a group sort or within-group sort that dep
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: GroupingSearch passes both Sorts to its collectors as given (GroupingSearch.java:148, 160, 201-202, 228-233): on a ClassicSimilarity searcher the documents of one group come back as doc0=0.101, doc1=0.088, doc2=0.088 (default-BM25 scores) instead of doc1=1.0, doc2=1.0, doc0=0.894, the first group is g0 instead of g1, and ValueSource sort fields or fromQuery sorts throw.
+- Expected: doc1=1.0 doc0=0.894: the order and sort values of `searcher.search(new MatchAllDocsQuery(), 10, sort)` on the same searcher.
+- Actual: doc0=0.147 doc1=0.125 (`expected:<doc[1=1.0 doc0=0.8944271802902222]> but was:<doc[0=0.14679136872291565 doc1=0.12456752359867096]>`), with assertions on and off.
 
 ## Files
 
 - [src/org/apache/lucene/search/grouping/TestGroupingSearchRewritesSorts.java](src/org/apache/lucene/search/grouping/TestGroupingSearchRewritesSorts.java) (JUnit test)
-- [src2/org/apache/lucene/search/grouping/TestGroupingSearchRewritesSorts.java](src2/org/apache/lucene/search/grouping/TestGroupingSearchRewritesSorts.java) (JUnit test)
 
 ## Run it
 
 - Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- On 9.1 to 9.12, GroupDocs has public fields: write scoreDocs and groupSortValues instead of scoreDocs() and groupSortValues() (two lines).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -36,19 +38,21 @@ CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
-javac -d classes-src -cp "$CP" $(find src -name '*.java')
-javac -d classes-src2 -cp "$CP" $(find src2 -name '*.java')
+javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes-src:$CP" org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.search.grouping.TestGroupingSearchRewritesSorts
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes-src2:$CP" org.junit.platform.console.ConsoleLauncher \
+     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.search.grouping.TestGroupingSearchRewritesSorts
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestGroupingSearchSortRewrite.java](TestGroupingSearchSortRewrite.java)
+
+1 other file(s) of the recorded repro are not exported.
 
 ## Feedback
 

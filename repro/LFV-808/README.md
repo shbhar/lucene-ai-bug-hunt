@@ -2,6 +2,8 @@
 
 Finding LFV-808 · Area: search / TermInSetQuery visitor (consumeTermsMatching automaton supplier over the util/automaton string-union builder's 1000-byte term limit), reached from highlighter / UnifiedHighlighter without WEIGHT_MATCHES · Priority: low · Impact: crash · Novelty: new
 
+Finding page: [../../bugs/LFV-808.html](../../bugs/LFV-808.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You search with a TermInSetQuery of the two terms 'short' and a 1001-byte term o
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: highlight() throws IllegalArgumentException 'This builder doesn't allow terms that are larger than 1000 UTF-8 bytes', and any QueryVisitor that asks the query for its automaton gets the same exception.
+- Expected: Search returns 1 hit and `highlight()` returns `a <b>short</b> text`.
+- Actual: Search returns 1 hit, then `highlight()` throws `IllegalArgumentException: This builder doesn't allow terms that are larger than 1000 UTF-8 bytes`.
 
 ## Files
 
@@ -45,6 +47,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestTermInSetQueryLongTermHighlight.java](TestTermInSetQueryLongTermHighlight.java)
 
 ## Feedback
 

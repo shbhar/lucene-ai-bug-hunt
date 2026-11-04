@@ -2,11 +2,13 @@
 
 Finding LFV-897 · Area: analysis-common / compound hyphenation (TernaryTree insert and compact via HyphenationTree.loadPatterns and HyphenationCompoundWordTokenFilter) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Finding page: [../../bugs/LFV-897.html](../../bugs/LFV-897.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You load a well-formed FOP-format hyphenation grammar with HyphenationCompoundWordTokenFilter.getHyphenationTree (or HyphenationTree.loadPatterns, or the factory's hyphenator file) and expect findPattern to return every pattern's values afterwards, or an exception if the grammar does not fit. For a grammar whose stored key tails pass 65,535 chars, such as the Norwegian nb.xml from the OFFO download the Lucene docs link to (27,448 patterns, 52,404 nodes), loading succeeds but 1,158 patterns return wrong values (1,111 are not found at all), and with the OFFO 1.2 Norwegian grammar real words such as 'forfatter' are hyphenated and decompounded differently. The cause: TernaryTree keeps the offset of each key tail in its key array in a 16-bit char (lo[p] = (char) kv.alloc(len + 1), TernaryTree.java:151, and (char) k in compact() at :408/:410) without a range check, so past 65,535 the offset wraps and the new tail is written over an earlier one; grammars past 65,535 nodes fail with StackOverflowError instead, the part that Apache FOP's open FOP-2569 already reports.
+You load a well-formed FOP-format hyphenation grammar with HyphenationCompoundWordTokenFilter.getHyphenationTree (or HyphenationTree.loadPatterns, or the factory's hyphenator file) and expect findPattern to return every pattern's values afterwards, or an exception if the grammar does not fit. For a grammar whose stored key tails pass 65,535 chars, such as the Norwegian nb.xml from the OFFO download the Lucene docs link to (27,448 patterns, 52,404 nodes), loading succeeds but 1,158 patterns return wrong values (1,111 are not found at all), and with the OFFO 1.2 Norwegian grammar real words such as 'forfatter' are hyphenated and decompounded differently. The cause: TernaryTree keeps the offset of each key tail in its key array in a 16-bit char (lo[p] = (char) kv.alloc(len + 1), TernaryTree.java:151, and (char) k in compact() at :408/:410) without a range check, so past 65,535 the offset wraps and the new tail is written over an earlier one; grammars past 65,535 nodes fail with StackOverflowError instead, which Apache FOP's open FOP-2569 reports, a related but different defect.
 
 ## Expected vs actual
 
@@ -43,6 +45,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestHyphenationTreeLongKeyArray.java](TestHyphenationTreeLongKeyArray.java)
 
 ## Feedback
 

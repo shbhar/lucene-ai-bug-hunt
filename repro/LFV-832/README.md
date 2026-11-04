@@ -2,6 +2,8 @@
 
 Finding LFV-832 · Area: highlighter / vectorhighlight FieldPhraseList and FieldTermStack (FastVectorHighlighter phrase search over stacked tokens) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Finding page: [../../bugs/LFV-832.html](../../bugs/LFV-832.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index 'my dogs' with an index-time synonym filter that stacks 'dog' on 'dogs
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: You get null, with no error.
+- Expected: `my <b>dogs</b>`: the document is a hit only through `dogs`, which the term query alone highlights.
+- Actual: `null` (`expected:<my <b>dogs</b>> but was:<null>`), with assertions on and off.
 
 ## Files
 
@@ -45,6 +47,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestFastVectorHighlighterStackedSynonym.java](TestFastVectorHighlighterStackedSynonym.java)
 
 ## Feedback
 

@@ -19,6 +19,7 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>After addDocument fails with a non-tragic exception while an in-memory segment copies its backlog of buffered deletes and doc-values updates, the segment&#x27;s next document resets its delete slice past the operations that were never applied, so IndexWriter stays open and the next successful commit silently lacks an acknowledged delete of a buffered document</h1>
 <p class="facts small"><span>Finding LFV-1090</span><span>Area: index / IndexWriter delete queue (DocumentsWriterPerThread.finishDocuments, DeleteSlice failure handling)</span><span>Priority: medium</span><span>Impact: data corruption</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-1090.html">Finding page for LFV-1090</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You add a document to an IndexWriter, then send a long run of doc-values updates (executed: 2.2 million updateNumericDocValue calls selected by one 1 KB term) and delete the buffered document; the next addDocument fails with ArithmeticException &#x27;integer overflow&#x27; while the in-memory segment copies that backlog into its own buffer, and the writer stays open with no tragic exception. You expect either the writer to close itself or the next successful commit, whose sequence number is above the delete&#x27;s, to reflect the delete. Instead the following addDocument finds no new deletes and resets the segment&#x27;s delete slice past the operations the failed copy never reached, so the commit succeeds and the deleted document is still in the index.</p>
@@ -28,6 +29,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <li><a href="src/org/apache/lucene/index/TestDeleteLostAfterFailedAddDocument.java"><code>src/org/apache/lucene/index/TestDeleteLostAfterFailedAddDocument.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
 <li>Tested on Lucene main e1faeba08bde (2026-11-02): reproduced.</li>
+<li>The test is marked @Monster (about 2.2 GB of buffered doc-values updates, 3 GB heap), so the recipe enables the monster test group with -Dtests.monster=true through JAVA_TOOL_OPTIONS; without it the console launcher aborts the test instead of running it.</li>
 <li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -38,6 +40,8 @@ CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
+export JAVA_TOOL_OPTIONS=&quot;-Dtests.monster=true&quot;   # the test is @Monster: let the console launcher run it
+
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
 # run 1: assertions on, seed DEADBEEF
@@ -45,5 +49,6 @@ java -ea -esa -Xmx3g --add-modules jdk.incubator.vector --enable-native-access=A
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.index.TestDeleteLostAfterFailedAddDocument</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
+<h2>Files shown on the finding page</h2><ul><li><a href="TestDeleteLostAfterFailedAddDocument.java"><code>TestDeleteLostAfterFailedAddDocument.java</code></a></li></ul>
 <p>Formal models and scripts this finding's part of the hunt used: <a href="../../models/nontragic-indexing-failure-loses-acknowledged-ops/index.html">nontragic-indexing-failure-loses-acknowledged-ops</a></p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-04. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

@@ -2,6 +2,8 @@
 
 Finding LFV-1068 · Area: grouping / GroupingSearch second-pass cache (score-less CachingCollector / CachingCollectorManager replay into the TopGroups second pass) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-1068.html](../../bugs/LFV-1068.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You turn on GroupingSearch's documented second-pass cache without cached scores,
 
 ## Expected vs actual
 
-- Expected: You expect the same groups as without the cache, because the javadoc presents the cache as an optimisation that the second pass replays.
-- Actual: search() throws NullPointerException ('Cannot invoke Scorable.score() because this.scorer is null'): GroupingSearch builds the cache with the caller's cacheScores flag but replays it into a second pass that it builds itself from its defaults (within-group sort Sort.RELEVANCE, includeMaxScore=true), and both need scores, while a score-less replay never sets a Scorer.
+- Expected: `search()` returns 1 group (`A`) with its 1 document, as without the cache.
+- Actual: `NullPointerException: Cannot invoke "Scorable.score()" because "this.scorer" is null` in `TopScoreDocCollector$1.collect`, via `CachingCollectorManager.replay`.
 
 ## Files
 
@@ -44,6 +46,10 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestGroupingSearchCachingWithoutScores.java](TestGroupingSearchCachingWithoutScores.java)
 
 ## Feedback
 

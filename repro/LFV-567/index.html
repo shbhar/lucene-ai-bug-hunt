@@ -19,17 +19,17 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>FunctionQuery, FunctionRangeQuery and ValueSource sort fields share one non-thread-safe context map across the slices of an executor search, and scale() (ScaleFloatFunction) writes to it during the search, so when that write grows the map the search throws NullPointerException or silently returns different scores</h1>
 <p class="facts small"><span>Finding LFV-567</span><span>Area: queries / function queries (ValueSource context map under concurrent search)</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-567.html">Finding page for LFV-567</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You search with a FunctionQuery (or FunctionRangeQuery, or a sort by ValueSource.getSortField) whose function uses scale() together with about twenty context-storing sources such as query(), on an IndexSearcher built with an executor, and expect the same hits and scores as on a searcher without one, because IndexSearcher is documented as completely thread safe. Instead all slices share the Weight&#x27;s one IdentityHashMap context (documented &#x27;non-threadsafe&#x27;), ScaleFloatFunction.getValues puts its min/max entry into it from the slice threads, and when that put resizes the map other slices miss entries such as &quot;searcher&quot;. The search then throws NullPointerException, or, on a searcher with a non-default Similarity, QueryValueSource silently rebuilds its weight with the default Similarity and the scores and top hits change.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> All slices share the Weight&#x27;s one IdentityHashMap context (documented &#x27;non-threadsafe&#x27;), ScaleFloatFunction.getValues puts its min/max entry into it from the slice threads, and when that put resizes the map other slices miss entries such as &quot;searcher&quot;.</li></ul>
+<p>The test passes: it asserts the documented behaviour. Instead: All slices share the Weight&#x27;s one IdentityHashMap context (documented &#x27;non-threadsafe&#x27;), ScaleFloatFunction.getValues puts its min/max entry into it from the slice threads, and when that put resizes the map other slices miss entries such as &quot;searcher&quot;.</p>
 <h2>Files</h2><ul>
-<li><a href="src/org/apache/lucene/queries/function/TestFunctionQueryScaleConcurrentSlices.java"><code>src/org/apache/lucene/queries/function/TestFunctionQueryScaleConcurrentSlices.java</code></a> <span class="dim">(JUnit test)</span></li>
-<li><a href="src2/org/apache/lucene/queries/function/TestFunctionQueryScaleConcurrentSlices.java"><code>src2/org/apache/lucene/queries/function/TestFunctionQueryScaleConcurrentSlices.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/org/apache/lucene/queries/function/TestScaleFunctionWithExecutor.java"><code>src/org/apache/lucene/queries/function/TestScaleFunctionWithExecutor.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.</li>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced.</li>
+<li>Recorded outcome of run 1 on Lucene main 5adff78bb168: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -41,15 +41,11 @@ CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
-javac -d classes-src -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
-javac -d classes-src2 -cp &quot;$CP&quot; $(find src2 -name &#x27;*.java&#x27;)
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queries.function.TestFunctionQueryScaleConcurrentSlices
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp &quot;classes-src2:$CP&quot; org.junit.platform.console.ConsoleLauncher \
-     execute --select-class org.apache.lucene.queries.function.TestFunctionQueryScaleConcurrentSlices</code></pre>
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.queries.function.TestScaleFunctionWithExecutor</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-04. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

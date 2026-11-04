@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- After addDocument fails with a non-tragic exception while an in-memory segment copies its backlog of buffered deletes and doc-values updates, the segment's next document resets its delete slice past the operations that were never applied, so IndexWriter stays open and the next successful commit silently lacks an acknowledged delete of a buffered document (finding LFV-1090; [repro](../../repro/LFV-1090/))
+- After addDocument fails with a non-tragic exception while an in-memory segment copies its backlog of buffered deletes and doc-values updates, the segment's next document resets its delete slice past the operations that were never applied, so IndexWriter stays open and the next successful commit silently lacks an acknowledged delete of a buffered document (finding LFV-1090; [repro](../../repro/LFV-1090/), [finding page](../../bugs/LFV-1090.html))
 
 ## Files
 

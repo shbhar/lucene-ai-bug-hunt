@@ -2,27 +2,29 @@
 
 Finding LFV-841 · Area: codecs / legacy scalar-quantized vectors (util/quantization ScalarQuantizer, backward-codecs Lucene99ScalarQuantizedVectorsReader) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Finding page: [../../bugs/LFV-841.html](../../bugs/LFV-841.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index a field with the Lucene99 HNSW scalar-quantized format (int7, EUCLIDEAN) on 10.3.2 or 9.12.3, one segment holds only documents whose vector is [1,1,1,1], so the writer stores the quantiles (1, 1) and every code 0; you then open the unchanged index on main and search for [1,1,1,1]. Every release reader tested (9.9.2 to 10.5.2) decodes code 0 as 1.0, as the ScalarQuantizer formula for the stored quantiles says, and ranks those exact matches first with score 1.0. On main the reader rebuilds the quantizer through the min == max widening added by #14049, decodes those vectors as [-126,-126,-126,-126], and the exact matches score 1.5e-5 and rank last behind a document with half the similarity; int4 fields decode 15 units low, and DOT_PRODUCT and COSINE exact matches score 0.0.
+You index a field with the Lucene99 HNSW scalar-quantized format (int7, EUCLIDEAN) on 10.3.2 or 9.12.3, one segment holds only documents whose vector is [1,1,1,1], so the writer stores the quantiles (1, 1) and every code 0; you then open the unchanged index on main and search for [1,1,1,1]. Every release reader tested (9.9.2 to 10.6.0) decodes code 0 as 1.0, as the ScalarQuantizer formula for the stored quantiles says, and ranks those exact matches first with score 1.0. On main the reader rebuilds the quantizer through the min == max widening added by #14049, decodes those vectors as [-126,-126,-126,-126], and the exact matches score 1.5e-5 and rank last behind a document with half the similarity; int4 fields decode 15 units low, and DOT_PRODUCT and COSINE exact matches score 0.0.
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
+- Expected: a0, a1, a2 (the exact matches) rank first with score 1.0; b0 follows with 0.492.
+- Actual: b0 ranks first (0.492); a0, a1, a2 score 0.0000153 and rank last.
 
 ## Files
 
 - [src/org/apache/lucene/backward_index/TestOldUniformQuantizedSegment.java](src/org/apache/lucene/backward_index/TestOldUniformQuantizedSegment.java) (JUnit test)
-- [src/GenUniformSqIndex.java](src/GenUniformSqIndex.java) (main() class)
 
 ## Run it
 
 - Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
+- The tests embed their indexes as base64 zips, so nothing has to be generated to run them: the src/ test holds an index written through the public API of the 10.3.2 release jars and the same index written by 9.12.3, and the test shown on the finding page holds the 10.3.2 one. The generator that wrote them (GenUniformSqIndex, named in the src/ test's comments) is not included: it needs those release jars and does not compile against Lucene main, which can no longer write this format.
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -41,13 +43,15 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.backward_index.TestOldUniformQuantizedSegment
-
-# run 2: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" GenUniformSqIndex
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestOldUniformQuantizedSegment.java](TestOldUniformQuantizedSegment.java)
+
+1 other file(s) of the recorded repro are not exported.
 
 Formal models and scripts this finding's part of the hunt used: [../../models/legacy-int7-int4-scalar-quantized-scoring-fp-smt/](../../models/legacy-int7-int4-scalar-quantized-scoring-fp-smt/)
 

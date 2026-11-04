@@ -2,16 +2,19 @@
 
 Finding LFV-795 · Area: geo / Tessellator hole bridges (fetchHoleBridge, isLocallyInside) behind LatLonShape and XYShape polygon indexing · Priority: low · Impact: crash · Novelty: new
 
+Finding page: [../../bugs/LFV-795.html](../../bugs/LFV-795.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
 You index a valid polygon with two holes that touch nothing, for example the clockwise outer ring (4,5) (5,1) (0,0) (1,1) with the counter-clockwise holes (2,2) (4,3) (3,3) and (3,2) (3,1) (4,1), and you expect XYShape or LatLonShape.createIndexableFields to return its triangles whichever vertex the outer ring starts at. The first hole is joined to the ring by a bridge from (2,2) to (1,1) that continues the outer edge (0,0)-(1,1) in a straight line; the second hole's bridge search then lands on (1,1), and the only copy of (1,1) whose angle contains that hole has a straight angle, which Tessellator.isLocallyInside always rejects ('area == 0 -&gt; return false'). When the outer ring starts at (5,1) or (0,0) the search keeps the other copy, the bridge crosses the ring and indexing throws 'Unable to Tessellate shape. Possible malformed shape detected.', while the starts (4,5) and (1,1) give the exact area 9; 8.1.1 accepts every start, 8.2.0 to main reject two of them.
 
+The test shows that a valid XY polygon with two holes that touch nothing is rejected by `XYShape.createIndexableFields` when its clockwise outer ring is listed from (5,1); the same ring listed from (4,5) or (1,1) is indexed (12 triangles, area 9).
+
 ## Expected vs actual
 
-- Expected: You expect XYShape or LatLonShape.createIndexableFields to return its triangles whichever vertex the outer ring starts at.
-- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
+Expected: the fields are created. Actual: `IllegalArgumentException: Unable to Tessellate shape. Possible malformed shape detected.` (assertions on and off).
 
 ## Files
 
@@ -20,7 +23,6 @@ You index a valid polygon with two holes that touch nothing, for example the clo
 ## Run it
 
 - Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -35,7 +37,7 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions on, seed DEADBEEF
+# run 1: assertions on, seed DEADBEEF, default flags
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.document.TestTessellatorDisjointHolesCollinearBridge

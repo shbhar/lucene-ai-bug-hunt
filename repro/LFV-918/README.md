@@ -2,6 +2,8 @@
 
 Finding LFV-918 · Area: analysis-common / Russian analyzer default stop words (RussianAnalyzer, snowball/russian_stop.txt; interaction with the Snowball RussianStemmer's ё-to-е fold) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-918.html](../../bugs/LFV-918.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You analyze Russian text with the stock RussianAnalyzer. Its default stop list, 
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
+- Expected: "Он всё ещё читает книгу" analyzes to [чита, книг], like "Он все еще читает книгу".
+- Actual: It analyzes to [все, ещ, чита, книг]: `term 0 expected:<[чита]> but was:<[все]>`.
 
 ## Files
 
@@ -43,6 +45,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestRussianAnalyzerYoStopWords.java](TestRussianAnalyzerYoStopWords.java)
 
 ## Feedback
 

@@ -19,16 +19,16 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>FacetsCollectorManager#search/searchAfter with a Sort and DrillSideways#search(..., Sort, ...) never call Sort#rewrite(searcher), so a query-dependent sort returns a different hit order than IndexSearcher#search(query, n, sort) or throws</h1>
 <p class="facts small"><span>Finding LFV-814</span><span>Area: facet / sorted-search helpers (FacetsCollectorManager static search/searchAfter, DrillSideways sorted search)</span><span>Priority: medium</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-814.html">Finding page for LFV-814</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You run a faceted search with FacetsCollectorManager.search(searcher, query, n, sort, fcm) or DrillSideways.search(query, filter, after, n, sort, doDocScores), sorted by a function of a query&#x27;s score, and expect the same hits, order and sort values as IndexSearcher#search(query, n, sort), which rewrites the Sort against the searcher first. Instead both helpers hand the caller&#x27;s Sort to TopFieldCollectorManager as given: on a ClassicSimilarity searcher a QueryValueSource(body:a) sort returns [doc0=0.147, doc1=0.125] (scores from a fresh default-BM25 searcher) where IndexSearcher#search returns [doc1=1.0, doc0=0.894]. A DoubleValuesSource.fromQuery sort throws &#x27;This DoubleValuesSource must be rewritten&#x27; from both helpers, and a ValueSource#getSortField sort throws &#x27;SortField needs to be rewritten&#x27;.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> Both helpers hand the caller&#x27;s Sort to TopFieldCollectorManager as given: on a ClassicSimilarity searcher a QueryValueSource(body:a) sort returns [doc0=0.147, doc1=0.125] (scores from a fresh default-BM25 searcher) where IndexSearcher#search returns [doc1=1.0, doc0=0.894].</li></ul>
+<p>The test passes: it asserts the documented behaviour. Instead: Both helpers hand the caller&#x27;s Sort to TopFieldCollectorManager as given: on a ClassicSimilarity searcher a QueryValueSource(body:a) sort returns [doc0=0.147, doc1=0.125] (scores from a fresh default-BM25 searcher) where IndexSearcher#search returns [doc1=1.0, doc0=0.894].</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/facet/TestFacetSortedSearchRewritesSort.java"><code>src/org/apache/lucene/facet/TestFacetSortedSearchRewritesSort.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
 <li>Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.</li>
-<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
 <li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

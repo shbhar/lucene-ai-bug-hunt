@@ -19,11 +19,12 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>RussianAnalyzer does not remove its default stop words when they are written with ё (её, ещё, всё, неё, чём): its StopFilter runs before the stemmer folds ё to е, although the bundled stop list says ё is translated to е</h1>
 <p class="facts small"><span>Finding LFV-918</span><span>Area: analysis-common / Russian analyzer default stop words (RussianAnalyzer, snowball/russian_stop.txt; interaction with the Snowball RussianStemmer&#x27;s ё-to-е fold)</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-918.html">Finding page for LFV-918</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You analyze Russian text with the stock RussianAnalyzer. Its default stop list, the bundled Snowball russian_stop.txt, says in its header that &#x27;letter ё is translated to е&#x27;, so it lists её, ещё, всё, неё and чём only as ее, еще, все, нее and чем, and since 9.0 the same analyzer without stop words maps the ё and е spellings of every word that reaches its stemmer to one term. But the StopFilter runs before the only step that folds ё to е (the Snowball RussianStemmer), so the е spellings are removed while the ё spellings pass the StopFilter and are indexed as е, ещ, все, не and чем: &#x27;Он все еще читает книгу&#x27; gives [чита, книг] but &#x27;Он всё ещё читает книгу&#x27; gives [все, ещ, чита, книг], with no error.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> While the reported behaviour is present the test fails; the failure message states expected against actual.</li></ul>
+<ul><li><b>Expected:</b> &quot;Он всё ещё читает книгу&quot; analyzes to [чита, книг], like &quot;Он все еще читает книгу&quot;.</li><li><b>Actual:</b> It analyzes to [все, ещ, чита, книг]: <code>term 0 expected:&lt;[чита]&gt; but was:&lt;[все]&gt;</code>.</li></ul>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/analysis/ru/TestRussianAnalyzerYoStopWords.java"><code>src/org/apache/lucene/analysis/ru/TestRussianAnalyzerYoStopWords.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
@@ -47,4 +48,5 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.analysis.ru.TestRussianAnalyzerYoStopWords</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
+<h2>Files shown on the finding page</h2><ul><li><a href="TestRussianAnalyzerYoStopWords.java"><code>TestRussianAnalyzerYoStopWords.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-04. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

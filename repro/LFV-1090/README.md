@@ -2,6 +2,8 @@
 
 Finding LFV-1090 · Area: index / IndexWriter delete queue (DocumentsWriterPerThread.finishDocuments, DeleteSlice failure handling) · Priority: medium · Impact: data corruption · Novelty: new
 
+Finding page: [../../bugs/LFV-1090.html](../../bugs/LFV-1090.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -20,6 +22,7 @@ You add a document to an IndexWriter, then send a long run of doc-values updates
 ## Run it
 
 - Tested on Lucene main e1faeba08bde (2026-11-02): reproduced.
+- The test is marked @Monster (about 2.2 GB of buffered doc-values updates, 3 GB heap), so the recipe enables the monster test group with -Dtests.monster=true through JAVA_TOOL_OPTIONS; without it the console launcher aborts the test instead of running it.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -32,6 +35,8 @@ CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
+export JAVA_TOOL_OPTIONS="-Dtests.monster=true"   # the test is @Monster: let the console launcher run it
+
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
 # run 1: assertions on, seed DEADBEEF
@@ -41,6 +46,10 @@ java -ea -esa -Xmx3g --add-modules jdk.incubator.vector --enable-native-access=A
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestDeleteLostAfterFailedAddDocument.java](TestDeleteLostAfterFailedAddDocument.java)
 
 Formal models and scripts this finding's part of the hunt used: [../../models/nontragic-indexing-failure-loses-acknowledged-ops/](../../models/nontragic-indexing-failure-loses-acknowledged-ops/)
 

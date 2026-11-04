@@ -1,0 +1,437 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>A TermInSetQuery with a term over 1000 bytes breaks the UnifiedHighlighter without WEIGHT_MATCHES</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.triage{margin:var(--s4) 0 0;padding:var(--s2) var(--s4);border-left:3px solid var(--info);background:var(--panel);
+max-width:var(--measure)}
+.triage p{margin:0;font-size:var(--step--1);line-height:1.5}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the finding in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All findings</a> &middot; Lucene finding &middot; LFV-808 &middot; terminsetquery-visit-automaton-rejects-terms-over-1000-bytes</p><h1 id='top'>A TermInSetQuery with a term over 1000 bytes breaks the UnifiedHighlighter without WEIGHT_MATCHES</h1><p class='tldr'>A <code class='nw'>TermInSetQuery</code> of "short" and a 1001-byte term finds its document, but highlighting it with <code>withWeightMatches(false)</code> throws <code>IllegalArgumentException</code>: the query hands visitors an automaton built by a helper that refuses terms over 1000 bytes. The same terms as a plain OR query highlight fine.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 629</span><span class='sub'>It needs WEIGHT_MATCHES turned off (or a custom visitor that calls the supplier) plus a set term over 1000 bytes and fails loudly while search stays correct, so this boundary-value crash closes the UnifiedHighlighter rare-input crash group after LFV-546.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>crash</span></dd></div><div><dt>Since</dt><dd>8.6.0 (2020, LUCENE-9349)<span class='sub'>introduced 2020-04-29 &middot; about 6 years</span></dd></div><div><dt>Affected</dt><dd>8.6.0 through 10.6.0 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div class='wide'><dt>Found by</dt><dd>a boundary-value check of internal size limits through public APIs</dd></div></dl><p class='ai-note'>AI-assisted page: this finding was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-11-04.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All findings</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The finding in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>With two or more terms, <code>TermInSetQuery#visit</code> reports "terms matching this automaton" and passes a supplier that builds the automaton on demand. The builder it uses refuses terms over 1000 bytes, although the query accepts and matches longer terms. Whoever asks for the automaton gets an exception instead.</p><div class='part' id='background'><div class="hd hd-3"><h3 id='background-h'>Background: how the highlighter learns a query's terms</h3><a class="hlink" href="#background" target="_self" aria-label="Link to this section" aria-describedby="background-h"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span>Highlighters walk a query with a <code class='nw'>QueryVisitor</code> to learn which terms it can match.</span></li><li><span>A query reports fixed terms with <code class='nw'>consumeTerms</code>, or a class of terms with <code>consumeTermsMatching</code>, passing a supplier of an automaton that accepts the matching terms.</span></li><li><span>The UnifiedHighlighter with WEIGHT_MATCHES off (and MULTI_TERM_QUERY on, the default) calls that supplier and runs the automaton over the text; with WEIGHT_MATCHES on (the default since 9.0.0) it uses <code class='nw'>Weight#matches</code> instead.</span></li></ol></div><figure class='visual' id='terminsetquery-visit-automaton-rejects-terms-over-1000-bytes-short-visual'><div class='frame'><a class='still' href='../assets/LFV-808/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-808/bug.png' alt='A TermInSetQuery of &quot;short&quot; and a 1001-byte term. Search finds the document. A UnifiedHighlighter with WEIGHT_MATCHES off asks the query for an automaton of its terms; the string-union builder accepts &quot;short&quot; but refuses the 1001-byte term (limit 1000 bytes) and throws IllegalArgumentException, so highlight() fails. A 1000-byte term, or the same terms as a BooleanQuery of SHOULD TermQuery clauses, highlights fine.' width='1920' height='1080'></a></div><figcaption>The two-term set query searches fine, but the visitor's automaton builder refuses the 1001-byte term, so the highlighter without WEIGHT_MATCHES throws. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><div class="hd hd-3"><h3 id='the-bug-step-by-step'>The finding, step by step</h3><a class="hlink" href="#the-bug-step-by-step" target="_self" aria-label="Link to this section" aria-describedby="the-bug-step-by-step"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span>Index one document whose field <code class='nw'>body</code> is "a short text", with offsets. Search <code>new TermInSetQuery("body", ["short", "x" repeated 1001 times])</code>: 1 hit, as expected.</span></li><li><span>Highlight it with <code>UnifiedHighlighter.builder(searcher, analyzer).withWeightMatches(false)</code>. You expect <code>a &lt;b&gt;short&lt;/b&gt; text</code>, which is what the same two terms give as a <code class='nw'>BooleanQuery</code> of SHOULD <code class='nw'>TermQuery</code>s.</span></li><li><span>Instead <code class='nw'>highlight()</code> throws <code>IllegalArgumentException: This builder doesn't allow terms that are larger than 1000 UTF-8 bytes</code>, with assertions on and off, on main and 10.6.0. With a 1000-byte term it works.</span></li><li><span>Why: for two or more terms, <code>TermInSetQuery#visit</code> gives visitors a supplier that builds one automaton over all terms with <code>Automata.makeBinaryStringUnion</code>. That builder refuses any term over 1000 bytes (a guard for its recursion), although the query itself accepts and matches longer terms.</span></li><li><span>The highlighter calls that supplier when WEIGHT_MATCHES is off (it is on by default since 9.0.0) and MULTI_TERM_QUERY is on (the default); any custom <code class='nw'>QueryVisitor</code> that asks for the automaton fails the same way. Search itself is unaffected.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that highlight a <code class='nw'>TermInSetQuery</code> (also via <code>KeywordField.newSetQuery</code> or inside a <code class='nw'>BooleanQuery</code>) with WEIGHT_MATCHES off and MULTI_TERM_QUERY on, or custom visitors that call the supplier, when one set term is over 1000 bytes. The whole highlight call fails; search is unaffected. Default highlighter flags are safe since 9.0.0. Rare. Priority Low.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>441 words</span></summary><div class='body'><p>For a set of two or more distinct terms, <code>TermInSetQuery#visit</code> reports its terms through <code>QueryVisitor#consumeTermsMatching</code> with a supplier that builds <code>Automata.makeBinaryStringUnion</code> over all terms. That builder rejects any term longer than <code>Automata.MAX_STRING_UNION_TERM_LENGTH</code> (1000 UTF-8 bytes), a guard for its recursive construction. <code class='nw'>TermInSetQuery</code> itself accepts such terms and searches with them, so the supplier throws <code>IllegalArgumentException</code> for the query's own term set. The UnifiedHighlighter calls the supplier when WEIGHT_MATCHES is off and MULTI_TERM_QUERY is on (the default), that is after <code>withWeightMatches</code>, <code>withHighlightPhrasesStrictly</code> or <code>withPassageRelevancyOverSpeed</code> is set to false, so <code class='nw'>highlight()</code> throws instead of returning snippets; custom visitors that call the supplier fail too. The documented equivalent, a <code>ConstantScoreQuery</code> over a <code class='nw'>BooleanQuery</code> of SHOULD <code class='nw'>TermQuery</code>s, highlights the same input. Search, count and default-flag highlighting are unaffected. It came with LUCENE-9349 (8.6.0; in 8.6.0-8.11.4 the default highlighter was affected too), is on main and in 10.6.0, and is not fixed upstream.</p><div class="hd hd-3"><h3 id='what-the-bug-is-the-code'>The code</h3><a class="hlink" href="#what-the-bug-is-the-code" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-code"><span aria-hidden="true">#</span></a></div><pre><code>// TermInSetQuery.java at 5adff78bb168 (excerpt, &quot;// :NNN&quot; notes added)
+public void visit(QueryVisitor visitor) {                               // :178
+  ...
+  if (termData.size() == 1) visitor.consumeTerms(this, new Term(field, ...));      // :182-184
+  if (termData.size() &gt; 1)  visitor.consumeTermsMatching(this, field, this::asByteRunAutomaton); // :185-187
+}
+private ByteRunAutomaton asByteRunAutomaton() {                         // :192
+  Automaton a = Automata.makeBinaryStringUnion(termData.iterator());   // :194, every term
+  return new ByteRunAutomaton(a, true);
+}
+
+// StringsToAutomaton.java
+if (current.length &gt; Automata.MAX_STRING_UNION_TERM_LENGTH) {         // :267
+  throw new IllegalArgumentException(&quot;This builder doesn&#x27;t allow terms that are larger than &quot; ...);
+}
+// Automata.java:47-51: MAX_STRING_UNION_TERM_LENGTH = 1000, &quot;to ensure the stack doesn&#x27;t overflow
+// while building, since our algorithm currently relies on recursion&quot;</code></pre><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug-on-the-repro'>The bug, on the repro</h3><a class="hlink" href="#what-the-bug-is-the-bug-on-the-repro" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug-on-the-repro"><span aria-hidden="true">#</span></a></div><ol><li><code>UnifiedHighlighter.getHighlightComponents</code> extracts automata when WEIGHT_MATCHES is not in the flags (<code>UnifiedHighlighter.java:1170-1172</code>); WEIGHT_MATCHES is dropped when <code>withWeightMatches</code>, <code>withHighlightPhrasesStrictly</code> or <code>withPassageRelevancyOverSpeed</code> is false (<code class='nw'>:518-527</code>). <code>withHandleMultiTermQuery(false)</code> drops it too, but it also removes MULTI_TERM_QUERY, so no automata are extracted and the supplier is not called (by reading).</li><li><code class='nw'>getAutomata</code> (<code class='nw'>:1238-1251</code>) visits the query only when MULTI_TERM_QUERY is in the flags (<code class='nw'>:1248-1250</code>; on by default); for the two-term set, <code>TermInSetQuery.visit</code> calls <code>consumeTermsMatching</code>, and the highlighter's collector immediately calls <code class='nw'>automaton.get()</code> (<code>MultiTermHighlighting.java:83-85</code>).</li><li>The supplier runs <code>makeBinaryStringUnion</code> over "short" and the 1001-byte term; <code>StringsToAutomaton.add</code> throws for the long term before adding it (<code>StringsToAutomaton.java:266-273</code>). No stack overflow, only the exception, which ends the whole <code class='nw'>highlight()</code> call.</li><li>With default flags the supplier is never called: a <code class='nw'>TermInSetQuery</code> counts as an unrecognized leaf under WEIGHT_MATCHES (<code>UnifiedHighlighter.java:1185-1205</code>), so <code class='nw'>Weight#matches</code> does the work.</li></ol><p>Within the limit, an exhaustive check over a small enumerated corpus (3,280,539 term sets, 9,712,633,037 membership checks) found no mismatch between the supplier's automaton and the term set, which supports that the defect is the length limit only.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>216 words</span></summary><div class='body'><ul><li><strong>Who is hit.</strong> Code that highlights a <code class='nw'>TermInSetQuery</code> with a UnifiedHighlighter whose flags lack WEIGHT_MATCHES but keep MULTI_TERM_QUERY (on by default), when the set has at least two distinct terms (duplicates are merged, <code>TermInSetQuery.java:123-159</code>) and one of them is over 1000 bytes. The query can come from <code>new TermInSetQuery(...)</code>, <code>KeywordField.newSetQuery</code> or a <code class='nw'>BooleanQuery</code> that contains one; the set-query field must pass the field matcher (the highlighted field, or another field under an accept-all matcher). Custom or downstream <code class='nw'>QueryVisitor</code>s that call the <code>consumeTermsMatching</code> supplier fail the same way (by reading; a plain visitor that calls <code class='nw'>supplier.get()</code> is executed).</li><li><strong>Default vs opt-in.</strong> Since 9.0.0 (LUCENE-9431) the default highlighter is not affected; <code>withWeightMatches(false)</code>, <code>withHighlightPhrasesStrictly(false)</code> and <code>withPassageRelevancyOverSpeed(false)</code> are documented, non-deprecated builder options. In 8.6.0-8.11.4 the default UnifiedHighlighter was affected.</li><li><strong>Scale.</strong> None: one document and one 1001-byte value. The value does not have to be in the index, so one stray long id or URL in a user-supplied list is enough. The limit counts UTF-8 bytes, not characters.</li><li><strong>Effect.</strong> The whole <code class='nw'>highlight()</code> call throws, so no document gets snippets. No wrong result, hang, extra resource use or index change; search, count, explain and <code class='nw'>Weight#matches</code> of the same query work.</li><li><strong>How likely.</strong> Rare: no report of this path was found in the more than six years since 8.6.0.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>One JUnit test, one document, single thread: search the two-term set (1 hit), then highlight it with <code>withWeightMatches(false)</code>. It must return <code>a &lt;b&gt;short&lt;/b&gt; text</code>. It fails on main and 10.6.0 with assertions on and off, and passes with fix A.</p><figure class='code'><figcaption><span class='fname'>TestTermInSetQueryLongTermHighlight.java (one test, lucene/highlighter)</span><span class='meta'>70 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.uhighlight;
+
+import java.util.List;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexOptions;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermInSetQuery;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.BytesRef;
+
+/**
+ * A TermInSetQuery of &quot;short&quot; and a 1001-byte term finds the document, but a UnifiedHighlighter
+ * without WEIGHT_MATCHES fails on it: TermInSetQuery#visit gives the highlighter an automaton
+ * supplier that rejects terms longer than Automata.MAX_STRING_UNION_TERM_LENGTH (1000 bytes).
+ */
+public class TestTermInSetQueryLongTermHighlight extends LuceneTestCase {
+
+  public void testHighlightWithoutWeightMatches() throws Exception {
+    Analyzer analyzer = new MockAnalyzer(random());
+    FieldType withOffsets = new FieldType(TextField.TYPE_STORED);
+    withOffsets.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS);
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(analyzer))) {
+        Document doc = new Document();
+        doc.add(new Field(&quot;body&quot;, &quot;a short text&quot;, withOffsets));
+        w.addDocument(doc);
+      }
+      try (IndexReader reader = DirectoryReader.open(dir)) {
+        IndexSearcher searcher = new IndexSearcher(reader);
+        Query query =
+            new TermInSetQuery(
+                &quot;body&quot;, List.of(new BytesRef(&quot;short&quot;), new BytesRef(&quot;x&quot;.repeat(1001))));
+        TopDocs topDocs = searcher.search(query, 10);
+        assertEquals(1, topDocs.scoreDocs.length); // the query itself works
+        UnifiedHighlighter highlighter =
+            UnifiedHighlighter.builder(searcher, analyzer).withWeightMatches(false).build();
+        assertArrayEquals(
+            new String[] {&quot;a &lt;b&gt;short&lt;/b&gt; text&quot;}, highlighter.highlight(&quot;body&quot;, query, topDocs));
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cd $LUCENE
+cp $REPRO/TestTermInSetQueryLongTermHighlight.java lucene/highlighter/src/test/org/apache/lucene/search/uhighlight/
+./gradlew :lucene:highlighter:test --tests org.apache.lucene.search.uhighlight.TestTermInSetQueryLongTermHighlight -Ptests.seed=DEADBEEF
+# assertions off: add -Ptests.asserts=false (same failure)
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>Search returns 1 hit and <code class='nw'>highlight()</code> returns <code>a &lt;b&gt;short&lt;/b&gt; text</code>.</dd></div><div class='got'><dt>Observed</dt><dd>Search returns 1 hit, then <code class='nw'>highlight()</code> throws <code>IllegalArgumentException: This builder doesn't allow terms that are larger than 1000 UTF-8 bytes</code>.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-808/'>repro/LFV-808/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>221 words</span></summary><div class='body'><p>Public API only (<code class='nw'>TermInSetQuery</code>, <code>UnifiedHighlighter.builder</code>); the package <code>org.apache.lucene.search.uhighlight</code> is only for locality, and the file belongs in <code>lucene/highlighter/src/test/org/apache/lucene/search/uhighlight/</code>. The test framework picks the directory and codec from the seed (gradle reported <code>codec=Asserting(Lucene104)</code>), which does not matter here: the exception comes from building the visitor's automaton. It passes <code>:lucene:highlighter:checkGoogleJavaFormat</code>, <code>:lucene:highlighter:ecjLintTest</code> and <code>:lucene:highlighter:forbiddenApisTest</code>. It does not compile before 9.1.0 (the builder API).</p><p><strong>Regression test:</strong> this same test. It passes with fix A, with assertions on and off.</p><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main 5adff78bb168 (12.0.0-SNAPSHOT); the same test also fails on the 10.6.0, 9.12.3 and 9.6.0 release jars</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, main 5adff78bb168, seed DEADBEEF, assertions on; -Ptests.asserts=false gives the same failure
+TestTermInSetQueryLongTermHighlight &gt; testHighlightWithoutWeightMatches FAILED
+    java.lang.IllegalArgumentException: This builder doesn&#x27;t allow terms that are larger than 1000 UTF-8 bytes, got [78 78 78 ... 78]
+        at org.apache.lucene.util.automaton.StringsToAutomaton.add(StringsToAutomaton.java:268)
+        at org.apache.lucene.util.automaton.StringsToAutomaton.build(StringsToAutomaton.java:260)
+        at org.apache.lucene.util.automaton.Automata.makeBinaryStringUnion(Automata.java:688)
+        at org.apache.lucene.search.TermInSetQuery.asByteRunAutomaton(TermInSetQuery.java:194)
+        at org.apache.lucene.search.uhighlight.MultiTermHighlighting$AutomataCollector.consumeTermsMatching(MultiTermHighlighting.java:84)
+        at org.apache.lucene.search.TermInSetQuery.visit(TermInSetQuery.java:186)
+        at org.apache.lucene.search.uhighlight.MultiTermHighlighting.extractAutomata(MultiTermHighlighting.java:46)
+        at org.apache.lucene.search.uhighlight.UnifiedHighlighter.getAutomata(UnifiedHighlighter.java:1249)
+        at org.apache.lucene.search.uhighlight.UnifiedHighlighter.getHighlightComponents(UnifiedHighlighter.java:1172)
+        ...
+        at org.apache.lucene.search.uhighlight.UnifiedHighlighter.highlight(UnifiedHighlighter.java:748)
+        at org.apache.lucene.search.uhighlight.TestTermInSetQueryLongTermHighlight.testHighlightWithoutWeightMatches(TestTermInSetQueryLongTermHighlight.java:66)
+
+# [78 78 ... 78] is the 1001-byte term (&quot;x&quot; is 0x78), shortened here
+# release jars, plain JUnit runner, seed DEADBEEF: 10.6.0 (assertions on and off) and 9.12.3: the same
+# exception; 9.6.0: IllegalArgumentException: input automaton is too large: 1001 (Operations.isFinite)
+# with fix A: BUILD SUCCESSFUL, assertions on and off</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it looks unintended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The visitor contract promises "a runnable automaton defining which terms match"; it cannot be built for the query's own terms.</li><li>The javadoc calls the query equivalent to a <code class='nw'>BooleanQuery</code> of SHOULD clauses, which highlights the same input; an upstream test highlights a 1001-byte <code class='nw'>TermQuery</code>.</li><li>#11808 met the same exception for long <code class='nw'>TermQuery</code> terms and filtered them instead.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>221 words</span></summary><div class='body'><ul><li><strong>The contract.</strong> <code>QueryVisitor#consumeTermsMatching</code>: "a supplier for a runnable automaton defining which terms match" (<code>QueryVisitor.java:46</code>). <code class='nw'>TermInSetQuery</code>'s class javadoc: it "behaves like a ConstantScoreQuery over a BooleanQuery containing only SHOULD clauses" (<code>TermInSetQuery.java:42-45</code>), and that form highlights the same input (the javadoc is about matching and scoring, so this is an observed control, not a documented highlighting promise). <code class='nw'>TermInSetQuery</code>, <code>KeywordField.newSetQuery</code>, <code class='nw'>QueryVisitor</code> and <code>UnifiedHighlighter#highlight</code> document no term-length limit; <code class='nw'>highlight()</code> documents only <code class='nw'>IOException</code> and an <code>IllegalArgumentException</code> for a field without offsets (<code>UnifiedHighlighter.java:743-746</code>). The limit is documented only on the builder constant, whose javadoc names <code>makeStringUnion(Iterable)</code>, not this query (<code>Automata.java:47-50</code>).</li><li><strong>The tests.</strong> <code>TestTermInSetQuery.testVisitor</code> (<code>TestTermInSetQuery.java:508-550</code>) asserts that the supplier's automaton accepts every term of the query, with short terms only. <code>TestUnifiedHighlighter.testQueryWithLongTerm</code> (<code>TestUnifiedHighlighter.java:1766-1791</code>) asserts that a <code class='nw'>BooleanQuery</code> with a 1001-byte <code class='nw'>TermQuery</code> highlights. No highlighter test uses a <code class='nw'>TermInSetQuery</code>.</li><li><strong>The history.</strong> #11808 (<code class='nw'>188a78d7697</code>, 2022) filters long terms on the <code>MemoryIndexOffsetStrategy</code> path (<code>MemoryIndexOffsetStrategy.java:64-69</code>); its commit message says "Rather than throwing a confusing exception, we can instead filter out the long terms". <code class='nw'>11436a848cb</code> (2023) made a test helper fall back to <code class='nw'>Operations.union</code> for a too-long term. <code>asByteRunAutomaton</code> has no such guard. LUCENE-9349, which introduced the supplier, and #12320, which moved it to the string-union builder, do not discuss term length.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>134 words</span></summary><div class='body'><p>The strongest case for "intended": <code>consumeTermsMatching</code> and <code class='nw'>Automata</code> are <code>@lucene.experimental</code>; the builder limit is deliberate and tested (<code>TestStringsToAutomaton.testLargeTerms</code>); turning WEIGHT_MATCHES off selects the older automaton path; and #11808's commit message says "Very long terms are likely to be junk input in any case".</p><p><strong>Why it fails:</strong> none of this is stated at <code class='nw'>TermInSetQuery</code>, <code class='nw'>QueryVisitor</code> or the highlighter; the query accepts and matches the term; the documented equivalent highlights; and #11808 answered the same exception on the <code class='nw'>TermQuery</code> path by filtering, not by calling it intended. The cross-model reviewers rated the intended case moderate, the devil's-advocate check and the adjudication weak; every reviewer agreed on the root cause. A maintainer may still reasonably read it as a gap that #11808 left open (same highlighter, same exception, another path and fix site).</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>A: union over-long terms separately in asByteRunAutomaton (validated)</strong></p><p class='short'>In <code>TermInSetQuery#asByteRunAutomaton</code>, build terms over 1000 bytes as single-string automata and union them with the string union, only when such a term exists (+24/-2). Validated: the repro passes with assertions on and off, and 27 core and 471 highlighter tests pass.</p><pre class='snippet' tabindex='0'><code>// in asByteRunAutomaton(): terms over the limit skip the string union
+if (term.length &lt;= Automata.MAX_STRING_UNION_TERM_LENGTH) {
+  return term;                                   // to makeBinaryStringUnion
+}
+longTerms.add(Automata.makeBinary(term));
+...
+if (longTerms.isEmpty() == false) {
+  longTerms.add(a);
+  a = Operations.determinize(Operations.union(longTerms), Integer.MAX_VALUE);
+}
+return new ByteRunAutomaton(a, true);</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>3 options · 452 words</span></summary><div class='body'><p>Option A is validated; B and C are alternatives a maintainer may prefer.</p><div class="hd hd-3"><h3 id='fix-union-long-terms'>A: union over-long terms separately in asByteRunAutomaton (validated) <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-union-long-terms" target="_self" aria-label="Link to this section" aria-describedby="fix-union-long-terms"><span aria-hidden="true">#</span></a></div><p>The diff is +24/-2 in <code>TermInSetQuery.java</code> only; <code>makeBinaryStringUnion</code> and <code>StringsToAutomaton</code> are unchanged. The terms still stream into <code>makeBinaryStringUnion</code>, through a wrapping iterator in <code>asByteRunAutomaton</code> that skips terms over the limit; those are built with <code>Automata.makeBinary(term)</code>, and only when there is at least one, the string union and the long terms are combined with <code class='nw'>Operations.union</code> and <code>Operations.determinize(..., Integer.MAX_VALUE)</code>.</p><pre class='snippet' tabindex='0'><code>// in asByteRunAutomaton(): terms over the limit skip the string union
+if (term.length &lt;= Automata.MAX_STRING_UNION_TERM_LENGTH) {
+  return term;                                   // to makeBinaryStringUnion
+}
+longTerms.add(Automata.makeBinary(term));
+...
+if (longTerms.isEmpty() == false) {
+  longTerms.add(a);
+  a = Operations.determinize(Operations.union(longTerms), Integer.MAX_VALUE);
+}
+return new ByteRunAutomaton(a, true);</code></pre><p class='k'>Trade-offs</p><p>Sets without a long term take the old path unchanged. Sets with one get a non-minimal automaton with roughly one extra state per byte of each long term; the unbounded determinize limit is safe because the result has at most the union's states plus those (reasoned from the construction, not benchmarked). It does not remove the builder limit for other callers.</p><p class='k'>What the checks validated</p><p>Gradle in a scratch worktree of <code class='nw'>5adff78bb168</code>, seed DEADBEEF: the repro fails stock and passes with the fix, assertions on and off; the fix passes <code>:lucene:core:checkGoogleJavaFormat</code>, <code class='nw'>ecjLintMain</code> and <code>forbiddenApisMain</code>; with the fix <code>TestTermInSetQuery</code>, <code class='nw'>TestQueryVisitor</code>, <code class='nw'>TestKeywordField</code> and a 3-test probe (a 32766-byte term with a short one, a set of only long terms, a 1000-byte term on the unchanged path; each checks accepted and rejected terms) pass (4 classes, 27 tests, 1 skipped, 0 failures), and the whole <code>org.apache.lucene.search.uhighlight</code> package passes (14 classes, 471 tests, 0 failures). Targeted suites, not a full build.</p><div class="hd hd-3"><h3 id='fix-filter-in-highlighter'>B: filter long terms in the highlighter, as #11808 did (not implemented)</h3><a class="hlink" href="#fix-filter-in-highlighter" target="_self" aria-label="Link to this section" aria-describedby="fix-filter-in-highlighter"><span aria-hidden="true">#</span></a></div><p>The highlighter cannot see inside the supplier, so it would have to special-case <code class='nw'>TermInSetQuery</code> (for example via <code>getBytesRefIterator()</code>) or catch the exception.</p><p class='k'>Trade-offs</p><p>Fixes only the highlighter (other visitors still fail) and drops the long term from highlighting, as #11808 does.</p><div class="hd hd-3"><h3 id='fix-iterative-builder'>C: make StringsToAutomaton iterative and drop the limit (not implemented)</h3><a class="hlink" href="#fix-iterative-builder" target="_self" aria-label="Link to this section" aria-describedby="fix-iterative-builder"><span aria-hidden="true">#</span></a></div><p>Remove the recursion in the string-union builder so it accepts terms up to the index limit. Similar recursion limits on long legal input were lifted in #11813 (the recursive <code>Operations.isFinite</code> was taken out of production code on main and kept as a test utility) and #12286 (<code class='nw'>topoSort</code> made iterative).</p><p class='k'>Trade-offs</p><p>Removes the cause for every caller (the #11808 filter and the test-helper workaround become unnecessary) but changes a core automaton builder. Note: the TODO above <code>asByteRunAutomaton</code> points at GH#12176; draft #12312 would build the same union in the constructor, where this limit would reject the query itself unless A or C lands first.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>A service that highlights user-supplied value lists (ids, URLs) with WEIGHT_MATCHES off fails the whole highlight request when one value is over 1000 bytes; capping value length avoids it.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A semi-formal boundary-value matrix drove terms of 999, 1000, 1001, 4096 and 32766 bytes (ASCII and multi-byte UTF-8) through set queries and their consumers on the stock main jar. Every cell with a term over 1000 bytes and two or more terms threw from the visitor's supplier and from the highlighter without WEIGHT_MATCHES; search never threw.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>194 words</span></summary><div class='body'><p><strong>Method: semi-formal</strong> (bounded boundary-value translation validation on the stock main jar).</p><ul><li><strong>The matrix.</strong> Term byte length 999 / 1000 / 1001 / 4096 / 32766, in ASCII, 3-byte and 4-byte UTF-8; a <code class='nw'>TermInSetQuery</code> with 1, 2 or 50 terms, <code>KeywordField.newSetQuery</code> and a <code class='nw'>BooleanQuery</code> containing the set; each through search, count, explain, <code class='nw'>Weight#matches</code>, a plain <code class='nw'>QueryVisitor</code> that calls the supplier, and the UnifiedHighlighter with default flags and with each of the three flags that drop WEIGHT_MATCHES; offsets from postings, term vectors and re-analysis.</li><li><strong>Result.</strong> Every cell with a term over 1000 bytes and at least two terms threw <code>IllegalArgumentException</code> from the supplier and from the three non-WEIGHT_MATCHES highlighters; 999 and 1000 bytes never threw; search, count, explain and matches never threw.</li><li><strong>The language within the limit.</strong> An exhaustive check of the supplier's automaton against the term set (3,280,539 sets, 9,712,633,037 membership checks, 0 mismatches; a deliberately broken reference was detected, so the check is not vacuous) showed that the defect is the limit only.</li><li>The cause was then read from <code class='nw'>TermInSetQuery</code> and <code>StringsToAutomaton</code>, and a public-API JUnit reproduced it on main (assertions on and off) and on releases back to 9.1.0 (assertions on).</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No report of this defect found (GitHub issues, PRs and commits incl. the JIRA archive, the Lucene lists, downstream trackers, the web; rechecked 2026-11-04). Related: #11808, which fixed the same exception for long <code class='nw'>TermQuery</code> terms on another path, and #10696, another trigger of this supplier path before 9.7.0.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p>The recorded searches found no Lucene issue, PR, JIRA entry, list thread or commit, and nothing outside Lucene, that describes a <code>TermInSetQuery#visit</code> supplier that throws for a set term over 1000 bytes. Two items each touch it on one axis; two independent re-checks on 2026-11-03 found them related but about a different defect. Related items, none of them this defect:</p><ul><li><strong>#11808</strong> "Don't try to highlight very long terms" (PR, romseygeek, merged 2022, in 9.5.0; prompted by elastic/elasticsearch#46914 "Big term in a query breaks highlighting", 2019): the same builder exception for a long <code class='nw'>TermQuery</code> term, fixed by filtering terms in <code>MemoryIndexOffsetStrategy</code>'s extracted-terms automaton. It never mentions <code class='nw'>TermInSetQuery</code> or <code>consumeTermsMatching</code>, and its fix does not reach the supplier path: a different defect at a different fix site. A maintainer may reasonably see this bug as a gap #11808 left open.</li><li><strong>#10696</strong> (LUCENE-9657, 2021, closed without a Lucene change): a terms filter with more than 288 values broke the UnifiedHighlighter with <code>TooComplexToDeterminizeException</code>, very likely through this supplier as it was before #12320. Another trigger (term count) and another exception; #12320 (9.7.0) removed that failure.</li><li>Context: #9475 (LUCENE-8429, origin of the limit), #10389 (LUCENE-9349, the supplier), #12320, #11809 and #12284 (other recursion limits on long legal input, fixed as bugs), #13806 and #12310 (review remarks that this visitor method is heavy or "super trappy" because of its cost), #10649 (open, set-query terms not highlighted), drafts #12312 and #14350, commit <code class='nw'>11436a848cb</code>.</li></ul><p>Keyword searches only; a report worded differently, or a private one, would not be found.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene incl. the JIRA archive, Elasticsearch, OpenSearch, Solr); dev@, java-user@, issues@, commits@; JIRA; web</th><td class='when'>2026-10-27</td><td>about 214 logged read-only queries, plus the changed files of all 409 open PRs and the history of the five fix-site files on main, branch_10x and branch_10_6</td><td>only the related items above</td></tr><tr><th scope='row'>same sources</th><td class='when'>2026-11-03</td><td>two independent same-defect re-checks</td><td>#11808 and #10696 related but a different defect; no report</td></tr><tr><th scope='row'>GitHub, commits, downstream trackers, the four lists, JIRA, web</th><td class='when'>2026-11-04</td><td>prior-report tool, new spec in new wordings, 51 queries (206 distinct hits)</td><td>the closest hit is #12310 (a cost remark, not the limit); the others are the items above, the visitor's history (#10104, #10389, #13804, #13806) and highlighter or set-query items with other causes</td></tr><tr><th scope='row'>apache/lucene items updated and open PRs created since 2026-10-26; upstream main file history</th><td class='when'>2026-11-04</td><td>searches for TermInSetQuery, StringsToAutomaton, makeBinaryStringUnion, consumeTermsMatching and UnifiedHighlighter; the open PRs' changed files; the commit history of the five files</td><td>nothing about this defect; #16975 (open) touches UnifiedHighlighter.java but only removes deprecated setters; no commit to the five files after 2026-07-31</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced by LUCENE-9349 (<code class='nw'>267d70b66b6</code>, 2020-04-29, first in 8.6.0), which made <code class='nw'>visit</code> hand out the automaton supplier; 8.5.2 passes. Since 9.0.0 the default highlighter is not affected; since 9.7.0 the limit is the string-union builder's. On main and in 10.6.0; not fixed upstream.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>7 rows</span></summary><div class='body'><p><strong>Introduced by</strong> <code class='nw'>267d70b66b6</code> (main) and <code class='nw'>4be69c8540b</code> (branch_8x), "LUCENE-9349: TermInSetQuery should use consumeMatchingTerms in visit() (#1465)", romseygeek, 2020-04-29, first released in 8.6.0. Before it, <code class='nw'>visit</code> passed the terms as a list and no automaton was built. Until 9.6.0 the supplier failed in <code>Operations.isFinite</code> (recursion cap 1000) with "input automaton is too large: 1001". LUCENE-9431 (<code class='nw'>2719cf6630e</code>, 2021, 9.0.0) made WEIGHT_MATCHES the default, so since then only non-default flags reach it. #12320 (<code class='nw'>52ace7eb356</code>, gsmiller, 2023-06-02, 9.7.0) moved the supplier to the string-union builder, whose 1000-byte limit dates from LUCENE-8429 (<code class='nw'>d78feb22361</code>, 2018); <code class='nw'>11436a848cb</code> (2023, 9.9.0) reworded the message to "UTF-8 bytes". The boundary is 1000 bytes in every executed version. Upstream main has no commit to the involved files after 2026-07-31.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>5adff78bb168</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the minimal test fails through gradle and standalone runs, assertions on and off</td></tr><tr><th scope='row'>10.6.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the minimal test fails on the release jars, assertions on and off</td></tr><tr><th scope='row'>9.7.0 to 10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>fails with "... larger than 1000 UTF-8 bytes" ("characters" before 9.9.0); executed on 9.7.0, 9.12.3, 10.0.0 and 10.5.2</td></tr><tr><th scope='row'>9.0.0 to 9.6.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>fails with "input automaton is too large: 1001" when WEIGHT_MATCHES is off; executed on 9.0.0, 9.1.0 and 9.6.0</td></tr><tr><th scope='row'>8.6.0 to 8.11.4</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> default flags too</span></td><td>fails with "input automaton is too large: 1001", also with the default highlighter; executed on 8.6.0 and 8.11.4</td></tr><tr><th scope='row'>8.5.2</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>a legacy-API variant of the test passes, assertions on and off (the minimal test does not compile before 9.1.0): <code class='nw'>visit</code> reports the terms as a list. Older releases have no supplier path (by reading: the supplier came in 8.6.0, <code class='nw'>QueryVisitor</code> in 8.1.0)</td></tr><tr><th scope='row'>fix A on <code class='nw'>5adff78bb168</code></th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the minimal test passes, assertions on and off; 27 core and 471 highlighter tests pass</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, cross-model reviews (OpenAI GPT-5.6), a devil's-advocate check and the adjudication agreed on the root cause; the adjudication confirmed it with high confidence. A re-run on main on 2026-11-02 still reproduced it, and this doc's gradle runs validated fix A.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>339 words</span></summary><div class='body'><p>The earlier checks ran on main <code class='nw'>a9779ef3c193</code>, where the involved files are identical to <code class='nw'>5adff78bb168</code>; this doc's runs used <code class='nw'>5adff78bb168</code> and release jars.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> found</span></td><td>Its two-test JUnit (a plain visitor that calls the supplier, and the highlighter without WEIGHT_MATCHES) fails 2 of 2 on main with assertions on and off, 40 of 40 over 20 iterations, and on 10.5.2, 9.12.3, 9.7.0, 9.6.0 and 9.1.0; it passes with the fix sketch.</td></tr><tr><th scope='row'>cross-model review, refute lens (OpenAI GPT-5.6, reading only)</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> not real on procedure only (low)</span></td><td>Agreed with the root cause and found the inputs in contract; rated the intended case moderate. It could run no Java; a separate run re-ran the repro: 2 of 2 fail.</td></tr><tr><th scope='row'>independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own 8-test JUnit: 4 fail on main (assertions on and off), 10.5.2 and 9.12.3 (plain supplier, <code>KeywordField.newSetQuery</code>, highlighter, another field under an accept-all matcher); 4 controls pass (search and count, the 1000-byte boundary, default flags).</td></tr><tr><th scope='row'>cross-model review, intended lens (OpenAI GPT-5.6, reading only)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (medium)</span></td><td>Intended case moderate. Executed checks around it: assertions off 2 of 2 fail, the fix 2 of 2 pass, and the <code class='nw'>BooleanQuery</code> equivalent, the 1000-byte set and a single long term all highlight (3 of 3).</td></tr><tr><th scope='row'>devil's-advocate check</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>Answered eight works-as-designed arguments; on main and 10.5.2 the <code class='nw'>BooleanQuery</code> form highlights and the set form throws.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high), priority Low</span></td><td>Re-ran the reproducer's test with a new seed (4 of 8 fail, controls pass, assertions on and off); with the fix 7 of 8 pass, the eighth being a test artifact (two supplier calls are correct for <code>KeywordField.newSetQuery</code>).</td></tr><tr><th scope='row'>re-verification</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> still reproduces</span></td><td>Main <code class='nw'>e1faeba08bd</code>, 2026-11-02: fails 2 of 2 with assertions on and off.</td></tr><tr><th scope='row'>this doc</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> fails; fix A validated</span></td><td>The one-test repro fails on main and 10.6.0 (assertions on and off), 9.12.3 and 9.6.0, and passes with fix A; 27 core and 471 highlighter tests pass with the fix.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-808/bug.png' download='terminsetquery-visit-automaton-rejects-terms-over-1000-bytes-bug.png' target='_self'>PNG</a> <span class='n'>479 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Finding record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,400 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Finding record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-808, snapshot of 2026-11-04</p><dl class='card'><div><dt>Registry title</dt><dd>TermInSetQuery#visit gives QueryVisitor an automaton supplier that throws IllegalArgumentException when any term is longer than 1000 bytes, so UnifiedHighlighter without WEIGHT_MATCHES fails on such a query</dd></div><div><dt>Area</dt><dd>search / TermInSetQuery visitor (consumeTermsMatching automaton supplier over the util/automaton string-union builder's 1000-byte term limit), reached from highlighter / UnifiedHighlighter without WEIGHT_MATCHES</dd></div><div><dt>Priority</dt><dd>Low, rank 629: It needs WEIGHT_MATCHES turned off (or a custom visitor that calls the supplier) plus a set term over 1000 bytes and fails loudly while search stays correct, so this boundary-value crash closes the UnifiedHighlighter rare-input crash group after LFV-546.</dd></div><div><dt>Impact class</dt><dd>crash</dd></div><div><dt>Impact note</dt><dd>Applications that highlight with a UnifiedHighlighter whose flags lack WEIGHT_MATCHES (withWeightMatches(false), withHighlightPhrasesStrictly(false) or withPassageRelevancyOverSpeed(false); in 8.6.0-8.11.4 also the default highlighter), or that run a custom QueryVisitor that calls the consumeTermsMatching supplier, get an IllegalArgumentException instead of snippets (or an automaton) for a TermInSetQuery, a KeywordField.newSetQuery or a BooleanQuery containing one, as soon as the set has at least two terms and one of them is longer than 1000 bytes; default codec, no scale needed, -ea and -da; search, count, explain and default-flag highlighting are unaffected, and no wrong result, hang or index change was seen.</dd></div><div><dt>Summary</dt><dd>You search with a TermInSetQuery of the two terms 'short' and a 1001-byte term on a field indexed with offsets, get the hit, and highlight it with a UnifiedHighlighter built with withWeightMatches(false), expecting 'a &lt;b&gt;short&lt;/b&gt; text', which is what the documented equivalent (a ConstantScoreQuery over a BooleanQuery of SHOULD TermQuery clauses) gives. Instead highlight() throws IllegalArgumentException 'This builder doesn't allow terms that are larger than 1000 UTF-8 bytes', and any QueryVisitor that asks the query for its automaton gets the same exception. For more than one term TermInSetQuery#visit hands visitors a supplier that builds Automata.makeBinaryStringUnion over all terms, and that builder rejects terms longer than Automata.MAX_STRING_UNION_TERM_LENGTH (1000 bytes, a guard for its recursive construction), although the query itself accepts such terms and searches with them.</dd></div><div><dt>Introduced</dt><dd>267d70b66b6ac30db1d48f131b294512420f468c (master, first released in 9.0.0) and its branch_8x backport 4be69c8540b51f52355f9926cd84f3b3de985180 (first released in 8.6.0): 'LUCENE-9349: TermInSetQuery should use consumeMatchingTerms in visit() (#1465)' (apache/lucene-solr#1465, issue now apache/lucene#10389, author romseygeek), which switched TermInSetQuery.visit from consumeTerms(term list) to consumeTermsMatching(this::asByteRunAutomaton) for more than one term and introduced the Supplier signature; the supplier then failed in Operations.isFinite (recursion cap MAX_RECURSION_LEVEL = 1000, LUCENE-7914) through CompiledAutomaton [exec bound: 8.5.2 passes, 8.6.0 fails, -ea and -da; read: git log in the full-history clone]. GITHUB#12320 (52ace7eb3564 on main, 349b458e8895 on branch_9x, 2023-06-02, author gsmiller, first released in 9.7.0) moved the supplier to Automata.makeBinaryStringUnion, so since 9.7.0 the limit is the string-union builder's 1000-byte term limit from LUCENE-8429 (d78feb22361, 2018) [read]; the bug was kept, only the message changed. (2020-04-29 (LUCENE-9349, 267d70b66b6 and 4be69c8540b); mechanism change 2023-06-02 (#12320); builder limit 2018-07-27 (LUCENE-8429))</dd></div><div><dt>First affected version</dt><dd>8.6.0 [exec, -ea and -da] (8.5.2 passes [exec, -ea and -da]: TermInSetQuery.visit still reported the term list and the supplier API did not exist); with the default UnifiedHighlighter in 8.6.0-8.11.4 [exec]; from 9.0.0 (LUCENE-9431, WEIGHT_MATCHES on by default) only with WEIGHT_MATCHES off or through a visitor that calls the supplier</dd></div><div><dt>Affected versions</dt><dd>every release from 8.6.0 to 10.6.0 and main (a9779ef3c193, 5adff78bb168) [exec: follow-up history sweep on 8.6.0, 8.11.4, 9.0.0, 9.1.0, 9.6.0, 9.7.0, 9.12.3, 10.0.0, 10.5.2 and main (fail 2 of 2 each; 8.6.0 also -da); finder on 10.5.2, 9.12.3, 9.7.0, 9.6.0 and 9.1.0; the independent reproduction on main (-ea, -da), 10.5.2 (-ea, -da) and 9.12.3; the intended-behaviour check on main and 10.5.2; read for the releases in between]. Message 'input automaton is too large: 1001' through 9.6.0, 'This builder doesn't allow terms that are larger than 1000 characters' from 9.7.0, '... 1000 UTF-8 bytes' since the 9.9.0 rewording; the boundary is 1000 bytes in every executed version (1000 passes, 1001 fails). branch_10_6 head 2763db11b0a has the same TermInSetQuery, StringsToAutomaton, QueryVisitor, MultiTermHighlighting and UnifiedHighlighter code as 10.5.2 [read], and the released 10.6.0 has it [exec, 2026-11-04: the one-test repro fails on the 10.6.0 jars with -ea and -da, and on main 5adff78bb168]. Not affected: 8.5.2 and older [exec 8.5.2]. Not fixed on main, branch_10x or branch_10_6.</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check</dd></div><div><dt>Upstream and prior reports</dt><dd>related items only, no report of this defect (searched 2026-10-27, read-only, re-checked 2026-11-03 in two independent passes: two scripted prior-report searches (50 GitHub issue/PR queries over apache/lucene, 6 commit, 4 downstream, 40 mailing-list queries over dev@, java-user@, issues@ and commits@, 8 JIRA and 12 web queries), 57 manual GitHub searches, the changed files of all 409 open apache/lucene PRs, the commit history of the five fix-site files on main, branch_10x and branch_10_6, 24 list, 6 JIRA and 7 web queries by hand): no issue, PR, commit, JIRA entry, list thread, downstream issue or web page reports that TermInSetQuery#visit's consumeTermsMatching supplier throws for a set query with a term over 1000 bytes. Two related items, each on one axis only: #11808 ('Don't try to highlight very long terms', romseygeek, merged 2022-09-24, released in 9.5.0, prompted by elastic/elasticsearch#46914 'Big term in a query breaks highlighting') fixed the same builder exception escaping the same UnifiedHighlighter for a long query term by filtering long terms on the MemoryIndexOffsetStrategy extracted-terms path only, and never mentions TermInSetQuery#visit; #10696 (LUCENE-9657, 2021, closed without a Lucene change) reported a terms filter with more than 288 values breaking the UnifiedHighlighter, very likely through the same supplier, with a different trigger (term count) and exception (TooComplexToDeterminizeException); #12320 (9.7.0) removed that failure and brought in the current 1000-byte one. Related, not the same: #9475 (LUCENE-8429, origin of the limit), #12320, #11809 and #12284 (other recursion-limit exceptions on long legal input, fixed as bugs), #13806 (a design remark that this supplier is heavy), #10649 (open: set-query terms not highlighted), draft #12312 (would build the same union in the TermInSetQuery constructor), draft #14350 (keeps the limit), commit 11436a848cb (a test helper that works around the limit), elastic/elasticsearch#156337 (a downstream visitor that calls these suppliers; no mention of the limit). Not fixed upstream: no change to these files on main (a9779ef3c193 plus the 4 newer commits), branch_10x or branch_10_6; no open PR changes asByteRunAutomaton or the limit. Re-check (2026-10-27, read-only gh): the apache/lucene PRs created since 2026-10-25 (#16905 to #16923, including #16913 and #16919) and issues (#16906 to #16922) do not touch TermInSetQuery, StringsToAutomaton, Automata or the highlighter; searches for TermInSetQuery, highlighter and StringsToAutomaton items updated since 2026-10-26 and for open PRs naming asByteRunAutomaton returned nothing.</dd></div><div><dt>Lucene commit tested</dt><dd>Lucene main <code class='nw'>5adff78bb168</code> (12.0.0-SNAPSHOT): the one-test repro through gradle in a scratch worktree, assertions on and off, without and with fix A, plus core and highlighter suites with fix A; standalone runs on main and on the release jars of 10.6.0 (assertions on and off), 9.12.3 and 9.6.0. Earlier checks ran on main <code class='nw'>a9779ef3c193</code> (the involved files are identical) and on releases from 8.5.2 to 10.5.2. OpenJDK 25.0.3, Linux aarch64.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Finding record</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/search/TermInSetQuery.java:43-45 (class javadoc: behaves like a ConstantScoreQuery over a BooleanQuery of SHOULD clauses), :177-187 (visit), :189-201 (asByteRunAutomaton, makeBinaryStringUnion over every term)</code></li><li><code>lucene/core/src/java/org/apache/lucene/util/automaton/StringsToAutomaton.java:266-272 (add rejects terms over MAX_STRING_UNION_TERM_LENGTH); Automata.java:44-51 (@lucene.experimental; MAX_STRING_UNION_TERM_LENGTH = 1000, &#x27;to ensure the stack doesn&#x27;t overflow while building&#x27;)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/QueryVisitor.java:40-51 (consumeTermsMatching: &#x27;a supplier for a runnable automaton defining which terms match&#x27;, @lucene.experimental)</code></li><li><code>lucene/highlighter/src/java/org/apache/lucene/search/uhighlight/MultiTermHighlighting.java:83-85 (AutomataCollector calls automaton.get()); UnifiedHighlighter.java:1163-1173 (getHighlightComponents extracts automata when WEIGHT_MATCHES is off) and :1245-1251 (getAutomata); MemoryIndexOffsetStrategy.java:62-70 (the #11808 long-term filter, on the extracted-terms path only)</code></li></ul></dd></div><div><dt>The finding in 30 seconds</dt><dd><ul class='paths'><li><code>lucene@5adff78bb168 lucene/core/src/java/org/apache/lucene/search/TermInSetQuery.java:177-201</code></li><li><code>lucene@5adff78bb168 lucene/core/src/java/org/apache/lucene/util/automaton/StringsToAutomaton.java:266-273; lucene/core/src/java/org/apache/lucene/util/automaton/Automata.java:47-51</code></li><li><code>lucene@5adff78bb168 lucene/core/src/java/org/apache/lucene/search/QueryVisitor.java:41-51</code></li><li><code>lucene@5adff78bb168 lucene/highlighter/src/java/org/apache/lucene/search/uhighlight/UnifiedHighlighter.java:518-527, :1163-1183, :1185-1205, :1238-1251; lucene/highlighter/src/java/org/apache/lucene/search/uhighlight/MultiTermHighlighting.java:54-56, :83-85</code></li></ul></dd></div><div><dt>Why it looks unintended</dt><dd><ul class='paths'><li><code>lucene@5adff78bb168 lucene/core/src/java/org/apache/lucene/search/QueryVisitor.java:41-51; lucene/core/src/java/org/apache/lucene/search/TermInSetQuery.java:42-57</code></li><li><code>lucene@5adff78bb168 lucene/highlighter/src/java/org/apache/lucene/search/uhighlight/UnifiedHighlighter.java:734-747; lucene/core/src/java/org/apache/lucene/util/automaton/Automata.java:47-51</code></li><li><code>lucene@5adff78bb168 lucene/core/src/test/org/apache/lucene/search/TestTermInSetQuery.java:508-550</code></li><li><code>lucene@5adff78bb168 lucene/highlighter/src/test/org/apache/lucene/search/uhighlight/TestUnifiedHighlighter.java:1766-1791</code></li><li><code>lucene@5adff78bb168 lucene/core/src/test/org/apache/lucene/util/automaton/TestStringsToAutomaton.java:95-109</code></li><li><code>lucene@5adff78bb168 lucene/highlighter/src/java/org/apache/lucene/search/uhighlight/MemoryIndexOffsetStrategy.java:62-71</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene@5adff78bb168 lucene/core/src/java/org/apache/lucene/search/TermInSetQuery.java:190-191 (TODO, GH#12176)</code></li></ul></dd></div><div><dt>Diagrams</dt><dd><ul class='paths'><li><code>lucene@5adff78bb168 lucene/core/src/java/org/apache/lucene/search/TermInSetQuery.java:177-201; lucene/core/src/java/org/apache/lucene/util/automaton/StringsToAutomaton.java:266-273</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestTermInSetQueryLongTermHighlight.java (one test, lucene/highlighter): <a href='../repro/LFV-808/TestTermInSetQueryLongTermHighlight.java'><code>repro/LFV-808/TestTermInSetQueryLongTermHighlight.java</code></a> (70 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A picture of the repro, made in parallel with this doc from the code at <code class='nw'>5adff78bb168</code> and the executed repro; the PNG is the summary still.</p><ul class='paths'><li><a href='../assets/LFV-808/bug.png'><code>assets/LFV-808/bug.png</code></a> (479 KB)</li></ul><p class='meta built'>Built 2026-11-04 from the hunt's record of this finding and its doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>. Every listed finding was re-run on Lucene main <code class='nw'>e1faeba08bde</code> on 2026-11-02.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-11-04. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All findings</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  var own = !base && window.top === window && /^(https?|file):$/.test(location.protocol);
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = (own ? String(location.href).split('#')[0] : base) + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

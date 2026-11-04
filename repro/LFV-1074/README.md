@@ -2,6 +2,8 @@
 
 Finding LFV-1074 · Area: index / IndexWriter addIndexes vs deleteAll (writer-wide field schema, FieldInfos.FieldNumbers) · Priority: medium · Impact: index unusable · Novelty: new
 
+Finding page: [../../bugs/LFV-1074.html](../../bugs/LFV-1074.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -42,6 +44,10 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestDeleteAllDuringAddIndexes.java](TestDeleteAllDuringAddIndexes.java)
 
 Formal models and scripts this finding's part of the hunt used: [../../models/deleteall-during-addindexes-keeps-imported-field-schema/](../../models/deleteall-during-addindexes-keeps-imported-field-schema/)
 

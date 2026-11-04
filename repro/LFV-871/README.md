@@ -2,6 +2,8 @@
 
 Finding LFV-871 · Area: search / IndriAndQuery (clause Occur handling in matching and explain) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-871.html](../../bugs/LFV-871.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You build an IndriAndQuery from BooleanClauses with Occur values other than SHOU
 
 ## Expected vs actual
 
-- Expected: You expect either the meaning that BooleanClause.Occur documents (the same clauses in a BooleanQuery give {0, 2} and {0, 1}) or a rejection, and in any case an explain that agrees with the hits.
-- Actual: IndriAndWeight builds one disjunction over all clauses whatever their Occur, so MUST and FILTER clauses do not restrict ({0, 1, 2, 3}), a MUST_NOT clause adds the very documents it names ({0, 1, 2}; a lone MUST_NOT clause returns exactly them), and IndriAndWeight.explain, which does treat MUST/FILTER clauses as required, explains such hits as non-matches.
+- Expected: Either `new IndriAndQuery(...)` throws `IllegalArgumentException`, or the search returns doc 0 only and `explain` calls it a match.
+- Actual: `expected:<[doc 0 explain isMatch=true]> but was:<[doc 0 explain isMatch=true, doc 1 explain isMatch=false]>` at `TestIndriAndQueryOccur.java:61`.
 
 ## Files
 
@@ -42,6 +44,10 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestIndriAndQueryOccur.java](TestIndriAndQueryOccur.java)
 
 Formal models and scripts this finding's part of the hunt used: [../../models/indri-query-family-composite-score-boost-visitor-explain-laws/](../../models/indri-query-family-composite-score-boost-visitor-explain-laws/)
 

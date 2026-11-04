@@ -2,6 +2,8 @@
 
 Finding LFV-814 · Area: facet / sorted-search helpers (FacetsCollectorManager static search/searchAfter, DrillSideways sorted search) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Finding page: [../../bugs/LFV-814.html](../../bugs/LFV-814.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,7 @@ You run a faceted search with FacetsCollectorManager.search(searcher, query, n, 
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Both helpers hand the caller's Sort to TopFieldCollectorManager as given: on a ClassicSimilarity searcher a QueryValueSource(body:a) sort returns [doc0=0.147, doc1=0.125] (scores from a fresh default-BM25 searcher) where IndexSearcher#search returns [doc1=1.0, doc0=0.894].
+The test passes: it asserts the documented behaviour. Instead: Both helpers hand the caller's Sort to TopFieldCollectorManager as given: on a ClassicSimilarity searcher a QueryValueSource(body:a) sort returns [doc0=0.147, doc1=0.125] (scores from a fresh default-BM25 searcher) where IndexSearcher#search returns [doc1=1.0, doc0=0.894].
 
 ## Files
 
@@ -20,7 +21,6 @@ You run a faceted search with FacetsCollectorManager.search(searcher, query, n, 
 ## Run it
 
 - Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

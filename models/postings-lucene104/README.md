@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- Since 9.12.0 the default postings writer stores the byte length of a level-1 block's competitive impacts in a signed short, so with a custom Similarity whose norms do not fit in a byte, a term with 8,192 or more postings in one segment (4,096 before 10.4) can need more than 32,767 bytes: flush fails an assertion with -ea, and with -da the segment is written but that term's postings then throw on every read or are read back wrong (finding LFV-183; [repro](../../repro/LFV-183/))
+- Since 9.12.0 the default postings writer stores the byte length of a level-1 block's competitive impacts in a signed short, so with a custom Similarity whose norms do not fit in a byte, a term with 8,192 or more postings in one segment (4,096 before 10.4) can need more than 32,767 bytes: flush fails an assertion with -ea, and with -da the segment is written but that term's postings then throw when read or are read back wrong (finding LFV-183; [repro](../../repro/LFV-183/), [finding page](../../bugs/LFV-183.html))
 - Postings docIDRunEnd() returns Integer.MIN_VALUE for dense blocks after a term's last level-1 skip block when doc IDs are within 8,192 (4,096 before 10.4) of 2^31, so CheckIndex at level 2 or higher reports a healthy segment of about 2^31 documents as corrupt (finding LFV-170; [repro](../../repro/LFV-170/), [finding page](../../bugs/LFV-170.html))
 
 ## Files

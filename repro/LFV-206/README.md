@@ -2,16 +2,18 @@
 
 Finding LFV-206 · Area: geo / shape queries (Polygon2D containsLine/containsTriangle, LatLonShape and XYShape WITHIN) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Finding page: [../../bugs/LFV-206.html](../../bugs/LFV-206.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index a line or polygon whose corner points lie exactly on the boundary of a non-convex (dented) query polygon, for example a road between two corners of a district, and search for shapes WITHIN that polygon; you expect only shapes that lie inside it. Polygon2D.containsLine/containsTriangle accept a segment or triangle when every vertex is contained, with boundary points counting as inside, and no polygon edge crosses it strictly; that shortcut is only valid for convex polygons, so a segment that cuts across a dent between two boundary points, or a triangle that fills the dent and lies completely outside, is reported as contained. The WITHIN query returns those documents with no error (repro: for the polygon (0,0),(4,0),(4,4),(2,1),(0,4), WITHIN returns the indexed segment (0,4)-(4,4) and the indexed notch triangle (0,4),(4,4),(2,1) although (2,4) and (2,3) are outside the polygon).
+You index a line or polygon whose corner points lie exactly on the boundary of a non-convex (dented) query polygon, for example a road between two corners of a district, and search for shapes WITHIN that polygon; you expect only shapes that lie inside it. Polygon2D.containsLine/containsTriangle accept a segment or triangle when every vertex is contained, with boundary points counting as inside, and no polygon edge crosses it strictly; that shortcut is only valid for convex polygons, so a segment that cuts across a dent between two boundary points, or a triangle that fills the dent and whose interior lies outside, is reported as contained. The WITHIN query returns those documents with no error (repro: for the polygon (0,0),(4,0),(4,4),(2,1),(0,4), WITHIN returns the indexed segment (0,4)-(4,4) and the indexed notch triangle (0,4),(4,4),(2,1) although (2,4) and (2,3) are outside the polygon).
 
 ## Expected vs actual
 
-- Expected: You expect only shapes that lie inside it.
-- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
+- Expected: WITHIN returns 0 documents: the segment's midpoint (2,4) and the triangle's centre (2,3) are outside the polygon.
+- Actual: WITHIN returns 2 documents, the segment and the notch triangle (`expected:<0> but was:<2>`), with no error.
 
 ## Files
 
@@ -47,6 +49,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestXYShapeWithinNotchedPolygon.java](TestXYShapeWithinNotchedPolygon.java)
 
 ## Feedback
 
