@@ -1,6 +1,6 @@
 # MultiFacets.getAllDims, the Facets of every DrillSideways result with a drill-down dim, lists the mapped (sideways) dims first in HashMap order instead of sorted by value and returns null for a mapped dim without hits, so the inherited getTopDims returns the wrong dims
 
-Finding LFV-524 · Area: facet / MultiFacets and DrillSideways results (MultiFacets#getAllDims, the default DrillSideways#buildFacetsResult, the inherited Facets#getTopDims) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-524 · Area: facet / MultiFacets and DrillSideways results (MultiFacets#getAllDims, the default DrillSideways#buildFacetsResult, the inherited Facets#getTopDims) · Priority: medium · Impact: silent wrong results · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

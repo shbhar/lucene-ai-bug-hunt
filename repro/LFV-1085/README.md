@@ -1,6 +1,6 @@
 # The collation package overview's Danish Sorting example calls Sort.setSort, which was removed in 9.0.0, so the example does not compile; on main it is the one error left on the page after #16904 updated its examples (documentation defect)
 
-Finding LFV-1085 · Area: analysis-common / collation package documentation (package-info.java 'Example Usages') · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-1085 · Area: analysis-common / collation package documentation (package-info.java 'Example Usages') · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

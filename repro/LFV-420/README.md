@@ -1,6 +1,6 @@
 # Merging into a Lucene104 scalar-quantized FLOAT32 vector field that does not use COSINE centers the merge source's own vector arrays in place, so IndexWriter.addIndexes changes a source that keeps its arrays (MemoryIndex, FloatVectorValues.fromFloats) and can store wrong full-precision vectors or wrong quantized codes
 
-Finding LFV-420 · Area: codecs / quantized vector formats merge (Lucene104 scalar-quantized, Lucene102 binary-quantized) with index / addIndexes through SlowCodecReaderWrapper and memory / MemoryIndex · Priority: medium · Impact: data corruption · Novelty: known upstream
+Finding LFV-420 · Area: codecs / quantized vector formats merge (Lucene104 scalar-quantized, Lucene102 binary-quantized) with index / addIndexes through SlowCodecReaderWrapper and memory / MemoryIndex · Priority: medium · Impact: data corruption · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

@@ -1,6 +1,6 @@
 # Two field names that differ only in an unpaired surrogate are written to disk as the same U+FFFD name, so IndexWriter commits an index that DirectoryReader and a new IndexWriter refuse to open (on main also colliding field attribute keys and commit user-data keys)
 
-Finding LFV-146 · Area: index / FieldInfos and segment metadata strings (DataOutput#writeString in .fnm, segments_N and .si) · Priority: medium · Impact: index unusable · Novelty: known upstream
+Finding LFV-146 · Area: index / FieldInfos and segment metadata strings (DataOutput#writeString in .fnm, segments_N and .si) · Priority: medium · Impact: index unusable · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

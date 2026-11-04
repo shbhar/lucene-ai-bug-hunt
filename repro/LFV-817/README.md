@@ -1,6 +1,6 @@
 # TermStates#get hands a lazily looked-up TermState to the other partitions of the same segment without safe publication, so under intra-segment concurrency a partition can read docFreq or file pointers still at 0 and a non-scoring term or phrase query silently misses matches (executed on aarch64)
 
-Finding LFV-817 · Area: search / intra-segment concurrency (index / TermStates lazy per-leaf lookup) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-817 · Area: search / intra-segment concurrency (index / TermStates lazy per-leaf lookup) · Priority: medium · Impact: silent wrong results · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

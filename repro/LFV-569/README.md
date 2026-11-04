@@ -1,6 +1,6 @@
 # Polygon.fromGeoJSON garbles every \uXXXX string escape (it appends the code point as decimal digits and then reads the four hex digits again), so valid GeoJSON with an escaped letter in a key or type value is rejected with ParseException, and a malformed escape throws NumberFormatException (every release since 6.2.0)
 
-Finding LFV-569 · Area: core / geo GeoJSON parsing (Polygon.fromGeoJSON, SimpleGeoJSONPolygonParser) · Priority: low · Impact: wrong error · Novelty: known upstream
+Finding LFV-569 · Area: core / geo GeoJSON parsing (Polygon.fromGeoJSON, SimpleGeoJSONPolygonParser) · Priority: low · Impact: wrong error · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

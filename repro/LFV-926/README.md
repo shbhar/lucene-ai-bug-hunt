@@ -1,6 +1,6 @@
 # Classic QueryParser.parse (and its MultiFieldQueryParser, ComplexPhraseQueryParser and ExtendableQueryParser subclasses) throws StackOverflowError instead of the documented ParseException on deeply nested groups (about 2,650-3,700 levels, 5-7 KB of query text, on a 1 MB thread stack)
 
-Finding LFV-926 · Area: queryparser / classic (generated JavaCC parser QueryParser.jj and QueryParserBase.parse) · Priority: low · Impact: wrong error · Novelty: known upstream
+Finding LFV-926 · Area: queryparser / classic (generated JavaCC parser QueryParser.jj and QueryParserBase.parse) · Priority: low · Impact: wrong error · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

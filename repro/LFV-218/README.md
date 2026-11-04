@@ -1,6 +1,6 @@
 # ParentsChildrenBlockJoinQuery.rewrite() drops a custom scoreCombiner, so hits are silently scored parent + child whenever the parent or child query rewrites
 
-Finding LFV-218 · Area: join / block join (ParentsChildrenBlockJoinQuery#rewrite, custom scoreCombiner) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-218 · Area: join / block join (ParentsChildrenBlockJoinQuery#rewrite, custom scoreCombiner) · Priority: medium · Impact: silent wrong results · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

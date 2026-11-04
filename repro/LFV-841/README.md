@@ -1,6 +1,6 @@
 # On main, a 9.x/10.x int7/int4 scalar-quantized segment whose vectors are all identical (stored quantiles equal) is decoded with the min == max widening that #14049 added, not the quantizer that wrote it, so its vectors read 127 (int7) or 15 (int4) units lower in every dimension and exact matches score about 0 and rank last (unreleased, 11.0 only)
 
-Finding LFV-841 · Area: codecs / legacy scalar-quantized vectors (util/quantization ScalarQuantizer, backward-codecs Lucene99ScalarQuantizedVectorsReader) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-841 · Area: codecs / legacy scalar-quantized vectors (util/quantization ScalarQuantizer, backward-codecs Lucene99ScalarQuantizedVectorsReader) · Priority: low · Impact: silent wrong results · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

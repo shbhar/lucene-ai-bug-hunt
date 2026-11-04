@@ -1,6 +1,6 @@
 # A doc-values update racing IndexWriter.deleteAll() can be queued after deleteAll has cleared its field from the writer's field schema; applying it then makes every commit, NRT reopen and close() fail (a tragic close with assertions on), or, if a document added in between gives the field another doc-values type, commits a segment whose field cannot be read
 
-Finding LFV-635 · Area: index / IndexWriter doc-values updates vs deleteAll (writer-wide field schema, FieldInfos.FieldNumbers) · Priority: medium · Impact: data corruption · Novelty: known upstream
+Finding LFV-635 · Area: index / IndexWriter doc-values updates vs deleteAll (writer-wide field schema, FieldInfos.FieldNumbers) · Priority: medium · Impact: data corruption · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -10,8 +10,8 @@ One thread calls deleteAll() on an IndexWriter while another thread updates a do
 
 ## Expected vs actual
 
-- Expected: You expect the update either to be dropped with everything else (if it came first) or to apply to the documents indexed after deleteAll, as on a fresh writer.
-- Actual: When the update checked its field before deleteAll cleared the writer's field schema and is queued just after, the writer can no longer commit, refresh or close (NullPointerException with assertions off, a tragic AssertionError with them on), and when a document added in between gives the field another doc-values type, the commit succeeds but writes a segment whose field cannot be read.
+- Expected: `commit()` succeeds: the update either applied to doc 1 or was dropped by `deleteAll()`.
+- Actual: `commit()` throws `NullPointerException: Cannot read field "name" because "fi" is null` (assertions off), or an `AssertionError` that closes the writer (assertions on).
 
 ## Files
 

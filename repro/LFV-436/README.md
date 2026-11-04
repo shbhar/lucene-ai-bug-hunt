@@ -1,6 +1,6 @@
 # A failed addIndexes(CodecReader...) leaves its unstarted merges in the writer-wide addIndexes queue, so the next addIndexes call runs them on the earlier call's readers and fails with AlreadyClosedException if those readers were closed
 
-Finding LFV-436 · Area: index / IndexWriter addIndexes(CodecReader...) failure path (AddIndexesMergeSource queue, SerialMergeScheduler) · Priority: low · Impact: crash · Novelty: known upstream
+Finding LFV-436 · Area: index / IndexWriter addIndexes(CodecReader...) failure path (AddIndexesMergeSource queue, SerialMergeScheduler) · Priority: low · Impact: crash · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

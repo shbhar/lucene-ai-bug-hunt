@@ -1,6 +1,6 @@
 # Monitor HighlightsMatch returns -1 offsets for a TextField document matched in a batch of two or more documents, but the real offsets when the same document is matched alone; the upstream batch test expects the offsets but cannot notice, because Hit.compareTo ignores offsets
 
-Finding LFV-925 · Area: monitor / HighlightsMatch on batches (DocumentBatch: MultiDocumentBatch keeps the caller's FieldType, SingletonDocumentBatch uses MemoryIndex with offsets) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-925 · Area: monitor / HighlightsMatch on batches (DocumentBatch: MultiDocumentBatch keeps the caller's FieldType, SingletonDocumentBatch uses MemoryIndex with offsets) · Priority: low · Impact: minor · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

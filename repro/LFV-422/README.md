@@ -1,6 +1,6 @@
 # BytesRefHash accepts initial capacity 1 but never grows the table, so add() or find() of any second distinct key spins forever; since 10.3.0 the same capacity also stores a key whose hashcode is -1 as an empty slot
 
-Finding LFV-422 · Area: util / BytesRefHash (initial capacity 1: rehash trigger, linear probe and slot word) · Priority: low · Impact: hang · Novelty: known upstream
+Finding LFV-422 · Area: util / BytesRefHash (initial capacity 1: rehash trigger, linear probe and slot word) · Priority: low · Impact: hang · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

@@ -1,6 +1,6 @@
 # Intervals.notContaining drops minuend intervals that a subtrahend interval overlaps on the right edge or encloses, though they contain no subtrahend interval
 
-Finding LFV-287 · Area: queries / intervals (NotContainingIntervalsSource, Intervals.notContaining) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-287 · Area: queries / intervals (NotContainingIntervalsSource, Intervals.notContaining) · Priority: medium · Impact: silent wrong results · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

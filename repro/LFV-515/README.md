@@ -1,6 +1,6 @@
 # UnifiedHighlighter with WEIGHT_MATCHES (the default) and a field matcher that accepts other fields (requireFieldMatch=false) highlights nothing in a hit whose query has a required clause on another field, because the matcher's remap evaluates that clause against the highlighted field's terms
 
-Finding LFV-515 · Area: highlighter / UnifiedHighlighter WEIGHT_MATCHES path (FieldOffsetStrategy field-matcher remap) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-515 · Area: highlighter / UnifiedHighlighter WEIGHT_MATCHES path (FieldOffsetStrategy field-matcher remap) · Priority: medium · Impact: silent wrong results · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

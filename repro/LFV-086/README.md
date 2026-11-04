@@ -1,6 +1,8 @@
 # FieldExistsQuery#count undercounts documents whose norms-free text field analyzes to no tokens but still has a doc value, so IndexSearcher#count is too low
 
-Finding LFV-086 · Area: search / FieldExistsQuery count · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-086 · Area: search / FieldExistsQuery count · Priority: medium · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-086.html](../../bugs/LFV-086.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -10,8 +12,8 @@ You index a text field with norms turned off together with a doc-values field of
 
 ## Expected vs actual
 
-- Expected: You expect the count to equal the number of documents the query returns, because the query matches every document that has a doc value.
-- Actual: On a segment without deletions, Weight#count returns Terms#getDocCount, which counts only documents with at least one term, so the count is 1 for 2 hits, or 0 for 1 hit when no document in the segment has a term.
+- Expected: `searcher.count(new FieldExistsQuery("title"))` is 2, the number of hits.
+- Actual: `count` is 1 (`expected:<2> but was:<1>`) while the search returns 2 hits.
 
 ## Files
 
@@ -42,6 +44,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestFieldExistsQueryCountNoTokens.java](TestFieldExistsQueryCountNoTokens.java)
 
 Formal models and scripts this finding's part of the hunt used: [../../models/count-totalhits/](../../models/count-totalhits/)
 

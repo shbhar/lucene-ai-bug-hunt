@@ -1,6 +1,6 @@
 # StandardQueryParser's two javadoc code examples, the class's 'Typical usage, including configuration tweaks' and the StandardQueryParser(Analyzer) constructor's 'The same as:', have never compiled: they call setAllowLeadingWildcard and setAnalyzer on getQueryConfigHandler(), which returns a QueryConfigHandler that has no such setters (they are methods of StandardQueryParser itself), and the class example also assigns that QueryConfigHandler to a StandardQueryConfigHandler variable (documentation defect; every release since 2.9.0)
 
-Finding LFV-1028 · Area: queryparser / flexible StandardQueryParser (class and constructor javadoc examples) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-1028 · Area: queryparser / flexible StandardQueryParser (class and constructor javadoc examples) · Priority: low · Impact: minor · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

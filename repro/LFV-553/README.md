@@ -1,6 +1,6 @@
 # MoreLikeThis with maxQueryTerms = 0 throws NullPointerException from like(...), retrieveInterestingTerms(...) and the rewrite of MoreLikeThisQuery or the XML parser's LikeThisQuery, instead of returning a query with no terms (regression since 4.10.0)
 
-Finding LFV-553 · Area: queries / MoreLikeThis term selection (MoreLikeThis.createQueue bounded priority queue; MoreLikeThisQuery; XML query parser LikeThisQueryBuilder) · Priority: low · Impact: wrong error · Novelty: known upstream
+Finding LFV-553 · Area: queries / MoreLikeThis term selection (MoreLikeThis.createQueue bounded priority queue; MoreLikeThisQuery; XML query parser LikeThisQueryBuilder) · Priority: low · Impact: wrong error · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

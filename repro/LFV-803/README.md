@@ -1,6 +1,6 @@
 # UnifiedHighlighter's re-analysis offset strategies decode every extracted query term as UTF-8, so a binary term (for example a binary StringField id reached with requireFieldMatch=false) makes highlighting throw
 
-Finding LFV-803 · Area: highlighter / UnifiedHighlighter re-analysis offset strategies (MemoryIndexOffsetStrategy, TokenStreamOffsetStrategy) · Priority: medium · Impact: crash · Novelty: known upstream
+Finding LFV-803 · Area: highlighter / UnifiedHighlighter re-analysis offset strategies (MemoryIndexOffsetStrategy, TokenStreamOffsetStrategy) · Priority: medium · Impact: crash · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

@@ -1,6 +1,6 @@
 # GeoUtils.lineCrossesLineWithBoundary treats collinear segments that do not overlap as crossing and EdgeTree.crossesTriangle lets such pairs through, so LatLonShape/XYShape polygon and line INTERSECTS queries match disjoint shapes and DISJOINT queries drop them
 
-Finding LFV-215 · Area: geo / shape queries (GeoUtils.lineCrossesLineWithBoundary, EdgeTree.crossesTriangle, Polygon2D and Line2D intersectsTriangle; LatLonShape and XYShape polygon and line queries) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-215 · Area: geo / shape queries (GeoUtils.lineCrossesLineWithBoundary, EdgeTree.crossesTriangle, Polygon2D and Line2D intersectsTriangle; LatLonShape and XYShape polygon and line queries) · Priority: low · Impact: silent wrong results · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

@@ -1,6 +1,6 @@
 # UnifiedHighlighter and MatchRegionRetriever throw IllegalArgumentException on a MultiReader whose indexes differ in any field's schema, even only in norms or in an unrelated field, because FieldInfos.getMergedFieldInfos applies the single-index consistency check across the indexes
 
-Finding LFV-602 · Area: highlighter / uhighlight + matchhighlight: default offset-source choice on composite readers (core index FieldInfos.getMergedFieldInfos) · Priority: medium · Impact: crash · Novelty: known upstream
+Finding LFV-602 · Area: highlighter / uhighlight + matchhighlight: default offset-source choice on composite readers (core index FieldInfos.getMergedFieldInfos) · Priority: medium · Impact: crash · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

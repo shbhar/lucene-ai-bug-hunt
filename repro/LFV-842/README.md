@@ -1,6 +1,6 @@
 # If the IndexWriter InfoStream throws inside registerMerge, the merge stays queued but its segments are not marked as merging, so the next merge selection picks the same segments again and, with assertions disabled, forceMerge commits duplicated documents (every release since 3.2.0)
 
-Finding LFV-842 · Area: index / IndexWriter merge registration (registerMerge, pendingMerges, mergingSegments) · Priority: medium · Impact: data corruption · Novelty: known upstream
+Finding LFV-842 · Area: index / IndexWriter merge registration (registerMerge, pendingMerges, mergingSegments) · Priority: medium · Impact: data corruption · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -10,8 +10,8 @@ You enable IndexWriter's InfoStream, and the logging call throws once (an except
 
 ## Expected vs actual
 
-- Expected: You expect the index to stay as it was: a following forceMerge(1) and commit should leave the same 10 live documents.
-- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
+- Expected: The committed index holds the 1 live document, once.
+- Actual: Assertions off: 2 live documents (`expected:<1> but was:<2>`, id:1 twice); assertions on: `AssertionError` at `IndexWriter._mergeInit(IndexWriter.java:5275)`.
 
 ## Files
 

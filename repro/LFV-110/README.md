@@ -1,6 +1,8 @@
 # An IOException late in a doc-values update write leaves IndexWriter open but inconsistent: published update files are never checkpointed and get deleted while still referenced, and a failed pooled-reader re-open silently drops the update
 
-Finding LFV-110 · Area: index / IndexWriter doc-values update write path (ReadersAndUpdates.writeFieldUpdates, the checkpoint after writeReaderPool, IndexFileDeleter reference counts) · Priority: medium · Impact: data corruption · Novelty: known upstream
+Finding LFV-110 · Area: index / IndexWriter doc-values update write path (ReadersAndUpdates.writeFieldUpdates, the checkpoint after writeReaderPool, IndexFileDeleter reference counts) · Priority: medium · Impact: data corruption · Novelty: new
+
+Finding page: [../../bugs/LFV-110.html](../../bugs/LFV-110.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -10,8 +12,8 @@ You update a doc-values field (updateNumericDocValue, updateBinaryDocValue, or a
 
 ## Expected vs actual
 
-- Expected: You expect the acknowledged update to reach the next NRT reader and commit, and every file the writer's SegmentInfos references to stay on disk, as in 6.x and as the since-deleted test testNoLostDeletesOrUpdates required.
-- Actual: The writer skips its IndexFileDeleter checkpoint and keeps a stale pooled reader whose pending update was already pruned: in releases (and on main with maxDocValuesOverlays=0) the next update rewrites the column from that stale reader and a later commit succeeds with the update reverted (doc 0 = 0 instead of 100, no exception), while with overlays (main's default) or on the partial-batch path the writer later deletes the published files and NRT opens or commits fail with NoSuchFileException.
+- Expected: After the failed refresh, the second update and the commit, the reopened index holds `n` = 100 200 2 3.
+- Actual: 10.6.0, 10.5.2, 9.12.3: the commit succeeds and holds 0 200 2 3; main: the next refresh throws `FileNotFoundException: _0_1_Lucene90_0.dvm`.
 
 ## Files
 
@@ -48,6 +50,10 @@ java -da -dsa -Dtests.asserts=false -Xmx2g --add-modules jdk.incubator.vector --
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestDocValuesUpdateReopenFailure.java](TestDocValuesUpdateReopenFailure.java)
 
 ## Feedback
 

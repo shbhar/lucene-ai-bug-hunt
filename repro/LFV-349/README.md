@@ -1,6 +1,6 @@
 # Monitor.register throws IllegalArgumentException 'Cannot build a conjunction (or disjunction) with no children' for a legal query, or a part of one, that reports no terms to the query visitor (an empty TermInSetQuery, an inverted TermRangeQuery, RegexpQuery '#', a term-less PhraseQuery or SynonymQuery), and the other queries of that commit chunk are not registered either
 
-Finding LFV-349 · Area: monitor / presearcher query analysis (QueryAnalyzer, QueryTree; default TermFilteredPresearcher) · Priority: medium · Impact: crash · Novelty: known upstream
+Finding LFV-349 · Area: monitor / presearcher query analysis (QueryAnalyzer, QueryTree; default TermFilteredPresearcher) · Priority: medium · Impact: crash · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

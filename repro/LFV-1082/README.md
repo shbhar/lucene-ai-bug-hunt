@@ -1,6 +1,6 @@
 # If the IndexWriter InfoStream throws a RuntimeException while a flushed segment is being published, IndexWriter drops that already written segment (and, for some log lines, the deletes and doc-values updates on its flush ticket) but stays open, so the next successful commit silently lacks acknowledged documents its sequence number covers (every release since 4.0.0)
 
-Finding LFV-1082 · Area: index / IndexWriter flush publishing (IndexWriter.publishFlushedSegments, IndexWriter.publishFlushedSegment, DocumentsWriterFlushQueue.innerPurge) · Priority: medium · Impact: data corruption · Novelty: known upstream
+Finding LFV-1082 · Area: index / IndexWriter flush publishing (IndexWriter.publishFlushedSegments, IndexWriter.publishFlushedSegment, DocumentsWriterFlushQueue.innerPurge) · Priority: medium · Impact: data corruption · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -10,8 +10,8 @@ You enable IndexWriter's InfoStream, add a document and commit, and the logging 
 
 ## Expected vs actual
 
-- Expected: You expect either the writer to close itself, as it does when the segment flush itself fails or a published delete packet fails to apply, or the next successful commit to contain every operation its returned sequence number covers.
-- Actual: The segment was already fully written and its flush ticket is removed from the queue whether or not it was published, so the segment never joins the index: the retried commit returns seqNo 5, above the addDocument's seqNo 2, yet the committed index has 0 documents.
+- Expected: After the failed `commit()` the writer has closed itself, or the next commit has 1 document.
+- Actual: `AssertionError: expected:<1> but was:<0>`: the writer stays open and the retried commit has 0 documents, assertions on and off.
 
 ## Files
 

@@ -1,6 +1,6 @@
 # SimpleWKTShapeParser.parse throws StackOverflowError instead of a result or its declared ParseException when GEOMETRYCOLLECTIONs nest a few thousand levels deep, valid or unterminated (10,000 levels, about 210 KB of text, on the default thread stack of the test machine; every release since 7.6.0)
 
-Finding LFV-954 · Area: core / geo WKT parsing (SimpleWKTShapeParser) · Priority: low · Impact: wrong error · Novelty: known upstream
+Finding LFV-954 · Area: core / geo WKT parsing (SimpleWKTShapeParser) · Priority: low · Impact: wrong error · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

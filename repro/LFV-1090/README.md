@@ -1,6 +1,6 @@
 # After addDocument fails with a non-tragic exception while an in-memory segment copies its backlog of buffered deletes and doc-values updates, the segment's next document resets its delete slice past the operations that were never applied, so IndexWriter stays open and the next successful commit silently lacks an acknowledged delete of a buffered document
 
-Finding LFV-1090 · Area: index / IndexWriter delete queue (DocumentsWriterPerThread.finishDocuments, DeleteSlice failure handling) · Priority: medium · Impact: data corruption · Novelty: known upstream
+Finding LFV-1090 · Area: index / IndexWriter delete queue (DocumentsWriterPerThread.finishDocuments, DeleteSlice failure handling) · Priority: medium · Impact: data corruption · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -10,8 +10,8 @@ You add a document to an IndexWriter, then send a long run of doc-values updates
 
 ## Expected vs actual
 
-- Expected: You expect either the writer to close itself or the next successful commit, whose sequence number is above the delete's, to reflect the delete.
-- Actual: The following addDocument finds no new deletes and resets the segment's delete slice past the operations the failed copy never reached, so the commit succeeds and the deleted document is still in the index.
+- Expected: The writer has closed itself after the failed `addDocument`, or the next commit has 0 hits for `id:buffered`.
+- Actual: `AssertionError: expected:<0> but was:<1>`: the commit (sequence number 2,200,005) still holds `buffered`, assertions on and off.
 
 ## Files
 

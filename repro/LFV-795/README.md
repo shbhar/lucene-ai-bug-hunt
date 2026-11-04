@@ -1,6 +1,6 @@
 # Tessellator rejects a valid polygon whose holes touch nothing, depending on the outer ring's start vertex, when an earlier hole's bridge continues an outer edge: isLocallyInside treats the resulting straight angle as never inside, so fetchHoleBridge cannot switch to the only correct copy of the bridge end (regression in 8.2.0)
 
-Finding LFV-795 · Area: geo / Tessellator hole bridges (fetchHoleBridge, isLocallyInside) behind LatLonShape and XYShape polygon indexing · Priority: low · Impact: crash · Novelty: known upstream
+Finding LFV-795 · Area: geo / Tessellator hole bridges (fetchHoleBridge, isLocallyInside) behind LatLonShape and XYShape polygon indexing · Priority: low · Impact: crash · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

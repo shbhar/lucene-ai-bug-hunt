@@ -1,6 +1,6 @@
 # A nested Intervals.ordered(a, a) or unordered(a, a) passes its inner gap up to its parent, so maxgaps(0, ordered(ordered(a, a), a)) misses 'a x a a' while maxgaps(0, ordered(ordered(a, b), a)) matches 'a x b a'
 
-Finding LFV-810 · Area: queries / intervals (a whole ordered/unordered of equal sub-sources nested in another operator: RepeatingIntervalsSource width(), Ordered/UnorderedIntervalsSource.deduplicate) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-810 · Area: queries / intervals (a whole ordered/unordered of equal sub-sources nested in another operator: RepeatingIntervalsSource width(), Ordered/UnorderedIntervalsSource.deduplicate) · Priority: medium · Impact: silent wrong results · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -10,8 +10,8 @@ You nest a repeated pair inside another interval operator, for example ordered(o
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Because the two arguments of the inner ordered(a, a) are equal, Lucene builds it as a RepeatingIntervalsSource whose width() is the sum of its two copies (2) rather than its span (3), so the parent counts the inner 'x' as its own gap (gaps 1) and maxgaps(0) silently drops the document.
+- Expected: 1 hit: `b` (position 3) directly follows the pair [0,2], so the parent interval [0,3] has 0 gaps.
+- Actual: 0 hits (`expected:<1> but was:<0>`) with assertions on and off: the parent reports gaps 1.
 
 ## Files
 

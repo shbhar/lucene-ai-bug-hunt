@@ -1,6 +1,6 @@
 # A ReferenceManager refresh that throws is reported to its refresh listeners as afterRefresh(false), the same signal as 'nothing changed', so ControlledRealTimeReopenThread.waitForGeneration returns true for a change the current searcher does not contain and LiveFieldValues drops the values it buffered
 
-Finding LFV-312 · Area: search / ReferenceManager refresh listeners (ControlledRealTimeReopenThread, LiveFieldValues) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-312 · Area: search / ReferenceManager refresh listeners (ControlledRealTimeReopenThread, LiveFieldValues) · Priority: low · Impact: silent wrong results · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

@@ -1,6 +1,6 @@
 # A deleteAll() that overlaps addIndexes clears the incoming fields from the writer's field schema, but addIndexes still publishes its segment, so a later document can give such a field another doc-values type and the committed index can no longer be opened by an IndexWriter
 
-Finding LFV-1074 · Area: index / IndexWriter addIndexes vs deleteAll (writer-wide field schema, FieldInfos.FieldNumbers) · Priority: medium · Impact: index unusable · Novelty: known upstream
+Finding LFV-1074 · Area: index / IndexWriter addIndexes vs deleteAll (writer-wide field schema, FieldInfos.FieldNumbers) · Priority: medium · Impact: index unusable · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -10,8 +10,8 @@ One thread imports an index with IndexWriter.addIndexes while another thread cal
 
 ## Expected vs actual
 
-- Expected: You expect the outcome of one of the two orders: either the imported documents are deleted, or they stay and their fields keep their doc-values types, and in both cases the committed index opens again in a new IndexWriter.
-- Actual: deleteAll can clear the imported fields from the writer's schema while addIndexes still publishes the imported segment, so a later document can give an imported field another doc-values type, the commit succeeds, and the next new IndexWriter on that index throws IllegalArgumentException ('cannot change field "f" from doc values type=NUMERIC to inconsistent doc values type=SORTED').
+- Expected: A new `IndexWriter` opens the committed index, which holds 1 document in either legal order.
+- Actual: `new IndexWriter(dir, new IndexWriterConfig())` throws `IllegalArgumentException: cannot change field "f" from doc values type=NUMERIC to inconsistent doc values type=SORTED`.
 
 ## Files
 

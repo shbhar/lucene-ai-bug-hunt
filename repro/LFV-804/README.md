@@ -1,6 +1,6 @@
 # UnifiedHighlighter throws MaxBytesLengthExceededException when a TermInSetQuery's toString() is longer than 32766 bytes (for example 886 UUID-like ids), because PassageScorer groups match labels in a BytesRefHash
 
-Finding LFV-804 · Area: highlighter / UnifiedHighlighter passage scoring (PassageScorer match labels) · Priority: medium · Impact: crash · Novelty: known upstream
+Finding LFV-804 · Area: highlighter / UnifiedHighlighter passage scoring (PassageScorer match labels) · Priority: medium · Impact: crash · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

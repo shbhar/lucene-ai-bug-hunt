@@ -1,6 +1,6 @@
 # A new IndexWriter cannot open while a non-index file in the index directory is pending deletion, because IndexFileDeleter parses that file's name as a segment name (AssertionError 'wtf? file=...' with -ea; NumberFormatException with -da for names such as app-notes.txt)
 
-Finding LFV-625 · Area: index / IndexFileDeleter start-up (inflateGens) with FSDirectory pending deletions · Priority: low · Impact: crash · Novelty: known upstream
+Finding LFV-625 · Area: index / IndexFileDeleter start-up (inflateGens) with FSDirectory pending deletions · Priority: low · Impact: crash · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

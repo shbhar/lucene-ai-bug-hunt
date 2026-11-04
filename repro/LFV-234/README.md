@@ -1,6 +1,6 @@
 # GroupingSearch.setIgnoreDocsWithoutGroupField(true) is applied only to the first pass, so totalGroupCount, getAllMatchingGroups() and getAllGroupHeads() still include the null group
 
-Finding LFV-234 · Area: grouping / GroupingSearch (all-groups and all-group-heads passes) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-234 · Area: grouping / GroupingSearch (all-groups and all-group-heads passes) · Priority: medium · Impact: silent wrong results · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

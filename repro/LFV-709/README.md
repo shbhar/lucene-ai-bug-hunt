@@ -1,6 +1,6 @@
 # smartcn: the double-hashing step of BigramDictionary (AbstractDictionary.hash2, an operator-precedence slip) is 0 for some Chinese word + ASCII or Latin-1 punctuation pairs, so each such bigram lookup re-reads one slot 402,136 times (about 0.7 ms instead of about 0.1 us) and SmartChineseAnalyzer analyzes ordinary prose 2-7x slower and text dense in such pairs 67x-174x slower, with unchanged tokens
 
-Finding LFV-709 · Area: analysis-smartcn / HHMM segmenter bigram dictionary (BigramDictionary.getBigramItemIndex, AbstractDictionary.hash2; reached through SmartChineseAnalyzer and HMMChineseTokenizer) · Priority: medium · Impact: minor · Novelty: known upstream
+Finding LFV-709 · Area: analysis-smartcn / HHMM segmenter bigram dictionary (BigramDictionary.getBigramItemIndex, AbstractDictionary.hash2; reached through SmartChineseAnalyzer and HMMChineseTokenizer) · Priority: medium · Impact: minor · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

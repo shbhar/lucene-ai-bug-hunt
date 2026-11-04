@@ -1,6 +1,6 @@
 # FreeTextSuggester.lookup throws AssertionError (-ea) or NullPointerException (-da) when a word the analyzer removed (a stop word) comes right before the key's last word, because it reads the count of the filler-only context '_', which the n-gram model never stores (lookup('the w') with the default constructor and EnglishAnalyzer)
 
-Finding LFV-662 · Area: suggest / FreeTextSuggester (n-gram model built with ShingleFilter; lookup context counts after analysis holes) · Priority: medium · Impact: crash · Novelty: known upstream
+Finding LFV-662 · Area: suggest / FreeTextSuggester (n-gram model built with ShingleFilter; lookup context counts after analysis holes) · Priority: medium · Impact: crash · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

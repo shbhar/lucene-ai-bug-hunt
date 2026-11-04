@@ -1,6 +1,6 @@
 # Closing a clone or full-length slice of a multi-chunk MMapDirectory input nulls the MemorySegment[] it shares with the original and other clones, which then fail with NullPointerException
 
-Finding LFV-128 · Area: store / MMapDirectory (MemorySegmentIndexInput clone, slice and close) · Priority: medium · Impact: crash · Novelty: known upstream
+Finding LFV-128 · Area: store / MMapDirectory (MemorySegmentIndexInput clone, slice and close) · Priority: medium · Impact: crash · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

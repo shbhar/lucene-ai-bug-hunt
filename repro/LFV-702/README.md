@@ -1,6 +1,6 @@
 # KoreanPartOfSpeechStopFilterFactory's class javadoc example tags="E,J" fails with IllegalArgumentException ('No enum constant org.apache.lucene.analysis.ko.POS.Tag.E') since 10.0.0: GITHUB#11778 replaced the POS tags E and J with fine-grained tags and updated the factory test, but not the javadoc example, and no CHANGES or MIGRATE note survives (documentation defect; the tag change is intended)
 
-Finding LFV-702 · Area: analysis-nori / KoreanPartOfSpeechStopFilterFactory (javadoc example of the stop tags) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-702 · Area: analysis-nori / KoreanPartOfSpeechStopFilterFactory (javadoc example of the stop tags) · Priority: low · Impact: minor · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

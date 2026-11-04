@@ -1,6 +1,6 @@
 # FunctionRangeQuery over a double or float source drops -Infinity / +Infinity documents when an omitted (null) bound is marked exclusive ({* TO x] or [x TO *}), while int, long, enum and string sources treat an omitted bound as unbounded
 
-Finding LFV-416 · Area: queries / function queries (FunctionRangeQuery range scorers: DoubleDocValues.getRangeScorer and the float default FunctionValues.getRangeScorer) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-416 · Area: queries / function queries (FunctionRangeQuery range scorers: DoubleDocValues.getRangeScorer and the float default FunctionValues.getRangeScorer) · Priority: low · Impact: silent wrong results · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

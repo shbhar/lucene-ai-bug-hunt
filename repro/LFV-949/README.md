@@ -1,6 +1,6 @@
 # Polygon.fromGeoJSON throws StackOverflowError instead of returning the polygon or its declared ParseException when JSON arrays or objects nest thousands of levels deep, even inside a valid Feature's properties (10,000 levels, about 20 KB of text, on the default thread stack of the test machine; every release since 6.2.0)
 
-Finding LFV-949 · Area: core / geo GeoJSON parsing (Polygon.fromGeoJSON, SimpleGeoJSONPolygonParser) · Priority: low · Impact: wrong error · Novelty: known upstream
+Finding LFV-949 · Area: core / geo GeoJSON parsing (Polygon.fromGeoJSON, SimpleGeoJSONPolygonParser) · Priority: low · Impact: wrong error · Novelty: known outside Lucene
 
 Finding page: [../../bugs/LFV-949.html](../../bugs/LFV-949.html)
 

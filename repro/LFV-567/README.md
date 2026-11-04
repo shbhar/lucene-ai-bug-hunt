@@ -1,6 +1,6 @@
 # FunctionQuery, FunctionRangeQuery and ValueSource sort fields share one non-thread-safe context map across the slices of an executor search, and scale() (ScaleFloatFunction) writes to it during the search, so when that write grows the map the search throws NullPointerException or silently returns different scores
 
-Finding LFV-567 · Area: queries / function queries (ValueSource context map under concurrent search) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-567 · Area: queries / function queries (ValueSource context map under concurrent search) · Priority: low · Impact: silent wrong results · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

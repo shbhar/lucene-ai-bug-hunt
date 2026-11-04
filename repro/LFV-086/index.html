@@ -18,12 +18,13 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>FieldExistsQuery#count undercounts documents whose norms-free text field analyzes to no tokens but still has a doc value, so IndexSearcher#count is too low</h1>
-<p class="facts small"><span>Finding LFV-086</span><span>Area: search / FieldExistsQuery count</span><span>Priority: medium</span><span>Impact: silent wrong results</span><span>Novelty: known upstream</span></p>
+<p class="facts small"><span>Finding LFV-086</span><span>Area: search / FieldExistsQuery count</span><span>Priority: medium</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-086.html">Finding page for LFV-086</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index a text field with norms turned off together with a doc-values field of the same name, some document&#x27;s text analyzes to no tokens (for example an empty string), and you call IndexSearcher#count(new FieldExistsQuery(field)). You expect the count to equal the number of documents the query returns, because the query matches every document that has a doc value. Instead, on a segment without deletions, Weight#count returns Terms#getDocCount, which counts only documents with at least one term, so the count is 1 for 2 hits, or 0 for 1 hit when no document in the segment has a term.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect the count to equal the number of documents the query returns, because the query matches every document that has a doc value.</li><li><b>Actual:</b> On a segment without deletions, Weight#count returns Terms#getDocCount, which counts only documents with at least one term, so the count is 1 for 2 hits, or 0 for 1 hit when no document in the segment has a term.</li></ul>
+<ul><li><b>Expected:</b> <code>searcher.count(new FieldExistsQuery(&quot;title&quot;))</code> is 2, the number of hits.</li><li><b>Actual:</b> <code>count</code> is 1 (<code>expected:&lt;2&gt; but was:&lt;1&gt;</code>) while the search returns 2 hits.</li></ul>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/search/TestFieldExistsCountZeroTokenDocs.java"><code>src/org/apache/lucene/search/TestFieldExistsCountZeroTokenDocs.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
@@ -46,5 +47,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.search.TestFieldExistsCountZeroTokenDocs</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
+<h2>Files shown on the finding page</h2><ul><li><a href="TestFieldExistsQueryCountNoTokens.java"><code>TestFieldExistsQueryCountNoTokens.java</code></a></li></ul>
 <p>Formal models and scripts this finding's part of the hunt used: <a href="../../models/count-totalhits/index.html">count-totalhits</a></p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-03. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-04. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

@@ -1,6 +1,6 @@
 # FastVectorHighlighter drops a match at a position that holds stacked tokens (index-time synonyms, stems) when the token that sorts first there starts a query phrase that does not continue: FieldPhraseList tries only the first stacked token with any query-map entry, so dogs OR "dog house" on 'my dogs' (synonym dog stacked on dogs) highlights nothing (a LUCENE-5538 regression, 4.7.1 on)
 
-Finding LFV-832 · Area: highlighter / vectorhighlight FieldPhraseList and FieldTermStack (FastVectorHighlighter phrase search over stacked tokens) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-832 · Area: highlighter / vectorhighlight FieldPhraseList and FieldTermStack (FastVectorHighlighter phrase search over stacked tokens) · Priority: medium · Impact: silent wrong results · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

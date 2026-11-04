@@ -1,6 +1,6 @@
 # Since 9.12.0 the default postings writer stores the byte length of a level-1 block's competitive impacts in a signed short, so with a custom Similarity whose norms do not fit in a byte, a term with 8,192 or more postings in one segment (4,096 before 10.4) can need more than 32,767 bytes: flush fails an assertion with -ea, and with -da the segment is written but that term's postings then throw on every read or are read back wrong
 
-Finding LFV-183 · Area: codecs / postings writer and reader (Lucene104 level-1 skip data, ImpactLength; the same field in the Lucene912, Lucene101 and Lucene103 formats) · Priority: medium · Impact: data corruption · Novelty: known upstream
+Finding LFV-183 · Area: codecs / postings writer and reader (Lucene104 level-1 skip data, ImpactLength; the same field in the Lucene912, Lucene101 and Lucene103 formats) · Priority: medium · Impact: data corruption · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -10,8 +10,8 @@ You index with the default codec and a custom Similarity whose norm is the field
 
 ## Expected vs actual
 
-- Expected: You expect the term's postings to read back exactly as indexed.
-- Actual: The writer stores the length of the level-1 skip block's impact list, which here exceeds 32,767 bytes, in a signed short: with assertions on, flush fails; with assertions off, the segment is written and every read of the term throws 'numBytes must be &gt;= 0', or, with wider norms, decodes wrong data (doc 0 with freq 1,602,871,807 instead of 1,000, and most documents missing).
+- Expected: 8,192 postings read back, doc i with freq 1 + 8,193 x i.
+- Actual: Assertions on: `AssertionError` at `Lucene104PostingsWriter.java:524` during flush; off: the first `nextDoc()` throws `numBytes must be >= 0, got -16389`.
 
 ## Files
 

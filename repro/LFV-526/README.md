@@ -1,6 +1,6 @@
 # SimplePatternTokenizer's String constructors do not determinize the regexp (and ignore determinizeWorkLimit), so valid patterns such as ab|ac or http|https throw 'please determinize the incoming automaton first'
 
-Finding LFV-526 · Area: analysis-common / pattern tokenizers (SimplePatternTokenizer String constructors) · Priority: medium · Impact: crash · Novelty: known upstream
+Finding LFV-526 · Area: analysis-common / pattern tokenizers (SimplePatternTokenizer String constructors) · Priority: medium · Impact: crash · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

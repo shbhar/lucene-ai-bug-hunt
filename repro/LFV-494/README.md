@@ -1,6 +1,6 @@
 # UnifiedHighlighter with LengthGoalBreakIterator on a multi-valued field: a passage in a later value starts at the U+0000 value separator
 
-Finding LFV-494 · Area: highlighter / UnifiedHighlighter break iterators (LengthGoalBreakIterator#preceding under the SplittingBreakIterator that UnifiedHighlighter puts around every field's iterator, multi-valued fields) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-494 · Area: highlighter / UnifiedHighlighter break iterators (LengthGoalBreakIterator#preceding under the SplittingBreakIterator that UnifiedHighlighter puts around every field's iterator, multi-valued fields) · Priority: low · Impact: minor · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

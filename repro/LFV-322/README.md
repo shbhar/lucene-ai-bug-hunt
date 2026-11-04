@@ -1,6 +1,6 @@
 # Monitor with RegexpQueryHandler silently misses matching RegexpQuery queries, because the handler indexes each one under a fragment of its pattern text (for example 'cat|dog', 'colou' or '?mail') that matching terms do not contain
 
-Finding LFV-322 · Area: monitor / presearcher (RegexpQueryHandler custom query handler) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-322 · Area: monitor / presearcher (RegexpQueryHandler custom query handler) · Priority: medium · Impact: silent wrong results · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

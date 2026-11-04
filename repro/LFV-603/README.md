@@ -1,6 +1,6 @@
 # KoreanTokenizer gives the parts of a decompounded word offsets counted back from the end of the word while their text is cut from the start of the word, so when the parts do not cover the whole word (a user-dictionary entry with a shorter segmentation such as '세종시 세종', or 7 compounds of the bundled dictionary such as 픽토그램) the offsets point at other characters (픽토 at [1,3) covers '토그')
 
-Finding LFV-603 · Area: analysis / nori KoreanTokenizer (Viterbi decompound backtrace; UserDictionary and bundled-dictionary compounds) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-603 · Area: analysis / nori KoreanTokenizer (Viterbi decompound backtrace; UserDictionary and bundled-dictionary compounds) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

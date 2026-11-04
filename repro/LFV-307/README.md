@@ -1,6 +1,6 @@
 # MappingCharFilterFactory throws ArrayIndexOutOfBoundsException ('Index 256 out of bounds for length 256') when a mapping rule's source or target is longer than 256 characters, because it unescapes every rule string into a fixed char[256] buffer, so the analyzer cannot be built
 
-Finding LFV-307 · Area: analysis / char filters (MappingCharFilterFactory mapping-file parser) · Priority: low · Impact: wrong error · Novelty: known upstream
+Finding LFV-307 · Area: analysis / char filters (MappingCharFilterFactory mapping-file parser) · Priority: low · Impact: wrong error · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

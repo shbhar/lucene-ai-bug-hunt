@@ -1,6 +1,8 @@
 # Sequential DrillSideways lets a TOP_SCORES hit collector prune the shared base query, so drill-sideways facet counts silently miss matching documents
 
-Finding LFV-789 · Area: facet / DrillSideways (sequential query-first scoring: score mode of the base weight and the scorable handed to the hit collector) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-789 · Area: facet / DrillSideways (sequential query-first scoring: score mode of the base weight and the scorable handed to the hit collector) · Priority: medium · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-789.html](../../bugs/LFV-789.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -10,8 +12,8 @@ You run a sequential DrillSideways search (no executor) with a filter-style base
 
 ## Expected vs actual
 
-- Expected: You expect the drill-sideways counts for color to include every document that matches the base query (75 in the repro), as the same search does with an exhaustive hit collector or with the concurrent DrillSideways.
-- Actual: The counts are silently too low (11, or 1001 instead of 2250 at threshold 1000): the base query is scored with the hit collector's TOP_SCORES mode and its scorer is handed to the hit collector, whose min-competitive-score updates make the shared base iteration skip documents that the sideways collectors then never see; the top hits are correct.
+- Expected: The sideways color counts include every shoe: red 75, blue 75.
+- Actual: `ComparisonFailure: sideways color counts red/blue expected:<[75/75]> but was:<[11/10]>`.
 
 ## Files
 
@@ -51,6 +53,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestDrillSidewaysTopScoresHitCollector.java](TestDrillSidewaysTopScoresHitCollector.java)
 
 ## Feedback
 

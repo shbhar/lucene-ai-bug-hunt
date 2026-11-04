@@ -1,6 +1,6 @@
 # PayloadScoreQuery built with includeSpanScore=false ignores every positive query boost (BoostQuery, boosted BooleanQuery clauses, boosts propagated by parent queries): the score stays the bare payload function value, so the clause gets the wrong weight and ranking
 
-Finding LFV-470 · Area: queries / payloads (PayloadScoreQuery scoring with includeSpanScore=false) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-470 · Area: queries / payloads (PayloadScoreQuery scoring with includeSpanScore=false) · Priority: medium · Impact: silent wrong results · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

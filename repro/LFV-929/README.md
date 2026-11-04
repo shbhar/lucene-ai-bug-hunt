@@ -1,6 +1,6 @@
 # WordDelimiterGraphFilterFactory (and the deprecated WordDelimiterFilterFactory) throw a java.util.NoSuchElementException with no message from inform() when the 'types' file holds no rule (empty, only comment or blank lines, or a sole '# =&gt; ...' rule that the loader drops as a comment), because parseTypes calls TreeMap.lastKey() on the empty rule map
 
-Finding LFV-929 · Area: analysis / WordDelimiterGraphFilterFactory and WordDelimiterFilterFactory types option (parseTypes) versus the getLines resource-file format · Priority: low · Impact: crash · Novelty: known upstream
+Finding LFV-929 · Area: analysis / WordDelimiterGraphFilterFactory and WordDelimiterFilterFactory types option (parseTypes) versus the getLines resource-file format · Priority: low · Impact: crash · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

@@ -1,6 +1,6 @@
 # MutableValueFloat and MutableValueDouble equals() compare with ==, so a NaN value is not equal to itself and grouping by a float or double function puts NaN documents into empty groups (4.0.0 to 10.5.2) or throws IllegalArgumentException (main and, by reading, 10.6.0)
 
-Finding LFV-427 · Area: grouping / function grouping (core util.mutable: MutableValueFloat and MutableValueDouble equality) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-427 · Area: grouping / function grouping (core util.mutable: MutableValueFloat and MutableValueDouble equality) · Priority: low · Impact: silent wrong results · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

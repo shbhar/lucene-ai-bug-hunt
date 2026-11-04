@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- FieldExistsQuery#count undercounts documents whose norms-free text field analyzes to no tokens but still has a doc value, so IndexSearcher#count is too low (finding LFV-086; [repro](../../repro/LFV-086/))
+- FieldExistsQuery#count undercounts documents whose norms-free text field analyzes to no tokens but still has a doc value, so IndexSearcher#count is too low (finding LFV-086; [repro](../../repro/LFV-086/), [finding page](../../bugs/LFV-086.html))
 
 ## Files
 

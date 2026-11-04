@@ -1,6 +1,6 @@
 # GroupingSearch#search never rewrites its group sort or within-group sort against the searcher, unlike IndexSearcher#search(Query, int, Sort): sorts that need a rewrite throw, and a legacy query() function sort silently orders groups, group documents and group heads with the default Similarity
 
-Finding LFV-816 · Area: grouping / GroupingSearch (convenience API) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-816 · Area: grouping / GroupingSearch (convenience API) · Priority: medium · Impact: silent wrong results · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

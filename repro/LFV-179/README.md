@@ -1,6 +1,6 @@
 # FilterMergePolicy.getSizeUnit() returns BYTES instead of the wrapped policy's unit, so a wrapped LogDocMergePolicy makes compound-file decisions against the byte threshold and forceMerge(1) rewrites an already merged segment every time
 
-Finding LFV-179 · Area: index / merge policies (FilterMergePolicy size unit, compound-file threshold) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-179 · Area: index / merge policies (FilterMergePolicy size unit, compound-file threshold) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

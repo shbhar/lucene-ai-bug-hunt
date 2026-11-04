@@ -1,6 +1,6 @@
 # IndexWriter.deleteAll can deadlock with a concurrent flush publish and a concurrent tryDeleteDocument or addIndexes, because DocumentsWriter.lockAndAbortAll waits for the flush-ticket purge lock while holding the DocumentsWriter monitor
 
-Finding LFV-1137 · Area: index / IndexWriter deleteAll (IndexWriter-DocumentsWriter lock order) · Priority: medium · Impact: hang · Novelty: known upstream
+Finding LFV-1137 · Area: index / IndexWriter deleteAll (IndexWriter-DocumentsWriter lock order) · Priority: medium · Impact: hang · Novelty: new
 
 Finding page: [../../bugs/LFV-1137.html](../../bugs/LFV-1137.html)
 

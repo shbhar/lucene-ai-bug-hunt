@@ -1,6 +1,6 @@
 # RegExp builds an automaton that doubles with every stacked '+' ('ab' followed by n '+' gives 2^n+2 states for the 3-state language ab+), a 10.0 regression that exhausts a 1 GB heap at about 20 '+'
 
-Finding LFV-364 · Area: util / automaton (RegExp, Operations.repeat; reached from RegexpQuery and the classic and flexible query parsers) · Priority: low · Impact: crash · Novelty: known upstream
+Finding LFV-364 · Area: util / automaton (RegExp, Operations.repeat; reached from RegexpQuery and the classic and flexible query parsers) · Priority: low · Impact: crash · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

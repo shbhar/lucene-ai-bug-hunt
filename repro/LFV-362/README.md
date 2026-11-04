@@ -1,6 +1,6 @@
 # BloomFilteringPostingsFormat's default filter silently stops filtering for segments of 226,279,579 docs or more: FuzzySet.createOptimalSet computes 2 * setSize in int, which wraps negative and yields a 64-bit filter with zero hash functions that answers MAYBE for every key (released since 9.6.0)
 
-Finding LFV-362 · Area: codecs / bloom (BloomFilteringPostingsFormat, DefaultBloomFilterFactory, FuzzySet sizing) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-362 · Area: codecs / bloom (BloomFilteringPostingsFormat, DefaultBloomFilterFactory, FuzzySet sizing) · Priority: low · Impact: minor · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

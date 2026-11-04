@@ -1,6 +1,6 @@
 # Default points format: after a PointTree visits a leaf and moves back to its parent, the next visitDocIDs, visitDocValues or moveToChild there fails an assertion in BKDReader (only with -ea; results are correct with -da)
 
-Finding LFV-761 · Area: util / BKD points (BKDReader.BKDPointTree navigation: visitDocIDs/visitDocValues on a leaf reset the inner-node input; default points format) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-761 · Area: util / BKD points (BKDReader.BKDPointTree navigation: visitDocIDs/visitDocValues on a leaf reset the inner-node input; default points format) · Priority: low · Impact: minor · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

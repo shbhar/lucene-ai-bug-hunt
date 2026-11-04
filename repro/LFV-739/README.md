@@ -1,6 +1,6 @@
 # UAX29URLEmailTokenizer ends a URL token at the first $ + ! * ' ( ) or , in the URL path, although both RFCs its grammar cites allow these characters there, so URLs such as https://en.wikipedia.org/wiki/Python_(programming_language) or http://example.com/a+b/c are split
 
-Finding LFV-739 · Area: analysis / UAX29URLEmailTokenizer JFlex URL rules (path segments of http(s), scheme-less, ftp and file URLs; analysis-common) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-739 · Area: analysis / UAX29URLEmailTokenizer JFlex URL rules (path segments of http(s), scheme-less, ftp and file URLs; analysis-common) · Priority: medium · Impact: silent wrong results · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

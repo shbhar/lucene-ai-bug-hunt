@@ -1,6 +1,6 @@
 # RussianAnalyzer does not remove its default stop words when they are written with ё (её, ещё, всё, неё, чём): its StopFilter runs before the stemmer folds ё to е, although the bundled stop list says ё is translated to е
 
-Finding LFV-918 · Area: analysis-common / Russian analyzer default stop words (RussianAnalyzer, snowball/russian_stop.txt; interaction with the Snowball RussianStemmer's ё-to-е fold) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-918 · Area: analysis-common / Russian analyzer default stop words (RussianAnalyzer, snowball/russian_stop.txt; interaction with the Snowball RussianStemmer's ё-to-е fold) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

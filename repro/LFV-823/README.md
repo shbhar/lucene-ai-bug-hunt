@@ -1,6 +1,6 @@
 # IndexWriter.deleteDocuments(Query...) and updateDocuments(Query, ...) do not document that the query runs only when the buffered delete is applied later, or that an exception it throws then (for example a PhraseQuery or FieldExistsQuery on a StringField, or TooManyClauses from an interval prefix once more than 128 terms match) closes the IndexWriter and discards every change since the last commit (documentation defect; the close itself is an intended fail-safe)
 
-Finding LFV-823 · Area: index / IndexWriter delete-by-query (deleteDocuments(Query...) and updateDocuments(Query, ...) javadoc and class NOTE vs deferred application in FrozenBufferedUpdates and the applyUpdatesPacket tragic close) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-823 · Area: index / IndexWriter delete-by-query (deleteDocuments(Query...) and updateDocuments(Query, ...) javadoc and class NOTE vs deferred application in FrozenBufferedUpdates and the applyUpdatesPacket tragic close) · Priority: low · Impact: minor · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

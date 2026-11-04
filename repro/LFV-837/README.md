@@ -1,6 +1,6 @@
 # IndexWriter buffers the first doc-values update of each field twice in every buffered-updates packet (BufferedUpdates adds again the update that FieldUpdatesBuffer's constructor already recorded), so that update is RAM-accounted twice and, except on the all-same-value numeric path, applied twice to every matching document (since 7.7.0, LUCENE-8590)
 
-Finding LFV-837 · Area: index / buffered doc-values updates (BufferedUpdates, FieldUpdatesBuffer, FrozenBufferedUpdates) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-837 · Area: index / buffered doc-values updates (BufferedUpdates, FieldUpdatesBuffer, FrozenBufferedUpdates) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

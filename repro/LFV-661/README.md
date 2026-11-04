@@ -1,6 +1,6 @@
 # FreeTextSuggester.decodeWeight casts n-gram counts to int, so a word or context seen more than Integer.MAX_VALUE times gets a negative or wrapped count: lookup returns scores outside the documented 0.0 to 1.0 range and can rank the most frequent word last
 
-Finding LFV-661 · Area: suggest / FreeTextSuggester (n-gram counts stored as long FST outputs; lookup-side decode) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-661 · Area: suggest / FreeTextSuggester (n-gram counts stored as long FST outputs; lookup-side decode) · Priority: low · Impact: silent wrong results · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

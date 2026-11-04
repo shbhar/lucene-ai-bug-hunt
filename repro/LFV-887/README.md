@@ -1,6 +1,6 @@
 # GradientFormatter and SpanGradientFormatter reverse the colour gradient on every channel where the min colour is larger than the max colour, so with the javadoc's own white-to-black example the top-scoring term is drawn white
 
-Finding LFV-887 · Area: highlighter / classic Highlighter formatters (GradientFormatter, SpanGradientFormatter) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-887 · Area: highlighter / classic Highlighter formatters (GradientFormatter, SpanGradientFormatter) · Priority: low · Impact: minor · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

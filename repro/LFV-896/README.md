@@ -1,6 +1,6 @@
 # OpenStringBuilder.write(OpenStringBuilder arr) copies as many chars as this builder's own length instead of arr's length, so it appends nothing, appends chars from arr's buffer past arr's end (NULs or stale earlier content), or throws ArrayIndexOutOfBoundsException
 
-Finding LFV-896 · Area: analysis-common / util OpenStringBuilder (public char-buffer helper; in-tree users KStemmer and HTMLStripCharFilter) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-896 · Area: analysis-common / util OpenStringBuilder (public char-buffer helper; in-tree users KStemmer and HTMLStripCharFilter) · Priority: low · Impact: silent wrong results · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

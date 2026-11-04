@@ -1,6 +1,6 @@
 # BengaliAnalyzer never removes 13 of its 116 default stop words (e.g. কারণ, শুধু, মধ্যে, অন্য) because its StopFilter runs after Indic/Bengali normalization while the bundled stopwords.txt has only unnormalized spellings
 
-Finding LFV-672 · Area: analysis-common / Bengali analyzer default stop words (BengaliAnalyzer, bn/stopwords.txt; interaction with IndicNormalizationFilter and BengaliNormalizationFilter) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-672 · Area: analysis-common / Bengali analyzer default stop words (BengaliAnalyzer, bn/stopwords.txt; interaction with IndicNormalizationFilter and BengaliNormalizationFilter) · Priority: low · Impact: minor · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

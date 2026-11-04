@@ -1,6 +1,6 @@
 # Default UnifiedHighlighter (WEIGHT_MATCHES) returns no highlights for a block-join hit when the join's inner query uses the highlighted field, because Weight#matches runs on an overlay reader whose highlighted field holds only the hit document
 
-Finding LFV-505 · Area: highlighter / UnifiedHighlighter WEIGHT_MATCHES path (FieldOffsetStrategy, OverlaySingleDocTermsLeafReader) with block-join queries · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-505 · Area: highlighter / UnifiedHighlighter WEIGHT_MATCHES path (FieldOffsetStrategy, OverlaySingleDocTermsLeafReader) with block-join queries · Priority: medium · Impact: silent wrong results · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

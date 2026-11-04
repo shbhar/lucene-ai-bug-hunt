@@ -1,6 +1,6 @@
 # IndriAndQuery accepts MUST, FILTER and MUST_NOT clauses without complaint but ignores them when matching (it always matches the union of all clauses), while its explain does read MUST/FILTER, so it explains some of its own hits as non-matches
 
-Finding LFV-871 · Area: search / IndriAndQuery (clause Occur handling in matching and explain) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-871 · Area: search / IndriAndQuery (clause Occur handling in matching and explain) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

@@ -1,6 +1,6 @@
 # PerFieldDocValuesFormat and PerFieldKnnVectorsFormat accept a per-field hook that returns another per-field format (for example the default codec's docValuesFormat() or knnVectorsFormat()); the nested writer overwrites the outer per-field attributes, so the committed segment cannot be opened, while PerFieldPostingsFormat rejects the same configuration
 
-Finding LFV-256 · Area: codecs / per-field doc values and vectors formats (PerFieldDocValuesFormat, PerFieldKnnVectorsFormat attribute bookkeeping) · Priority: medium · Impact: index unusable · Novelty: known upstream
+Finding LFV-256 · Area: codecs / per-field doc values and vectors formats (PerFieldDocValuesFormat, PerFieldKnnVectorsFormat attribute bookkeeping) · Priority: medium · Impact: index unusable · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

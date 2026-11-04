@@ -1,6 +1,6 @@
 # MoreLikeThisQuery ignores its moreLikeFields and searches only fieldName, so the XML parser's &lt;LikeThisQuery fieldNames="a,b"&gt; searches only the first field (documents similar through the other fields are silently missed, every release since 6.1.0)
 
-Finding LFV-556 · Area: queries / mlt (MoreLikeThisQuery.rewrite over MoreLikeThis.like(String, Reader...)) x queryparser / xml (LikeThisQueryBuilder) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-556 · Area: queries / mlt (MoreLikeThisQuery.rewrite over MoreLikeThis.like(String, Reader...)) x queryparser / xml (LikeThisQueryBuilder) · Priority: medium · Impact: silent wrong results · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

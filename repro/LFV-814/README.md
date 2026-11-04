@@ -1,6 +1,6 @@
 # FacetsCollectorManager#search/searchAfter with a Sort and DrillSideways#search(..., Sort, ...) never call Sort#rewrite(searcher), so a query-dependent sort returns a different hit order than IndexSearcher#search(query, n, sort) or throws
 
-Finding LFV-814 · Area: facet / sorted-search helpers (FacetsCollectorManager static search/searchAfter, DrillSideways sorted search) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-814 · Area: facet / sorted-search helpers (FacetsCollectorManager static search/searchAfter, DrillSideways sorted search) · Priority: medium · Impact: silent wrong results · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

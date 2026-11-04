@@ -1,6 +1,6 @@
 # Default UnifiedHighlighter (WEIGHT_MATCHES) rewrites the query again on its own per-leaf or one-document reader, so statistics-dependent queries such as CommonTermsQuery lose their highlights
 
-Finding LFV-516 · Area: highlighter / UnifiedHighlighter WEIGHT_MATCHES path (FieldOffsetStrategy) with statistics-dependent query rewrites (CommonTermsQuery, MoreLikeThisQuery) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-516 · Area: highlighter / UnifiedHighlighter WEIGHT_MATCHES path (FieldOffsetStrategy) with statistics-dependent query rewrites (CommonTermsQuery, MoreLikeThisQuery) · Priority: medium · Impact: silent wrong results · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

@@ -1,6 +1,6 @@
 # FastVectorHighlighter with fragCharSize = Integer.MAX_VALUE (or any value above Integer.MAX_VALUE - spanStart) returns the whole field with only the first match highlighted: BaseFragListBuilder computes spanStart + fragCharSize in int, the sum wraps negative, and every later match is silently dropped (SimpleFragListBuilder, the default, and WeightedFragListBuilder)
 
-Finding LFV-401 · Area: highlighter / vectorhighlight BaseFragListBuilder (FastVectorHighlighter, SimpleFragListBuilder, WeightedFragListBuilder) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-401 · Area: highlighter / vectorhighlight BaseFragListBuilder (FastVectorHighlighter, SimpleFragListBuilder, WeightedFragListBuilder) · Priority: low · Impact: silent wrong results · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

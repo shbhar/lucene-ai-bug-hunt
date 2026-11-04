@@ -1,6 +1,6 @@
 # Test-framework ForceMergePolicy, documented as 'only returns forced merges', still lets the wrapped policy's natural merges run on commit() and NRT reopen, because it inherits FilterMergePolicy's forwarding of findFullFlushMerges (regression since 9.3.0)
 
-Finding LFV-576 · Area: test-framework / merge policies (ForceMergePolicy; FilterMergePolicy forwarding of MergePolicy.findFullFlushMerges for merge-on-commit and merge-on-getReader) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-576 · Area: test-framework / merge policies (ForceMergePolicy; FilterMergePolicy forwarding of MergePolicy.findFullFlushMerges for merge-on-commit and merge-on-getReader) · Priority: low · Impact: minor · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

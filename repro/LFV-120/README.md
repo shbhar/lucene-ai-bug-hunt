@@ -1,6 +1,6 @@
 # Opening an index created by a newer Lucene major throws IllegalArgumentException ('indexCreatedVersionMajor is in the future') instead of IndexFormatTooNewException
 
-Finding LFV-120 · Area: index / SegmentInfos commit read (forward version check) · Priority: low · Impact: wrong error · Novelty: known upstream
+Finding LFV-120 · Area: index / SegmentInfos commit read (forward version check) · Priority: low · Impact: wrong error · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

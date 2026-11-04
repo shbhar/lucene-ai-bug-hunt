@@ -1,6 +1,6 @@
 # TermInSetQuery#visit gives QueryVisitor an automaton supplier that throws IllegalArgumentException when any term is longer than 1000 bytes, so UnifiedHighlighter without WEIGHT_MATCHES fails on such a query
 
-Finding LFV-808 · Area: search / TermInSetQuery visitor (consumeTermsMatching automaton supplier over the util/automaton string-union builder's 1000-byte term limit), reached from highlighter / UnifiedHighlighter without WEIGHT_MATCHES · Priority: low · Impact: crash · Novelty: known upstream
+Finding LFV-808 · Area: search / TermInSetQuery visitor (consumeTermsMatching automaton supplier over the util/automaton string-union builder's 1000-byte term limit), reached from highlighter / UnifiedHighlighter without WEIGHT_MATCHES · Priority: low · Impact: crash · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

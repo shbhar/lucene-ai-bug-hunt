@@ -1,6 +1,6 @@
 # Hyphenation grammars whose TernaryTree key array grows past 65,535 chars load without error but silently lose or corrupt patterns, because TernaryTree stores key-array offsets in 16-bit chars (the Norwegian OFFO grammars the Lucene docs point to: nb/nn 1,158 of 27,448 patterns wrong, 1.2 no.xml 309 of 26,017)
 
-Finding LFV-897 · Area: analysis-common / compound hyphenation (TernaryTree insert and compact via HyphenationTree.loadPatterns and HyphenationCompoundWordTokenFilter) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-897 · Area: analysis-common / compound hyphenation (TernaryTree insert and compact via HyphenationTree.loadPatterns and HyphenationCompoundWordTokenFilter) · Priority: medium · Impact: silent wrong results · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -10,8 +10,8 @@ You load a well-formed FOP-format hyphenation grammar with HyphenationCompoundWo
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
+- Expected: All 2,600 patterns return their values, `01` followed by 29 zeros.
+- Actual: 556 patterns lose their values (`expected:<0> but was:<556>`), and loading throws nothing.
 
 ## Files
 

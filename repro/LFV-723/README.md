@@ -1,6 +1,6 @@
 # Taxonomy facets never roll up a single-valued hierarchical dimension whose config comes from an overridden FacetsConfig#getDefaultDimConfig, so its dimension and non-leaf counts are 0 and getTopChildren returns null or partial results
 
-Finding LFV-723 · Area: facet / taxonomy facets (TaxonomyFacets#rollup dimension enumeration vs the overridable FacetsConfig default dimension config; FastTaxonomyFacetCounts, TaxonomyFacetFloatAssociations) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-723 · Area: facet / taxonomy facets (TaxonomyFacets#rollup dimension enumeration vs the overridable FacetsConfig default dimension config; FastTaxonomyFacetCounts, TaxonomyFacetFloatAssociations) · Priority: medium · Impact: silent wrong results · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -10,8 +10,8 @@ You subclass FacetsConfig so that every dimension without an explicit entry is h
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
+- Expected: `getTopChildren(10, "Publish Date")` gives value=3 childCount=2, 2010 (2), 2012 (1), as with an explicit `setHierarchical`.
+- Actual: It returns null: `expected:<[dim=Publish Date path=[] value=3 childCount=2 ...]> but was:<[null]>`.
 
 ## Files
 

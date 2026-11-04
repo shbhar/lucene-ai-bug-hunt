@@ -1,6 +1,6 @@
 # If commit() fails with an InfoStream exception after the pending segments file is synced, the commit's file references are released twice, so a later rollback() (or close() with commitOnClose=false) deletes files of the last commit and the index can no longer be opened
 
-Finding LFV-1083 · Area: index / IndexWriter commit failure handling (IndexWriter.startCommit, prepareCommitInternal and rollback; IndexFileDeleter reference counts) · Priority: medium · Impact: index unusable · Novelty: known upstream
+Finding LFV-1083 · Area: index / IndexWriter commit failure handling (IndexWriter.startCommit, prepareCommitInternal and rollback; IndexFileDeleter reference counts) · Priority: medium · Impact: index unusable · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -10,8 +10,8 @@ You enable an InfoStream on an IndexWriter, commit one document, add a second on
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: startCommit has kept the half-finished commit as its pending commit while prepareCommitInternal's catch has already released that commit's file references, and rollback() releases them a second time, so the file deleter removes _0.cfe, _0.cfs and _0.si, which segments_1 still needs.
+- Expected: `rollback()` returns the index to `segments_1`, and `DirectoryReader.open` sees 1 document.
+- Actual: `CorruptSegmentInfoException: _0.si cannot be read`, caused by `NoSuchFileException: _0.si` (assertions off); `AssertionError: RefCount is 0 pre-decrement for file "_1.cfs"` in `rollback()` (assertions on).
 
 ## Files
 

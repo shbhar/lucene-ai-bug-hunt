@@ -1,6 +1,6 @@
 # SpanishPluralStemmer's special-case list has the singular 'contrarreloj' where the plural 'contrarrelojes' belongs, so the singular is cut to 'contrarrel', the plural stems to 'contrarreloje', and the two forms never match
 
-Finding LFV-688 · Area: analysis-common / es (SpanishPluralStemmer special-case list, SpanishPluralStemFilter) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-688 · Area: analysis-common / es (SpanishPluralStemmer special-case list, SpanishPluralStemFilter) · Priority: low · Impact: silent wrong results · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

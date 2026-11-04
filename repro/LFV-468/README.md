@@ -1,6 +1,6 @@
 # The flat scalar-quantized vectors format (Lucene104ScalarQuantizedVectorsFormat) accepts BYTE vector fields but its byte search is a no-op, so unfiltered byte kNN and byte similarity queries return no hits
 
-Finding LFV-468 · Area: codecs / vectors (flat scalar-quantized format: byte kNN and byte similarity search) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-468 · Area: codecs / vectors (flat scalar-quantized format: byte kNN and byte similarity search) · Priority: low · Impact: silent wrong results · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

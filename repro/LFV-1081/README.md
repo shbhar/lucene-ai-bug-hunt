@@ -1,6 +1,6 @@
 # A failed addIndexes(CodecReader...) leaves the incoming fields registered in the writer's field schema, so later valid documents that use those names differently are rejected until the writer is reopened
 
-Finding LFV-1081 · Area: index / IndexWriter addIndexes(CodecReader...) merge (SegmentMerger) and the writer-wide field registry (FieldInfos.FieldNumbers) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-1081 · Area: index / IndexWriter addIndexes(CodecReader...) merge (SegmentMerger) and the writer-wide field registry (FieldInfos.FieldNumbers) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

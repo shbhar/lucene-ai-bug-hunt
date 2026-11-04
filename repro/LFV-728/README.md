@@ -1,6 +1,6 @@
 # SmartChineseAnalyzer indexes whitespace characters as terms: VERTICAL TAB, FORM FEED, OGHAM SPACE MARK and the eleven spaces U+2000-U+200A (EN QUAD to HAIR SPACE, among them EN, EM and THIN SPACE) each become a one-character term, because Utility.getCharType classifies them OTHER instead of SPACE_LIKE
 
-Finding LFV-728 · Area: analysis-smartcn / HHMM segmenter character classes (Utility.getCharType SPACE_LIKE test -> HHMMSegmenter OTHER branch -> one-character STRING term; SmartChineseAnalyzer and HMMChineseTokenizer) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-728 · Area: analysis-smartcn / HHMM segmenter character classes (Utility.getCharType SPACE_LIKE test -> HHMMSegmenter OTHER branch -> one-character STRING term; SmartChineseAnalyzer and HMMChineseTokenizer) · Priority: medium · Impact: silent wrong results · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -10,8 +10,8 @@ You index text with the stock SmartChineseAnalyzer, whose segmenter has a charac
 
 ## Expected vs actual
 
-- Expected: You expect any space to separate words without a trace, as an ordinary space, a tab or the ideographic space U+3000 does.
-- Actual: Utility.getCharType knows only those five, and VERTICAL TAB, FORM FEED, OGHAM SPACE MARK and U+2000-U+200A fall through to OTHER and are each indexed as a one-character term: 'hello&lt;THIN SPACE&gt;world' gives [hello, U+2009, world], a TermQuery for U+2009 alone finds the document, and '中&lt;U+2009&gt;国' gives [中, U+2009, 国] where '中 国' gives [中国].
+- Expected: `hello<U+2009>world` analyzes to [hello, world], like `hello world`.
+- Actual: It analyzes to [hello, U+2009, world]: `term 1 expected:<[world]> but was:<[ ]>`.
 
 ## Files
 

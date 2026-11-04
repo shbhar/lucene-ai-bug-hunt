@@ -1,6 +1,6 @@
 # ICUTokenizer silently drops Korean words when a Hangul syllable is followed by a combining mark, soft hyphen, ZWNJ, ZWJ or U+FEFF: the Hangul rules of Default.rbbi do not attach the trailing Extend/Format character, so the segment gets rule status 0 and is skipped as a non-word (U+D55C U+AD6D U+00AD U+C5B4 keeps only U+C5B4; since 4.7.0, LUCENE-4381)
 
-Finding LFV-657 · Area: analysis-icu / segmentation (ICUTokenizer with DefaultICUTokenizerConfig; break rules Default.rbbi -> Default.brk) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-657 · Area: analysis-icu / segmentation (ICUTokenizer with DefaultICUTokenizerConfig; break rules Default.rbbi -> Default.brk) · Priority: medium · Impact: silent wrong results · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

@@ -1,6 +1,6 @@
 # Classic QueryParser and flexible StandardQueryParser: the query syntax docs never say that only space, TAB, LF, CR and U+3000 separate clauses, so AND, OR or '-' written next to any other Unicode space (EN, EM or THIN space, U+205F, NBSP, ...) silently becomes part of a search term and a field prefix spreads to the following words: 'title:foo&lt;EM SPACE&gt;AND&lt;EM SPACE&gt;-bar' parses as 'title:foo title:and title:bar'
 
-Finding LFV-847 · Area: queryparser / classic and flexible standard grammars (_WHITESPACE, _TERM_START_CHAR) and the query syntax documentation · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-847 · Area: queryparser / classic and flexible standard grammars (_WHITESPACE, _TERM_START_CHAR) and the query syntax documentation · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

@@ -1,6 +1,6 @@
 # Tessellator bridges a hole whose left-most vertex touches an outer-ring edge to a vertex off that edge, so LatLonShape and XYShape index the hole (in some shapes also area outside the polygon) as part of the shape, or reject a valid polygon
 
-Finding LFV-210 · Area: geo / Tessellator hole elimination (polygon indexing for LatLonShape and XYShape) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-210 · Area: geo / Tessellator hole elimination (polygon indexing for LatLonShape and XYShape) · Priority: low · Impact: silent wrong results · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

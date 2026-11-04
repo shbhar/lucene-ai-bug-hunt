@@ -1,6 +1,6 @@
 # GetTermInfo.getTermInfo opens a DirectoryReader on the caller's Directory and never closes it, so every call leaks that reader's open index files (file descriptors or memory mappings)
 
-Finding LFV-624 · Area: misc / index tools (GetTermInfo command-line helper) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-624 · Area: misc / index tools (GetTermInfo command-line helper) · Priority: low · Impact: minor · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

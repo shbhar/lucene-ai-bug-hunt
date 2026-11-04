@@ -1,6 +1,6 @@
 # A kNN query built with a null KnnSearchStrategy, documented as 'the default strategy will be used', throws NullPointerException when a seeded HNSW search runs (SeededKnnVectorQuery, or the optimistic re-entry pass when a segment is re-entered)
 
-Finding LFV-114 · Area: search / kNN query layer (KnnSearchStrategy.Seeded, optimistic re-entry pass, SeededKnnVectorQuery) · Priority: medium · Impact: crash · Novelty: known upstream
+Finding LFV-114 · Area: search / kNN query layer (KnnSearchStrategy.Seeded, optimistic re-entry pass, SeededKnnVectorQuery) · Priority: medium · Impact: crash · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

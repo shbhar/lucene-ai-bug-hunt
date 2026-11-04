@@ -1,6 +1,6 @@
 # IndexWriterConfig setters called after the IndexWriter was created still change that writer (index sort, parent field, soft-deletes field, codec, similarity, ...), although the class javadoc says such changes have no effect; a late index sort or parent field makes merges fail and closes the writer, and a late soft-deletes field can drop a live document
 
-Finding LFV-580 · Area: index / IndexWriterConfig and IndexWriter configuration (creation-only settings re-read from the caller's config object) · Priority: medium · Impact: index unusable · Novelty: known upstream
+Finding LFV-580 · Area: index / IndexWriterConfig and IndexWriter configuration (creation-only settings re-read from the caller's config object) · Priority: medium · Impact: index unusable · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -10,8 +10,8 @@ You create an IndexWriter from an IndexWriterConfig and later call a setter such
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: IndexWriter has kept the caller's object since 4.9 and reads these settings again for every new segment, so new segments get the new sort, parent field, soft-deletes field or codec. forceMerge then fails with 'cannot change index sort from &lt;long: "a"&gt; to &lt;long: "b"&gt;' or 'expected parent doc field to be "_parent " across all segments' and closes the writer, and with a late soft-deletes field a document that was never deleted vanishes after an unrelated delete (numDocs 0, expected 1).
+- Expected: `forceMerge(1)` succeeds and the merged index is sorted by `a` (or the late `setIndexSort` throws `IllegalStateException`).
+- Actual: `AssertionError: forceMerge(1) failed; writer still open: false`, caused by `IllegalArgumentException: cannot change index sort from <long: "a"> to <long: "b">`.
 
 ## Files
 

@@ -1,6 +1,6 @@
 # CharArraySet.unmodifiableSet / CharArrayMap.unmodifiableMap share the backing table but copy its size, so after the backing set grows the view reports a stale size, sees only some additions, and can loop forever on an absent key
 
-Finding LFV-485 · Area: analysis / CharArraySet and CharArrayMap unmodifiable views (stop-word, keyword and protected-word sets) · Priority: low · Impact: hang · Novelty: known upstream
+Finding LFV-485 · Area: analysis / CharArraySet and CharArrayMap unmodifiable views (stop-word, keyword and protected-word sets) · Priority: low · Impact: hang · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

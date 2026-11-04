@@ -1,6 +1,6 @@
 # GroupingSearch.setCaching(n, false) and setCachingInMB(mb, false) throw NullPointerException with the default within-group sort or the default includeMaxScore, because the score-less cache is replayed into a second pass that needs scores
 
-Finding LFV-1068 · Area: grouping / GroupingSearch second-pass cache (score-less CachingCollector / CachingCollectorManager replay into the TopGroups second pass) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-1068 · Area: grouping / GroupingSearch second-pass cache (score-less CachingCollector / CachingCollectorManager replay into the TopGroups second pass) · Priority: low · Impact: minor · Novelty: new
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

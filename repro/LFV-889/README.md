@@ -1,6 +1,6 @@
 # CSVUtil.parse keeps the enclosing quotes of a field that holds both a comma and a double quote, so it does not decode CSVUtil.quoteEscape output
 
-Finding LFV-889 · Area: analysis-common / util CSVUtil (CSV line parsing for the kuromoji user dictionary and the kuromoji/nori dictionary builders) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-889 · Area: analysis-common / util CSVUtil (CSV line parsing for the kuromoji user dictionary and the kuromoji/nori dictionary builders) · Priority: low · Impact: silent wrong results · Novelty: known outside Lucene
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
