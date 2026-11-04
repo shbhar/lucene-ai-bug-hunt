@@ -19,11 +19,12 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>QueryTimeListener.timingMatcher never finishes the matcher it wraps, so wrapping ParallelMatcher or PartitionMatcher makes Monitor.match silently return no matches and no errors (since 8.2.0)</h1>
 <p class="facts small"><span>Finding LFV-1359</span><span>Area: monitor / matcher composition (QueryTimeListener.timingMatcher wrapper around CandidateMatcher; ParallelMatcher, PartitionMatcher)</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-1359.html">Finding page for LFV-1359</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You register a TermQuery f:a in a Monitor and match the document &#x27;a b&#x27; with QueryTimeListener.timingMatcher(ParallelMatcher.factory(executor, QueryMatch.SIMPLE_MATCHER, 2), listener). You expect the 1 match that ParallelMatcher.factory alone reports, plus a timing callback per query. Instead getMatchCount() is 0 and getErrors() is empty: the wrapper forwards matchQuery() to the inner matcher, but its doFinish() only copies the inner matcher&#x27;s match lists and never calls the inner finish(), and ParallelMatcher and PartitionMatcher collect their matches (and errors) only in that finish step.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect the 1 match that ParallelMatcher.factory alone reports, plus a timing callback per query.</li><li><b>Actual:</b> getMatchCount() is 0 and getErrors() is empty: the wrapper forwards matchQuery() to the inner matcher, but its doFinish() only copies the inner matcher&#x27;s match lists and never calls the inner finish(), and ParallelMatcher and PartitionMatcher collect their matches (and errors) only in that finish step.</li></ul>
+<ul><li><b>Expected:</b> 1 match, as <code>PartitionMatcher.factory(...)</code> alone returns.</li><li><b>Actual:</b> 0 matches (<code>AssertionError: expected:&lt;1&gt; but was:&lt;0&gt;</code>) and no exception, assertions on and off. The test checks only the count; a probe with the same input also showed 0 errors and the listener called for <code>q</code>.</li></ul>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/monitor/TestTimingMatcherFinish.java"><code>src/org/apache/lucene/monitor/TestTimingMatcherFinish.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
@@ -48,4 +49,5 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.monitor.TestTimingMatcherFinish</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
+<h2>Files shown on the finding page</h2><ul><li><a href="TestTimingMatcherFinish.java"><code>TestTimingMatcherFinish.java</code></a></li></ul>
 <h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-04. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

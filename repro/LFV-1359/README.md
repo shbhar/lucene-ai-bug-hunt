@@ -2,6 +2,8 @@
 
 Finding LFV-1359 · Area: monitor / matcher composition (QueryTimeListener.timingMatcher wrapper around CandidateMatcher; ParallelMatcher, PartitionMatcher) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Finding page: [../../bugs/LFV-1359.html](../../bugs/LFV-1359.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You register a TermQuery f:a in a Monitor and match the document 'a b' with Quer
 
 ## Expected vs actual
 
-- Expected: You expect the 1 match that ParallelMatcher.factory alone reports, plus a timing callback per query.
-- Actual: getMatchCount() is 0 and getErrors() is empty: the wrapper forwards matchQuery() to the inner matcher, but its doFinish() only copies the inner matcher's match lists and never calls the inner finish(), and ParallelMatcher and PartitionMatcher collect their matches (and errors) only in that finish step.
+- Expected: 1 match, as `PartitionMatcher.factory(...)` alone returns.
+- Actual: 0 matches (`AssertionError: expected:<1> but was:<0>`) and no exception, assertions on and off. The test checks only the count; a probe with the same input also showed 0 errors and the listener called for `q`.
 
 ## Files
 
@@ -44,6 +46,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestTimingMatcherFinish.java](TestTimingMatcherFinish.java)
 
 ## Feedback
 

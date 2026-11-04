@@ -1,0 +1,396 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>CheckIndex.checkImpacts compares each impact only with the level&#x27;s first impact, so unsorted impact lists pass</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.triage{margin:var(--s4) 0 0;padding:var(--s2) var(--s4);border-left:3px solid var(--info);background:var(--panel);
+max-width:var(--measure)}
+.triage p{margin:0;font-size:var(--step--1);line-height:1.5}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the finding in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All findings</a> &middot; Lucene finding &middot; LFV-1272 &middot; checkimpacts-order-check-compares-only-with-first-impact</p><h1 id='top'>CheckIndex.checkImpacts compares each impact only with the level&#x27;s first impact, so unsorted impact lists pass</h1><p class='tldr'>CheckIndex's check that each level of impacts is sorted compares every entry only with the first one, so an unsorted list such as (1,1),(3,3),(2,2) passes. Lucene's own postings formats always write sorted impacts; the gap only lets a broken custom or future format pass CheckIndex and the codec test framework.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 742</span><span class='sub'>In every release since 8.0.0, CheckIndex (level 2 and up) and the codec test framework accept an unsorted per-level impacts list as long as every later entry is above the first one. Lucene&#x27;s own postings formats always write sorted impacts and other checks catch some of these lists, so it can only hide a bug in a broken custom or future codec.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>minor</span></dd></div><div><dt>Since</dt><dd>8.0.0 (LUCENE-8142, 2018)<span class='sub'>introduced 2018-05-02 &middot; about 8 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>8.0.0 to 10.6.0 and main; not fixed upstream</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div class='wide'><dt>Found by</dt><dd>a proof-obligation audit of checkImpacts against the documented impacts order, witnessed by an executable repro</dd></div></dl><p class='ai-note'>AI-assisted page: this finding was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-11-04.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All findings</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The finding in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>The check that each impacts list is sorted only looks at the first entry, so most unsorted lists pass.</p><div class='part' id='background'><div class="hd hd-3"><h3 id='background-h'>Background: impacts and their order</h3><a class="hlink" href="#background" target="_self" aria-label="Link to this section" aria-describedby="background-h"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span>For each block of a term's postings, a postings format reports impacts: a short list of (freq, norm) pairs that bound the scores of the documents in that block, so top-k search can skip blocks that cannot compete.</span></li><li><span>Each list must be sorted by increasing freq and increasing norm, for example (1,1),(2,2),(3,3); there can be one list per skip level.</span></li><li><span><code>CheckIndex.checkImpacts</code> checks this rule and throws "Impacts are not ordered or contain dups, got (prev) then (cur)". CheckIndex and Lucene's codec test framework both use it to vet postings formats.</span></li></ol></div><figure class='visual' id='checkimpacts-order-check-compares-only-with-first-impact-short-visual'><div class='frame'><a class='still' href='../assets/LFV-1272/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-1272/bug.png' alt='CheckIndex.checkImpacts on one impacts level holding (freq, norm) = (1,1), (3,3), (2,2). Stock loop: prev stays (1,1); (3,3) versus (1,1) passes and (2,2) versus (1,1) passes, so no error. Fixed loop: prev moves to (3,3), and (2,2) versus (3,3) fails with &#x27;Impacts are not ordered or contain dups, got (3,3) then (2,2)&#x27;. Fix: prevFreq = freq; prevNorm = norm; at the end of the loop.' width='1920' height='1080'></a></div><figcaption>One impacts level, (1,1),(3,3),(2,2): the loop compares every entry with the first entry (1,1), so the drop from (3,3) to (2,2) is never looked at; with the fix each entry is compared with the one before it. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><div class="hd hd-3"><h3 id='the-bug-step-by-step'>The finding, step by step</h3><a class="hlink" href="#the-bug-step-by-step" target="_self" aria-label="Link to this section" aria-describedby="the-bug-step-by-step"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span>Give <code>CheckIndex.checkImpacts</code> one level of impacts, as (freq, norm) pairs, in the wrong order: (1,1),(3,3),(2,2). Freq drops from 3 to 2.</span></li><li><span>You expect <code>CheckIndexException: Impacts are not ordered or contain dups, got (3,3) then (2,2)</code>. That is what the method throws once the bug is fixed.</span></li><li><span>You get no error. The loop sets its "previous entry" to (1,1) once and never moves it on. So (3,3) is compared with (1,1), which is fine, and (2,2) is also compared with (1,1) instead of (3,3).</span></li><li><span>Only a list with a later entry whose freq or norm is at or below the first entry's is caught, for example (1,1),(1,2). The fix is two lines at the end of the loop: <code>prevFreq = freq; prevNorm = norm;</code>.</span></li><li><span>The same method backs <code>CheckIndex.testPostings</code> (level 2 and up), <code>AssertingLeafReader</code> and <code>RandomPostingsTester</code>. Every release since 8.0.0 has the gap.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Authors of custom or future postings formats who rely on CheckIndex (<code class='nw'>checkIndex()</code> at level 2 or 3, <code class='nw'>testPostings</code>) or Lucene's codec test framework to catch unsorted impacts. Lucene's own formats always write sorted impacts, so no index Lucene writes and no search result is affected. Some unsorted lists are still caught by other checks.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>383 words</span></summary><div class='body'><p><code>Impacts.getImpacts</code> documents that each level's impacts are "sorted by increasing frequency and increasing unsigned norm", and <code>CheckIndex.checkImpacts</code> exists to enforce it ("Impacts must be in increasing order of norm AND freq"). Its loop sets <code class='nw'>prevFreq</code> and <code class='nw'>prevNorm</code> to the first entry and never updates them, so each entry is compared with entry 0 only. An unsorted list such as (1,1),(3,3),(2,2) passes; only a later entry whose freq or norm is at or below the first entry's, such as (1,1),(1,2), is caught. The method is what <code>CheckIndex.testPostings</code> (from level 2), <code>AssertingLeafReader</code> and <code>RandomPostingsTester</code> call, so CheckIndex and the codec test framework miss this shape of malformed impacts. Lucene's own postings formats always write sorted impacts, so no index Lucene writes and no search result is affected. Every release since 8.0.0 has it; the fix is two lines.</p><div class="hd hd-3"><h3 id='what-the-bug-is-the-loop-checkindex-java-2613-2631'>The loop (<code>CheckIndex.java:2613-2631</code>)</h3><a class="hlink" href="#what-the-bug-is-the-loop-checkindex-java-2613-2631" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-loop-checkindex-java-2613-2631"><span aria-hidden="true">#</span></a></div><pre><code>// Impacts must be in increasing order of norm AND freq
+int prevFreq = firstFreq;
+long prevNorm = firstNorm;
+for (int i = 1; i &lt; perLevelImpacts.size; ++i) {
+  int freq = perLevelImpacts.freqs[i];
+  long norm = perLevelImpacts.norms[i];
+  if (freq &lt;= prevFreq || Long.compareUnsigned(norm, prevNorm) &lt;= 0) {
+    throw new CheckIndexException(&quot;Impacts are not ordered or contain dups, got (&quot; ...); // message abbreviated
+  }
+  // missing: prevFreq = freq; prevNorm = norm;
+}</code></pre><ol><li>Entry 1, (3,3), is compared with (1,1): 3 &gt; 1 and 3 &gt; 1, no error.</li><li>Entry 2, (2,2), should be compared with (3,3), which fails (2 &lt;= 3). It is compared with (1,1) instead: 2 &gt; 1 and 2 &gt; 1, no error.</li><li>So the loop only proves that entry 0 is the strict minimum in both freq and norm. Later entries may come in any order, and may repeat (for example (1,1),(2,2),(2,2)), as long as each is above entry 0, although the message says "or contain dups".</li><li>The cross-level scan right below (<code class='nw'>:2632-2676</code>) reuses the names <code class='nw'>prevFreq</code> and <code class='nw'>prevNorm</code> but assigns them on every step (<code class='nw'>:2648-2649</code>), so updating them in this loop does not change it.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-who-calls-it'>Who calls it</h3><a class="hlink" href="#what-the-bug-is-who-calls-it" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-who-calls-it"><span aria-hidden="true">#</span></a></div><ul><li><code>CheckIndex.testPostings</code> (<code class='nw'>:2128</code>, <code class='nw'>:2173</code>, <code class='nw'>:2215</code>), which <code class='nw'>checkIndex()</code> runs from level 2 on (<code class='nw'>:1114-1125</code>).</li><li><code>AssertingLeafReader</code> on every <code class='nw'>getImpacts()</code> (<code>AssertingLeafReader.java:667</code>), through <code class='nw'>IndexWriter</code>'s package-access hook (<code>IndexWriter.java:6988-6989</code>).</li><li><code>RandomPostingsTester</code>, which <code>BasePostingsFormatTestCase</code> runs (<code>RandomPostingsTester.java:1264</code>, <code class='nw'>:1307</code>, <code class='nw'>:1345</code>).</li></ul></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>285 words</span></summary><div class='body'><ul><li><strong>Who.</strong> Anyone who vets a postings format with CheckIndex or with the codec test framework. <code class='nw'>checkIndex()</code> checks postings only at level 2 or higher (<code>CheckIndex.java:1114-1125</code>). At level 2 the impacts checks run only for terms with more than 1024 docs and for every 1024th term (<code class='nw'>:2090-2094</code>), and only the <code class='nw'>:2173</code> and <code class='nw'>:2215</code> calls, since the <code class='nw'>:2128</code> call needs level 3 (<code class='nw'>:2108</code>). The command-line default level is 1 (<code class='nw'>:4673</code>, <code class='nw'>:4748</code>), and a programmatic <code class='nw'>CheckIndex</code> has level 0 until <code class='nw'>setLevel</code> (<code class='nw'>:499</code>, <code class='nw'>:505-508</code>). <code>testPostings(CodecReader, PrintStream)</code> runs at level 3 (<code class='nw'>:2681-2683</code>). The test framework calls the method from <code>AssertingLeafReader</code> and <code>RandomPostingsTester</code>, and <code>TestUtil.checkIndex</code> and <code class='nw'>checkReader</code> run CheckIndex at level 3 (<code>TestUtil.java:303</code>, <code class='nw'>:353</code>).</li><li><strong>Why the order matters.</strong> Readers of impacts assume it: for example <code class='nw'>SynonymQuery</code> merges impact lists by norm (<code>SynonymQuery.java:534-561</code>), and the cross-level scan in this same method relies on it. No search or scoring effect is claimed here.</li><li><strong>Not affected.</strong> Indexes Lucene writes: every postings format that stores impacts builds them with <code>CompetitiveImpactAccumulator</code>, whose <code>getCompetitiveFreqNormPairs</code> returns them "ordered by increasing freq and norm" (<code>CompetitiveImpactAccumulator.java:101-123</code>); formats that store none, such as <code>DirectPostingsFormat</code>, return the single entry of <code class='nw'>SlowImpactsEnum</code> (<code>SlowImpactsEnum.java:105-108</code>). <code>Lucene104PostingsReader.readImpacts</code> decodes freq as strictly increasing (<code class='nw'>:1447-1470</code>). Indexing and search are unchanged.</li><li><strong>Partly covered elsewhere.</strong> CheckIndex's slow pass takes the last entry as the max freq (<code>CheckIndex.java:2129-2131</code>) and reports a document whose freq is above it; <code>RandomPostingsTester</code>'s coverage assertion does a <code class='nw'>binarySearch</code> by freq (<code>RandomPostingsTester.java:1269-1280</code>), whose result on an unsorted list is undefined and may or may not trip.</li><li><strong>Scale.</strong> None needed: one level with three entries.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>One JUnit test, no index: an <code class='nw'>Impacts</code> with one level (1,1),(3,3),(2,2) handed to <code>CheckIndex.checkImpacts</code>, which should throw. Deterministic, single-threaded, well under a second. It fails with assertions on and off and passes with the fix.</p><figure class='code'><figcaption><span class='fname'>TestCheckImpactsOrder.java (one test)</span><span class='meta'>50 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.index;
+
+import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+public class TestCheckImpactsOrder extends LuceneTestCase {
+
+  public void testUnsortedImpactsAreRejected() {
+    Impacts impacts =
+        new Impacts() {
+          @Override
+          public int numLevels() {
+            return 1;
+          }
+
+          @Override
+          public int getDocIdUpTo(int level) {
+            return DocIdSetIterator.NO_MORE_DOCS;
+          }
+
+          @Override
+          public FreqAndNormBuffer getImpacts(int level) {
+            FreqAndNormBuffer buffer = new FreqAndNormBuffer();
+            buffer.add(1, 1);
+            buffer.add(3, 3);
+            buffer.add(2, 2);
+            return buffer;
+          }
+        };
+    // Expected: CheckIndexException &quot;got (3,3) then (2,2)&quot;.
+    // Actual: no exception, because (2,2) is only compared with (1,1).
+    expectThrows(CheckIndex.CheckIndexException.class, () -&gt; CheckIndex.checkImpacts(impacts, 0));
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/TestCheckImpactsOrder.java $LUCENE/lucene/core/src/test/org/apache/lucene/index/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:core:test --tests org.apache.lucene.index.TestCheckImpactsOrder -Ptests.seed=5EED1272 -Ptests.asserts=true
+# and with -Ptests.asserts=false (assertions off); the result depends on neither the seed nor assertions
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code>CheckIndex.checkImpacts</code> throws <code>CheckIndexException: Impacts are not ordered or contain dups, got (3,3) then (2,2)</code>, as it does with the fix.</dd></div><div class='got'><dt>Observed</dt><dd>No exception is thrown, so <code class='nw'>expectThrows</code> fails with "Expected exception CheckIndexException but no exception was thrown", with assertions on and off.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-1272/'>repro/LFV-1272/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>200 words</span></summary><div class='body'><p>The anonymous <code class='nw'>Impacts</code> stands in for a postings format that returns unsorted impacts; no shipped codec does. The class sits in <code>org.apache.lucene.index</code> because <code class='nw'>checkImpacts</code> is package-private, as CheckIndex's own tests do; as a regression test the method fits into the existing <code class='nw'>TestCheckIndex</code>. The file carries the Apache license header and passes <code>:lucene:core:checkGoogleJavaFormat</code>.</p><p>The same gap shows through the public API: a one-document default-codec index wrapped in a <code>FilterCodecReader</code> whose <code class='nw'>ImpactsEnum</code> returns these impacts gives <code>CheckIndex.testPostings(reader, null).error == null</code> on main, 10.6.0 and 9.12.3, and the error "Impacts are not ordered or contain dups, got (3,3) then (2,2)" with the fix.</p><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main 5adff78bb168 (12.0.0-SNAPSHOT): this test fails; public-API tests of the same scenario also fail on nine releases from 8.0.0 to 10.6.0</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3</code></td></tr><tr><th scope='row'>os</th><td><code>Linux aarch64 (nothing platform-specific)</code></td></tr></tbody></table></div><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code>TestCheckImpactsOrder &gt; testUnsortedImpactsAreRejected FAILED
+    junit.framework.AssertionFailedError: Expected exception CheckIndexException but no exception was thrown
+        at __randomizedtesting.SeedInfo.seed([5EED1272:CB664176ECB3B57]:0)
+        at app//org.apache.lucene.tests.util.LuceneTestCaseParent.expectThrows(LuceneTestCaseParent.java:1432)
+        at app//org.apache.lucene.tests.util.LuceneTestCaseParent.expectThrows(LuceneTestCaseParent.java:1418)
+        at app//org.apache.lucene.index.TestCheckImpactsOrder.testUnsortedImpactsAreRejected(TestCheckImpactsOrder.java:48)
+
+# main 5adff78bb168, gradle, seed 5EED1272: the same failure with -Ptests.asserts=true and =false
+# with the fix: BUILD SUCCESSFUL, 1 test, 0 failures, assertions on and off
+# with the fix, the message: &quot;Impacts are not ordered or contain dups, got (3,3) then (2,2)&quot;</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it looks unintended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code>Impacts.getImpacts</code> documents each level as "sorted by increasing frequency and increasing unsigned norm"; the check's own comment says the same.</li><li>The names <code class='nw'>prevFreq</code>/<code class='nw'>prevNorm</code> and the message "got (prev) then (cur)" describe a pairwise check; only the update line is missing.</li><li>The update was never written (2018), a 2025 rewrite (#15151) kept the gap, and nothing documents a first-entry-only check.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>108 words</span></summary><div class='body'><ul><li><strong>The contract is written down twice</strong>: the <code>Impacts.getImpacts</code> javadoc (<code>Impacts.java:39-40</code>) and the check's comment (<code>CheckIndex.java:2613</code>).</li><li><strong>The code says pairwise</strong>: a check against entry 0 alone is neither "increasing order" nor a dups check beyond entry 0, yet the error text is "got (prev) then (cur)" (<code class='nw'>:2619-2629</code>).</li><li><strong>Nothing chose it</strong>: <code class='nw'>af680af77f3</code> (LUCENE-8142, 2018) wrote <code>Impact previous = first;</code> with no <code>previous = impact</code> in the loop; #15151 (<code class='nw'>2dcfd89123e</code>, 2025) rewrote the loop over arrays and again left it out. No javadoc, CHANGES or MIGRATE entry, upstream test or review comment in #9190 or #15151 accepts a first-entry-only check.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>143 words</span></summary><div class='body'><p><code class='nw'>checkImpacts</code> is package-private, "For use in tests only" and <code class='nw'>@lucene.internal</code> (<code>CheckIndex.java:2562-2567</code>); CheckIndex promises no exhaustive validation; and an unsorted list can only come from a producer that already breaks the <code>Impacts.getImpacts</code> contract, which no Lucene format does. An independent reviewer from another model family (OpenAI GPT-5.6) called it not real on these grounds, while agreeing on the root cause and the fix and calling the change "a legitimate hardening opportunity".</p><p>Why it fails: a validator exists to reject producer output that breaks the documented rule, so "the input already breaks the contract" is circular here. The method's verdict is <code>CheckIndex.testPostings</code>'s verdict and the test framework's verdict for every postings format under test, and the check visibly tries to do this job but gets it right only for the second entry. <strong>Verdict: a real Low bug</strong>, a validator false negative.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>A. Advance the previous entry at the end of the loop (validated)</strong></p><p class='short'>Add <code>prevFreq = freq; prevNorm = norm;</code> at the end of the per-level loop body (after <code>CheckIndex.java:2630</code>). The repro passes with assertions on and off; with the fix, <code class='nw'>TestCheckIndex</code>, 18 postings-format test classes selected by name and, in a separate run, <code>TestOrdsBlockTree</code> and <code>TestAssertingPostingsFormat</code> pass (613 tests, 0 failures, 68 skipped).</p><pre class='snippet' tabindex='0'><code>@@ -2628,6 +2628,8 @@ public final class CheckIndex implements Closeable {
+                   + norm
+                   + &quot;)&quot;);
+         }
++        prevFreq = freq;
++        prevNorm = norm;
+       }
+       if (impactsLevel &gt; 0) {
+         // Make sure that impacts at level N trigger better scores than an impactsLevel N-1</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>2 options · 372 words</span></summary><div class='body'><p>Option A was applied in a scratch worktree at <code class='nw'>5adff78bb168</code> and run through gradle; option B was not run. LFV-1273 is a separate bug in the cross-level scan just below; its scan relies on the order this loop is meant to enforce, so fixing both closes both known gaps in the method.</p><div class="hd hd-3"><h3 id='fix-advance-prev'>A. Advance the previous entry at the end of the loop (validated) <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-advance-prev" target="_self" aria-label="Link to this section" aria-describedby="fix-advance-prev"><span aria-hidden="true">#</span></a></div><p>Two added lines in <code>CheckIndex.checkImpacts</code>; the comparison and the message stay as they are.</p><pre class='snippet' tabindex='0'><code>@@ -2628,6 +2628,8 @@ public final class CheckIndex implements Closeable {
+                   + norm
+                   + &quot;)&quot;);
+         }
++        prevFreq = freq;
++        prevNorm = norm;
+       }
+       if (impactsLevel &gt; 0) {
+         // Make sure that impacts at level N trigger better scores than an impactsLevel N-1</code></pre><p class='k'>Trade-offs</p><p>None at run time: the loop stays one pass. The cross-level scan below reassigns <code class='nw'>prevFreq</code>/<code class='nw'>prevNorm</code> on every step, so it is unchanged. The fix can surface, as CheckIndex errors, a custom postings format that was wrong all along; that is the point.</p><p class='k'>What the checks validated</p><p>The repro passes with assertions on and off (gradle, seed <code class='nw'>5EED1272</code>, scratch worktree at <code class='nw'>5adff78bb168</code>). With the fix, <code class='nw'>TestCheckIndex</code> and 18 postings-format test classes of core, codecs and backward-codecs, selected by the name patterns <code class='nw'>*PostingsFormat*</code> and <code class='nw'>*PostingFormat*</code>, pass: 19 classes, 546 tests, 0 failures (482 ran; 64 skipped as nightly-only or by an assumption; the nightly-only <code>TestSimpleTextPostingsFormat</code> ran none of its 30). The name selection includes <code>TestPerFieldPostingsFormat2</code>, which does not use <code>RandomPostingsTester</code>, and missed two <code>BasePostingsFormatTestCase</code> suites; a separate run with the same fix (seed <code class='nw'>5EED1272</code>, assertions on) covered them: <code>TestOrdsBlockTree</code> (37 tests, 0 failures, 2 skipped) and <code>TestAssertingPostingsFormat</code> (30 tests, 0 failures, 2 skipped). Together the two runs cover all 19 <code>BasePostingsFormatTestCase</code> suites in the tree, but the nightly-only SimpleText one skipped every test. These suites run <code class='nw'>checkImpacts</code> on the impacts each format writes, and none fails with the fixed loop. <code>:lucene:core:checkGoogleJavaFormat</code> passes.</p><div class="hd hd-3"><h3 id='fix-compare-prev-slot'>B. Compare with the previous array slot</h3><a class="hlink" href="#fix-compare-prev-slot" target="_self" aria-label="Link to this section" aria-describedby="fix-compare-prev-slot"><span aria-hidden="true">#</span></a></div><p>Compare <code class='nw'>freqs[i]</code> and <code class='nw'>norms[i]</code> with <code>freqs[i - 1]</code> and <code>norms[i - 1]</code> directly instead of the two variables.</p><p class='k'>Trade-offs</p><p>Same effect; a slightly larger change, since the cross-level scan below still needs the variables and the message reads them. Not run.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Products and plugins that ship their own postings format and vet it with CheckIndex or Lucene's codec test framework get no order check beyond each level's first impact until the fix lands.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A proof-obligation audit of <code>CheckIndex.checkImpacts</code> against the order that <code>Impacts.getImpacts</code> documents. The obligation, that each entry is compared with the one before it, fails because the loop never moves its previous entry on; a one-test JUnit repro witnessed it.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>83 words</span></summary><div class='body'><p>Semi-formal method: a proof-obligation audit of <code>CheckIndex.checkImpacts</code> against its contract, the per-level order that <code>Impacts.getImpacts</code> documents. The obligation is that the loop rejects any level whose entries are not strictly increasing in freq and in unsigned norm; as written, the loop meets it only for the second entry, because the previous entry stays at entry 0. An executable JUnit repro on main witnessed it, and an independent reproducer, an intended-behaviour devil's advocate, a cross-model review and an adjudication then re-ran or challenged it.</p></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No matching report found in apache/lucene issues, PRs and commits (incl. the JIRA archive), the mailing lists, downstream trackers or the web (2026-11-03, re-checked 2026-11-04). Nearest: #9190, which added the check, and #15151, which rewrote the loop and kept the gap.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p>Keyword searches cannot see private reports.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs, comments and commits (apache/lucene incl. the migrated JIRA archive; Elasticsearch, OpenSearch, Solr, Lucene.NET)</th><td class='when'>2026-11-03</td><td>three scripted prior-report searches (270 distinct hits) and manual searches: <code class='nw'>checkImpacts</code>, "Impacts are not ordered", "contain dups" impacts, "increasing order of norm", <code class='nw'>prevNorm</code>, <code class='nw'>prevFreq</code>; the exact message on all of GitHub</td><td>no report; #9190, #15151, #12797, #5270, #9201 are context</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-11-03</td><td>the diffs of the 16 open PRs that touch CheckIndex.java, Impacts.java, AssertingLeafReader.java or RandomPostingsTester.java, and every PR created since 2026-11-02</td><td>none changes the loop (#14716 and #16847 touch the files)</td></tr><tr><th scope='row'>Mailing lists (dev@, java-user@, issues@, commits@) and the web</th><td class='when'>2026-11-03</td><td>20 list queries and 6 web queries, by script</td><td>the phrases appear only in commit and PR-diff mails that carry the code</td></tr><tr><th scope='row'>GitHub re-check</th><td class='when'>2026-11-04</td><td>GitHub issue and PR searches on apache/lucene for <code class='nw'>checkImpacts</code>, "Impacts are not ordered", <code class='nw'>prevNorm</code>, "impacts order CheckIndex"; the newest commits on CheckIndex.java</td><td>0 hits; the newest commit on the file (#16964) does not touch impacts, and the loop is unchanged on upstream main <code class='nw'>f72004515ec2</code></td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced together with the check by LUCENE-8142 (<code class='nw'>af680af77f3</code>, 2018); first released in 8.0.0. Tests fail on 8.0.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.3.2, 10.4.0, 10.5.2, 10.6.0 and main; 7.7.3 has no impacts API. Not fixed upstream as of 2026-11-04.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>5 rows</span></summary><div class='body'><p><strong>Introduced by</strong> <code class='nw'>af680af77f3</code>, "LUCENE-8142: Make postings APIs expose raw impacts rather than scores." (Adrien Grand, 2018-05-02; issue #9190, a JIRA patch with no PR). The same commit added <code class='nw'>Impacts</code> and <code class='nw'>checkImpacts</code>; the loop was <code>Impact previous = first;</code> with no <code>previous = impact</code> inside. Later commits kept the gap: <code class='nw'>2d6ad2fee6d</code> (LUCENE-9570, reformatting), <code class='nw'>424192e1704</code> (CheckIndexException), <code class='nw'>203f506130d</code> (#12797, variable rename) and <code class='nw'>2dcfd89123e</code> (#15151, 2025-09-08, first in 10.4.0), which rewrote the loop over <code>FreqAndNormBuffer</code> arrays and again left the update out. Every 8.x to 10.6.0 release tag carries the loop without the update.</p><p>The version runs used public-API tests of the same scenario (a <code>FilterCodecReader</code> returning (1,1),(3,3),(2,2), then <code>CheckIndex.testPostings</code>), adapted to each release's API; the control (1,1),(1,2) is reported on 8.0.0, 9.12.3 and 10.4.0, which shows each test reaches the check.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>5adff78bb168</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>gradle: fails with assertions on and off; passes with the fix</td></tr><tr><th scope='row'>10.6.0, 10.5.2, 10.4.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>fails (<code class='nw'>status.error</code> null); 10.4.0 is the first release with the #15151 loop; control reported on 10.4.0</td></tr><tr><th scope='row'>10.3.2, 10.0.0, 9.12.3, 9.0.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>fails; control reported on 9.12.3</td></tr><tr><th scope='row'>8.11.4, 8.0.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>fails, on 8.0.0 with assertions on and off; control reported on 8.0.0</td></tr><tr><th scope='row'>7.7.3</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> no API</span></td><td>the impacts API does not exist; the test does not compile</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer (real, Low), an intended-behaviour devil's advocate (real, Low) and an adjudication (confirmed, Low) agree; an executed cross-model review (an independent reviewer from another model family, OpenAI GPT-5.6) agreed on root cause and fix but held the input out of contract. This doc's gradle run reproduced it and validated the fix.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>264 words</span></summary><div class='body'><p>Every check ran on main <code class='nw'>5adff78bb168</code> unless noted, with OpenJDK 25.0.3 on Linux aarch64.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>the audit's own repro</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced</span></td><td>The public-API test fails on main (assertions on and off), 10.6.0 and 9.12.3 and passes with the two-line fix; a 40,000-document default-codec index with impacts on 2 levels (13 and 17 entries) stays clean with the fix, so the fix adds no false positive there.</td></tr><tr><th scope='row'>independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, Low</span></td><td>Its own one-test JUnit, written from the description, fails on main, 10.6.0, 10.5.2 and 9.12.3 (<code class='nw'>error=null</code>); with its own copy of the fix the error is "got (3,3) then (2,2)".</td></tr><tr><th scope='row'>cross-model review, refute pass</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> not real (contract grounds only)</span></td><td>An independent reviewer from another model family (OpenAI GPT-5.6), executed (run on the earlier main <code class='nw'>ea57360912ed</code>, whose <code class='nw'>checkImpacts</code> is byte-identical): its own late regression (2,4),(5,8),(4,7) is accepted with assertions on and off while a sorted control passes; it agreed on root cause and fix but held the input out of contract (see the devil's advocate).</td></tr><tr><th scope='row'>intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, Low</span></td><td>No text accepts a first-entry-only check; no in-tree producer writes unsorted lists; asked for the partial-coverage note and no scoring claim.</td></tr><tr><th scope='row'>adjudication, re-runs, minimal-repro check</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, Low</span></td><td>Re-runs with new seeds fail on main; one small deterministic test; a plain logic slip with a two-line fix.</td></tr><tr><th scope='row'>this doc</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; fix validated</span></td><td>Gradle in a scratch worktree: the repro fails without the fix and passes with it, assertions on and off; the closest suites pass with the fix.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-1272/bug.png' download='checkimpacts-order-check-compares-only-with-first-impact-bug.png' target='_self'>PNG</a> <span class='n'>448 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Finding record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,626 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Finding record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-1272, snapshot of 2026-11-04</p><dl class='card'><div><dt>Registry title</dt><dd>CheckIndex.checkImpacts compares each impact of a level only with the level's first impact (prevFreq and prevNorm are never advanced in the loop), so an impact list that is not sorted, such as (1,1),(3,3),(2,2), passes CheckIndex.testPostings and the codec test framework's impacts checks (since 8.0.0)</dd></div><div><dt>Area</dt><dd>index / CheckIndex postings check (per-level impacts order)</dd></div><div><dt>Priority</dt><dd>Low, rank 742: In every release since 8.0.0, CheckIndex (level 2 and up) and the codec test framework accept an unsorted per-level impacts list as long as every later entry is above the first one. Lucene&#x27;s own postings formats always write sorted impacts and other checks catch some of these lists, so it can only hide a bug in a broken custom or future codec.</dd></div><div><dt>Impact class</dt><dd>minor</dd></div><div><dt>Impact note</dt><dd>Only authors of custom or future postings formats who rely on CheckIndex (testPostings, or checkIndex at level 2 or 3) or on the codec test framework (TestUtil.checkReader, AssertingLeafReader, RandomPostingsTester, which call the same method) to catch an ImpactsEnum whose per-level impacts break the documented sorted order are exposed: such a list is accepted as long as every later entry is above the first entry in both freq and norm (some of these lists are still caught elsewhere, by CheckIndex's max-freq check against the last entry or RandomPostingsTester's binarySearch coverage assertion). Lucene's own postings formats always write sorted impacts, so no index Lucene writes and no search result is affected; the postings check runs only from CheckIndex level 2 on (command-line default 1); every release from 8.0.0 through 10.6.0 [exec]; no scale needed.</dd></div><div><dt>Summary</dt><dd>You run CheckIndex.testPostings on a segment whose postings format returns, for a term, one impacts level (freq, norm) = (1,1),(3,3),(2,2), which breaks the rule documented on Impacts.getImpacts that a level's impacts are sorted by increasing frequency and increasing unsigned norm. You expect the CheckIndexException 'Impacts are not ordered or contain dups, got (3,3) then (2,2)', the error that CheckIndex.checkImpacts exists to throw. Instead testPostings reports no error: checkImpacts sets prevFreq and prevNorm to the first entry and never advances them, so every entry is compared only with (1,1), and both (3,3) and (2,2) are above it.</dd></div><div><dt>Introduced</dt><dd>af680af77f3f80c779e038a0ad8a136c9dcb9f5d on master (8.0 development), 'LUCENE-8142: Make postings APIs expose raw impacts rather than scores.' by Adrien Grand (GitHub jpountz); issue LUCENE-8142 'Should codecs expose raw impacts?' = apache/lucene#9190, a JIRA patch with no pull request. The same commit added Impact.java, Impacts.java and checkImpacts, whose per-level loop was 'Impact previous = first;' with no 'previous = impact' in the loop. Later commits kept the gap: 2d6ad2fee6d (LUCENE-9570, reformatting), 424192e1704 (RuntimeException to CheckIndexException), 203f506130d (#12797, level renamed impactsLevel) and 2dcfd89123e (#15151, author date 2025-09-08, first in 10.4.0; branch_10x cherry-pick c1828cd15ad), which rewrote the loop over FreqAndNormBuffer arrays as 'int prevFreq = firstFreq; long prevNorm = firstNorm;', again with no update [read: git log -S/-G/-L over the full history clone; release bracket 7.7.3 API absent / 8.0.0 affected, exec] (2018-05-02 (author date 11:52 +0200 and commit date 14:49 +0200 of af680af77f3); LUCENE-8142 resolved 2018-05-03, fix version 8.0; first release 8.0.0)</dd></div><div><dt>First affected version</dt><dd>8.0.0 [exec: an 8.x-API copy of the one-test repro fails with -ea and -da, and its control (1,1),(1,2) is reported, so the test reaches checkImpacts]; 7.7.3 and every older release lack the impacts API [exec 7.7.3: compile error, no Impacts, ImpactsEnum or Impact class; read: af680af77f3 is not an ancestor of 7.7.3]. Not a regression: the gap shipped with the check.</dd></div><div><dt>Affected versions</dt><dd>Every release from 8.0.0 through 10.6.0 (4ae946e5a9b, released 2026-10-29) and main 5adff78bb168 (12.0.0-SNAPSHOT). Executed, fail with status.error == null [exec, JDK 25.0.3, Linux aarch64]: main with -ea and -da (finder, the independent reproduction, the intended-behaviour check, adjudication, history step, registration check), the earlier main ea57360912ed with a byte-identical checkImpacts (cross-model adversarial review, -ea and -da), 10.6.0 (-da: finder, the independent reproduction, the intended-behaviour check, history step; -ea: history step), 10.5.2 (-da: the independent reproduction), 10.4.0 (first release with the #15151 loop), 10.3.2 (last release with the List&lt;Impact&gt; loop), 10.0.0, 9.0.0 and 8.11.4 (-da: history step), 9.12.3 (-da: finder, the independent reproduction, history step), 8.0.0 (-ea and -da: history step), each with an API-adapted copy whose test logic is unchanged; controls with (1,1),(1,2) pass (CheckIndex reports the error) on 8.0.0, 9.12.3 and 10.4.0. [read] all 52 release tags from 8.0.0 to 10.6.0 in the history clone carry the loop without an update; the releases 8.8.2-8.11.4, which are not in the clone, by a bytecode check of the release jars (8.11.x differ only in the exception class) and the 8.11.4 run. Not affected: 7.7.3 and older (API absent). Not new in 10.6 (8.0.0 and 10.5.2 fail the same way). Not fixed upstream: the loop is unchanged on upstream main f72004515ec2 (2026-11-03, CheckIndex.java:2612-2630) and branch_10_6 5deb5791f6ce [read].</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that disputed it (the adjudication ruled it real), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: proof-obligation audit</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (searched and re-checked 2026-11-03, read-only, on top of the finder's, the intended-behaviour check's and the adjudication's searches): three scripted prior-report searches (the finder's, the intended-behaviour check's with 37 queries and 151 hits, and the follow-up's with 20 GitHub issue/PR queries, 3 commit queries, 2 downstream-repo queries, 20 mailing-list queries over dev@, java-user@, issues@ and commits@, 4 JIRA-archive queries and 6 web queries, 270 distinct hits) and manual GitHub searches: 'checkImpacts', '"Impacts are not ordered"', '"contain dups" impacts', '"Impacts must be in increasing order"', '"increasing order of norm"' and 'prevNorm' return 0 on apache/lucene, the exact error message returns 0 on all of GitHub, 'checkImpacts' returns 0 on Lucene.NET, Elasticsearch, OpenSearch and Solr, and 'prevFreq' only #9045 (LUCENE-7997, unrelated); the JIRA archive has no entry with the message or 'increasing order of norm'; on the lists the phrases appear only in commit and PR-diff mails that carry the code. The diffs of the 16 open PRs that touch CheckIndex.java or the test-framework impacts files, and of every PR updated or created since 2026-11-01 (#16962-#16974; only #16964 touches CheckIndex.java, a FixBrokenOffsets message), change no line of the loop; the newest upstream commit on CheckIndex.java is aa2de9a025b (#16964, author date 2026-11-02) and the loop is unchanged on upstream main f72004515ec2. Related, not reports: #9190 (LUCENE-8142, introduced the check; its comments discuss the raw-impacts API, not the order check), #5270 (LUCENE-4198, impacts indexing), #9201 (LUCENE-8153, the cost of the impacts checks), #15151 (rewrote the loop and kept the gap), #12797 (renamed the level variable), #14716 (open, 'Merge PostingsEnum and ImpactsEnum.', does not touch the loop).</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>5adff78bb168</code> (12.0.0-SNAPSHOT), through gradle with assertions on and off: the repro without the fix (fails) and with the fix (passes). With the fix, <code class='nw'>TestCheckIndex</code> and 18 postings-format test classes of core, codecs and backward-codecs, selected by name, pass (546 tests, 0 failures: 482 ran, 64 skipped as nightly-only or by an assumption, all 30 of the nightly-only <code>TestSimpleTextPostingsFormat</code> among them), and in a separate run so do <code>TestOrdsBlockTree</code> and <code>TestAssertingPostingsFormat</code> (67 tests, 0 failures, 4 skipped). Public-API tests of the same scenario, adapted to each release's API, fail on 8.0.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.3.2, 10.4.0, 10.5.2 and 10.6.0; 7.7.3 lacks the impacts API.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Finding record</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/CheckIndex.java:103-112 (at 5adff78bb168) (class javadoc &#x27;Basic tool and API to check the health of an index&#x27;), :2562-2567 (checkImpacts, &#x27;For use in tests only&#x27;, @lucene.internal), :2600-2631 (per-level loop: firstFreq/firstNorm at :2605-2606, comment &#x27;Impacts must be in increasing order of norm AND freq&#x27; at :2613, &#x27;int prevFreq = firstFreq; long prevNorm = firstNorm;&#x27; at :2614-2615, the comparison and the &#x27;Impacts are not ordered or contain dups&#x27; error at :2618-2630, no assignment of prevFreq or prevNorm in the loop: fix site after :2630), :2632-2676 (the cross-level scan, which reuses the variables but re-reads them per entry), :2128-2131 (slow-check call and maxFreq = last entry), :2173, :2215 (advance-walk calls; gate :2092-2094), :1114-1125 (postings checked from MIN_LEVEL_FOR_INTEGRITY_CHECKS = 2), :2681-2683 (testPostings(CodecReader, PrintStream) runs at MIN_LEVEL_FOR_SLOW_CHECKS), :4738-4757 (Level: DEFAULT_VALUE = MIN_VALUE = 1, MIN_LEVEL_FOR_INTEGRITY_CHECKS = 2, MIN_LEVEL_FOR_SLOW_CHECKS = 3), :499 (the level field, no initializer, so 0 until setLevel)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/Impacts.java:37-44 (at 5adff78bb168) (getImpacts: &#x27;These impacts are sorted by increasing frequency and increasing unsigned norm&#x27;)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:6988-6989 (at 5adff78bb168) (IndexPackageAccess.checkImpacts), lucene/test-framework/src/java/org/apache/lucene/tests/index/AssertingLeafReader.java:667 and RandomPostingsTester.java:1264, :1307, :1345 (test-framework callers of the same method)</code></li></ul></dd></div><div><dt>The finding in 30 seconds</dt><dd><ul class='paths'><li><code>Lucene main 5adff78bb168: lucene/core/src/java/org/apache/lucene/index/Impacts.java:39-40 (the order contract)</code></li><li><code>Lucene main 5adff78bb168: lucene/core/src/java/org/apache/lucene/index/CheckIndex.java:2562-2567 (checkImpacts, &#x27;For use in tests only&#x27;, @lucene.internal), :2600-2631 (per-level loop; :2613 comment, :2614-2615 prevFreq/prevNorm, :2619-2629 comparison and message), :2632-2676 (cross-level scan; :2648-2649)</code></li><li><code>Lucene main 5adff78bb168: lucene/core/src/java/org/apache/lucene/index/CheckIndex.java:2128, :2173, :2215 (calls in testPostings), :1114-1125 (postings checked from level 2)</code></li><li><code>Lucene main 5adff78bb168: lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:6988-6989; lucene/test-framework/src/java/org/apache/lucene/tests/index/AssertingLeafReader.java:667; lucene/test-framework/src/java/org/apache/lucene/tests/index/RandomPostingsTester.java:1264, :1307, :1345</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>Lucene main 5adff78bb168: lucene/core/src/java/org/apache/lucene/index/CheckIndex.java:499, :505-508, :1114-1125, :2090-2094, :2108, :2128, :2173, :2215, :2129-2131, :2681-2683, :4673, :4748</code></li><li><code>Lucene main 5adff78bb168: lucene/test-framework/src/java/org/apache/lucene/tests/util/TestUtil.java:303, :353</code></li><li><code>Lucene main 5adff78bb168: lucene/test-framework/src/java/org/apache/lucene/tests/index/RandomPostingsTester.java:1264, :1269-1280</code></li><li><code>Lucene main 5adff78bb168: lucene/core/src/java/org/apache/lucene/search/SynonymQuery.java:534-561</code></li><li><code>Lucene main 5adff78bb168: lucene/core/src/java/org/apache/lucene/codecs/CompetitiveImpactAccumulator.java:101-123 (getCompetitiveFreqNormPairs); lucene/core/src/java/org/apache/lucene/index/SlowImpactsEnum.java:105-108; lucene/codecs/src/java/org/apache/lucene/codecs/memory/DirectPostingsFormat.java:940-941, :1517-1518; lucene/core/src/java/org/apache/lucene/codecs/lucene104/Lucene104PostingsReader.java:1447-1470</code></li></ul></dd></div><div><dt>Why it looks unintended</dt><dd><ul class='paths'><li><code>Lucene main 5adff78bb168: lucene/core/src/java/org/apache/lucene/index/Impacts.java:39-40</code></li><li><code>Lucene main 5adff78bb168: lucene/core/src/java/org/apache/lucene/index/CheckIndex.java:2562-2567, :2613-2631</code></li><li><code>GitHub apache/lucene #9190 (LUCENE-8142), #15151 (issue and review comments read)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>Lucene main 5adff78bb168: lucene/core/src/java/org/apache/lucene/index/CheckIndex.java:2613-2676</code></li></ul></dd></div><div><dt>History</dt><dd><ul class='paths'><li><code>GitHub apache/lucene: commits?path=lucene/core/src/java/org/apache/lucene/index/CheckIndex.java and the file on main f72004515ec2 (read 2026-11-04)</code></li></ul></dd></div><div><dt>Diagrams</dt><dd><ul class='paths'><li><code>Lucene main 5adff78bb168: lucene/core/src/java/org/apache/lucene/index/CheckIndex.java:2613-2631</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestCheckImpactsOrder.java (one test): <a href='../repro/LFV-1272/TestCheckImpactsOrder.java'><code>repro/LFV-1272/TestCheckImpactsOrder.java</code></a> (50 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A small diagram of the repro's single impacts level and the comparisons the loop makes, without and with the fix; made separately from this text.</p><ul class='paths'><li><a href='../assets/LFV-1272/bug.png'><code>assets/LFV-1272/bug.png</code></a> (448 KB)</li></ul><p class='meta built'>Built 2026-11-04 from the hunt's record of this finding and its doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>. Every listed finding was re-run on Lucene main <code class='nw'>e1faeba08bde</code> on 2026-11-02.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-11-04. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All findings</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  var own = !base && window.top === window && /^(https?|file):$/.test(location.protocol);
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = (own ? String(location.href).split('#')[0] : base) + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

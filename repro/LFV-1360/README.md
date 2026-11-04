@@ -2,6 +2,8 @@
 
 Finding LFV-1360 · Area: spatial3d / Geo3DPoint distance-query factory (argument validation: Geo3DUtil.fromDistance, GeoCircleFactory.makeGeoCircle) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-1360.html](../../bugs/LFV-1360.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You call Geo3DPoint.newDistanceQuery("f", PlanetModel.WGS84, 0, 0, -1) with a ne
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: No exception is thrown: Geo3DUtil.fromDistance checks only the latitude and longitude, and GeoCircleFactory.makeGeoCircle turns every angle below its resolution threshold, negative ones included, into a GeoDegeneratePoint at the centre before GeoStandardCircle's own 'Cutoff angle out of bounds' check can run.
+- Expected: `Geo3DPoint.newDistanceQuery("f", PlanetModel.WGS84, 0, 0, -1)` throws `IllegalArgumentException`, as its javadoc says and as `LatLonPoint` does.
+- Actual: Nothing is thrown (`Expected exception IllegalArgumentException but no exception was thrown`): the call returns the radius-0 query.
 
 ## Files
 
@@ -42,6 +44,10 @@ java -ea -esa -Xmx512m --add-modules jdk.incubator.vector --enable-native-access
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestGeo3DDistanceQueryNegativeRadius.java](TestGeo3DDistanceQueryNegativeRadius.java)
 
 ## Feedback
 

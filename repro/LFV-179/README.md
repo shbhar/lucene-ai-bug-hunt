@@ -10,8 +10,8 @@ You wrap a LogDocMergePolicy in a FilterMergePolicy (or in SoftDeletesRetentionM
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: On main FilterMergePolicy.size() still returns the wrapped policy's document count while getSizeUnit() says BYTES, so the compound-file check compares a document count with the 64 MiB byte threshold: forceMerge(1) of 70,000 small documents writes a compound segment where the plain policy writes a non-compound one, and every later forceMerge(1) rewrites that already merged segment again (3 of 3 calls).
+- Expected: The second `forceMerge(1)` leaves segment `_1` alone; with the plain `LogDocMergePolicy`, `_1` is not a compound file.
+- Actual: `ComparisonFailure: second forceMerge(1) rewrote _1 (compound file: true) expected:<_[1]> but was:<_[2]>`
 
 ## Files
 

@@ -49,6 +49,8 @@ Gradle alternative: copy the test into the matching module's `src/test/` tree of
 
 - [TestDeleteAllRacingDocValuesUpdate.java](TestDeleteAllRacingDocValuesUpdate.java)
 
+Formal models and scripts this finding's part of the hunt used: [../../models/lincheck-fieldnumbers-global-schema/](../../models/lincheck-fieldnumbers-global-schema/)
+
 ## Feedback
 
 Open an issue in [lucene-ai-bug-hunt](https://github.com/shbhar/lucene-ai-bug-hunt/issues). Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.

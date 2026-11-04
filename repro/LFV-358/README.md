@@ -4,7 +4,7 @@ Finding LFV-358 · Area: facet / DrillSideways (sequential DrillSidewaysScorer, 
 
 Finding page: [../../bugs/LFV-358.html](../../bugs/LFV-358.html)
 
-AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by reugn (open PR #16981; an independent fix, later than our listing) (https://github.com/apache/lucene/pull/16981). Open PR #16981 (created 2026-11-04) fixes the precedence bug as a side part of DrillSideways timeout and intra-segment concurrency support; its own brute-force TestDrillSidewaysScorer found it. It does not cite this list. Novelty stays new. This site files nothing upstream.
 
 ## What it shows
 

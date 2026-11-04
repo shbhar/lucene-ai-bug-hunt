@@ -2,6 +2,8 @@
 
 Finding LFV-1364 · Area: analysis / QueryAutoStopWordAnalyzer (analysis-common query package; percentage-constructor stop-word threshold: IndexReader.numDocs vs TermsEnum.docFreq) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-1364.html](../../bugs/LFV-1364.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index three documents whose body fields are 'w', 'x' and 'y', re-index each 
 
 ## Expected vs actual
 
-- Expected: You expect no stop words, because the javadoc makes a term a stop word only when it is in more than maxPercentDocs 'of index documents', and each term is in 1 of the 3 live documents and in 2 of the 6 documents that count the deleted copies (33% either way).
-- Actual: getStopWords("body") returns [w, x, y] and the analyzer drops 'w' from a query: the percentage constructor computes the threshold from live documents only, (int) (numDocs() * 0.4f) = 1 (QueryAutoStopWordAnalyzer.java:113), but compares it with TermsEnum.docFreq() = 2 (:140), which still counts the deleted copies, so the 'percentage' it tests is 67% here and can exceed 100%.
+- Expected: `getStopWords("body")` is empty: each term is in 33% of the documents, below the default 40%.
+- Actual: `AssertionError: expected:<[]> but was:<[w, x, y]>`: every term of the field is a stop word.
 
 ## Files
 
@@ -42,6 +44,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestQueryAutoStopWordAnalyzerDeletes.java](TestQueryAutoStopWordAnalyzerDeletes.java)
 
 ## Feedback
 

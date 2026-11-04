@@ -4,7 +4,7 @@ Finding LFV-288 · Area: highlighter / UnifiedHighlighter builder and highlight 
 
 Finding page: [../../bugs/LFV-288.html](../../bugs/LFV-288.html)
 
-AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fixed, by Christoph Büscher (PR #16983, approved by Luca Cavanna; an independent fix, later than our listing) (https://github.com/apache/lucene/pull/16983). Fixed on main by #16983 (merged 2026-11-04, milestone 11.0.0); the PR does not cite this list. Not backported to branch_10_6 as of 2026-11-04. Novelty stays new (owner decision 2026-11-04: listed publicly 2026-10-27, the fix came later and independently). This site files nothing upstream.
 
 ## What it shows
 

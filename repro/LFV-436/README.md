@@ -2,6 +2,8 @@
 
 Finding LFV-436 · Area: index / IndexWriter addIndexes(CodecReader...) failure path (AddIndexesMergeSource queue, SerialMergeScheduler) · Priority: low · Impact: crash · Novelty: new
 
+Finding page: [../../bugs/LFV-436.html](../../bugs/LFV-436.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You call addIndexes(CodecReader...) with a merge policy that turns the readers i
 
 ## Expected vs actual
 
-- Expected: You expect that failed call to be over, so you close its readers and later call addIndexes with other, valid readers, which should merge exactly those readers.
-- Actual: The failed call's unstarted merges are still in the writer's shared addIndexes queue, so the next call runs them first and throws AlreadyClosedException 'this IndexReader is closed', leaving its own merge queued in turn, so later calls keep failing this way until rollback() or close(); if you kept the old readers open, the next call silently runs the stale merge and writes a segment that is never used.
+- Expected: Call 1 throws and adds nothing; call 2, with valid input and no fault, adds index B's 1 document.
+- Actual: Call 2 throws `AlreadyClosedException: this IndexReader is closed` from call 1's leftover merge.
 
 ## Files
 
@@ -42,6 +44,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestFailedAddIndexesLeavesQueuedMerges.java](TestFailedAddIndexesLeavesQueuedMerges.java)
 
 ## Feedback
 

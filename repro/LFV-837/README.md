@@ -10,8 +10,8 @@ You update a doc-values field through IndexWriter (for example updateBinaryDocVa
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: BufferedUpdates creates the field's FieldUpdatesBuffer with the update, whose constructor already records it as entry 0, and then adds the same update again, so the first 1 MiB update adds 2,162,956 bytes to ramBytesUsed() while each later one adds 1,048,576, and IndexWriter's InfoStream reports '1 field updates; 20 new updates' for one binary update matching 10 documents.
+- Expected: Each 1 MiB update adds about 1,048,576 bytes to `ramBytesUsed()`, and the test passes.
+- Actual: `AssertionError: first=2162956 second=1048576`: the first update is counted twice.
 
 ## Files
 

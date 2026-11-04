@@ -55,6 +55,8 @@ Gradle alternative: copy the test into the matching module's `src/test/` tree of
 
 - [TestDocValuesUpdateReopenFailure.java](TestDocValuesUpdateReopenFailure.java)
 
+Formal models and scripts this finding's part of the hunt used: [../../models/dv-overlays/](../../models/dv-overlays/)
+
 ## Feedback
 
 Open an issue in [lucene-ai-bug-hunt](https://github.com/shbhar/lucene-ai-bug-hunt/issues). Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.

@@ -2,6 +2,8 @@
 
 Finding LFV-1363 · Area: queryparser / flexible standard parser fuzzy configuration (StandardSyntaxParser FuzzyOp, FuzzyQueryNodeProcessor, StandardQueryParser#setFuzzyMinSim / FuzzyConfig) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Finding page: [../../bugs/LFV-1363.html](../../bugs/LFV-1363.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You configure the flexible StandardQueryParser with setFuzzyMinSim(1f), which th
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: You get lucene~2, which also matches 'lucxna' (two edits), although getFuzzyMinSim() returns 1.0: the grammar (StandardSyntaxParser.jj FuzzyOp) fills in FuzzyQuery.defaultMaxEdits for a bare '~', and FuzzyQueryNodeProcessor copies the configured value onto the node only when its similarity is unset (below 0), which the grammar never produces.
+- Expected: `getMaxEdits()` is 1: `lucene~` allows at most one edit, as the classic `QueryParser` gives with the same setting.
+- Actual: `AssertionError: expected:<1> but was:<2>`: the parsed query is `f:lucene~2`.
 
 ## Files
 
@@ -47,6 +49,10 @@ java -ea -esa -Xmx512m --add-modules jdk.incubator.vector --enable-native-access
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestFuzzyMinSimBareTilde.java](TestFuzzyMinSimBareTilde.java)
 
 ## Feedback
 

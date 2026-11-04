@@ -2,6 +2,8 @@
 
 Finding LFV-1081 · Area: index / IndexWriter addIndexes(CodecReader...) merge (SegmentMerger) and the writer-wide field registry (FieldInfos.FieldNumbers) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-1081.html](../../bugs/LFV-1081.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You import an index with IndexWriter.addIndexes(CodecReader...) and the call fai
 
 ## Expected vs actual
 
-- Expected: You expect the writer to behave as if the call had never happened, so that a later document may use an imported field name with any schema, as it may on a fresh or reopened writer and after a validation-time failure of the same call.
-- Actual: The merge has already registered every incoming field in the writer-wide field schema before it failed, and nothing undoes that: a later document with NumericDocValuesField("f") is rejected ('cannot change field "f" from index options=DOCS to inconsistent index options=NONE') although no document with "f" was ever indexed into this writer, until the writer is reopened.
+- Expected: After the failed `addIndexes`, the document with `NumericDocValuesField("f", 1)` is accepted, as by a reopened writer.
+- Actual: It is rejected: `IllegalArgumentException: cannot change field "f" from index options=DOCS to inconsistent index options=NONE`.
 
 ## Files
 
@@ -41,6 +43,10 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestFailedAddIndexesCodecReaderSchema.java](TestFailedAddIndexesCodecReaderSchema.java)
 
 ## Feedback
 

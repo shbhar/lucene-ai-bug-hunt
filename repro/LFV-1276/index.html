@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CheckIndex&#x27;s seek-by-ord / seek-by-term test is gated on &#x27;status.termCount - termCountStart &gt; 0&#x27;, which since LUCENE-4485 equals (live terms of this field) - (fully-deleted terms of all earlier fields), so on a segment with deletions the test is silently skipped for later fields of an ord-capable terms dictionary (and always for a field whose terms all lack a live doc), and a broken seekExact(ord) passes CheckIndex (since 5.3.0) (LFV-1276)</title><style>
+:root{--fg:#1d2329;--dim:#5a6570;--line:#d8dee4;--bg:#fff;--soft:#f5f7f9;--link:#0b5cad}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
+font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+main{max-width:980px;margin:0 auto;padding:24px 18px 64px}a{color:var(--link)}
+h1{font-size:1.55rem;line-height:1.25;margin:.4em 0 .3em}h2{font-size:1.2rem;margin:1.6em 0 .5em}
+.dim{color:var(--dim)}.small{font-size:.9rem}.facts{display:flex;flex-wrap:wrap;gap:6px 16px;margin:.4em 0 1em}
+.note{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:10px 14px}
+pre{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:12px;overflow:auto;font-size:.85rem}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+table{border-collapse:collapse;width:100%;font-size:.92rem}th,td{border-bottom:1px solid var(--line);
+padding:6px 8px;text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:var(--soft)}
+h1,h2,p,li,dd{overflow-wrap:break-word}
+.facts>span{min-width:0;overflow-wrap:anywhere}
+th,td.nw{white-space:nowrap;overflow-wrap:normal}
+.scroll{overflow-x:auto}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
+nav.crumbs{font-size:.9rem;margin-bottom:8px}
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>CheckIndex&#x27;s seek-by-ord / seek-by-term test is gated on &#x27;status.termCount - termCountStart &gt; 0&#x27;, which since LUCENE-4485 equals (live terms of this field) - (fully-deleted terms of all earlier fields), so on a segment with deletions the test is silently skipped for later fields of an ord-capable terms dictionary (and always for a field whose terms all lack a live doc), and a broken seekExact(ord) passes CheckIndex (since 5.3.0)</h1>
+<p class="facts small"><span>Finding LFV-1276</span><span>Area: index / CheckIndex postings check (terms dictionary seek-by-ord test)</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-1276.html">Finding page for LFV-1276</a></p>
+<p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
+<h2>What it shows</h2>
+<p>You index one segment with BlockTreeOrdsPostingsFormat and NoMergePolicy (document 0 has terms a0 and a1 in field a, document 1 has terms b0 and b1 in field b), delete document 0 so that both terms of field a have no live document, and run CheckIndex.testPostings over a reader whose field-b terms enum swaps ords 0 and 1 on seekExact(ord), as a broken terms dictionary could. You expect the seek-by-ord test to report it, as it does on stock main when nothing is deleted (&#x27;seek to ord 1 returned ord 0&#x27;). Instead status.error is null on main (-ea and -da), 10.6.0, 10.5.2 and 9.12.3: for field b the gate computes 2 live terms minus the 2 fully-deleted terms of field a = 0, so the test never runs for field b.</p>
+<h2>Expected vs actual</h2>
+<ul><li><b>Expected:</b> <code>CheckIndex.testPostings(...).error</code> reports <code>seek to ord 0 returned ord 1</code> for field <code>b</code>.</li><li><b>Actual:</b> <code>error</code> is null (<code>termCount=2 delTermCount=2</code>), so the test fails at <code>assertNotNull</code>, with assertions on and off.</li></ul>
+<h2>Files</h2><ul>
+<li><a href="src/org/apache/lucene/index/TestCheckIndexSeekByOrdAfterDeletedTerms.java"><code>src/org/apache/lucene/index/TestCheckIndexSeekByOrdAfterDeletedTerms.java</code></a> <span class="dim">(JUnit test)</span></li>
+</ul><h2>Run it</h2><ul>
+<li>Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced.</li>
+<li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
+<li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
+</ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
+LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
+CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
+CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
+CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
+CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
+CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
+
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
+
+# run 1: assertions off (production-like), seed DEADBEEF
+java -da -dsa -Dtests.asserts=false -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.index.TestCheckIndexSeekByOrdAfterDeletedTerms</code></pre>
+<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
+<h2>Files shown on the finding page</h2><ul><li><a href="TestCheckIndexSeekByOrdAfterDeletedTerms.java"><code>TestCheckIndexSeekByOrdAfterDeletedTerms.java</code></a></li></ul>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-04. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

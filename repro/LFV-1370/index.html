@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Classic Highlighter: QueryScorer weights a term that several clauses name by clause order (the last term clause wins, the first span or phrase clause wins) instead of using the highest weight, so two equal() queries whose clauses differ only in order pick different best fragments (the classic-Highlighter sibling of #15434) (LFV-1370)</title><style>
+:root{--fg:#1d2329;--dim:#5a6570;--line:#d8dee4;--bg:#fff;--soft:#f5f7f9;--link:#0b5cad}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
+font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+main{max-width:980px;margin:0 auto;padding:24px 18px 64px}a{color:var(--link)}
+h1{font-size:1.55rem;line-height:1.25;margin:.4em 0 .3em}h2{font-size:1.2rem;margin:1.6em 0 .5em}
+.dim{color:var(--dim)}.small{font-size:.9rem}.facts{display:flex;flex-wrap:wrap;gap:6px 16px;margin:.4em 0 1em}
+.note{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:10px 14px}
+pre{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:12px;overflow:auto;font-size:.85rem}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+table{border-collapse:collapse;width:100%;font-size:.92rem}th,td{border-bottom:1px solid var(--line);
+padding:6px 8px;text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:var(--soft)}
+h1,h2,p,li,dd{overflow-wrap:break-word}
+.facts>span{min-width:0;overflow-wrap:anywhere}
+th,td.nw{white-space:nowrap;overflow-wrap:normal}
+.scroll{overflow-x:auto}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
+nav.crumbs{font-size:.9rem;margin-bottom:8px}
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>Classic Highlighter: QueryScorer weights a term that several clauses name by clause order (the last term clause wins, the first span or phrase clause wins) instead of using the highest weight, so two equal() queries whose clauses differ only in order pick different best fragments (the classic-Highlighter sibling of #15434)</h1>
+<p class="facts small"><span>Finding LFV-1370</span><span>Area: highlighter / classic Highlighter term weights (WeightedSpanTermExtractor.extractWeightedTerms and extractWeightedSpanTerms, used by QueryScorer)</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-1370.html">Finding page for LFV-1370</a></p>
+<p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
+<h2>What it shows</h2>
+<p>You highlight a text with the classic Highlighter and QueryScorer using two BooleanQuery objects that are equal() and differ only in clause order: (f:alpha)^5 (f:beta)^3 f:alpha and f:alpha (f:beta)^3 (f:alpha)^5. You expect the same best fragment for both, the one with alpha, because alpha&#x27;s highest weight 5 beats beta&#x27;s 3 (the rule that QueryScorer&#x27;s own WeightedSpanTerm[] constructor, QueryTermScorer and, since #15434, the FastVectorHighlighter follow). Instead WeightedSpanTermExtractor keeps the weight of the term clause it visits last (and of the first span or phrase clause), so alpha gets weight 1 for the first query and its best fragment is the one with beta (&#x27; &lt;B&gt;beta&lt;/B&gt;&#x27; for the repro&#x27;s text &#x27;alpha beta&#x27;), with no error.</p>
+<h2>Expected vs actual</h2>
+<ul><li><b>Expected:</b> Both queries give the best fragment <code>&lt;B&gt;alpha&lt;/B&gt;</code>.</li><li><b>Actual:</b> <code>q1</code> gives <code> &lt;B&gt;beta&lt;/B&gt;</code>: <code>ComparisonFailure: expected:&lt;[&lt;B&gt;alph]a&lt;/B&gt;&gt; but was:&lt;[ &lt;B&gt;bet]a&lt;/B&gt;&gt;</code>, with no other error.</li></ul>
+<h2>Files</h2><ul>
+<li><a href="src/org/apache/lucene/search/highlight/TestQueryScorerRepeatedTermWeight.java"><code>src/org/apache/lucene/search/highlight/TestQueryScorerRepeatedTermWeight.java</code></a> <span class="dim">(JUnit test)</span></li>
+</ul><h2>Run it</h2><ul>
+<li>Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced.</li>
+<li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
+<li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
+</ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
+LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
+CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
+CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
+CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
+CP=$CP:$LUCENE/lucene/highlighter/build/libs/lucene-highlighter-$V.jar
+CP=$CP:$LUCENE/lucene/memory/build/libs/lucene-memory-$V.jar
+CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
+CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
+CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
+
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
+
+# run 1: assertions off (production-like), seed DEADBEEF
+java -da -dsa -Dtests.asserts=false -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.search.highlight.TestQueryScorerRepeatedTermWeight</code></pre>
+<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
+<h2>Files shown on the finding page</h2><ul><li><a href="TestQueryScorerRepeatedTermWeight.java"><code>TestQueryScorerRepeatedTermWeight.java</code></a></li></ul>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-04. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
