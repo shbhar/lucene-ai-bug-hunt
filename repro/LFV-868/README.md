@@ -10,8 +10,8 @@ You build a finite acyclic automaton with one extra state that nothing leads to,
 
 ## Expected vs actual
 
-- Expected: You expect the token graph of the part reachable from the start (here the single token 'a'), or at least an error that says what is wrong.
-- Actual: It throws IllegalArgumentException 'Cycle found in automaton' ('Start node has incoming edges, creating cycle' when the unreachable state points at state 0), because it counts incoming edges over all states but walks only from state 0; the designers knew such input is unsupported (PR #157), but the javadoc never says so and the message is false.
+- Expected: A `TokenStream` with the one token `a`, or an `IllegalArgumentException` that names the unreachable state.
+- Actual: `IllegalArgumentException: Cycle found in automaton` at `AutomatonToTokenStream.java:89`, with assertions on and off.
 
 ## Files
 

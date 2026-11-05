@@ -10,8 +10,8 @@ You parse 'title:foo AND -bar' with the classic or the flexible query parser, bu
 
 ## Expected vs actual
 
-- Expected: You expect the same query as with ordinary spaces, '+title:foo -body:bar'.
-- Actual: Both grammars separate clauses only on space, TAB, LF, CR and U+3000, so 'foo&lt;EM&gt;AND&lt;EM&gt;-bar' is one term that the analyzer splits under the first field: the result is 'title:foo title:and title:bar', AND became the search word 'and', the '-' exclusion is gone and a document whose body contains bar now matches (2 hits instead of 1).
+- Expected: With EM spaces both parsers give the plain-space query, `+title:foo -body:bar`.
+- Actual: Both give `title:foo title:and title:bar`: `ComparisonFailure`, with assertions on and off, on main and 10.6.0.
 
 ## Files
 

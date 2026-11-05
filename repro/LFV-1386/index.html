@@ -19,6 +19,7 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>HyphenationCompoundWordTokenFilterFactory passes the raw &#x27;hyphenator&#x27; file name to the XML parser as the base system id (a URI), so with the JDK&#x27;s built-in parser a valid hyphenation grammar named e.g. hyph_ø.xml, or with &#x27;%&#x27;, &#x27;[&#x27;, &#x27;{&#x27; or &#x27;\&#x27; in its name, fails to load with MalformedURIException</h1>
 <p class="facts small"><span>Finding LFV-1386</span><span>Area: analysis-common / compound: hyphenation grammar loading (HyphenationCompoundWordTokenFilterFactory.inform; also HyphenationCompoundWordTokenFilter.getHyphenationTree(String) and PatternParser.parse(String))</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-1386.html">Finding page for LFV-1386</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You configure HyphenationCompoundWordTokenFilterFactory with hyphenator=hyph_ø.xml, a valid FOP grammar with the standard DOCTYPE, and expect the analyzer to build, as it does when the same file is named hyph_o.xml. Instead, with the JDK&#x27;s built-in XML parser, the build throws URI$MalformedURIException &#x27;Path contains invalid character: ø&#x27;: the factory hands the raw resource name to the parser as the base system id, which must be a URI, and the parser fails while resolving the DOCTYPE&#x27;s relative &#x27;hyphenation.dtd&#x27; against it, before Lucene&#x27;s entity resolver gets the chance to supply the bundled DTD. The public getHyphenationTree(String) and PatternParser.parse(String), documented to take a file name, pass it as a URI the same way.</p>
@@ -30,6 +31,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </ul><h2>Run it</h2><ul>
 <li>Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced.</li>
 <li>Recorded outcome of run 1 on Lucene main 5adff78bb168: 1 test(s) run, 1 failed.</li>
+<li>The bug shows only on the JDK&#x27;s built-in XML parser, which JAXP uses when no other SAX parser, such as Apache Xerces, is configured or on the class path: with Apache Xerces 2.12.2 on the class path this test passes.</li>
 <li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

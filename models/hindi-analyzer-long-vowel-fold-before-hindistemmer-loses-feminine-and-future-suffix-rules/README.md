@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- HindiAnalyzer runs HindiNormalizationFilter before HindiStemFilter, so the 20 of HindiStemmer's 67 suffix rules that are spelled with a long vowel or candrabindu (-ती, -ाती, -ेगी, -ोगी, -ूंगा, -ाई, -नी, ...) can never fire, and feminine and future verb forms keep part of their suffix: 'खाती' is indexed as 'खात' while 'खाता' and 'खाते' give 'खा' (finding LFV-1387; [repro](../../repro/LFV-1387/))
+- HindiAnalyzer runs HindiNormalizationFilter before HindiStemFilter, so the 20 of HindiStemmer's 67 suffix rules that are spelled with a long vowel or candrabindu (-ती -tī, -ाती -ātī, -ेगी -egī, -ोगी -ogī, -ूंगा -ūṁgā, -ाई -āī, -नी -nī, ...) can never fire, and feminine and future verb forms keep part of their suffix: 'खाती' (khātī) is indexed as 'खात' (khāt) while 'खाता' (khātā) and 'खाते' (khāte) give 'खा' (khā) (finding LFV-1387; [repro](../../repro/LFV-1387/), [finding page](../../bugs/LFV-1387.html))
 
 ## Files
 

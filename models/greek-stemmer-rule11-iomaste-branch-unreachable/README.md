@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- GreekStemmer rule11 tests the suffix 'ομαστε' before 'ιομαστε', so its 'ιομαστε' branch can never run and -ιόμαστε verb forms keep a trailing ι: GreekAnalyzer stems 'αγαπιόμαστε' to 'αγαπι' instead of 'αγαπ', so it no longer matches the other forms of the same verb (finding LFV-1385; [repro](../../repro/LFV-1385/))
+- GreekStemmer rule11 tests the suffix 'ομαστε' (omaste) before 'ιομαστε' (iomaste), so its 'ιομαστε' branch can never run and -ιόμαστε (-iómaste) verb forms keep a trailing ι (i): GreekAnalyzer stems 'αγαπιόμαστε' (agapiómaste) to 'αγαπι' (agapi) instead of 'αγαπ' (agap), so it no longer matches the other forms of the same verb (finding LFV-1385; [repro](../../repro/LFV-1385/), [finding page](../../bugs/LFV-1385.html))
 
 ## Files
 

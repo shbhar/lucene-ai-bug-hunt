@@ -2,7 +2,7 @@
 
 Finding LFV-663 · Area: analysis-common / Brazilian Portuguese stemmer (BrazilianStemmer.step1; BrazilianStemFilter, BrazilianAnalyzer and the 'brazilianStem' factory) · Priority: medium · Impact: silent wrong results · Novelty: known outside Lucene
 
-AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by sjs004 (PR #16972) on 2026-11-03 (https://github.com/apache/lucene/pull/16972). PR #16972 references this bug. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fixed, by sjs004 (PR #16972) on 2026-11-03 (https://github.com/apache/lucene/pull/16972). PR #16972 references this bug. This site files nothing upstream.
 
 ## What it shows
 

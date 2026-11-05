@@ -1,12 +1,14 @@
-# GreekStemmer rule11 tests the suffix 'ομαστε' before 'ιομαστε', so its 'ιομαστε' branch can never run and -ιόμαστε verb forms keep a trailing ι: GreekAnalyzer stems 'αγαπιόμαστε' to 'αγαπι' instead of 'αγαπ', so it no longer matches the other forms of the same verb
+# GreekStemmer rule11 tests the suffix 'ομαστε' (omaste) before 'ιομαστε' (iomaste), so its 'ιομαστε' branch can never run and -ιόμαστε (-iómaste) verb forms keep a trailing ι (i): GreekAnalyzer stems 'αγαπιόμαστε' (agapiómaste) to 'αγαπι' (agapi) instead of 'αγαπ' (agap), so it no longer matches the other forms of the same verb
 
 Finding LFV-1385 · Area: analysis-common / Greek stemmer (GreekStemmer.rule11; GreekStemFilter, GreekAnalyzer and the 'greekStem' factory) · Priority: low · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-1385.html](../../bugs/LFV-1385.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index Greek text with the stock GreekAnalyzer; one document says 'αγαπιόμαστε' ('we are loved') and a query says 'αγαπιέμαι' ('I am loved'). You expect both to stem to 'αγαπ', because GreekStemmer says it follows Ntais's thesis, whose rule-set 11 removes both -ομαστε and -ιομαστε, gives ΑΓΑΠΙΟΜΑΣΤΕ -&gt; ΑΓΑΠ as its own example and always applies the longest suffix, and the class even has a dedicated branch for 'ιομαστε'. Instead rule11 tests 'ομαστε' first (GreekStemmer.java:475), which every -ιομαστε word also ends with, so it removes only 6 characters and the 'ιομαστε' branch at :480 never runs: 'αγαπιόμαστε' is indexed as 'αγαπι' and the query finds nothing, with no error.
+You index Greek text with the stock GreekAnalyzer; one document says 'αγαπιόμαστε' (agapiómaste, 'we are loved') and a query says 'αγαπιέμαι' (agapiémai, 'I am loved'). You expect both to stem to 'αγαπ' (agap), because GreekStemmer says it follows Ntais's thesis, whose rule-set 11 removes both -ομαστε (-omaste) and -ιομαστε (-iomaste), gives ΑΓΑΠΙΟΜΑΣΤΕ (AGAPIOMASTE) -&gt; ΑΓΑΠ (AGAP) as its own example and always applies the longest suffix, and the class even has a dedicated branch for 'ιομαστε' (iomaste). Instead rule11 tests 'ομαστε' (omaste) first (GreekStemmer.java:475), which every -ιομαστε word also ends with, so it removes only 6 characters and the 'ιομαστε' branch at :480 never runs: 'αγαπιόμαστε' is indexed as 'αγαπι' (agapi) and the query finds nothing, with no error.
 
 ## Expected vs actual
 
@@ -42,6 +44,10 @@ java -ea -esa -Xmx512m --add-modules jdk.incubator.vector --enable-native-access
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestGreekStemmerIomaste.java](TestGreekStemmerIomaste.java)
 
 Formal models and scripts this finding's part of the hunt used: [../../models/greek-stemmer-rule11-iomaste-branch-unreachable/](../../models/greek-stemmer-rule11-iomaste-branch-unreachable/)
 

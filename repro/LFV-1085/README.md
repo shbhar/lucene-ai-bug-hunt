@@ -10,8 +10,8 @@ You read the analysis-common collation package overview and copy its Danish Sort
 
 ## Expected vs actual
 
-- Expected: You expect it to compile, like the page's Farsi and Turkish examples that #16904 just brought up to date on main; instead javac stops at 'sort.setSort(new SortField("contents", SortField.Type.STRING))' with 'cannot find symbol: method setSort(SortField)', because Sort became immutable and lost setSort in 9.0.0 (LUCENE-9325).
-- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
+- Expected: The copied example compiles, like the page's Farsi and Turkish examples.
+- Actual: One compile error, `cannot find symbol: method setSort(org.apache.lucene.search.SortField)` at page line 91, with assertions on and off.
 
 ## Files
 

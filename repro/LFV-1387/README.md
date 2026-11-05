@@ -1,12 +1,14 @@
-# HindiAnalyzer runs HindiNormalizationFilter before HindiStemFilter, so the 20 of HindiStemmer's 67 suffix rules that are spelled with a long vowel or candrabindu (-ती, -ाती, -ेगी, -ोगी, -ूंगा, -ाई, -नी, ...) can never fire, and feminine and future verb forms keep part of their suffix: 'खाती' is indexed as 'खात' while 'खाता' and 'खाते' give 'खा'
+# HindiAnalyzer runs HindiNormalizationFilter before HindiStemFilter, so the 20 of HindiStemmer's 67 suffix rules that are spelled with a long vowel or candrabindu (-ती -tī, -ाती -ātī, -ेगी -egī, -ोगी -ogī, -ूंगा -ūṁgā, -ाई -āī, -नी -nī, ...) can never fire, and feminine and future verb forms keep part of their suffix: 'खाती' (khātī) is indexed as 'खात' (khāt) while 'खाता' (khātā) and 'खाते' (khāte) give 'खा' (khā)
 
 Finding LFV-1387 · Area: analysis-common / Hindi analyzer (HindiAnalyzer filter chain; HindiStemmer suffix table versus HindiNormalizer) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-1387.html](../../bugs/LFV-1387.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index Hindi text with the stock HindiAnalyzer; one document says 'वह रोज़ खाती है' ('she eats every day') and a query says 'खाता' (the masculine form of 'eats'). You expect both forms to stem to 'खा', because HindiStemmer implements Ramanathan and Rao's light stemmer, whose suffix list contains -ती, and Lucene's own TestHindiStemmer pins खाती -&gt; खा next to खाता -&gt; खा. Instead HindiAnalyzer runs HindiNormalizationFilter first, which folds the long vowel signs ी and ू, the long vowels आ, ई and ऊ and the candrabindu ँ to their short or plain forms, so the 20 suffix rules spelled with those characters can never match: 'खाती' is indexed as 'खात' and the query finds nothing, with no error.
+You index Hindi text with the stock HindiAnalyzer; one document says 'वह रोज़ खाती है' (vah roz khātī hai, 'she eats every day') and a query says 'खाता' (khātā, the masculine form of 'eats'). You expect both forms to stem to 'खा' (khā), because HindiStemmer implements Ramanathan and Rao's light stemmer, whose suffix list contains -ती (-tī), and Lucene's own TestHindiStemmer pins खाती (khātī) -&gt; खा next to खाता -&gt; खा. Instead HindiAnalyzer runs HindiNormalizationFilter first, which folds the long vowel signs ी (ī) and ू (ū), the long vowels आ (ā), ई (ī) and ऊ (ū) and the candrabindu ँ (m̐) to their short or plain forms, so the 20 suffix rules spelled with those characters can never match: 'खाती' is indexed as 'खात' (khāt) and the query finds nothing, with no error.
 
 ## Expected vs actual
 
@@ -42,6 +44,10 @@ java -da -dsa -Dtests.asserts=false -Xmx512m --add-modules jdk.incubator.vector 
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestHindiAnalyzerFeminineVerb.java](TestHindiAnalyzerFeminineVerb.java)
 
 Formal models and scripts this finding's part of the hunt used: [../../models/hindi-analyzer-long-vowel-fold-before-hindistemmer-loses-feminine-and-future-suffix-rules/](../../models/hindi-analyzer-long-vowel-fold-before-hindistemmer-loses-feminine-and-future-suffix-rules/)
 

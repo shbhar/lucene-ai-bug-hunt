@@ -2,6 +2,8 @@
 
 Finding LFV-1386 · Area: analysis-common / compound: hyphenation grammar loading (HyphenationCompoundWordTokenFilterFactory.inform; also HyphenationCompoundWordTokenFilter.getHyphenationTree(String) and PatternParser.parse(String)) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-1386.html](../../bugs/LFV-1386.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -22,6 +24,7 @@ Expected: the analyzer builds. Actual, with the JDK's built-in XML parser (asser
 
 - Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced.
 - Recorded outcome of run 1 on Lucene main 5adff78bb168: 1 test(s) run, 1 failed.
+- The bug shows only on the JDK's built-in XML parser, which JAXP uses when no other SAX parser, such as Apache Xerces, is configured or on the class path: with Apache Xerces 2.12.2 on the class path this test passes.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
