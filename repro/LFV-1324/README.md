@@ -2,6 +2,8 @@
 
 Finding LFV-1324 · Area: facet / taxonomy: SearcherTaxonomyManager (release of a SearcherAndTaxonomy pair in decRef) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-1324.html](../../bugs/LFV-1324.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -44,6 +46,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestSearcherTaxonomyManagerCloseFailure.java](TestSearcherTaxonomyManagerCloseFailure.java)
 
 ## Feedback
 

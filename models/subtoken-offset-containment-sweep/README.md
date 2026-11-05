@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- KoreanTokenizer gives the parts of a decompounded word offsets counted back from the end of the word while their text is cut from the start of the word, so when the parts do not cover the whole word (a user-dictionary entry with a shorter segmentation such as '세종시 세종', or 7 compounds of the bundled dictionary such as 픽토그램) the offsets point at other characters (픽토 at [1,3) covers '토그') (finding LFV-603; [repro](../../repro/LFV-603/))
+- KoreanTokenizer gives the parts of a decompounded word offsets counted back from the end of the word while their text is cut from the start of the word, so when the parts do not cover the whole word (a user-dictionary entry with a shorter segmentation such as '세종시 세종', or 7 compounds of the bundled dictionary such as 픽토그램) the offsets point at other characters (픽토 at [1,3) covers '토그') (finding LFV-603; [repro](../../repro/LFV-603/), [finding page](../../bugs/LFV-603.html))
 
 ## Files
 

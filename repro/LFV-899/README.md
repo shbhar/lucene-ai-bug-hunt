@@ -2,6 +2,8 @@
 
 Finding LFV-899 · Area: expressions / SimpleBindings binding resolution (add(String, Expression), getDoubleValuesSource) and the ExpressionValueSource constructor · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-899.html](../../bugs/LFV-899.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -21,6 +23,7 @@ You bind named expressions that use each other with SimpleBindings.add(String, E
 
 - Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- The expressions module needs its one third-party dependency at run time: add CP=$CP:antlr4-runtime-4.13.2.jar (Maven Central, org.antlr:antlr4-runtime, the version main uses) before the java command. Without it the test stops with ClassNotFoundException: org.antlr.v4.runtime.tree.ParseTreeVisitor instead of the expected failure.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -45,6 +48,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) expressions also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestSimpleBindingsSharedSubExpressionCost.java](TestSimpleBindingsSharedSubExpressionCost.java)
 
 ## Feedback
 

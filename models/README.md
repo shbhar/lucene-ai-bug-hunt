@@ -16,6 +16,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [bitsets-livedocs-acceptdocs](bitsets-livedocs-acceptdocs/) | Python | LFV-139, LFV-147, LFV-137, LFV-133 |
 | [bkd-write-niche-configs](bkd-write-niche-configs/) | Python | LFV-613 |
 | [boolean-rewrite-dispatch](boolean-rewrite-dispatch/) | Python | LFV-103 |
+| [brazilian-stemmer-step2-ira-branch-removes-ava](brazilian-stemmer-step2-ira-branch-removes-ava/) | Python | LFV-1384 |
 | [bulk-overload-precondition-matrix](bulk-overload-precondition-matrix/) | Python | LFV-475 |
 | [bytebuffers-output-block-expansion-recycler-and-view-aliasing](bytebuffers-output-block-expansion-recycler-and-view-aliasing/) | TLA+/TLC | LFV-836 |
 | [cjk-compiled-dictionary-source-round-trip](cjk-compiled-dictionary-source-round-trip/) | Python | LFV-717, LFV-710 |
@@ -63,9 +64,11 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [fuzzy-levenshtein](fuzzy-levenshtein/) | Python | LFV-350 |
 | [geo-tessellator-shapes](geo-tessellator-shapes/) | Python | LFV-204 |
 | [geo-text-parsers-deep-nesting-vm-errors-siblings-of-16423](geo-text-parsers-deep-nesting-vm-errors-siblings-of-16423/) | Python | LFV-952 |
+| [greek-stemmer-rule11-iomaste-branch-unreachable](greek-stemmer-rule11-iomaste-branch-unreachable/) | Python | LFV-1385 |
 | [grouping-offset-plus-limit-overflow](grouping-offset-plus-limit-overflow/) | Python | LFV-964, LFV-958, LFV-960 |
 | [groupingsearch-cache-limit-applied-per-slice-10-6](groupingsearch-cache-limit-applied-per-slice-10-6/) | Python | LFV-910 |
 | [hardlink-copy-unwrap-bypasses-intermediate-directory-wrappers](hardlink-copy-unwrap-bypasses-intermediate-directory-wrappers/) | TLA+/TLC | LFV-912 |
+| [hindi-analyzer-long-vowel-fold-before-hindistemmer-loses-feminine-and-future-suffix-rules](hindi-analyzer-long-vowel-fold-before-hindistemmer-loses-feminine-and-future-suffix-rules/) | Python | LFV-1387 |
 | [hnsw-10x-merge-reuse-maxconn-mismatch](hnsw-10x-merge-reuse-maxconn-mismatch/) | Python | LFV-811 |
 | [hnsw-merge-reuse](hnsw-merge-reuse/) | Python | LFV-160 |
 | [hnsw-parallel-repair-tla](hnsw-parallel-repair-tla/) | Python | LFV-458 |
@@ -129,6 +132,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [rescorers-nearest-and-rescoretopn-presized-by-unbounded-topn](rescorers-nearest-and-rescoretopn-presized-by-unbounded-topn/) | Python | LFV-997, LFV-995 |
 | [rescoretopn-negative-rescore-values-maxscore-hang](rescoretopn-negative-rescore-values-maxscore-hang/) | SMT-LIB (Z3/cvc5), Python | LFV-1015, LFV-1016 |
 | [searcherlifetime-prune-order](searcherlifetime-prune-order/) | TLA+/TLC | LFV-1066 |
+| [signed-zero-equals-hashcode-remaining-query-valuesource-sort-sites](signed-zero-equals-hashcode-remaining-query-valuesource-sort-sites/) | Python | LFV-1341, LFV-1335, LFV-1337 |
 | [sloppymath-and-geo-distance-documented-error-bounds](sloppymath-and-geo-distance-documented-error-bounds/) | Python | LFV-771 |
 | [slow-codec-reader-vector-metadata-answered-past-wrappers](slow-codec-reader-vector-metadata-answered-past-wrappers/) | Alloy | LFV-911 |
 | [smartcn-hhmm-segmentation-reference](smartcn-hhmm-segmentation-reference/) | Python | LFV-709 |
