@@ -2,11 +2,13 @@
 
 Finding LFV-1380 · Area: highlighter / vectorhighlight FieldPhraseList matchedFields merge (FieldPhraseList(FieldPhraseList[]) and WeightedPhraseInfo(Collection)), weighed by WeightedFragListBuilder / WeightedFieldFragList · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-1380.html](../../bugs/LFV-1380.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You highlight document 0, 'running fast xx xx xx swim fast' (19 more documents hold 'running fast', so swim is rare), with FastVectorHighlighter.getBestFragments(..., matchedFields = {content, content.plain}, 20, 1, new WeightedFragListBuilder(), new ScoreOrderFragmentsBuilder(), ...), where content is stemmed and content.plain is its unstemmed copy, for content:run OR content.plain:"running fast" OR content.plain:"swim fast". You expect the passage that content:run and content.plain:"running fast" both match to be weighed with the term infos of both matches, as the merging constructor's comment ('merge the boosts and termInfos') and WeightedFieldFragList's sum-of-distinct-IDF-weights formula say, so the best fragment is '&lt;b&gt;running fast&lt;/b&gt; xx xx xx' (weight 9.89 against 6.02). Instead the merged match keeps the summed boost and both offsets but only the second match's term infos ('run' is lost), the passage weighs 5.38, and the best fragment returned is 'xx &lt;b&gt;swim fast&lt;/b&gt;', with no error.
+You index one document whose fields a and b both hold 'running fast xx xx xx swim slow' (stored, with term vectors, positions and offsets) and highlight field a with FastVectorHighlighter.getBestFragments(..., matchedFields = {a, b}, 20, 1, new WeightedFragListBuilder(), new ScoreOrderFragmentsBuilder(), ...) for a:"running fast" OR b:fast OR a:"swim slow". You expect the passage that a:"running fast" and b:fast both match to be weighed with the term infos of both matches, as the merging constructor's comment ('merge the boosts and termInfos') and WeightedFieldFragList's sum-of-distinct-IDF-weights formula say, so the best fragment is '&lt;b&gt;running fast&lt;/b&gt; xx xx xx' (weight 2.13 against 0.87). Instead the merged match keeps the summed boost and both offsets but only the second match's term infos ('running' is lost), the passage weighs 0.61, and the best fragment returned is 'xx &lt;b&gt;swim slow&lt;/b&gt;', with no error.
 
 ## Expected vs actual
 
@@ -44,6 +46,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestMatchedFieldsMergeTermInfos.java](TestMatchedFieldsMergeTermInfos.java)
 
 ## Feedback
 

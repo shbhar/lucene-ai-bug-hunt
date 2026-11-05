@@ -2,6 +2,8 @@
 
 Finding LFV-1366 · Area: replicator / NRT replication: CopyOneFile (the per-file copy helper behind every CopyJob; the 'copying' bookkeeping in ReplicaNode.finishCopyFile) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-1366.html](../../bugs/LFV-1366.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -45,6 +47,10 @@ java -da -dsa -Dtests.asserts=false -Xmx512m --add-modules jdk.incubator.vector 
 The module(s) facet, replicator also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestCopyOneFileCloseAfterVisit.java](TestCopyOneFileCloseAfterVisit.java)
 
 ## Feedback
 

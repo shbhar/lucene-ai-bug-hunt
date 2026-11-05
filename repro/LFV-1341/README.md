@@ -10,8 +10,8 @@ You build Geo3DPoint.newDistanceQuery("g", PlanetModel.WGS84, 0.0, 10.0, 1000.0)
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
+- Expected: `equals` and `hashCode` agree: since `a.equals(b)` is true, `a.hashCode()` must equal `b.hashCode()`.
+- Actual: `AssertionError: expected:<209447998> but was:<-1938035650>`: equal queries whose hash codes are 2^31 apart.
 
 ## Files
 

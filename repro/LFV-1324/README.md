@@ -10,8 +10,8 @@ You open a SearcherTaxonomyManager (any constructor, default settings) and close
 
 ## Expected vs actual
 
-- Expected: You expect close() to report that IOException but still release both readers of the pair, as the already-opened-readers constructor promises ('the incoming readers will be closed when you call close').
-- Actual: decRef releases the index reader first with no try/finally, so the exception skips the taxonomy reader's release: it stays open with refCount 1, and because the manager already counts as closed, a second close() does nothing.
+- Expected: `close()` throws the `IOException`, and both readers end at refCount 0, as with the fix.
+- Actual: `java.lang.AssertionError: expected:<0> but was:<1>` at the taxonomy refCount check: the taxonomy reader is still open.
 
 ## Files
 

@@ -2,6 +2,8 @@
 
 Finding LFV-837 · Area: index / buffered doc-values updates (BufferedUpdates, FieldUpdatesBuffer, FrozenBufferedUpdates) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-837.html](../../bugs/LFV-837.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -22,6 +24,7 @@ You update a doc-values field through IndexWriter (for example updateBinaryDocVa
 
 - Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Run 1 runs the second method of the src/ test, testFirstBinaryUpdateIsAppliedOnce (one 1 MiB update matching 1,100 documents, the doubled apply): on main 5adff78bb168 its commit fails with ArrayIndexOutOfBoundsException (arraycopy: last destination index 2147483648 out of bounds for byte[2147483631]) and the writer closes. Run 2 prints first=2162956 second=1048576 and exits 1. The expected and actual lines above are those of the finding page's one-test copy at the top of this folder, TestFirstDocValuesUpdateBufferedTwice.java; put it in place of the src/ file of the same name and drop -Dtests.method from run 1 to run it.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -47,6 +50,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestFirstDocValuesUpdateBufferedTwice.java](TestFirstDocValuesUpdateBufferedTwice.java)
 
 ## Feedback
 

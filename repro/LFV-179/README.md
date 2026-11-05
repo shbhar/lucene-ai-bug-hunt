@@ -2,6 +2,8 @@
 
 Finding LFV-179 · Area: index / merge policies (FilterMergePolicy size unit, compound-file threshold) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-179.html](../../bugs/LFV-179.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -22,6 +24,7 @@ You wrap a LogDocMergePolicy in a FilterMergePolicy (or in SoftDeletesRetentionM
 
 - Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Runs 1 and 2 use the two original tests under src/: on main 5adff78bb168 TestFilterMergePolicySizeUnit fails 2 of 2 (the wrapper reports BYTES where DOCS is expected) and TestWrappedLogDocMergePolicyCompoundFile fails 1 of 1 (the plain and the wrapped policy make different compound-file decisions for the same merge), with assertions on and off. The expected and actual lines above are those of the finding page's one-test copy at the top of this folder, TestFilterMergePolicyForceMergeNoOp.java; copy it into src/org/apache/lucene/index/ and select org.apache.lucene.index.TestFilterMergePolicyForceMergeNoOp in run 1 to run it.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -48,6 +51,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestFilterMergePolicyForceMergeNoOp.java](TestFilterMergePolicyForceMergeNoOp.java)
 
 ## Feedback
 

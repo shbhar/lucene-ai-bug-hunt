@@ -10,8 +10,8 @@ You bind named expressions that use each other with SimpleBindings.add(String, E
 
 ## Expected vs actual
 
-- Expected: You expect getDoubleValuesSource to build each binding a bounded number of times, as building the same graph eagerly with add(String, DoubleValuesSource) does.
-- Actual: Every reference re-applies expression::getDoubleValuesSource, so the shared graph is expanded into a tree with one ExpressionValueSource per path: 3*(2^d - 1) objects for a chain of d diamonds (196,605 for 49 bindings), and building the source of 70 or more such bindings exhausts a 1 GB heap before any document is read, while the computed values stay correct.
+- Expected: `getDoubleValuesSource("X16")` builds each of the 48 expression bindings a bounded number of times (the test allows 2,401; with the fix it is 48).
+- Actual: `AssertionError: getDoubleValuesSource("X16") instantiated expression bindings 196605 times for a graph of 49 bindings (expected at most 2401)`.
 
 ## Files
 

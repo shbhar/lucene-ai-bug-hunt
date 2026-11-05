@@ -10,8 +10,8 @@ You analyze text containing 픽토그램 ('pictogram') with the default KoreanAn
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Nori cuts each part's text from the start of the word but counts its offsets back from the end of the word, so 픽토그램 gives 픽토[1,3), covering '토그', and 그[3,4), covering '램', and '세종시 세종' gives 세종[1,3), covering '종시'; highlighters mark the wrong characters.
+- Expected: The part 세종 is reported at [0,2), the two characters it was cut from.
+- Actual: `AssertionError: startOffset 0 term=세종 expected:<0> but was:<1>`: 세종 is at [1,3), covering '종시'.
 
 ## Files
 

@@ -10,8 +10,8 @@ You build new ConstValueSource(0f) and new ConstValueSource(-0f), or two CommonT
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the reported behaviour is present the test fails; the failure message states expected against actual.
+- Expected: Each pair that `equals` calls equal has equal hash codes; `ConstValueSource(0f)` and `ConstValueSource(-0f)` are equal, so both hash codes must match.
+- Actual: `AssertionError: ConstValueSource expected:<0> but was:<-2147483648>`: equal objects whose hash codes differ.
 
 ## Files
 
