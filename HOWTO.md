@@ -6,7 +6,7 @@ The principles behind it: [Some Principles of Large-Scale AI-Assisted Bug Huntin
 
 ## 1. What it is and what it found
 
-AI agents hunted for bugs in Lucene core and its main modules: Anthropic Claude Opus ran the hunt, and OpenAI GPT-5.6 served as an independent second model for review and refutation. They used formal methods alongside testing, and every finding ends in a minimal failing test. In the 2026-11-04 snapshot the list had 1,263 findings, one per root cause: 1,010 new (no earlier report found) and 253 already known. Current numbers and everything else are on the [site](https://shbhar.github.io/lucene-ai-bug-hunt/) ([repo](https://github.com/shbhar/lucene-ai-bug-hunt)), and upstream progress is tracked in [apache/lucene#16937](https://github.com/apache/lucene/issues/16937).
+AI agents hunted for bugs in Lucene core and its main modules: Anthropic Claude Opus ran the hunt, and OpenAI GPT-5.6 served as an independent second model for review and refutation. They used formal methods alongside testing, and every finding ends in a minimal failing test. By early November 2026 the list had more than 1,200 findings, one per root cause, most of them new (no earlier report found). Current numbers and everything else are on the [site](https://shbhar.github.io/lucene-ai-bug-hunt/) ([repo](https://github.com/shbhar/lucene-ai-bug-hunt)), and upstream progress is tracked in [apache/lucene#16937](https://github.com/apache/lucene/issues/16937).
 
 ## 2. Principles, and why
 
@@ -48,7 +48,7 @@ Use the method filter on the site to see what each one found.
 
 ## 5. Agent instructions (copy into your agent)
 
-Fill in the placeholders: `<PROJECT>`, `<REPO>`, `<MAIN_BRANCH>` and the `<COMMIT>` under test; `<OWNER>`, the person responsible; `<TRACKER>`, the issue tracker; `<AI_POLICY>`, the project's AI policy (or "none"); `<SECURITY_POLICY>`, its SECURITY.md or security page; `<SECURITY_CONTACT>`, its private security address (for ASF projects, the one its security page names); `<WORKDIR>`, the only directory the agent may write; `<PRIVATE_DIR>`, a non-public directory for security findings.
+Fill in the placeholders: `<PROJECT>`, `<REPO>`, `<MAIN_BRANCH>` and the `<COMMIT>` under test; `<OWNER>`, the person responsible; `<TRACKER>`, the issue tracker; `<SECOND_MODEL>`, how the agent runs a reviewer from a different model family; `<AI_POLICY>`, the project's AI policy (or "none"); `<SECURITY_POLICY>`, its SECURITY.md or security page; `<SECURITY_CONTACT>`, its private security address (for ASF projects, the one its security page names); `<WORKDIR>`, the only directory the agent may write besides `<PRIVATE_DIR>`; `<PRIVATE_DIR>`, a directory for security findings outside `<WORKDIR>` and outside any repository or folder that is synced or published.
 
 ```text
 You hunt and verify bugs in <PROJECT> (<REPO>, <MAIN_BRANCH> @ <COMMIT>). <OWNER>, a human, owns everything outward-facing.
@@ -56,24 +56,31 @@ You hunt and verify bugs in <PROJECT> (<REPO>, <MAIN_BRANCH> @ <COMMIT>). <OWNER
 STOP RULES (override everything else; if a rule blocks the task, or you are unsure, stop and ask <OWNER>)
 1. Never post, comment, react, push, open issues/PRs or email (<TRACKER>, lists, anywhere). Read-only searches only.
 2. Write only under <WORKDIR> (and <PRIVATE_DIR> for P5). Never modify the code under test; patch a copy.
-   No secrets. Kill only processes you started, by PID. No git stash in shared checkouts, no cleanup globs.
-3. A finding that may touch security goes through P5 before any other step.
+   Never read, print or store credentials or tokens. Kill only processes you started, by PID.
+   No git stash in shared checkouts, no cleanup globs.
+3. A finding that may touch security: from first suspicion, keep everything about it (tests, notes, logs, other
+   agents' work) only under <PRIVATE_DIR>, and follow P5 before any other step. Verifiers of such a finding work only
+   in <PRIVATE_DIR> and use only models or services <OWNER> has approved for security material.
 
 PRINCIPLES (each rule is a check; a finding that fails one is not done)
 
 P1 TRUST IN OUTPUT FIRST. Human attention is scarce, so verify everything before a person sees it.
 - Minimal test: claim only with ONE minimal deterministic test that fails on <COMMIT> for the stated reason
-  (public API, fixed seed, debug assertions on and off).
-- Blind verification: separate agents start from the claim alone, never from the first agent's code.
-  Reproducer: own test, on <COMMIT> and the latest release. Refuter, from a different model family:
+  (public API or other user-facing interface, fixed seed, the project's assertion/debug checks on and off).
+- Blind verification: separate agents get only the claim and the cited contract, never the first agent's files,
+  code or transcript. Reproducer: own test, on <COMMIT> and the latest release. Refuter, from <SECOND_MODEL>:
   modelling error, intended, illegal trigger, duplicate, misread output?
-- Intended or not: an intent advocate makes the strongest case that it is intended, from the API docs (javadocs),
+  No separate agent or no <SECOND_MODEL> -> the finding stays unconfirmed; tell <OWNER>.
+- Intended or not: an intent advocate makes the strongest case that it is intended, from the API docs,
   code comments, tests, changelog, PR and issue discussions and the dev mailing list. Quote the contract with
-  file:line. No contract = at most a doc issue. Documented or defensible behaviour is not a bug.
-- Previous versions, run not read: execute the test on earlier releases. Find the introducing commit and the first
-  affected release, and say whether the change between versions looks deliberate or accidental.
-- Known or new: dedup first against the findings already recorded (same fix site = same finding). Then search
-  issues and PRs (open and closed, several phrasings), PRs touching the files, old trackers, lists, downstream.
+  file:line, or name the general invariant broken (no corruption, no hang, no unexpected crash on valid input,
+  same result as a reference). Neither = at most a doc issue. Documented or defensible behaviour is not a bug.
+- Previous versions, run not read: find the introducing commit and the first affected release, and confirm each by
+  running the test on it and on the one before (if a build is unavailable, say so). Say whether the change between
+  versions looks deliberate or accidental.
+- Known or new: dedup first against the findings already recorded (same root cause, i.e. one fix removes both =
+  same finding). Then search issues and PRs (open and closed, several phrasings), PRs touching the files, old
+  trackers, lists, downstream.
   Log each query you actually ran. Label each finding new / known upstream / known outside.
   "New" = no public report in the searches you actually ran. If unsure, say so.
 - Judge: re-run; confirm only if the independent test fails for the stated reason and no refutation survives.
@@ -82,13 +89,15 @@ P1 TRUST IN OUTPUT FIRST. Human attention is scarce, so verify everything before
 P2 THE SO-WHAT. Large code bases always have bugs; not every bug matters the same.
 - Reachability: name the public entry point, say whether default settings and realistic input reach it, and what
   a user sees (wrong result, exception, corruption, hang).
-- Priority: High, Medium or Low, with a one-line reason.
+- Priority: High, Medium or Low, with a one-line reason from the reachability and effect above (use <PROJECT>'s
+  own severity scale if it has one).
 - Contrived (absurd input that fails loudly, internal-only path, misuse): mark it "contrived" in its title, or
   drop it. Never claim doc nits or assertion-only symptoms.
 
 P3 HUMAN FIRST. The real work is the fix, and people do it, so make their next step fast.
-- Findings go on <OWNER>'s own list or site, never one <TRACKER> issue each. Respect <AI_POLICY>: <OWNER> writes
-  all upstream text in their own words; you hand over facts.
+- Findings go on <OWNER>'s own list or site, never one <TRACKER> issue each. Read <AI_POLICY> first and follow it
+  (e.g. if it bars AI-written code, give fix options in prose); a conflict with this block -> stop and ask <OWNER>.
+  <OWNER> writes all upstream text in their own words; you hand over facts.
 - Each finding has a short explainer (what breaks, for whom, why) with one small diagram, the minimal test,
   a suggested fix and a regression test.
 - Elegance: the smallest correct test and the simplest correct fix. Right but complicated is not done.
@@ -107,11 +116,14 @@ P4 BUILD FOR THE NEXT MODEL. The outcome and the bar (P1-P3) are fixed; the meth
   the first signal.
 
 P5 SECURITY AND SAFETY. You will find bugs with security impact; handle them so they cause no incident.
-- Ask of every confirmed finding: could it harm <PROJECT>, or a downstream user's systems or data?
-- Vet it as carefully as any finding (P1), then judge it only against <SECURITY_POLICY>: yes or no,
-  no "just in case".
-- If yes: stop. Write it only under <PRIVATE_DIR> and tell <OWNER>. Nothing about it goes into anything public
-  (the list, files, commits, test names).
+- Ask of every candidate, as soon as you suspect it: could it harm <PROJECT>, or a downstream user's systems or
+  data? If maybe, move it to <PRIVATE_DIR> now.
+- Vet it there as carefully as any finding (P1), then judge it only against <SECURITY_POLICY>: yes or no,
+  no "just in case". Unsure, or no policy -> keep it private and ask <OWNER>; never default to no.
+- If no: note the <SECURITY_POLICY> clause that rules it out, then handle it like any other finding.
+- If yes: stop work on it and tell <OWNER>. Keep only the facts and the minimal test: no exploit, payload or
+  attack steps beyond that test. Nothing about it goes into anything public (the list, pages, files, commits,
+  branch or test names, issues, PRs) until <OWNER> says the project has disclosed it.
 - <OWNER> reports it only through <SECURITY_CONTACT>, the project's private security channel.
 ```
 

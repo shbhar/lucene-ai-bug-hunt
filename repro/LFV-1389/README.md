@@ -1,6 +1,8 @@
-# SynonymGraphFilterFactory and the deprecated SynonymFilterFactory do not trim the names in a comma-separated 'synonyms' file list, so synonyms="a.txt, b.txt" fails to build with IOException 'Resource not found ...: b.txt', although every other list-taking analysis factory accepts that form
+# SynonymGraphFilterFactory and the deprecated SynonymFilterFactory do not trim the names in a comma-separated 'synonyms' file list, so synonyms="a.txt, b.txt" fails to build with IOException 'Resource not found ...: b.txt', although the other callers of the shared file-list splitter accept that form
 
 Finding LFV-1389 · Area: analysis-common / synonym: synonym file loading (SynonymGraphFilterFactory.loadSynonyms; also the deprecated SynonymFilterFactory) · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-1389.html](../../bugs/LFV-1389.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -42,6 +44,10 @@ java -da -dsa -Dtests.asserts=false -Xmx512m --add-modules jdk.incubator.vector 
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestSynonymFileListTrim.java](TestSynonymFileListTrim.java)
 
 ## Feedback
 

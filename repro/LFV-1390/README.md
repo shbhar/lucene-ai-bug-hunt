@@ -2,6 +2,8 @@
 
 Finding LFV-1390 · Area: analysis-common / Galician stemmer rule file (galician.rslp Noun step, run by RSLPStemmerBase; GalicianStemFilter, GalicianAnalyzer and the 'galicianStem' factory) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-1390.html](../../bugs/LFV-1390.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -42,6 +44,10 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestGalicianNounIdoExceptions.java](TestGalicianNounIdoExceptions.java)
 
 ## Feedback
 

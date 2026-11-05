@@ -10,7 +10,7 @@ You build a finite acyclic automaton with one extra state that nothing leads to,
 
 ## Expected vs actual
 
-- Expected: A `TokenStream` with the one token `a`, or an `IllegalArgumentException` that names the unreachable state.
+- Expected: A `TokenStream` with the one token `a`, or an `IllegalArgumentException` that does not claim a cycle (ideally one that names the unreachable state).
 - Actual: `IllegalArgumentException: Cycle found in automaton` at `AutomatonToTokenStream.java:89`, with assertions on and off.
 
 ## Files
