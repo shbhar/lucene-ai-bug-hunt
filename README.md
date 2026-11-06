@@ -2,8 +2,7 @@
 
 A dated snapshot (2026-11-04) of AI-assisted work: findings in [Apache Lucene](https://github.com/apache/lucene). The findings the hunt made and confirmed went through AI-run checks. This is an independent list: per the Apache Lucene project’s AI policy, nothing here is filed in Lucene unless a person files it by hand.
 
-Run a similar hunt in your project: [how-to](HOWTO.md).
-[Some Principles of Large-Scale AI-Assisted Bug Hunting](PRINCIPLES.md).
+**Want to run a hunt like this in your own open-source project?** Start with the [how-to](https://shbhar.github.io/lucene-ai-bug-hunt/howto.html) (principles, methods and pipeline), and give your AI agent [HOWTO.md](HOWTO.md), the same method written as instructions.
 
 Browse the table: open `index.html` (published with GitHub Pages).
 
@@ -48,7 +47,6 @@ Each `repro/<id>/` directory holds the minimal test sources, what they show, exp
 | `models/<unit>/` | formal models and scripts of the hunt units that worked on a public finding |
 | `data/bugs.csv`, `data/bugs.json` | the table as data (public fields only) |
 | `HOWTO.md`, `howto.html` | how to run a similar hunt in your project |
-| `PRINCIPLES.md`, `principles.html` | some principles of large-scale AI-assisted bug hunting |
 
 ## License
 

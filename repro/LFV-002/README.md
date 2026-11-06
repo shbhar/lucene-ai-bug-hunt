@@ -4,7 +4,7 @@ Finding LFV-002 · Area: index / IndexWriter merge · Priority: medium · Impact
 
 Finding page: [../../bugs/LFV-002.html](../../bugs/LFV-002.html)
 
-AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by jimczi (PR #16988) on 2026-11-06 (https://github.com/apache/lucene/pull/16988). PR #16988 references this bug. This site files nothing upstream.
 
 ## What it shows
 

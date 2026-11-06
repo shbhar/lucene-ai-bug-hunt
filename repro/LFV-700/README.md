@@ -4,7 +4,7 @@ Finding LFV-700 · Area: suggest / analyzing: BlendedInfixSuggester result colle
 
 Finding page: [../../bugs/LFV-700.html](../../bugs/LFV-700.html)
 
-AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by sjs004 (PR #16993) on 2026-11-06 (https://github.com/apache/lucene/pull/16993). PR #16993 references this bug. This site files nothing upstream.
 
 ## What it shows
 

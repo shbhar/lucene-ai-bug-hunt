@@ -4,7 +4,7 @@ Finding LFV-013 · Area: index / doc-values updates · Priority: medium · Impac
 
 Finding page: [../../bugs/LFV-013.html](../../bugs/LFV-013.html)
 
-AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by jimczi (PR #16989) on 2026-11-06 (https://github.com/apache/lucene/pull/16989). PR #16989 references this bug. This site files nothing upstream.
 
 ## What it shows
 

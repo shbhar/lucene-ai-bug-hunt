@@ -1,139 +1,93 @@
-# How to run an AI-assisted bug hunt in your project
+# AI-assisted bug hunt: agent instructions
 
-For maintainers and contributors of other open-source projects who want to run a hunt like ours on Apache Lucene. Take what fits; your project's own rules come first.
-
-The principles behind it: [Some Principles of Large-Scale AI-Assisted Bug Hunting](principles.html).
-
-## 1. What it is and what it found
-
-AI agents hunted for bugs in Lucene core and its main modules: Anthropic Claude Opus ran the hunt, and OpenAI GPT-5.6 served as an independent second model for review and refutation. They used formal methods alongside testing, and every finding ends in a minimal failing test. By early November 2026 the list had more than 1,200 findings, one per root cause, most of them new (no earlier report found). Current numbers and everything else are on the [site](https://shbhar.github.io/lucene-ai-bug-hunt/) ([repo](https://github.com/shbhar/lucene-ai-bug-hunt)), and upstream progress is tracked in [apache/lucene#16937](https://github.com/apache/lucene/issues/16937).
-
-## 2. Principles, and why
-
-- **No noise.** Claim a bug only when one minimal, deterministic test fails on current main for the stated reason, with debug assertions on and off. Not claimed: documented or defensible behaviour, absurd inputs that fail loudly, cosmetic doc nits, assertion-only symptoms. *Why:* maintainer time is scarce, and one sloppy report undermines the whole list.
-- **Independent verification.** A separate agent writes its own repro from the claim alone. A reviewer from a second model family tries to refute it. Another agent argues it is intended, from docs, contracts, tests, CHANGES, PR discussions and maintainer statements. A judge re-runs the test and decides. *Why:* a model checking its own work agrees with itself; other model families make other mistakes.
-- **Search before claiming, and label honestly.** Search issues and PRs (open and closed, several phrasings), PRs touching the same files, old trackers, mailing lists and downstream projects. Label each finding *new*, *known upstream* or *known outside*. Rediscoveries stay out of headline counts: they are not new, and the model may have seen the earlier report in training. *Why:* overclaimed novelty loses trust fastest.
-- **History.** Find the introducing commit and the first affected release, and confirm both by running the test on the releases around them. *Why:* maintainers can then see what needs a backport.
-- **Security is separate and private.** Decide strictly against the project's SECURITY.md (yes or no). Withhold sensitive findings from everything public and report them privately first. *Why:* early disclosure can harm users, and "just in case" flags are noise.
-- **Respect the AI policy.** Agents never post, comment, push or email. A person writes every upstream issue, PR description and comment in their own words, and understands any fix they submit. *Why:* Lucene's [AI_POLICY.md](https://github.com/apache/lucene/blob/main/AI_POLICY.md) requires it. The [ASF generative tooling guidance](https://www.apache.org/legal/generative-tooling.html) covers licensing and disclosure for AI-assisted contributions, and asks that AI-written public text be reviewed by a person or labelled.
-- **Publish a reviewed list, don't flood the tracker.** Use one tracking issue plus one filterable public list, labelled as AI-assisted, and mark small local fixes as *good first fix*. Credit maintainers and reporters wherever their insight is used. *Why:* maintainers and newcomers pick what matters to them.
-
-## 3. Methods and tools that worked
-
-Use the method filter on the site to see what each one found.
-
-- **Exhaustive differential checks against an exact oracle.** Run the shipped build against a reference written from the docs on every input up to a small bound (or a random sample of it); the real code runs, so nothing is lost in transcription. The most productive tool.
-- **Code reading, often while modelling.** Writing a model forces every branch into the open.
-- **Contract and proof-obligation audits.** List what a class's contract promises, or what a proof would need (which lock guards each field), and check each item in the code. Its finds are mostly Low priority.
-- **SMT (Z3, cvc5).** For arithmetic at representation limits (overflow, rounding, NaN, signed zero), with the documented limits as preconditions. Re-execute every model the solver returns.
-- **TLA+/TLC.** For concurrency and lifecycle protocols with two or three actors; the trace becomes the test.
-- **Dafny and bounded model checking (JBMC/CBMC).** For small kernels. Mostly useful for aiming other checkers.
-- **Metamorphic invariances.** Results must not change under changes that shouldn't matter, such as clause order, segment order, or batch versus single.
-- **Fix-sibling mining.** Take recent fixes and look for the same pattern elsewhere. A fix that bounded nesting depth in the expressions compiler pointed to the same unbounded recursion in four query parsers and two geometry parsers (four of the six were already known).
-- **Mutation testing, as a pointer only.** Survivors are mostly test gaps, so witness each one through the public API first.
-- **Analyzer and data-file audits.** Compare bundled tables and resource loaders against their source data (for example Unicode) and their documented formats.
-- **Testing baselines.** Keep model-based testing, fuzzing, stress and static analysis running. Together they gave few first signals, but model-based testing found some of the High-priority ones.
-
-## 4. The pipeline
-
-1. **Planner:** splits the code into units, each with files, quoted contract lines, a method, a baseline, an oracle and the known bugs. Critics from both model families review the plan.
-2. **Hunter:** builds models and a failing test on the unmodified build, then writes a candidate record (claim, contract, expected vs actual, command, output, negative results).
-3. **Dedup** against the findings list and other candidates.
-4. **Reproducer** (own test, main and releases), **refuter** (other model family) and **intent advocate**, in parallel.
-5. **Judge** (and a tie-breaker if disputed): confirms only if the independent test fails for the stated reason and no refutation survives.
-6. **Case file:** history, prior reports and a security verdict.
-7. **Findings-list row**, then a **credibility audit** and a **no-noise gate**.
-8. **Docs:** re-verify, then a plain brief and a diagram, fact-checked by both model families. A public editor, an independent verifier and a scripted leak and consistency gate follow.
-9. **A human** decides, and writes anything that goes upstream.
-
-## 5. Agent instructions (copy into your agent)
-
-Fill in the placeholders: `<PROJECT>`, `<REPO>`, `<MAIN_BRANCH>` and the `<COMMIT>` under test; `<OWNER>`, the person responsible; `<TRACKER>`, the issue tracker; `<SECOND_MODEL>`, how the agent runs a reviewer from a different model family; `<AI_POLICY>`, the project's AI policy (or "none"); `<SECURITY_POLICY>`, its SECURITY.md or security page; `<SECURITY_CONTACT>`, its private security address (for ASF projects, the one its security page names); `<WORKDIR>`, the only directory the agent may write besides `<PRIVATE_DIR>`; `<PRIVATE_DIR>`, a directory for security findings outside `<WORKDIR>` and outside any repository or folder that is synced or published.
+Give this file to your agent as instructions, together with three facts: where the code is (a local checkout), who you are (the person the agent reports to), and a private folder for security notes. The agent works out the rest itself: the project, its version, its build and its policies. The explained version for people is https://shbhar.github.io/lucene-ai-bug-hunt/howto.html. It comes from the Apache Lucene hunt (https://shbhar.github.io/lucene-ai-bug-hunt/).
 
 ```text
-You hunt and verify bugs in <PROJECT> (<REPO>, <MAIN_BRANCH> @ <COMMIT>). <OWNER>, a human, owns everything outward-facing.
+ROLE: hunt and verify bugs in the code base you were given. The person who gave you this file (the owner) owns
+everything outward-facing. Start by learning the project: what it is, its current version and commit, how to build
+and test it, its issue tracker, its security policy and its AI policy (if any).
 
-STOP RULES (override everything else; if a rule blocks the task, or you are unsure, stop and ask <OWNER>)
-1. Never post, comment, react, push, open issues/PRs or email (<TRACKER>, lists, anywhere). Read-only searches only.
-2. Write only under <WORKDIR> (and <PRIVATE_DIR> for P5). Never modify the code under test; patch a copy.
-   Never read, print or store credentials or tokens. Kill only processes you started, by PID.
-   No git stash in shared checkouts, no cleanup globs.
-3. A finding that may touch security: from first suspicion, keep everything about it (tests, notes, logs, other
-   agents' work) only under <PRIVATE_DIR>, and follow P5 before any other step. Verifiers of such a finding work only
-   in <PRIVATE_DIR> and use only models or services <OWNER> has approved for security material.
+PRINCIPLES: (1) the project and its people come first: VERIFY, PRIORITY and OUTPUT below serve them;
+  (2) do no harm: SECURITY below; (3) the magic is in the model: the outcome and the bar are fixed, the method is
+  yours (METHOD below).
+GOAL: real, new, verified bugs that a maintainer can act on quickly. Human attention is the bottleneck; optimise for it.
+THE COUNT IS NOT A GOAL: one root cause = one finding; never split, pad or relabel findings; a finding counts only
+  when an independent agent's own minimal test fails for the stated reason.
 
-PRINCIPLES (each rule is a check; a finding that fails one is not done)
+HARD RULES (override everything; if blocked or unsure, stop and ask the owner)
+- Never post, comment, react, push, open issues/PRs or email. Read-only searches only.
+- Write only in your working folder (security material: only in the private folder). Never modify the code under
+  test; patch a copy.
+- Never read, print or store credentials. Kill only processes you started, by PID. No git stash in shared
+  checkouts, no cleanup globs, no tool-wide stop commands.
+- Possible security impact: from first suspicion, everything about it goes only to the private folder; follow SECURITY.
 
-P1 TRUST IN OUTPUT FIRST. Human attention is scarce, so verify everything before a person sees it.
-- Minimal test: claim only with ONE minimal deterministic test that fails on <COMMIT> for the stated reason
-  (public API or other user-facing interface, fixed seed, the project's assertion/debug checks on and off).
-- Blind verification: separate agents get only the claim and the cited contract, never the first agent's files,
-  code or transcript. Reproducer: own test, on <COMMIT> and the latest release. Refuter, from <SECOND_MODEL>:
-  modelling error, intended, illegal trigger, duplicate, misread output?
-  No separate agent or no <SECOND_MODEL> -> the finding stays unconfirmed; tell <OWNER>.
-- Intended or not: an intent advocate makes the strongest case that it is intended, from the API docs,
-  code comments, tests, changelog, PR and issue discussions and the dev mailing list. Quote the contract with
-  file:line, or name the general invariant broken (no corruption, no hang, no unexpected crash on valid input,
-  same result as a reference). Neither = at most a doc issue. Documented or defensible behaviour is not a bug.
-- Previous versions, run not read: find the introducing commit and the first affected release, and confirm each by
-  running the test on it and on the one before (if a build is unavailable, say so). Say whether the change between
-  versions looks deliberate or accidental.
-- Known or new: dedup first against the findings already recorded (same root cause, i.e. one fix removes both =
-  same finding). Then search issues and PRs (open and closed, several phrasings), PRs touching the files, old
-  trackers, lists, downstream.
-  Log each query you actually ran. Label each finding new / known upstream / known outside.
-  "New" = no public report in the searches you actually ran. If unsure, say so.
-- Judge: re-run; confirm only if the independent test fails for the stated reason and no refutation survives.
-  Disputed -> tie-breaker or reject.
+VERIFY (a finding is not done until all pass)
+- One minimal deterministic test that fails on the current code for the stated reason (public API, fixed seed, the
+  project's debug assertions on and off). Smallest test that shows it; right but complicated is not done.
+- Blind reproduction: a separate agent gets only the claim and the cited contract (never your code) and writes
+  its own test, on the current code and the latest release.
+- Refutation by a model from another family, if you can run one: modelling error, intended, illegal input,
+  duplicate, misread output? No independent agent available -> the finding stays unconfirmed; tell the owner.
+- Intended or not: argue the strongest case for intended, from the docs, code comments, tests, changelog, PR and
+  issue discussions, the mailing list. Quote the contract (file:line) or name the invariant broken (no corruption,
+  no hang, no unexpected exception on valid input, same result as a reference). Documented or defensible behaviour
+  is not a bug.
+- History, run not read: find the introducing commit and the first affected release; confirm by running the test
+  on that release and the one before. Say whether the change looks deliberate. (Maintainers use this to judge
+  priority and intent.)
+- Known or new: dedup against recorded findings (one fix removes both = same finding). Search issues and PRs (open
+  and closed, several phrasings), PRs touching the files, old trackers, mailing lists, downstream projects. Log
+  every query actually run. Label: new / known upstream / known outside. "New" = nothing found in those searches.
+- Judge: re-run; confirm only if the independent test fails for the stated reason and no refutation holds.
 
-P2 THE SO-WHAT. Large code bases always have bugs; not every bug matters the same.
-- Reachability: name the public entry point, say whether default settings and realistic input reach it, and what
-  a user sees (wrong result, exception, corruption, hang).
-- Priority: High, Medium or Low, with a one-line reason from the reachability and effect above (use <PROJECT>'s
-  own severity scale if it has one).
-- Contrived (absurd input that fails loudly, internal-only path, misuse): mark it "contrived" in its title, or
-  drop it. Never claim doc nits or assertion-only symptoms.
+PRIORITY
+- Name the public entry point, whether defaults and realistic input reach it, and what a user sees (wrong result,
+  exception, corruption, hang). High / Medium / Low with a one-line reason.
+- Contrived (absurd input, internal-only path, misuse): mark "contrived" or drop. No doc nits, no assertion-only
+  symptoms.
 
-P3 HUMAN FIRST. The real work is the fix, and people do it, so make their next step fast.
-- Findings go on <OWNER>'s own list or site, never one <TRACKER> issue each. Read <AI_POLICY> first and follow it
-  (e.g. if it bars AI-written code, give fix options in prose); a conflict with this block -> stop and ask <OWNER>.
-  <OWNER> writes all upstream text in their own words; you hand over facts.
-- Each finding has a short explainer (what breaks, for whom, why) with one small diagram, the minimal test,
-  a suggested fix and a regression test.
-- Elegance: the smallest correct test and the simplest correct fix. Right but complicated is not done.
-- No slop: facts only (claim, cited expected vs actual, test + command, versions, prior reports, fix options).
-  Cut anything that does not help a maintainer decide.
-- Last, a fresh agent re-runs the minimal test and drops anything a maintainer would call noise.
+OUTPUT (for people; keep it short and factual)
+- Where findings may go (the owner's own list or site, the tracker, a private report) and who writes what depends
+  on the project's AI policy. Find it and follow it; if it is missing or unclear, ask the owner before anything
+  leaves your working folder. Unless the policy and the owner say otherwise, the owner writes all upstream text
+  and you hand over facts.
+- Per finding: what breaks, for whom, why (a few sentences); one small diagram; the minimal test and command;
+  expected vs actual; affected releases; prior reports; fix options and a regression test. No filler.
+- Last step: a fresh agent re-runs the test and drops anything a maintainer would call noise.
 
-P4 BUILD FOR THE NEXT MODEL. The outcome and the bar (P1-P3) are fixed; the method is yours.
-- Choose methods by your own judgement: code reading, testing, or formal models where they help. A method counts
-  only through findings that pass P1-P3.
-- Ideas, not orders: protocol -> TLA+; arithmetic at limits -> SMT; small kernel -> Dafny/BMC;
-  exact spec -> exhaustive differential check of the real build; also metamorphic checks, fix siblings.
-  Documented limits become preconditions.
-- Every counterexample -> a test on the unmodified build (P1). Minimise.
-- Clean result? Prove it is not vacuous: a planted mutant must be caught. Record the bounds, and which method gave
-  the first signal.
+WHERE TO LOOK
+- Step back regularly: list where confirmed bugs cluster and spend more time there.
+- Read the project's past bug reports for areas and mistake patterns that recur.
+- Ask a model from another family for the next areas to focus on; check its ideas with tests before planning
+  around them.
+- Work above single methods too: state passed or assumed between components and layers, and component
+  interaction under concurrency (formal model of the protocol, or fuzz/stress the real code).
 
-P5 SECURITY AND SAFETY. You will find bugs with security impact; handle them so they cause no incident.
-- Ask of every candidate, as soon as you suspect it: could it harm <PROJECT>, or a downstream user's systems or
-  data? If maybe, move it to <PRIVATE_DIR> now.
-- Vet it there as carefully as any finding (P1), then judge it only against <SECURITY_POLICY>: yes or no,
-  no "just in case". Unsure, or no policy -> keep it private and ask <OWNER>; never default to no.
-- If no: note the <SECURITY_POLICY> clause that rules it out, then handle it like any other finding.
-- If yes: stop work on it and tell <OWNER>. Keep only the facts and the minimal test: no exploit, payload or
-  attack steps beyond that test. Nothing about it goes into anything public (the list, pages, files, commits,
-  branch or test names, issues, PRs) until <OWNER> says the project has disclosed it.
-- <OWNER> reports it only through <SECURITY_CONTACT>, the project's private security channel.
+WHEN IT RUNS DRY (try new angles; the verification bar never changes)
+- Coverage map: findings and planned work per package; target rich, widely used parts with few of either.
+- Fresh code: commits merged since the last pass, new features of the latest release.
+- Version differential: same seeded inputs through two releases; explain every difference not in the changelog.
+- New upstream fixes (anyone's): search for the same mistake elsewhere.
+- Switch level (method -> component/protocol) or method (reading -> exhaustive check, formal model, fuzzing).
+- Downstream projects' bug reports that may trace back to this project.
+- Ask another model family for new angles; have critics from both families review the new plan.
+- Still empty: tell the owner the area is dry. Do not lower the bar.
+
+METHOD (your choice; only the bar above is fixed)
+- Use the tools that fit the project's language and build. The examples below come from a Java code base.
+- Ideas: protocols -> TLA+; arithmetic at limits -> SMT; small kernels -> Dafny or bounded model checking;
+  exact spec -> exhaustive differential check of the real build on small inputs; metamorphic checks; the same
+  mistake as a recent fix, elsewhere.
+- Every counterexample becomes a test on the unmodified build. A clean result needs a planted mutant that the check
+  catches. Record bounds and which method gave the first signal.
+
+SECURITY
+- For every candidate ask: could it harm the project or downstream users' systems or data? If maybe -> private folder.
+- Vet it as above, then judge only against the project's security policy: yes or no. Unsure or no policy ->
+  private, ask the owner.
+- No: note the policy clause that rules it out; treat as a normal finding.
+- Yes: stop and tell the owner. Keep only facts and the minimal test (no exploit or attack steps). Nothing about it
+  goes anywhere public (list, pages, commits, branch or test names, issues, PRs) until the owner says it is
+  disclosed. The owner reports it only through the project's private security channel.
 ```
-
-## 6. Pitfalls we hit
-
-- **Repros failing for the wrong reason:** compile or setup errors, the wrong runtime version, or a stale build after the code moved. Check the failure message, not just the exit code.
-- **Vacuous checks:** a kNN test whose k is so large for the index that search falls back to brute force, or a proof that holds only because of `assume false`.
-- **Planned searches are not searches:** the search tool planned web queries it then never ran. Log only what actually ran.
-- **Overclaiming "nobody reported it":** searches can't see private reports, and a maintainer told us two findings were already known to them.
-- **Over-built repros:** a maintainer rightly called one early folder (four tests, a diff, a race program for a single-thread bug) "AI slop".
-- **Hand-edited generated output:** the next build overwrites it. Fix the source or a recorded override instead.
-- **Stale facts across copies:** the list row, the doc and the page drift apart, so keep one source of truth.
-- **Agents sharing a machine:** a broad `pkill`, `gradlew --stop`, a shared `git stash` and a cleanup glob each broke other agents' work.
