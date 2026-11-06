@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- The collation package overview's Danish Sorting example calls Sort.setSort, which was removed in 9.0.0, so the example does not compile; on main it is the one error left on the page after #16904 updated its examples (documentation defect) (finding LFV-1085; [repro](../../repro/LFV-1085/))
+- The collation package overview's Danish Sorting example calls Sort.setSort, which was removed in 9.0.0, so the example does not compile; on main it is the one error left on the page after #16904 updated its examples (documentation defect) (finding LFV-1085; [repro](../../repro/LFV-1085/), [finding page](../../bugs/LFV-1085.html))
 
 ## Files
 
