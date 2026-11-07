@@ -8,10 +8,10 @@ Browse the table: open `index.html` (published with GitHub Pages).
 
 ## What is in this snapshot
 
-- 1312 registered findings: 1059 new, for which the automated prior-report search found no earlier report (a keyword search; private reports are not visible), and 253 already known (187 upstream, 66 outside Lucene), where others reported or discussed the same behaviour (tracked, but not counted as new).
+- 1314 registered findings: 1059 new, for which the automated prior-report search found no earlier report (a keyword search; private reports are not visible), and 255 already known (187 upstream, 68 outside Lucene), where others reported or discussed the same behaviour (tracked, but not counted as new).
 - 2 of them are withheld pending security review: they appear in the table and in every count, but only with their id, module, priority tier, novelty (new or already known) and the line "Details withheld pending security review".
-- Priority tiers: 9 high, 254 medium, 1049 low, 0 not yet ranked.
-- 1063 public finding pages (`bugs/`), 1310 repro directories (`repro/`) and 167 units of formal models and scripts (`models/`).
+- Priority tiers: 9 high, 254 medium, 1051 low, 0 not yet ranked.
+- 1063 public finding pages (`bugs/`), 1312 repro directories (`repro/`) and 167 units of formal models and scripts (`models/`).
 - The full table as data: `data/bugs.csv` and `data/bugs.json`.
 
 ## Share a filtered view
@@ -24,7 +24,7 @@ The hunt used AI models (Anthropic Claude Opus and OpenAI GPT-5.6) with formal m
 
 ## Lucene version
 
-The hunt began on Lucene main ea57360912ed (2026-10-24). On 2026-11-02, 1053 of the repros then published were set up for a rerun on main e1faeba08bde. 1053 ran: 1051 still reproduced (1051 unchanged) and 2 no longer failed because upstream fixed them. Since then, 731 of the findings shown in full got a smaller repro, one minimal test, which replaces their earlier repro files. The repros published now were last run on these commits: 1074 on e1faeba08bde, 232 on 5adff78bb168, 2 on 645d4fe14a20, 1 on ea57360912ed, 1 on 716d6f216f52; each repro page says where its repro was run, or that no run is on file.
+The hunt began on Lucene main ea57360912ed (2026-10-24). On 2026-11-02, 1053 of the repros then published were set up for a rerun on main e1faeba08bde. 1053 ran: 1051 still reproduced (1051 unchanged) and 2 no longer failed because upstream fixed them. Since then, 731 of the findings shown in full got a smaller repro, one minimal test, which replaces their earlier repro files. The repros published now were last run on these commits: 1074 on e1faeba08bde, 234 on 5adff78bb168, 2 on 645d4fe14a20, 1 on ea57360912ed, 1 on 716d6f216f52; each repro page says where its repro was run, or that no run is on file.
 
 ## Reproduce a finding
 

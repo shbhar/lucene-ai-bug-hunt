@@ -4,7 +4,7 @@ Finding LFV-769 · Area: monitor / QueryIndex term-filter map (searcher refresh 
 
 Finding page: [../../bugs/LFV-769.html](../../bugs/LFV-769.html)
 
-AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by reugn (open PR #16995; an independent change, later than our listing) (https://github.com/apache/lucene/pull/16995). Open PR #16995 (created 2026-11-06), which adds an executor option to the Monitor, turns QueryIndex.termFilters into a ConcurrentHashMap as part of that feature and so makes the registered repro pass; it does not describe this race or cite this list. Novelty stays new. This site files nothing upstream.
 
 ## What it shows
 
