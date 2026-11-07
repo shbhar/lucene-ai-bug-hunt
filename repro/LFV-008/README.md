@@ -4,7 +4,7 @@ Finding LFV-008 · Area: index / soft deletes · Priority: medium · Impact: dat
 
 Finding page: [../../bugs/LFV-008.html](../../bugs/LFV-008.html)
 
-AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by diwu-sf (open PR #17003; an independent fix, later than our listing) on 2026-11-06 (https://github.com/apache/lucene/pull/17003). Open PR #17003 (created 2026-11-06, head c2f0faa63b69, no review yet) stops applySoftDeletes from undeleting hard-deleted documents. Our minimal repro and the rejected-document trigger pass with its two changed files shadowed on main 5adff78bb168, with and without assertions. It does not cite this list. Novelty stays new: listed publicly on 2026-10-27, the PR came later and independently. This site files nothing upstream.
 
 ## What it shows
 

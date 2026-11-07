@@ -2,7 +2,7 @@
 
 Finding LFV-593 · Area: index / IndexWriter construction from a near-real-time reader (ReaderPool pre-enrollment, PendingSoftDeletes reader constructor, soft-deletes accounting) · Priority: medium · Impact: data corruption · Novelty: known upstream
 
-AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by diwu-sf (open PR #16996; an independent fix, later than our listing) on 2026-11-06 (https://github.com/apache/lucene/pull/16996). Open PR #16996 (created 2026-11-06, head d4be814cd3e0, no review yet) fixes the delete counts of a writer opened from an NRT reader's commit with soft deletes. Its author found it while adding soft deletes to a test in #16923. Our four-test repro passes with the PR's two changed source files applied to main 5adff78bb168, with and without assertions. It does not cite this list. This site files nothing upstream.
 
 ## What it shows
 

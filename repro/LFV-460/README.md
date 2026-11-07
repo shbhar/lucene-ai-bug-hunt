@@ -4,7 +4,7 @@ Finding LFV-460 · Area: index / IndexWriter statistics (soft deletes) · Priori
 
 Finding page: [../../bugs/LFV-460.html](../../bugs/LFV-460.html)
 
-AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by diwu-sf (open PR #17006; an independent fix, later than our listing) on 2026-11-07 (https://github.com/apache/lucene/pull/17006). Open PR #17006 (created 2026-11-07, head eec416631bc6, no review yet) lists this as its item 4: hasDeletions() returns false for a segment that only has soft deletes when the writer has no reader on it. The PR makes hasDeletions() count soft deletes for each segment. Our minimal repro passes with the PR's three changed source files applied to main 5adff78bb168, with and without assertions. It does not cite this list. Novelty stays new: listed publicly on 2026-10-27, the PR came later and independently. This site files nothing upstream.
 
 ## What it shows
 
