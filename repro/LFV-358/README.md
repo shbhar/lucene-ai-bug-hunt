@@ -4,7 +4,7 @@ Finding LFV-358 · Area: facet / DrillSideways (sequential DrillSidewaysScorer, 
 
 Finding page: [../../bugs/LFV-358.html](../../bugs/LFV-358.html)
 
-AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by reugn (open PR #16981; an independent fix, later than our listing) (https://github.com/apache/lucene/pull/16981). Open PR #16981 (created 2026-11-04) fixes the precedence bug as a side part of DrillSideways timeout and intra-segment concurrency support; its own brute-force TestDrillSidewaysScorer found it. It does not cite this list. Novelty stays new. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by Eugene Rizhkov (reugn; open PR #16981, an independent fix, later than our listing) on 2026-11-04 (https://github.com/apache/lucene/pull/16981). Open PR #16981 (reugn, created 2026-11-04, head d854833204fc, no review yet; Luca Cavanna asked Greg Miller and Mike McCandless to review it on 2026-11-06) fixes the precedence bug as a side part of DrillSideways timeout and intra-segment concurrency support; its own brute-force TestDrillSidewaysScorer found it. Our minimal repro passes with the PR's DrillSideways, DrillSidewaysQuery and DrillSidewaysScorer shadowed on main f794ff5a505c, with and without assertions, and fails on stock f794ff5a505c. It does not cite this list. Novelty stays new. This site files nothing upstream.
 
 ## What it shows
 
@@ -22,7 +22,7 @@ Expected: drill-down hits [0] (only doc 0 has a:1 and the phrase "x y"). Actual:
 
 ## Run it
 
-- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
+- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

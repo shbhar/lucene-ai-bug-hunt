@@ -20,7 +20,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>Merge doc-values carry-over (#16570) can lose an acknowledged update or close the writer on a duplicate delGen</h1>
 <p class="facts small"><span>Finding LFV-002</span><span>Area: index / IndexWriter merge</span><span>Priority: medium</span><span>Impact: data corruption</span><span>Novelty: new</span></p>
 <p><a href="../../bugs/LFV-002.html">Finding page for LFV-002</a></p>
-<p class="note small">AI-assisted finding, confirmed by automated checks. <b>Upstream status:</b> Fix in progress, by jimczi (PR #16988) on 2026-11-06. PR #16988 references this bug. <a href="https://github.com/apache/lucene/pull/16988">Source</a>. This site files nothing upstream.</p>
+<p class="note small">AI-assisted finding, confirmed by automated checks. <b>Upstream status:</b> Fix in progress, by Jim Ferenczi (Lucene PMC; open PR #16988) on 2026-11-06. PR #16988 (jimczi, open, head cefaebe70ce5) references this bug. It clamps the delGen of the carried-over on-disk doc-values value in IndexWriter&#x27;s merge to the completed delGen, and adds our minimal repro as TestMergeDocValuesCarryOverRace with one added setting (setMaxDocValuesOverlays(16)). It is in the 10.6.1 milestone; no review yet. Our minimal repro passes with the PR&#x27;s changed source file shadowed on main f794ff5a505c, with and without assertions, and fails on stock f794ff5a505c (2026-11-08). <a href="https://github.com/apache/lucene/pull/16988">Source</a>. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>While a merge runs, a document in a merging segment gets an older doc-values update that is still being applied and a newer update to the same segment and field that finishes first. You expect the newest value to win on the merged segment. Instead the merge gives the carried-over on-disk value a delGen at or above the in-flight packet&#x27;s, so the older value silently wins and survives commit and reopen, or, with assertions on and equal gens, a duplicate-delGen assertion closes the writer and discards uncommitted changes.</p>
 <p>The test shows that during a merge, a doc-values update whose packet is still being applied loses to an older value carried over from disk, when a newer packet on the same segment and field finishes first (#16570 carry-over path, default config).</p>
@@ -29,7 +29,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/index/TestMergeDocValuesCarryOverRace.java"><code>src/org/apache/lucene/index/TestMergeDocValuesCarryOverRace.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.</li>
+<li>Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.</li>
 <li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
 <li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>

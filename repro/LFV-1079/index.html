@@ -20,7 +20,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>Function-query vector similarity value sources (Float/Byte/Float16VectorSimilarityFunction) leave the similarity function out of equals but hash it, so EUCLIDEAN and COSINE sources over the same vectors compare equal with different hash codes</h1>
 <p class="facts small"><span>Finding LFV-1079</span><span>Area: queries / function queries: valuesource.VectorSimilarityFunction equality (base of Float/Byte/Float16VectorSimilarityFunction, and so of the FunctionQuery, FunctionRangeQuery and FunctionScoreQuery that wrap them)</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: new</span></p>
 <p><a href="../../bugs/LFV-1079.html">Finding page for LFV-1079</a></p>
-<p class="note small">AI-assisted finding, confirmed by automated checks. <b>Upstream status:</b> Fix in progress, by sjs004 (PR #16974) on 2026-11-03. PR #16974 references this bug. <a href="https://github.com/apache/lucene/pull/16974">Source</a>. This site files nothing upstream.</p>
+<p class="note small">AI-assisted finding, confirmed by automated checks. <b>Upstream status:</b> Fix in progress, by sjs004 (PR #16974) on 2026-11-03. PR #16974 (sjs004, open, head 0f61ec686b9c) references this bug. It adds the similarity function to VectorSimilarityFunction#equals. The owner approved it on 2026-11-03; no committer review yet. Our minimal repro passes with the PR&#x27;s changed source file shadowed on main f794ff5a505c, with and without assertions, and fails on stock f794ff5a505c (2026-11-08). <a href="https://github.com/apache/lucene/pull/16974">Source</a>. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You build two function-query value sources over the same vector field and the same query vector, one with EUCLIDEAN and one with COSINE (new FloatVectorSimilarityFunction(EUCLIDEAN, field, target) and the same with COSINE), and expect them to be unequal because they compute different scores; the class itself treats the function as part of its identity, since hashCode() and description() include it. Instead equals() compares only the two vector sources and returns true, while hashCode() returns different values, which breaks the java.lang.Object rule that equal objects have equal hash codes. The Byte and Float16 subclasses share this equals, and FunctionQuery and the other wrappers pass the false equality on.</p>
 <h2>Expected vs actual</h2>
@@ -28,7 +28,8 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/queries/function/TestVectorSimilarityFunctionEquals.java"><code>src/org/apache/lucene/queries/function/TestVectorSimilarityFunctionEquals.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.</li>
+<li>Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.</li>
+<li>Tested on Lucene main e1faeba08bde (2026-11-02): reproduced.</li>
 <li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

@@ -20,7 +20,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>IntObjectHashMap, LongObjectHashMap and CharObjectHashMap ramBytesUsed() size the reused values() cursor instead of each value, so every entry is charged a flat 256 bytes whatever its value: a map holding an 8 MiB long[] reports 416 bytes, and a null value adds 256 (since 9.11.0)</h1>
 <p class="facts small"><span>Finding LFV-1321</span><span>Area: core / util (internal hppc object maps: ramBytesUsed())</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: new</span></p>
 <p><a href="../../bugs/LFV-1321.html">Finding page for LFV-1321</a></p>
-<p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
+<p class="note small">AI-assisted finding, confirmed by automated checks. <b>Upstream status:</b> Fix in progress, by Chris Parrinello (chrisparrinello; open PR #17000, an independent fix, later than our listing) on 2026-11-06. Open PR #17000 (created 2026-11-06, head 25e6e714c8bf, no review yet) makes sizeOfValues() size value.value instead of the cursor in IntObjectHashMap, LongObjectHashMap and CharObjectHashMap and adds a test per map. Our minimal repro passes with the PR&#x27;s three changed source files shadowed on main f794ff5a505c, with and without assertions, and fails on stock f794ff5a505c. It does not cite this list. <a href="https://github.com/apache/lucene/pull/17000">Source</a>. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You put a value into an IntObjectHashMap (or a LongObjectHashMap or CharObjectHashMap) and call ramBytesUsed(). You expect the estimate to include that value, which is what the method&#x27;s own sizeOfValues() loop is for: it walks values() and calls RamUsageEstimator.sizeOfObject once per entry. Instead the loop passes the iterator&#x27;s reused ObjectCursor rather than cursor.value, sizeOfObject does not know that type and returns its 256-byte default, so every entry adds exactly 256 bytes: a map holding an 8 MiB long[] reports 416 bytes, and putting a null value into an empty map raises the estimate from 160 to 416 bytes.</p>
 <h2>Expected vs actual</h2>
@@ -28,6 +28,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/internal/hppc/TestIntObjectHashMapRamBytesUsed.java"><code>src/org/apache/lucene/internal/hppc/TestIntObjectHashMapRamBytesUsed.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
+<li>Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.</li>
 <li>Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced.</li>
 <li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
@@ -41,10 +42,10 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 
-# run 1: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa -Xmx512m --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -XX:ActiveProcessorCount=3 -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.internal.hppc.TestIntObjectHashMapRamBytesUsed</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
 <h2>Files shown on the finding page</h2><ul><li><a href="TestIntObjectHashMapRamBytesUsed.java"><code>TestIntObjectHashMapRamBytesUsed.java</code></a></li></ul>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-04. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-04. AI-assisted; triaged by a Lucene maintainer as noted above. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

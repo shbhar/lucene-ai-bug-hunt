@@ -4,7 +4,7 @@ Finding LFV-1079 · Area: queries / function queries: valuesource.VectorSimilari
 
 Finding page: [../../bugs/LFV-1079.html](../../bugs/LFV-1079.html)
 
-AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by sjs004 (PR #16974) on 2026-11-03 (https://github.com/apache/lucene/pull/16974). PR #16974 references this bug. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by sjs004 (PR #16974) on 2026-11-03 (https://github.com/apache/lucene/pull/16974). PR #16974 (sjs004, open, head 0f61ec686b9c) references this bug. It adds the similarity function to VectorSimilarityFunction#equals. The owner approved it on 2026-11-03; no committer review yet. Our minimal repro passes with the PR's changed source file shadowed on main f794ff5a505c, with and without assertions, and fails on stock f794ff5a505c (2026-11-08). This site files nothing upstream.
 
 ## What it shows
 
@@ -21,7 +21,8 @@ You build two function-query value sources over the same vector field and the sa
 
 ## Run it
 
-- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
+- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main e1faeba08bde (2026-11-02): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

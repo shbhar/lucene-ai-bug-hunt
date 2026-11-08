@@ -19,8 +19,7 @@ You index one document with IntAssociationFacetField(0, "a", "x") and one with I
 
 ## Run it
 
-- Tested on Lucene main e1faeba08bde (2026-11-02): reproduced.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces (the repro adapted to an API change on this commit).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

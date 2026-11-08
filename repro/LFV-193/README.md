@@ -19,7 +19,7 @@ You build a sloppy phrase query by hand with two entries at the same position, f
 
 ## Run it
 
-- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
+- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

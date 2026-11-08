@@ -22,7 +22,7 @@ You commit documents id:1 and id:2, call deleteDocuments(id:1) and updateNumeric
 
 ## Run it
 
-- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
+- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

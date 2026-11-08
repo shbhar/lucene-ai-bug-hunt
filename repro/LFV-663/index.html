@@ -19,7 +19,7 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>BrazilianStemmer throws away the result of its &quot;logias&quot; -&gt; &quot;log&quot; rule, so plural -logias nouns stay unstemmed and stop matching their singular</h1>
 <p class="facts small"><span>Finding LFV-663</span><span>Area: analysis-common / Brazilian Portuguese stemmer (BrazilianStemmer.step1; BrazilianStemFilter, BrazilianAnalyzer and the &#x27;brazilianStem&#x27; factory)</span><span>Priority: medium</span><span>Impact: silent wrong results</span><span>Novelty: known outside Lucene</span></p>
-<p class="note small">AI-assisted finding, confirmed by automated checks. <b>Upstream status:</b> Fixed, by sjs004 (PR #16972) on 2026-11-03. PR #16972 references this bug. <a href="https://github.com/apache/lucene/pull/16972">Source</a>. This site files nothing upstream.</p>
+<p class="note small">AI-assisted finding, confirmed by automated checks. <b>Upstream status:</b> Fixed, by Uwe Schindler (Lucene PMC; merged PR #16972 by sjs004) on 2026-11-04. sjs004 fixed it in PR #16972 (opened 2026-11-03), which names this bug in its title; Uwe Schindler approved it, merged it into main on 2026-11-04 (milestone 11.0.0) and cherry-picked it to branch_11x the same day. Not on branch_10_6 (head 5deb5791f6c, 2026-11-08), so 10.6.x keeps the bug. <a href="https://github.com/apache/lucene/pull/16972">Source</a>. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index Brazilian Portuguese text with the stock BrazilianAnalyzer (or BrazilianStemFilter), one document says &#x27;metodologia&#x27; and a query says &#x27;metodologias&#x27;; you expect both words to stem to &#x27;metodolog&#x27; and match, as the stemmer&#x27;s own rule table says (&#x27;logias&#x27; in R2 is replaced by &#x27;log&#x27;, exactly like the singular &#x27;logia&#x27;). Instead step1 calls replaceSuffix(CT, &quot;logias&quot;, &quot;log&quot;) without assigning the result and still returns true, which also makes stem() skip step2 and step4, so the plural is indexed as the whole word &#x27;metodologias&#x27; and the search finds 0 hits. Long -logias plurals such as metodologias, antropologias, terminologias, epistemologias, fenomenologias and odontologias are hit; shorter ones such as tecnologias, ideologias and biologias are not, because the rule does not fire for them and step2 stems them.</p>
 <h2>Expected vs actual</h2>
@@ -27,12 +27,11 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/analysis/br/TestBrazilianLogiasPlural.java"><code>src/org/apache/lucene/analysis/br/TestBrazilianLogiasPlural.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.</li>
 <li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
 <li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
-LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
+LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar

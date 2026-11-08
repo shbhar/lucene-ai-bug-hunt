@@ -4,7 +4,7 @@ Finding LFV-700 · Area: suggest / analyzing: BlendedInfixSuggester result colle
 
 Finding page: [../../bugs/LFV-700.html](../../bugs/LFV-700.html)
 
-AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by sjs004 (PR #16993) on 2026-11-06 (https://github.com/apache/lucene/pull/16993). PR #16993 references this bug. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by sjs004 (PR #16993) on 2026-11-06 (https://github.com/apache/lucene/pull/16993). PR #16993 (sjs004, open, head 4327468c86f9) references this bug. It makes BlendedInfixSuggester's bounded add evict the lowest entry only after a new suggestion was actually added, so a rejected duplicate no longer drops a distinct suggestion. No review yet. Our minimal repro passes with the PR's changed source file shadowed on main f794ff5a505c, with and without assertions, and fails on stock f794ff5a505c (2026-11-08). This site files nothing upstream.
 
 ## What it shows
 
@@ -22,7 +22,7 @@ For {the lake:1000, lake:950, lake:950, my lake:920}, `lookup("lake", false, 2)`
 
 ## Run it
 
-- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
+- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

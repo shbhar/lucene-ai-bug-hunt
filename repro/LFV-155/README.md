@@ -4,7 +4,7 @@ Finding LFV-155 · Area: misc / DocValuesStats double statistics (DocValuesStats
 
 Finding page: [../../bugs/LFV-155.html](../../bugs/LFV-155.html)
 
-AI-assisted finding, confirmed by automated checks. Upstream status: Fixed, by Uwe Schindler (merged PR #16971 by sjs004) on 2026-11-04 (https://github.com/apache/lucene/pull/16971). Uwe Schindler approved PR #16971 (by sjs004, opened 2026-11-03) and merged it into main on 2026-11-04. The PR fixes this bug, adds a test and references this bug. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fixed, by Uwe Schindler (merged PR #16971 by sjs004) on 2026-11-04 (https://github.com/apache/lucene/pull/16971). Uwe Schindler approved PR #16971 (by sjs004, opened 2026-11-03), merged it into main on 2026-11-04 (milestone 11.0.0) and cherry-picked it to branch_11x the same day. The PR fixes this bug, adds a test and references this bug. Not on branch_10_6 (head 5deb5791f6c, 2026-11-08), so 10.6.x keeps the bug. This site files nothing upstream.
 
 ## What it shows
 
@@ -22,7 +22,6 @@ Expected: max() == -1.0. Actual (-ea and -da): 4.9E-324.
 
 ## Run it
 
-- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
@@ -30,7 +29,7 @@ Expected: max() == -1.0. Actual (-ea and -da): 4.9E-324.
 
 ```bash
 # Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
-LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
+LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar

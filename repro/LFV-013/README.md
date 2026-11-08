@@ -4,7 +4,7 @@ Finding LFV-013 · Area: index / doc-values updates · Priority: medium · Impac
 
 Finding page: [../../bugs/LFV-013.html](../../bugs/LFV-013.html)
 
-AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by jimczi (PR #16989) on 2026-11-06 (https://github.com/apache/lucene/pull/16989). PR #16989 references this bug. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by Jim Ferenczi (Lucene PMC; open PR #16989) on 2026-11-06 (https://github.com/apache/lucene/pull/16989). PR #16989 (jimczi, open, head ed11f35a1cfe) references this bug. It makes ReadersAndUpdates register a doc-values-update field only when an update applies in this generation, and adds our minimal repro unchanged as TestMergeDuringUnfinishedDocValuesUpdate. It is in the 10.6.1 milestone; kkewwei approved it on 2026-11-07, no committer review yet. Our minimal repro passes with the PR's changed source file shadowed on main f794ff5a505c, with and without assertions, and fails on stock f794ff5a505c (2026-11-08). This site files nothing upstream.
 
 ## What it shows
 
@@ -22,7 +22,7 @@ Expected `maybeMerge()` to succeed; actual: `NullPointerException ... "this.curr
 
 ## Run it
 
-- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
+- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

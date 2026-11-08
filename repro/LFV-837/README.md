@@ -22,7 +22,7 @@ You update a doc-values field through IndexWriter (for example updateBinaryDocVa
 
 ## Run it
 
-- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
+- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
 - Run 1 runs the second method of the src/ test, testFirstBinaryUpdateIsAppliedOnce (one 1 MiB update matching 1,100 documents, the doubled apply): on main 5adff78bb168 its commit fails with ArrayIndexOutOfBoundsException (arraycopy: last destination index 2147483648 out of bounds for byte[2147483631]) and the writer closes. Run 2 prints first=2162956 second=1048576 and exits 1. The expected and actual lines above are those of the finding page's one-test copy at the top of this folder, TestFirstDocValuesUpdateBufferedTwice.java; put it in place of the src/ file of the same name and drop -Dtests.method from run 1 to run it.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.

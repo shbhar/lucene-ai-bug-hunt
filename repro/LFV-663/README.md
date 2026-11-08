@@ -2,7 +2,7 @@
 
 Finding LFV-663 · Area: analysis-common / Brazilian Portuguese stemmer (BrazilianStemmer.step1; BrazilianStemFilter, BrazilianAnalyzer and the 'brazilianStem' factory) · Priority: medium · Impact: silent wrong results · Novelty: known outside Lucene
 
-AI-assisted finding, confirmed by automated checks. Upstream status: Fixed, by sjs004 (PR #16972) on 2026-11-03 (https://github.com/apache/lucene/pull/16972). PR #16972 references this bug. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fixed, by Uwe Schindler (Lucene PMC; merged PR #16972 by sjs004) on 2026-11-04 (https://github.com/apache/lucene/pull/16972). sjs004 fixed it in PR #16972 (opened 2026-11-03), which names this bug in its title; Uwe Schindler approved it, merged it into main on 2026-11-04 (milestone 11.0.0) and cherry-picked it to branch_11x the same day. Not on branch_10_6 (head 5deb5791f6c, 2026-11-08), so 10.6.x keeps the bug. This site files nothing upstream.
 
 ## What it shows
 
@@ -19,14 +19,13 @@ You index Brazilian Portuguese text with the stock BrazilianAnalyzer (or Brazili
 
 ## Run it
 
-- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
 # Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
-LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
+LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar

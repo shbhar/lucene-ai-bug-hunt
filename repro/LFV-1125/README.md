@@ -21,6 +21,7 @@ You give a per-field postings codec two SPI-registered postings formats with dif
 
 ## Run it
 
+- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
 - Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced.
 - The test's postings formats EqA and EqB are looked up by name through the SPI file org.apache.lucene.codecs.PostingsFormat in this folder, so the recipe first copies it to resources/META-INF/services/ and puts resources/ on the class path; without it the index cannot be read back and the test fails for another reason.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
@@ -40,8 +41,8 @@ cp org.apache.lucene.codecs.PostingsFormat resources/META-INF/services/
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa -Xmx512m --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -XX:ActiveProcessorCount=3 -Dtests.seed=DEADBEEF \
      -cp "classes:resources:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.codecs.perfield.TestPerFieldEqualFormatNames
 ```

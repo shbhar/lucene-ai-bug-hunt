@@ -21,6 +21,7 @@ You buffer numeric doc-values updates in one IndexWriter (RAM-based flushing dis
 
 ## Run it
 
+- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
 - Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
@@ -36,8 +37,8 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -XX:ActiveProcessorCount=2 -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.index.TestTwoGiBUpdatePacket
 ```

@@ -4,7 +4,7 @@ Finding LFV-769 · Area: monitor / QueryIndex term-filter map (searcher refresh 
 
 Finding page: [../../bugs/LFV-769.html](../../bugs/LFV-769.html)
 
-AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by reugn (open PR #16995; an independent change, later than our listing) (https://github.com/apache/lucene/pull/16995). Open PR #16995 (created 2026-11-06), which adds an executor option to the Monitor, turns QueryIndex.termFilters into a ConcurrentHashMap as part of that feature and so makes the registered repro pass; it does not describe this race or cite this list. Novelty stays new. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by Eugene Rizhkov (reugn; open PR #16995, an independent change, later than our listing) on 2026-11-06 (https://github.com/apache/lucene/pull/16995). Open PR #16995 (created 2026-11-06), which adds an executor option to the Monitor, turns QueryIndex.termFilters into a ConcurrentHashMap as part of that feature and so makes the registered repro pass; it does not describe this race or cite this list. Novelty stays new. This site files nothing upstream.
 
 ## What it shows
 
@@ -22,7 +22,7 @@ You share one Monitor between threads: some threads call Monitor.match on docume
 
 ## Run it
 
-- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
+- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

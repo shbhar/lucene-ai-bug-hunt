@@ -2,7 +2,7 @@
 
 Finding LFV-526 · Area: analysis-common / pattern tokenizers (SimplePatternTokenizer String constructors) · Priority: medium · Impact: crash · Novelty: known outside Lucene
 
-AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by John Wagster (john-wagster; issue #16999 and open PR #17001, an independent report and fix, later than our listing) on 2026-11-06 (https://github.com/apache/lucene/pull/17001). Issue #16999 (2026-11-06) reports this defect, found through a downstream simple_pattern tokenizer (elastic/elasticsearch#164857, 2026-11-05), and open PR #17001 (head 30272b603518, no review yet) determinizes with determinizeWorkLimit, as SimplePatternSplitTokenizer does. Neither cites this list. Our repro passes with the PR's SimplePatternTokenizer.java on main f794ff5a505c (-ea and -da) and fails without it. This site files nothing upstream.
 
 ## What it shows
 
@@ -19,7 +19,7 @@ You build a tokenizer with new SimplePatternTokenizer("ab|ac") (or the three-arg
 
 ## Run it
 
-- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
+- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

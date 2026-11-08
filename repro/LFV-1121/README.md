@@ -41,8 +41,8 @@ for c in Lucene99RWV1HnswScalarQuantizationVectorsFormat Lucene99RWScalarQuantiz
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -XX:ActiveProcessorCount=3 -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.backward_codecs.lucene99.TestLucene99MmapScalarQuantizedQueryDimension
 ```

@@ -22,7 +22,7 @@ The test shows that the Lucene 10.6.0 CHANGES entry for GITHUB#16243 (RC1 CHANGE
 
 ## Run it
 
-- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
+- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
 - Tested on Lucene branch_10_6 4ae946e5a9b9 (2026-10-26): reproduced on 10.6.0-SNAPSHOT jars built at this commit.
 - Recorded outcome of run 1 on Lucene branch_10_6 4ae946e5a9b9: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

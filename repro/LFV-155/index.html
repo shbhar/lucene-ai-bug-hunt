@@ -20,7 +20,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>DoubleDocValuesStats and SortedDoubleDocValuesStats (lucene/misc) start max at Double.MIN_VALUE, the smallest positive double, so max() returns 4.9E-324 instead of the real maximum whenever every collected value is &lt;= 0 (and min() returns Double.MAX_VALUE when every value is +Infinity)</h1>
 <p class="facts small"><span>Finding LFV-155</span><span>Area: misc / DocValuesStats double statistics (DocValuesStatsCollector, DocValuesStatsCollectorManager)</span><span>Priority: medium</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
 <p><a href="../../bugs/LFV-155.html">Finding page for LFV-155</a></p>
-<p class="note small">AI-assisted finding, confirmed by automated checks. <b>Upstream status:</b> Fixed, by Uwe Schindler (merged PR #16971 by sjs004) on 2026-11-04. Uwe Schindler approved PR #16971 (by sjs004, opened 2026-11-03) and merged it into main on 2026-11-04. The PR fixes this bug, adds a test and references this bug. <a href="https://github.com/apache/lucene/pull/16971">Source</a>. This site files nothing upstream.</p>
+<p class="note small">AI-assisted finding, confirmed by automated checks. <b>Upstream status:</b> Fixed, by Uwe Schindler (merged PR #16971 by sjs004) on 2026-11-04. Uwe Schindler approved PR #16971 (by sjs004, opened 2026-11-03), merged it into main on 2026-11-04 (milestone 11.0.0) and cherry-picked it to branch_11x the same day. The PR fixes this bug, adds a test and references this bug. Not on branch_10_6 (head 5deb5791f6c, 2026-11-08), so 10.6.x keeps the bug. <a href="https://github.com/apache/lucene/pull/16971">Source</a>. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You collect statistics for a double doc-values field with DocValuesStats.DoubleDocValuesStats (or SortedDoubleDocValuesStats) and expect max() to be the largest collected value; the javadoc calls it &#x27;the maximum value of the field&#x27; and leaves it undefined only when count() is zero. If every collected value is zero or negative, max() returns 4.9E-324 instead: max starts at Double.MIN_VALUE, which is the smallest positive double, not the most negative one, and no value &lt;= 0 ever beats it, so for {-5, -3, -4} you get count 3 and min -5.0 but max 4.9E-324. The same mix-up on the other side makes min() return Double.MAX_VALUE when every value is +Infinity; the long variants start at Long.MAX_VALUE / Long.MIN_VALUE and are correct.</p>
 <p>The test shows that DocValuesStats.DoubleDocValuesStats starts max at Double.MIN_VALUE (the smallest positive double), so max() is wrong when every collected value is &lt;= 0. Here there is one document with -1.0.</p>
@@ -29,13 +29,12 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/misc/search/TestDoubleDocValuesStatsNegativeMax.java"><code>src/org/apache/lucene/misc/search/TestDoubleDocValuesStatsNegativeMax.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.</li>
 <li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
 <li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
-LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
+LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar

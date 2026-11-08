@@ -4,7 +4,7 @@ Finding LFV-008 · Area: index / soft deletes · Priority: medium · Impact: dat
 
 Finding page: [../../bugs/LFV-008.html](../../bugs/LFV-008.html)
 
-AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by diwu-sf (open PR #17003; an independent fix, later than our listing) on 2026-11-06 (https://github.com/apache/lucene/pull/17003). Open PR #17003 (created 2026-11-06, head c2f0faa63b69, no review yet) stops applySoftDeletes from undeleting hard-deleted documents. Our minimal repro and the rejected-document trigger pass with its two changed files shadowed on main 5adff78bb168, with and without assertions. It does not cite this list. Novelty stays new: listed publicly on 2026-10-27, the PR came later and independently. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by diwu-sf (open PR #17003; an independent fix, later than our listing) on 2026-11-06 (https://github.com/apache/lucene/pull/17003). Open PR #17003 (created 2026-11-06, head c2f0faa63b69, no review yet) stops applySoftDeletes from undeleting hard-deleted documents. Our minimal repro and the rejected-document trigger pass with its two changed files shadowed on main 5adff78bb168, with and without assertions. It does not cite this list. Novelty stays new: listed publicly on 2026-10-27, the PR came later and independently. On 2026-11-07 the owner linked this row in a comment on #17003; the PR itself predates that comment and stays an independent fix. No review yet (2026-11-08). This site files nothing upstream.
 
 ## What it shows
 
@@ -22,7 +22,7 @@ Expected: `count(id:a)` is 0 on the next NRT reader (a hard-deleted doc stays de
 
 ## Run it
 
-- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
+- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

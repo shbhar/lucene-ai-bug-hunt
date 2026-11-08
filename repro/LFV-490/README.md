@@ -21,7 +21,7 @@ You have an index first created by Lucene 8 that Lucene 9 later rewrote complete
 
 ## Run it
 
-- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
+- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
 - Fixtures: the test reads legacy8-exists.zip and legacy8-exists-merged.zip, an index created by Lucene 8.11.4 whose segments 9.12.3 rewrote (the second one force-merged), from its package on the class path. This site ships no binary index files, so the recipe first makes them with fixture-src/CreateWith8x.java, fixture-src/ReindexWith9x.java and the 8.11.4 and 9.12.3 release jars (Maven Central) and puts them in src/, which the run puts on the class path; without them every test fails for another reason.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

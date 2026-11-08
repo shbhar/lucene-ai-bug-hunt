@@ -4,7 +4,7 @@ Finding LFV-1321 · Area: core / util (internal hppc object maps: ramBytesUsed()
 
 Finding page: [../../bugs/LFV-1321.html](../../bugs/LFV-1321.html)
 
-AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by Chris Parrinello (chrisparrinello; open PR #17000, an independent fix, later than our listing) on 2026-11-06 (https://github.com/apache/lucene/pull/17000). Open PR #17000 (created 2026-11-06, head 25e6e714c8bf, no review yet) makes sizeOfValues() size value.value instead of the cursor in IntObjectHashMap, LongObjectHashMap and CharObjectHashMap and adds a test per map. Our minimal repro passes with the PR's three changed source files shadowed on main f794ff5a505c, with and without assertions, and fails on stock f794ff5a505c. It does not cite this list. This site files nothing upstream.
 
 ## What it shows
 
@@ -21,6 +21,7 @@ You put a value into an IntObjectHashMap (or a LongObjectHashMap or CharObjectHa
 
 ## Run it
 
+- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
 - Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
@@ -36,8 +37,8 @@ CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console la
 
 javac -d classes -cp "$CP" $(find src -name '*.java')
 
-# run 1: assertions on, seed DEADBEEF, default flags
-java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa -Xmx512m --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -XX:ActiveProcessorCount=3 -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.internal.hppc.TestIntObjectHashMapRamBytesUsed
 ```

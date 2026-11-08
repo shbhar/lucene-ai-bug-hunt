@@ -22,7 +22,7 @@ You wrap a LogDocMergePolicy in a FilterMergePolicy (or in SoftDeletesRetentionM
 
 ## Run it
 
-- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
+- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
 - Runs 1 and 2 use the two original tests under src/: on main 5adff78bb168 TestFilterMergePolicySizeUnit fails 2 of 2 (the wrapper reports BYTES where DOCS is expected) and TestWrappedLogDocMergePolicyCompoundFile fails 1 of 1 (the plain and the wrapped policy make different compound-file decisions for the same merge), with assertions on and off. The expected and actual lines above are those of the finding page's one-test copy at the top of this folder, TestFilterMergePolicyForceMergeNoOp.java; copy it into src/org/apache/lucene/index/ and select org.apache.lucene.index.TestFilterMergePolicyForceMergeNoOp in run 1 to run it.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

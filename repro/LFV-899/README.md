@@ -21,7 +21,7 @@ You bind named expressions that use each other with SimpleBindings.add(String, E
 
 ## Run it
 
-- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
+- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
 - The expressions module needs its one third-party dependency at run time: add CP=$CP:antlr4-runtime-4.13.2.jar (Maven Central, org.antlr:antlr4-runtime, the version main uses) before the java command. Without it the test stops with ClassNotFoundException: org.antlr.v4.runtime.tree.ParseTreeVisitor instead of the expected failure.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

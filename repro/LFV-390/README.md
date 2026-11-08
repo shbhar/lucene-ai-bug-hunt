@@ -21,7 +21,7 @@ You enable Lucene's opt-in native dot product (-Dlucene.useNativeDotProduct=true
 
 ## Run it
 
-- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
+- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
 - How to read the outcome: a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

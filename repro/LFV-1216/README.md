@@ -21,6 +21,7 @@ You build a ByteBuffersDataOutput with the expert constructor and 31 block bits,
 
 ## Run it
 
+- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
 - Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

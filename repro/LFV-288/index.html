@@ -20,7 +20,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>UnifiedHighlighter.Builder#withFlags is silently ignored: the highlighter always takes its flags from the four boolean builder options</h1>
 <p class="facts small"><span>Finding LFV-288</span><span>Area: highlighter / UnifiedHighlighter builder and highlight flags (UnifiedHighlighter.evaluateFlags(Builder) never reads Builder.flags)</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: new</span></p>
 <p><a href="../../bugs/LFV-288.html">Finding page for LFV-288</a></p>
-<p class="note small">AI-assisted finding, confirmed by automated checks. <b>Upstream status:</b> Fixed, by Christoph Büscher (PR #16983, approved by Luca Cavanna; an independent fix, later than our listing). Fixed on main by #16983 (merged 2026-11-04, milestone 11.0.0); the PR does not cite this list. Not backported to branch_10_6 as of 2026-11-04. Novelty stays new (owner decision 2026-11-04: listed publicly 2026-10-27, the fix came later and independently). <a href="https://github.com/apache/lucene/pull/16983">Source</a>. This site files nothing upstream.</p>
+<p class="note small">AI-assisted finding, confirmed by automated checks. <b>Upstream status:</b> Fixed, by Christoph Büscher (PR #16983, approved by Luca Cavanna; an independent fix, later than our listing) on 2026-11-04. Fixed on main by #16983 (Christoph Büscher; approved and merged by Luca Cavanna on 2026-11-04, milestone 11.0.0) and on branch_11x (e01ea7c7829). Luca Cavanna had asked in the review of #16975 whether ignoring the flags was intended; Christoph Büscher found it already broken on main and fixed it separately in #16983. The PR does not cite this list. Not on branch_10_6 (head 5deb5791f6c, 2026-11-08), so 10.6.x keeps the bug. Novelty stays new (owner decision 2026-11-04: listed publicly 2026-10-27, the fix came later and independently). <a href="https://github.com/apache/lucene/pull/16983">Source</a>. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You build a UnifiedHighlighter with Builder#withFlags(EnumSet.of(MULTI_TERM_QUERY)), whose javadoc says the set &#x27;will override&#x27; the four boolean builder options, and expect it to behave like the same flags chosen through those options: for a PhraseQuery &#x27;alpha beta&#x27; on &#x27;alpha beta. alpha gamma.&#x27; that gives &#x27;&lt;b&gt;alpha&lt;/b&gt; &lt;b&gt;beta&lt;/b&gt;. &lt;b&gt;alpha&lt;/b&gt; gamma.&#x27;. Instead the constructor&#x27;s evaluateFlags(Builder) tests the highlighter&#x27;s own flags field, which is still null at that point, rather than the builder&#x27;s, so the set passed to withFlags is never read: getFlags returns the defaults [PHRASES, MULTI_TERM_QUERY, PASSAGE_RELEVANCY_OVER_SPEED, WEIGHT_MATCHES] and the phrase is highlighted strictly as &#x27;&lt;b&gt;alpha beta&lt;/b&gt;. alpha gamma.&#x27;. Every set is ignored the same way, including the empty set (a PrefixQuery is still highlighted), with or without assertions.</p>
 <p>The test shows that <code>UnifiedHighlighter.Builder#withFlags</code> is ignored: with <code>withFlags(EnumSet.of(MULTI_TERM_QUERY))</code> the highlighter still uses the default flags (strict phrase highlighting).</p>
@@ -29,13 +29,12 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/search/uhighlight/TestUnifiedHighlighterBuilderWithFlags.java"><code>src/org/apache/lucene/search/uhighlight/TestUnifiedHighlighterBuilderWithFlags.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.</li>
 <li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
 <li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
-LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
+LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar

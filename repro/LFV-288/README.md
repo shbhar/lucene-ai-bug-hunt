@@ -4,7 +4,7 @@ Finding LFV-288 · Area: highlighter / UnifiedHighlighter builder and highlight 
 
 Finding page: [../../bugs/LFV-288.html](../../bugs/LFV-288.html)
 
-AI-assisted finding, confirmed by automated checks. Upstream status: Fixed, by Christoph Büscher (PR #16983, approved by Luca Cavanna; an independent fix, later than our listing) (https://github.com/apache/lucene/pull/16983). Fixed on main by #16983 (merged 2026-11-04, milestone 11.0.0); the PR does not cite this list. Not backported to branch_10_6 as of 2026-11-04. Novelty stays new (owner decision 2026-11-04: listed publicly 2026-10-27, the fix came later and independently). This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fixed, by Christoph Büscher (PR #16983, approved by Luca Cavanna; an independent fix, later than our listing) on 2026-11-04 (https://github.com/apache/lucene/pull/16983). Fixed on main by #16983 (Christoph Büscher; approved and merged by Luca Cavanna on 2026-11-04, milestone 11.0.0) and on branch_11x (e01ea7c7829). Luca Cavanna had asked in the review of #16975 whether ignoring the flags was intended; Christoph Büscher found it already broken on main and fixed it separately in #16983. The PR does not cite this list. Not on branch_10_6 (head 5deb5791f6c, 2026-11-08), so 10.6.x keeps the bug. Novelty stays new (owner decision 2026-11-04: listed publicly 2026-10-27, the fix came later and independently). This site files nothing upstream.
 
 ## What it shows
 
@@ -22,7 +22,6 @@ Expected `<b>alpha</b> <b>beta</b> <b>alpha</b> gamma` for PhraseQuery `"alpha b
 
 ## Run it
 
-- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
@@ -30,7 +29,7 @@ Expected `<b>alpha</b> <b>beta</b> <b>alpha</b> gamma` for PhraseQuery `"alpha b
 
 ```bash
 # Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
-LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
+LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar

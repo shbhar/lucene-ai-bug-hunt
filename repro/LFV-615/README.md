@@ -19,7 +19,7 @@ You run Lucene's documented upgrade tool (java ... org.apache.lucene.index.Index
 
 ## Run it
 
-- Tested on Lucene main e1faeba08bde (2026-11-02): still reproduces.
+- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
 - Fixtures: the test reads sorted.9.10.0.zip and sorted.10.5.2.zip, test resources of Lucene's backward-codecs module (lucene/backward-codecs/src/test/org/apache/lucene/backward_index/ in the checkout), so the run puts $LUCENE/lucene/backward-codecs/src/test on the class path; without them every test is skipped.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
