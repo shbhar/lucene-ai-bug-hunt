@@ -68,6 +68,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [grouping-offset-plus-limit-overflow](grouping-offset-plus-limit-overflow/) | Python | LFV-964, LFV-958, LFV-960 |
 | [groupingsearch-cache-limit-applied-per-slice-10-6](groupingsearch-cache-limit-applied-per-slice-10-6/) | Python | LFV-910 |
 | [hardlink-copy-unwrap-bypasses-intermediate-directory-wrappers](hardlink-copy-unwrap-bypasses-intermediate-directory-wrappers/) | TLA+/TLC | LFV-912 |
+| [hasdeletions-false-for-acknowledged-delete-in-swapped-out-queue-or-unpublished-flush-ticket-low](hasdeletions-false-for-acknowledged-delete-in-swapped-out-queue-or-unpublished-flush-ticket-low/) | TLA+/TLC | LFV-1403 |
 | [hindi-analyzer-long-vowel-fold-before-hindistemmer-loses-feminine-and-future-suffix-rules](hindi-analyzer-long-vowel-fold-before-hindistemmer-loses-feminine-and-future-suffix-rules/) | Python | LFV-1387 |
 | [hnsw-10x-merge-reuse-maxconn-mismatch](hnsw-10x-merge-reuse-maxconn-mismatch/) | Python | LFV-811 |
 | [hnsw-merge-reuse](hnsw-merge-reuse/) | Python | LFV-160 |
