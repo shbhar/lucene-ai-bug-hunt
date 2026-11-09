@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CJKBigramFilter never applies the position increment of its CJK input tokens to the bigrams and unigrams it builds from them, so the hole that a StopFilter (or any token-removing filter) placed before it leaves in front of CJK text disappears and an exact phrase matches across the removed word, while a non-CJK token behind the same hole keeps it; since 3.6.0 (LFV-1455)</title><style>
+:root{--fg:#1d2329;--dim:#5a6570;--line:#d8dee4;--bg:#fff;--soft:#f5f7f9;--link:#0b5cad}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
+font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+main{max-width:980px;margin:0 auto;padding:24px 18px 64px}a{color:var(--link)}
+h1{font-size:1.55rem;line-height:1.25;margin:.4em 0 .3em}h2{font-size:1.2rem;margin:1.6em 0 .5em}
+.dim{color:var(--dim)}.small{font-size:.9rem}.facts{display:flex;flex-wrap:wrap;gap:6px 16px;margin:.4em 0 1em}
+.note{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:10px 14px}
+pre{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:12px;overflow:auto;font-size:.85rem}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+table{border-collapse:collapse;width:100%;font-size:.92rem}th,td{border-bottom:1px solid var(--line);
+padding:6px 8px;text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:var(--soft)}
+h1,h2,p,li,dd{overflow-wrap:break-word}
+.facts>span{min-width:0;overflow-wrap:anywhere}
+th,td.nw{white-space:nowrap;overflow-wrap:normal}
+.scroll{overflow-x:auto}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
+nav.crumbs{font-size:.9rem;margin-bottom:8px}
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>CJKBigramFilter never applies the position increment of its CJK input tokens to the bigrams and unigrams it builds from them, so the hole that a StopFilter (or any token-removing filter) placed before it leaves in front of CJK text disappears and an exact phrase matches across the removed word, while a non-CJK token behind the same hole keeps it; since 3.6.0</h1>
+<p class="facts small"><span>Finding LFV-1455</span><span>Area: analysis / CJK (CJKBigramFilter position increments; a custom chain with a token-removing filter before cjkBigram)</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-1455.html">Finding page for LFV-1455</a></p>
+<p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
+<h2>What it shows</h2>
+<p>You build an analyzer StandardTokenizer &gt; StopFilter([&#x27;the&#x27;]) &gt; CJKBigramFilter and analyze &#x27;foo the 東京&#x27;. You expect [foo +1, 東京 +2]: the removed &#x27;the&#x27; leaves a one-position hole, as it does for &#x27;foo the bar&#x27;, which the same chain turns into [foo +1, bar +2], so that the phrase &#x27;foo 東京&#x27; does not match. Instead CJKBigramFilter builds the bigram 東京 from a cleared attribute state and never copies the position increment of the CJK input token, so the stream is [foo +1, 東京 +1] and, with this analyzer at index and query time, the phrase &#x27;foo 東京&#x27; matches the document &#x27;foo the 東京&#x27; (the phrase &#x27;foo bar&#x27; does not match &#x27;foo the bar&#x27;).</p>
+<h2>Expected vs actual</h2>
+<ul><li><b>Expected:</b> <code>foo</code> +1, <code>東京</code> +2: the hole left by the removed &quot;the&quot;, as <code>bar</code> gets in &quot;foo the bar&quot;.</li><li><b>Actual:</b> <code>AssertionError: posIncrement 1 term=東京 expected:&lt;2&gt; but was:&lt;1&gt;</code>, with assertions on and off.</li></ul>
+<h2>Files</h2><ul>
+<li><a href="src/org/apache/lucene/analysis/cjk/TestCJKBigramFilterHole.java"><code>src/org/apache/lucene/analysis/cjk/TestCJKBigramFilterHole.java</code></a> <span class="dim">(JUnit test)</span></li>
+</ul><h2>Run it</h2><ul>
+<li>Tested on Lucene main f794ff5a505c (2026-11-06): reproduced.</li>
+<li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
+<li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
+</ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
+LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
+CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
+CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
+CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
+CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
+CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
+CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
+
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
+
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.analysis.cjk.TestCJKBigramFilterHole</code></pre>
+<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
+<h2>Files shown on the finding page</h2><ul><li><a href="TestCJKBigramFilterHole.java"><code>TestCJKBigramFilterHole.java</code></a></li></ul>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-04. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
