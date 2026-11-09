@@ -1,0 +1,420 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>Grouped faceting with a facetPrefix drops binary facet values that have ten 0xFF bytes after the prefix, and an exact match empties the segment&#x27;s result</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.triage{margin:var(--s4) 0 0;padding:var(--s2) var(--s4);border-left:3px solid var(--info);background:var(--panel);
+max-width:var(--measure)}
+.triage p{margin:0;font-size:var(--step--1);line-height:1.5}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the finding in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All findings</a> &middot; Lucene finding &middot; LFV-1427 &middot; grouped-facet-prefix-big-term-upper-bound</p><h1 id='top'>Grouped faceting with a facetPrefix drops binary facet values that have ten 0xFF bytes after the prefix, and an exact match empties the segment&#x27;s result</h1><p class='tldr'><code>TermGroupFacetCollectorManager</code> ends the <code class='nw'>facetPrefix</code> range at the prefix plus ten 0xFF bytes, a bound that holds only for text. Binary facet values with ten or more 0xFF bytes after the prefix are silently dropped, and one equal to that bound empties the segment's result: 0 entries instead of 2.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 598</span><span class='sub'>In every release since 4.0.0, grouped faceting with a facetPrefix silently leaves out binary facet values that have ten or more 0xFF bytes right after the prefix, and a single-valued value equal to the prefix plus ten 0xFF bytes drops every facet value of its segment. Only binary facet values of that shape in the experimental grouped-facet collector trigger it and text facets never can, so the trigger is contrived and the reach narrow.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>minor</span></dd></div><div><dt>Since</dt><dd>4.0.0 (2012, LUCENE-3802, which added grouped faceting)<span class='sub'>introduced 2012-03-07 &middot; over 14 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>4.0.0 through 10.6.0 and main (15 releases and main run)</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div><dt>Found by</dt><dd>proof-obligation audit (semi-formal)</dd></div></dl><p class='ai-note'>AI-assisted page: this finding was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-11-09.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All findings</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The finding in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>The collector counts only facet ordinals in [lookup(prefix), lookup(prefix + <code class='nw'>BIG_TERM</code>)). <code class='nw'>BIG_TERM</code> is ten 0xFF bytes and is only guaranteed to be bigger than UTF-8 terms. A binary value at or above that end key is cut off; a value equal to it turns the single-valued end ordinal negative, so nothing in the segment is counted.</p><figure class='visual' id='grouped-facet-prefix-big-term-upper-bound-short-visual'><div class='frame'><a class='still' href='../assets/LFV-1427/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-1427/bug.png' alt='Two facet values sorted as bytes: ordinal 0 is pa (70 61), ordinal 1 is p followed by ten FF bytes. The prefix range for p starts at ordinal 0; its end key, p plus ten FF bytes, is found at ordinal 1, so the end ordinal is computed as -1 - 1 = -2. Every document is skipped and the facet result is empty: 0 entries instead of 2.' width='1920' height='1080'></a></div><figcaption>The segment's two facet values in sorted order and the prefix range the collector computes: its end key, <code class='nw'>p</code> + ten 0xFF bytes, is the second value itself, so the end ordinal becomes -2 and both values fall outside the range. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Index two documents in one group, with the single-valued facet values <code class='nw'>pa</code> (2 bytes) and <code class='nw'>p</code> followed by ten 0xFF bytes (11 bytes). Both start with <code class='nw'>p</code>.</span></li><li><span>Count grouped facets with <code>TermGroupFacetCollectorManager</code> and <code class='nw'>facetPrefix</code> <code class='nw'>p</code>. You expect 2 entries, count 1 each: the javadoc says "only include facet entries with this prefix".</span></li><li><span>To find where the prefix range ends, the collector looks up <code class='nw'>p</code> + ten 0xFF bytes (<code>UnicodeUtil.BIG_TERM</code>), assuming nothing with the prefix sorts that high. True for UTF-8 text, where 0xFF never occurs; here it is exactly the second value.</span></li><li><span>The lookup finds that value (ordinal 1), so the end ordinal becomes -1 - 1 = -2 and every document of the segment is skipped: 0 entries, <code class='nw'>pa</code> included. With assertions on, <code>assert ef &lt; 0</code> throws an <code class='nw'>AssertionError</code> from <code>IndexSearcher.search</code> instead.</span></li><li><span>With eleven 0xFF bytes only that value is lost (1 entry instead of 2), single- or multi-valued; nine 0xFF bytes are counted. Text facets are never affected. Every release since 4.0.0 has this code.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Only applications that run grouped faceting (<code>TermGroupFacetCollectorManager</code>, experimental; <code>TermGroupFacetCollector</code> before 10.6) with a <code class='nw'>facetPrefix</code> over binary facet values, such as packed numbers or composite keys, with ten or more 0xFF bytes right after the prefix. Text facets cannot hit it. Default config, no scale needed; silent with assertions off.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>500 words</span></summary><div class='body'><p><code>TermGroupFacetCollectorManager</code> limits <code class='nw'>facetPrefix</code> to the facet ordinals from <code>lookupTerm(prefix)</code> up to <code>lookupTerm(prefix + UnicodeUtil.BIG_TERM)</code>, where <code class='nw'>BIG_TERM</code> is ten 0xFF bytes. That end key is above every value with the prefix only when the bytes after the prefix are UTF-8; <code class='nw'>BIG_TERM</code>'s own javadoc promises no more. A binary facet value that starts with the prefix and continues with ten or more 0xFF bytes sorts at or above the end key and is silently left out. When a single-valued value equals the end key, the lookup finds it, <code>ef = -ef - 1</code> turns the end ordinal negative, and <code class='nw'>collect()</code> skips every document of the segment: in the repro the facet values <code class='nw'>pa</code> and <code class='nw'>p</code> + ten 0xFF bytes with prefix <code class='nw'>p</code> give 0 entries instead of 2 (with assertions on, <code>assert ef &lt; 0</code> throws an <code class='nw'>AssertionError</code> out of <code>IndexSearcher.search</code>). Text facet values can never hit it. The code came with grouped faceting in 4.0.0 (LUCENE-3802, 2012) and fails on every release run up to 10.6.0 and on main.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Grouped faceting</strong>: for each facet value, count the distinct groups that have at least one document with that value (<code>TermGroupFacetCollectorManager</code> class javadoc, <code class='nw'>:44-45</code>). <code class='nw'>facetPrefix</code> keeps only facet values that start with the prefix.</li><li><strong>Ordinals</strong>: per segment, the distinct values of a <code>SortedDocValuesField</code> (or <code>SortedSetDocValuesField</code>) are sorted as unsigned bytes and numbered 0..n-1. All values with a given prefix form one contiguous ordinal range, so the collector only needs its start and end.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-code-main-f794ff5a505c'>The code (main <code class='nw'>f794ff5a505c</code>)</h3><a class="hlink" href="#what-the-bug-is-the-code-main-f794ff5a505c" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-code-main-f794ff5a505c"><span aria-hidden="true">#</span></a></div><ul><li>Single-valued, <code class='nw'>SVLeafCollector</code> (<code>TermGroupFacetCollectorManager.java:201-211</code>): <code>sf = facetDV.lookupTerm(facetPrefix)</code>, made non-negative; <code>end = facetPrefix + UnicodeUtil.BIG_TERM</code> (<code class='nw'>:206-208</code>); <code>ef = facetDV.lookupTerm(end)</code> (<code class='nw'>:209</code>); <code>assert ef &lt; 0</code> (<code class='nw'>:210</code>); <code>ef = -ef - 1</code> (<code class='nw'>:211</code>).</li><li><code class='nw'>collect()</code> (<code class='nw'>:229</code>): <code>if (facetOrd &lt; startFacetOrd || facetOrd &gt;= endFacetOrd) return;</code>.</li><li>Multi-valued, <code class='nw'>MVLeafCollector</code> (<code class='nw'>:296-301</code>): <code>tenum.seekCeil(facetPrefix + BIG_TERM)</code>; its ordinal is the exclusive end (<code class='nw'>:325</code>). No assert there.</li><li><code>UnicodeUtil.java:97-107</code>: <code class='nw'>BIG_TERM</code> is "A binary term consisting of a number of 0xff bytes, likely to be bigger than other terms (e.g. collation keys) one would normally encounter, and definitely bigger than any UTF-8 terms." The class is <code class='nw'>@lucene.internal</code> (<code class='nw'>:93</code>).</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-example'>The example</h3><a class="hlink" href="#what-the-bug-is-the-example" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-example"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>ordinal</th><th>facet value (hex)</th><th></th></tr></thead><tbody><tr><td>0</td><td><code>70 61</code> (<code class='nw'>pa</code>)</td><td>in the prefix range</td></tr><tr><td>1</td><td><code>70 FF FF FF FF FF FF FF FF FF FF</code></td><td>starts with <code class='nw'>p</code>, and <strong>equals</strong> the end key <code class='nw'>p</code> + <code class='nw'>BIG_TERM</code></td></tr></tbody></table></div><p><code class='nw'>lookupTerm("p")</code> misses (-1), so the start is 0. <code class='nw'>lookupTerm(end)</code> <strong>finds</strong> ordinal 1, so the assert fails, or with assertions off the end becomes -1 - 1 = <strong>-2</strong>. Every ordinal is <code>&gt;= -2</code>, so <code class='nw'>collect()</code> returns early for every document: 0 entries, total count 0.</p><div class="hd hd-3"><h3 id='what-the-bug-is-neighbouring-values-executed-assertions-off'>Neighbouring values (executed, assertions off)</h3><a class="hlink" href="#what-the-bug-is-neighbouring-values-executed-assertions-off" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-neighbouring-values-executed-assertions-off"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>bytes after <code class='nw'>p</code></th><th>single-valued</th><th>multi-valued</th></tr></thead><tbody><tr><td>nine 0xFF</td><td>2 entries (correct)</td><td>2 entries (correct)</td></tr><tr><td>ten 0xFF (= the end key)</td><td><strong>0</strong> (whole segment lost)</td><td><strong>1</strong> (that value lost)</td></tr><tr><td>eleven 0xFF</td><td><strong>1</strong> (that value lost)</td><td><strong>1</strong> (that value lost)</td></tr></tbody></table></div></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>178 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Users of <code>TermGroupFacetCollectorManager</code> (10.6.0 and main) or of <code>TermGroupFacetCollector</code> (4.0.0 to 10.6.0) who pass a non-null <code class='nw'>facetPrefix</code> and index binary facet values in <code>SortedDocValuesField</code> or <code>SortedSetDocValuesField</code>.</li><li><strong>What it takes.</strong> A facet value with ten or more consecutive 0xFF bytes right after the prefix. An independent check built a plausible shape: a type byte 0x01 followed by <code>NumericUtils.longToSortableBytes(Long.MAX_VALUE)</code> twice (sixteen 0xFF), prefix <code class='nw'>{0x01}</code>; the max key was dropped, 1 entry instead of 2, on main and 10.6.0. No real collation-key trigger was shown, and none is claimed.</li><li><strong>Opt-in.</strong> Grouped faceting with a prefix must be asked for, and the class is <code>@lucene.experimental</code> (<code class='nw'>:54</code>); the codec and <code>IndexWriterConfig</code> are the defaults.</li><li><strong>Effect.</strong> With assertions off, matching entries are silently missing. The exact-match case empties the facet result of the whole segment that holds the value, also values without any 0xFF; with assertions off, other segments are unaffected (each computes its own range). With assertions on, that segment's <code class='nw'>AssertionError</code> aborts the whole search.</li><li><strong>Not affected.</strong> Text (UTF-8) facet values, and <code>facetPrefix == null</code>.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>One JUnit test, public API only: two documents with facet values <code class='nw'>pa</code> and <code class='nw'>p</code> + ten 0xFF bytes, <code class='nw'>facetPrefix</code> <code class='nw'>p</code>, expecting 2 facet entries. It fails on main with assertions off (0 entries) and on (<code class='nw'>AssertionError</code> at <code class='nw'>:210</code>), and passes with the fix.</p><figure class='code'><figcaption><span class='fname'>TestGroupFacetPrefixBinaryValues.java (one test, grouping module)</span><span class='meta'>57 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.grouping;
+
+import java.util.Arrays;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.SortedDocValuesField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.BytesRef;
+
+public class TestGroupFacetPrefixBinaryValues extends LuceneTestCase {
+
+  public void testFacetPrefixWithBinaryFacetValue() throws Exception {
+    byte[] binary = new byte[11];
+    Arrays.fill(binary, (byte) 0xFF);
+    binary[0] = &#x27;p&#x27;;
+    try (Directory dir = newDirectory();
+        IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+      for (BytesRef facet : new BytesRef[] {new BytesRef(&quot;pa&quot;), new BytesRef(binary)}) {
+        Document doc = new Document();
+        doc.add(new SortedDocValuesField(&quot;group&quot;, new BytesRef(&quot;g&quot;)));
+        doc.add(new SortedDocValuesField(&quot;facet&quot;, facet));
+        w.addDocument(doc);
+      }
+      try (DirectoryReader reader = DirectoryReader.open(w)) {
+        GroupedFacetResult result =
+            new IndexSearcher(reader)
+                .search(
+                    MatchAllDocsQuery.INSTANCE,
+                    new TermGroupFacetCollectorManager(
+                        &quot;group&quot;, &quot;facet&quot;, false, new BytesRef(&quot;p&quot;), 10, 1, false));
+        // expected 2 entries, &quot;pa&quot; and &quot;p&quot; + ten 0xFF bytes; -da gives 0, -ea an AssertionError
+        assertEquals(2, result.getFacetEntries(0, 10).size());
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code># $LUCENE = a Lucene checkout of main; JAVA_HOME = a JDK 25
+# $REPRO = the directory holding TestGroupFacetPrefixBinaryValues.java
+cp $REPRO/TestGroupFacetPrefixBinaryValues.java \
+   $LUCENE/lucene/grouping/src/test/org/apache/lucene/search/grouping/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:grouping:test \
+  --tests org.apache.lucene.search.grouping.TestGroupFacetPrefixBinaryValues \
+  -Ptests.seed=DEADBEEF -Ptests.asserts=false     # and -Ptests.asserts=true: AssertionError at :210
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>2 facet entries, <code class='nw'>pa</code> and <code class='nw'>p</code> + ten 0xFF bytes, count 1 each.</dd></div><div class='got'><dt>Observed</dt><dd>0 entries (<code>expected:&lt;2&gt; but was:&lt;0&gt;</code>); with assertions on, an <code class='nw'>AssertionError</code> at <code>TermGroupFacetCollectorManager.java:210</code>.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-1427/'>repro/LFV-1427/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>217 words</span></summary><div class='body'><p>One class, one method, single thread, deterministic: one segment, default <code>IndexWriterConfig</code>, no executor. It is the minimal test with only its comment line shortened so that <code>./gradlew check</code> (google-java-format) passes; the file carries the ASF license header that Lucene's checks require.</p><p>Every recorded seed failed the same way (<code class='nw'>DEADBEEF</code>, <code class='nw'>5EED2551</code>, <code class='nw'>5EED2552</code>); the ordinal arithmetic makes the outcome the same for this data. The test checks only the number of entries; the values and their counts of 1 come from the probe on main and the fix runs.</p><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main f794ff5a505c (12.0.0-SNAPSHOT); the same data fails on 10.6.0 and every release run back to 4.0.0</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64 (pure Java)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code># $LUCENE = a Lucene checkout of main; JAVA_HOME = a JDK 25
+# $REPRO = the directory holding TestGroupFacetPrefixBinaryValues.java
+cp $REPRO/TestGroupFacetPrefixBinaryValues.java \
+   $LUCENE/lucene/grouping/src/test/org/apache/lucene/search/grouping/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:grouping:test \
+  --tests org.apache.lucene.search.grouping.TestGroupFacetPrefixBinaryValues \
+  -Ptests.seed=DEADBEEF -Ptests.asserts=false     # and -Ptests.asserts=true: AssertionError at :210
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># stock main f794ff5a505c, -Ptests.asserts=false
+TestGroupFacetPrefixBinaryValues &gt; testFacetPrefixWithBinaryFacetValue FAILED
+    java.lang.AssertionError: expected:&lt;2&gt; but was:&lt;0&gt;
+        at __randomizedtesting.SeedInfo.seed([DEADBEEF:868EF52229F3F629]:0)
+        ...
+        at org.apache.lucene.search.grouping.TestGroupFacetPrefixBinaryValues.testFacetPrefixWithBinaryFacetValue(TestGroupFacetPrefixBinaryValues.java:53)
+
+# stock main f794ff5a505c, -Ptests.asserts=true
+TestGroupFacetPrefixBinaryValues &gt; testFacetPrefixWithBinaryFacetValue FAILED
+    java.lang.AssertionError
+        at __randomizedtesting.SeedInfo.seed([DEADBEEF:868EF52229F3F629]:0)
+        at org.apache.lucene.search.grouping.TermGroupFacetCollectorManager$FacetCollector$SVLeafCollector.&lt;init&gt;(TermGroupFacetCollectorManager.java:210)
+        at org.apache.lucene.search.grouping.TermGroupFacetCollectorManager$FacetCollector.getLeafCollector(TermGroupFacetCollectorManager.java:174)
+        at org.apache.lucene.core@12.0.0-SNAPSHOT/org.apache.lucene.search.IndexSearcher.searchLeaf(IndexSearcher.java:836)
+        ...
+        at org.apache.lucene.search.grouping.TestGroupFacetPrefixBinaryValues.testFacetPrefixWithBinaryFacetValue(TestGroupFacetPrefixBinaryValues.java:48)
+
+# with the fix, -Ptests.asserts=true and =false
+:lucene:grouping:test (SUCCESS): 1 test
+BUILD SUCCESSFUL</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it looks unintended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The javadoc promises prefix semantics, "only include facet entries with this prefix"; nothing on the grouping API limits facet values to UTF-8.</li><li>The code's own <code>assert ef &lt; 0</code> says the end key is never a value; legal input breaks it, and <code class='nw'>pa</code>, with no 0xFF, is lost too.</li><li>The upstream test's oracle is <code>startsWith(facetPrefix)</code>; it only generates text.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>163 words</span></summary><div class='body'><ul><li><strong>Contract.</strong> <code>@param facetPrefix only include facet entries with this prefix; may be null</code> (<code>TermGroupFacetCollectorManager.java:73</code>); the 2012 API said "The facet prefix a facet entry should start with to be included" (4.0.0 <code>TermGroupFacetCollector.java:52</code>). <code>SortedDocValuesField</code> takes any value "at most 32766 bytes long" (<code>SortedDocValuesField.java:38</code>), and <code class='nw'>facetPrefix</code> is any <code class='nw'>BytesRef</code>. No grouping javadoc, package doc (<code>package-info.java:180-193</code>), CHANGES or MIGRATE entry limits facet values to UTF-8.</li><li><strong>Invariant.</strong> <code>assert ef &lt; 0</code> (written in 2012 in <code class='nw'>aed1b577a83</code> on the doc-values branch, first released in 4.2.0 through the LUCENE-4547 merge <code class='nw'>5cbaddcbc7ff</code>) states that the end key cannot exist in the field. Legal input breaks it, and the in-range value <code class='nw'>pa</code> is lost too: a broken invariant, not an approximation at the edge.</li><li><strong>Tests.</strong> <code>TestTermGroupFacetCollectorManager.java:738</code> uses <code>facetValue.startsWith(facetPrefix)</code> as the oracle; its values are random Unicode strings, so they never contain 0xFF bytes.</li><li><strong>History.</strong> No issue, PR, review comment or list thread records a by-design decision about binary values and this bound.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>203 words</span></summary><div class='body'><p>The strongest case for "intended": <code class='nw'>BIG_TERM</code> was always a heuristic for character data. When the ten-0xFF sentinel was chosen (#3578, LUCENE-2504, 2010), a comment there called it "like a NaN sentinel, if someone is doing something very wierd, maybe it wont work"; its javadoc says only "likely" for terms that are not UTF-8; in 2012 the postings highlighter replaced a one-byte 0xFF ceiling, commented "this looks bogus, but its not. we are dealing with characters :)", with <code class='nw'>BIG_TERM</code> (<code class='nw'>9dd7d2ecf64</code>); the grouping API is experimental, <code>FacetEntry.toString()</code> prints values with <code class='nw'>utf8ToString()</code> (<code>GroupedFacetResult.java:131</code>), and its tests use text only.</p><p>Why it fails: that caveat lives only on the <code class='nw'>@lucene.internal</code> <code class='nw'>UnicodeUtil</code> and in code comments, never on the public <code class='nw'>facetPrefix</code> contract, and <code class='nw'>toString()</code> is a debug string that plays no part in the counting; #3578 is about a sort comparator's null proxy, in 2010, about a year and a half before grouped faceting (2012); and the exact-match case does not just mishandle the odd value, it drops every value of the segment. The executed review by another model family (OpenAI GPT-5.6) rated the "intended" case moderate, and the devil's-advocate check concluded it does not hold. It does make the trigger contrived, hence Low.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>End the range at the prefix's byte successor (validated)</strong></p><p class='short'>End the prefix range at the prefix's byte successor: increment its last byte that is not 0xFF and cut after it; no end bound if the prefix is empty or all 0xFF. Use it in both paths and drop the assert (+29/-13). The repro, <code>TestTermGroupFacetCollectorManager</code>, the whole grouping module and <code class='nw'>check</code> pass with it.</p><pre class='snippet' tabindex='0'><code>// Smallest term greater than every term that starts with prefix, or null if there is none.
+private static BytesRef prefixUpperBound(BytesRef prefix) {
+  for (int i = prefix.length - 1; i &gt;= 0; i--) {
+    if (prefix.bytes[prefix.offset + i] != (byte) 0xFF) {
+      byte[] bound = new byte[i + 1];
+      System.arraycopy(prefix.bytes, prefix.offset, bound, 0, i + 1);
+      bound[i]++;
+      return new BytesRef(bound);
+    }
+  }
+  return null;
+}</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 399 words</span></summary><div class='body'><p>One fix was built and validated; the other options were not run.</p><div class="hd hd-3"><h3 id='fix-prefix-successor'>End the range at the prefix's byte successor (validated) <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-prefix-successor" target="_self" aria-label="Link to this section" aria-describedby="fix-prefix-successor"><span aria-hidden="true">#</span></a></div><p>Add the helper below. Single-valued: <code>end == null</code> gives <code>ef = facetDV.getValueCount()</code>, else <code>ef = facetDV.lookupTerm(end)</code> and, if negative, <code>ef = -ef - 1</code>. Multi-valued: <code>end == null</code> gives <code>ef = facetFieldNumTerms</code>, else <code class='nw'>seekCeil(end)</code> as today. The end key may now exist as a value; it is exclusive either way, so the assert goes. The <code class='nw'>BytesRefBuilder</code> and <code class='nw'>UnicodeUtil</code> imports go too.</p><pre class='snippet' tabindex='0'><code>// Smallest term greater than every term that starts with prefix, or null if there is none.
+private static BytesRef prefixUpperBound(BytesRef prefix) {
+  for (int i = prefix.length - 1; i &gt;= 0; i--) {
+    if (prefix.bytes[prefix.offset + i] != (byte) 0xFF) {
+      byte[] bound = new byte[i + 1];
+      System.arraycopy(prefix.bytes, prefix.offset, bound, 0, i + 1);
+      bound[i]++;
+      return new BytesRef(bound);
+    }
+  }
+  return null;
+}</code></pre><p class='k'>Trade-offs</p><ul><li>Exact for any bytes, at the same cost (one lookup per segment).</li><li><code class='nw'>bound[i]++</code> wraps a signed Java byte (0x7F becomes 0x80), which is still the successor, because <code class='nw'>BytesRef</code> compares bytes unsigned.</li><li>Afterwards nothing in <code class='nw'>lucene/</code> on main uses <code class='nw'>BIG_TERM</code> any more (these two lines are its last users).</li></ul><p class='k'>What the checks validated</p><ul><li>Clean scratch worktree of <code class='nw'>f794ff5a505c</code>, OpenJDK 25.0.3, 2026-11-09: the repro fails on stock with assertions on and off and passes with the fix, on and off.</li><li>With the fix: <code>TestTermGroupFacetCollectorManager</code> 3 of 3 pass; the whole <code>:lucene:grouping:test</code> module, 15 suites and 57 tests (the repro included), 0 failures; <code>:lucene:grouping:check -x test</code> (google-java-format, ecjLint, forbiddenApis) passes. The first <code class='nw'>check</code> run failed only on the test's over-long comment line; with it shortened, it passes.</li><li>Earlier runs: the independent reproducer's four tests, the executed cross-model review's five and the devil's advocate's composite-key test all pass with the same fix.</li></ul><div class="hd hd-3"><h3 id='fix-handle-hit'>Keep BIG_TERM, but handle a hit</h3><a class="hlink" href="#fix-handle-hit" target="_self" aria-label="Link to this section" aria-describedby="fix-handle-hit"><span aria-hidden="true">#</span></a></div><p>Drop the assert and use <code class='nw'>ef</code> itself as the exclusive end when <code class='nw'>lookupTerm</code> finds the end key.</p><p class='k'>Trade-offs</p><p>Removes the whole-segment loss, but values above the end key (eleven 0xFF bytes after the prefix) are still dropped. Not validated.</p><div class="hd hd-3"><h3 id='fix-per-value-check'>Check each collected value with StringHelper.startsWith</h3><a class="hlink" href="#fix-per-value-check" target="_self" aria-label="Link to this section" aria-describedby="fix-per-value-check"><span aria-hidden="true">#</span></a></div><p>Test the actual bytes instead of an ordinal range.</p><p class='k'>Trade-offs</p><p>Exact, but needs a <code class='nw'>lookupOrd</code> per collected ordinal instead of two integer comparisons. Not validated.</p><div class="hd hd-3"><h3 id='fix-document'>Document a UTF-8 precondition on facetPrefix</h3><a class="hlink" href="#fix-document" target="_self" aria-label="Link to this section" aria-describedby="fix-document"><span aria-hidden="true">#</span></a></div><p>A javadoc change only.</p><p class='k'>Trade-offs</p><p>No code change; binary facet values keep losing entries silently.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Downstream, Solr's <code class='nw'>group.facet</code> with <code class='nw'>facet.prefix</code> calls <code>TermGroupFacetCollector</code> with the prefix, and Solr's doc-values <code class='nw'>facet.prefix</code> code uses the same <code>prefix + BIG_TERM</code> end and <code class='nw'>assert</code> (read in Solr's main sources, not run).</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A semi-formal proof-obligation audit of <code>UnicodeUtil.BIG_TERM</code>'s contract: its users may rely on it as an upper bound only for UTF-8 terms. The audit first judged that lead harmless; an independent reviewer from another model family (OpenAI GPT-5.6), asked to refute the verdict, pointed at this collector, and a public-API test confirmed it.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>102 words</span></summary><div class='body'><ul><li><strong>The obligation.</strong> Every user of <code class='nw'>BIG_TERM</code> as an upper bound must only compare it with UTF-8 terms, or must otherwise make sure no real term reaches it.</li><li><strong>The audit.</strong> The first pass over the users judged the lead harmless. An independent reviewer from another model family (OpenAI GPT-5.6), asked to refute that negative verdict, named <code>TermGroupFacetCollectorManager</code>'s prefix range end as a user that takes arbitrary binary doc values.</li><li><strong>The witness.</strong> Code reading confirmed both paths, and the one-test public-API repro above failed on main with assertions on and off; further variants mapped nine, ten and eleven 0xFF bytes in both paths.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (2026-11-09): a scripted prior-report search ran 51 queries over GitHub, commits, downstream repositories, the lists, the JIRA archive and the web (plus 32 in an earlier run), with manual GitHub, JIRA, list and git-history searches and a later spot check. Related only: #3578 (LUCENE-2504, 2010), where the ten-0xFF sentinel was introduced and called a heuristic.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p>Verdict <strong>new</strong>: no apache/lucene issue or PR (the migrated JIRA archive included), review comment, commit message or list thread, and no Solr, Elasticsearch or OpenSearch item, describes this range end leaving out binary facet values. Keyword search cannot prove absence.</p><p>Related items about other things: #3578 (LUCENE-2504, 2010) introduced the ten-0xFF sentinel for a sort comparator. #16292 copied the range code into <code>TermGroupFacetCollectorManager</code> (its one related review remark proposes sharing the prefix-range code) and #16779 removed the old collectors, neither discussing the bound. SOLR-3150 (an NPE with <code class='nw'>facet.prefix</code> on an empty field), SOLR-7867, SOLR-7036, SOLR-6160 and SOLR-13381 are other <code class='nw'>group.facet</code> / <code class='nw'>facet.prefix</code> defects.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>scripted prior-report search</th><td class='when'>2026-11-09</td><td>51 queries: 16 GitHub issue/PR, 3 commit, 2 downstream-repository, 20 mailing-list (dev@, java-user@, issues@, commits@), 4 JIRA archive, 6 web</td><td>331 distinct hits, 0 high overlap; no report of this defect</td></tr><tr><th scope='row'>scripted prior-report search, earlier run</th><td class='when'>2026-11-09</td><td>32 queries: 10 GitHub issue/PR, 3 commit, 4 downstream-repository, 12 mailing-list, 3 JIRA archive (its 3 web queries were left pending)</td><td>0 high overlap</td></tr><tr><th scope='row'>GitHub, by hand</th><td class='when'>2026-11-09</td><td>BIG_TERM in several spellings, TermGroupFacetCollector(Manager), GroupFacetCollector, facet prefix, binary and 0xFF wording; the files of the 44 open PRs updated since 2026-11-05 and of #16847; comment and review greps on #16292, #16779, #15947, #3578 and LUCENE-3802/3856/3890/4333</td><td>no report; no open PR touches the file</td></tr><tr><th scope='row'>git history, JIRA, lists</th><td class='when'>2026-11-09</td><td>git log -S BIG_TERM over the full history (21 commits); JIRA LUCENE and SOLR text searches; lists.apache.org over the Lucene and Solr lists</td><td>no commit fixed or discussed the bound; 57 mails, none about it</td></tr><tr><th scope='row'>GitHub spot check</th><td class='when'>2026-11-09</td><td>5 searches and the files of the 18 open PRs updated since 2026-11-07; commits to the file on upstream main</td><td>nothing new; not fixed upstream (upstream main fb76d84770a8)</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced with grouped faceting by LUCENE-3802 (<code class='nw'>64f0ebe2b6f</code>, 2012-03-07), first released in 4.0.0, and its range logic was carried over unchanged into <code>TermGroupFacetCollectorManager</code> by #16292 (10.6.0). It fails on every release run from 4.0.0 to 10.6.0 and on main; an assert added for 4.2.0 makes runs with assertions on throw.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>7 rows</span></summary><div class='body'><p><strong>Introduced by</strong> <code class='nw'>64f0ebe2b6f</code> "LUCENE-3802: Support for grouped faceting." (Martijn van Groningen, 2012-03-07; now #4875; svn era, no PR), which created <code>TermGroupFacetCollector</code> with this range end in both paths. Its earliest release tags are 4.0.0-alpha, 4.0.0-beta and 4.0.0. Later commits changed the symptom or the API, not the defect: the assert was written in <code class='nw'>aed1b577a83</code> ("fix grouping", Michael McCandless, 2012-11-21) on the doc-values branch lucene4547 and reached branch_4x with the LUCENE-4547 merge <code class='nw'>5cbaddcbc7ff</code> (Robert Muir, 2013-02-08) (4.2.0 has it, 4.1.0 runs silent with <code class='nw'>-ea</code>); <code class='nw'>d148795b182</code> (#16292, 2026-10-06; in 10.6.0 through the backport <code class='nw'>c806b8abfd4</code>) carried the range logic over unchanged into the new <code>TermGroupFacetCollectorManager</code>; <code class='nw'>3e4a7a02ce0</code> (#16779, 2026-10-07) removed the old collector on main. Releases before 9.12.3 ran through version-specific probes with the same facet bytes (in 4.0.0 and 4.1.0 as binary indexed terms, because the collector read indexed terms before 4.2); 9.0.0 was not run (8.11.4 and 9.12.3 bracket it with unchanged lines). Not new in 10.6; not fixed upstream.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>f794ff5a505c</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the one-test repro fails: 0 entries (assertions off), AssertionError at <code class='nw'>:210</code> (on); gradle and the standalone runner</td></tr><tr><th scope='row'>10.6.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the same test fails, AssertionError at <code class='nw'>:211</code> / 0 entries; the deprecated <code>TermGroupFacetCollector</code> fails too</td></tr><tr><th scope='row'>10.5.2, 9.12.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>old <code>TermGroupFacetCollector</code> API: AssertionError with assertions on, 0 entries off</td></tr><tr><th scope='row'>10.0.0, 8.11.4, 7.7.3, 7.0.0, 6.6.6, 6.0.0, 5.5.5, 5.0.0, 4.10.4</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>0 entries (assertions off); 8.11.4, 5.5.5 and 4.10.4 also throw with assertions on; the nine-0xFF control passes where run</td></tr><tr><th scope='row'>4.2.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> assert added</span></td><td>AssertionError with assertions on, 0 entries off</td></tr><tr><th scope='row'>4.0.0, 4.1.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> first releases</span></td><td>0 entries, no assert yet (4.0.0 on and off, 4.1.0 on)</td></tr><tr><th scope='row'>3.6.2</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> no such API</span></td><td>the probe does not compile: no grouped faceting yet</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, an intended-behaviour devil's advocate and reviews by another model family (OpenAI GPT-5.6, one executed) all rated it real; the adjudication confirmed it (high confidence); a credibility re-check and a minimal-repro check re-ran it. Gradle runs for this page reproduced it and validated the fix.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>318 words</span></summary><div class='body'><p>The executed cross-model review ran first on main <code class='nw'>ea57360912ed</code>, where <code>TermGroupFacetCollectorManager.java</code> is byte-identical to <code class='nw'>f794ff5a505c</code>, and was re-run on <code class='nw'>f794ff5a505c</code>; every other check ran on <code class='nw'>f794ff5a505c</code> or a release.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> found (Low)</span></td><td>The public-API test fails on main with assertions on and off and on 10.6.0; with the fix it passes, and so does <code>TestTermGroupFacetCollectorManager</code> (15 of 15 over 5 iterations).</td></tr><tr><th scope='row'>cross-model review, refute lens (OpenAI GPT-5.6, by reading)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (Low)</span></td><td>Fix correct; strongest objection: the trigger is contrived.</td></tr><tr><th scope='row'>independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own test outside the grouping package fails on main, 10.6.0, and through the old API on 10.5.2 and 9.12.3; eleven 0xFF and multi-valued cases fail, nine 0xFF passes; all pass with the fix.</td></tr><tr><th scope='row'>cross-model review, refute lens (OpenAI GPT-5.6, executed)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>Own five-test class with an explicit codec: single- and multi-valued cases fail, controls pass; 5 of 5 pass with the fix; intended case rated moderate.</td></tr><tr><th scope='row'>intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (Low)</span></td><td>Composite-key test (type byte + two sortable <code class='nw'>Long.MAX_VALUE</code>) drops the max key on main and 10.6.0; the heuristic caveat is only on an internal class.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high confidence)</span></td><td>Re-ran the test on main (fails on and off); silent wrong results, Low, contrived, security none, no duplicate.</td></tr><tr><th scope='row'>credibility re-check and minimal-repro check</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> kept; real (Low), class minor</span></td><td>Re-ran the one-test repro with fresh seeds (fails on main, assertions on and off); the minimal-repro check kept that test as the repro shipped here and set the impact class to minor (it was silent wrong results), because only binary facet values of this shape, through an experimental API, trigger it.</td></tr><tr><th scope='row'>runs for this page</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced, fix validated</span></td><td>Gradle in a clean scratch worktree: fails stock (on, off), passes with the fix (on, off); the grouping module tests and <code class='nw'>check</code> pass with the fix.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-1427/bug.png' download='grouped-facet-prefix-big-term-upper-bound-bug.png' target='_self'>PNG</a> <span class='n'>402 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Finding record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,383 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Finding record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-1427, snapshot of 2026-11-09</p><dl class='card'><div><dt>Registry title</dt><dd>TermGroupFacetCollectorManager ends the facetPrefix range at facetPrefix + UnicodeUtil.BIG_TERM (ten 0xFF bytes), so grouped faceting leaves out binary facet values that have ten or more 0xFF bytes right after the prefix, and a single-valued facet value equal to that end key drops every facet value of the segment; since 4.0.0</dd></div><div><dt>Area</dt><dd>grouping / grouped faceting (TermGroupFacetCollectorManager: facetPrefix range end = facetPrefix + UnicodeUtil.BIG_TERM)</dd></div><div><dt>Priority</dt><dd>Low, rank 598: In every release since 4.0.0, grouped faceting with a facetPrefix silently leaves out binary facet values that have ten or more 0xFF bytes right after the prefix, and a single-valued value equal to the prefix plus ten 0xFF bytes drops every facet value of its segment. Only binary facet values of that shape in the experimental grouped-facet collector trigger it and text facets never can, so the trigger is contrived and the reach narrow.</dd></div><div><dt>Impact class</dt><dd>minor</dd></div><div><dt>Impact note</dt><dd>Only applications that run grouped faceting (TermGroupFacetCollectorManager, @lucene.experimental; TermGroupFacetCollector before 10.6) with a facetPrefix over binary SortedDocValuesField or SortedSetDocValuesField facet values are hit, and only for a value with ten or more consecutive 0xFF bytes right after the prefix: such values are silently left out of the counts, and when a single-valued value equals prefix + ten 0xFF bytes exactly, every facet value of that segment is dropped (0 entries instead of 2 in the repro; with -ea an AssertionError from IndexSearcher.search instead) [exec]; default codec and IndexWriterConfig, an 11-byte value, no scale; text (UTF-8) facet values can never hit it, because 0xFF never occurs in UTF-8; every release from 4.0.0 through 10.6.0, and main.</dd></div><div><dt>Summary</dt><dd>You index two documents whose SortedDocValuesField facet values are "pa" and "p" followed by ten 0xFF bytes, and count grouped facets with TermGroupFacetCollectorManager and facetPrefix "p". You expect both values, since both start with "p" and the javadoc says 'only include facet entries with this prefix'. Instead the result is empty (0 entries, total count 0; with -ea an AssertionError): the collector ends the prefix range at "p" + UnicodeUtil.BIG_TERM, a sentinel that is only guaranteed to be bigger than UTF-8 terms, and because one facet value equals that end key the end ordinal turns negative and every document of the segment is skipped.</dd></div><div><dt>Introduced</dt><dd>64f0ebe2b6f1665f7ded88e2753b5de124d09ed9 (LUCENE-3802 'Support for grouped faceting.', now apache/lucene#4875, by Martijn van Groningen; svn era, no pull request): it created TermGroupFacetCollector and ended the facetPrefix range at facetPrefix + UnicodeUtil.BIG_TERM in both the single-valued (binarySearchLookup, then -end - 1) and the multi-valued (seekCeil as exclusive end) paths [read: git log -S 'UnicodeUtil.BIG_TERM' over the grouping sources and git blame of the 10.5.2 lines; exec: 4.0.0 fails, 3.6.2 has no grouped faceting]. Later commits changed the symptom or the API, not the defect: aed1b577a83 (2012-11-21, first in 4.2.0) added 'assert endFacetOrd &lt; 0', so -ea throws an AssertionError from then on; d148795b182 (#16292, 2026-10-06, first in 10.6.0) copied the range code unchanged into TermGroupFacetCollectorManager; 3e4a7a02ce0 (#16779, 2026-10-07) removed the old collector on main (2012-03-07 (author date of 64f0ebe2b6f))</dd></div><div><dt>First affected version</dt><dd>4.0.0-ALPHA (earliest release tag containing 64f0ebe2b6f); first final release 4.0.0 [exec: 4.0.0 fails with -ea and -da, 0 entries, silent because the assert came in 4.2.0; 3.6.2 has no grouped faceting classes (compile error)]</dd></div><div><dt>Affected versions</dt><dd>every release from 4.0.0-ALPHA through 10.6.0 (released 2026-10-29, 4ae946e5a9b) and main f794ff5a505c (12.0.0-SNAPSHOT); not fixed anywhere (upstream main fb76d84770a8, 2026-11-09: the last commits to TermGroupFacetCollectorManager.java are #16292 and #16779, 2026-10). Executed, fail [exec]: main -ea (AssertionError at TermGroupFacetCollectorManager.java:210) and -da (expected:&lt;2&gt; but was:&lt;0&gt;) by the finder, the independent reproduction, the intended-behaviour check, the adjudication and the registration check; 10.6.0 -ea (AssertionError at :211) and -da (TermGroupFacetCollectorManager, and the deprecated TermGroupFacetCollector -da); 10.5.2, 9.12.3, 8.11.4, 5.5.5, 4.10.4 and 4.2.0 (-ea AssertionError in the old collector, -da 0 entries); 10.0.0, 7.7.3, 7.0.0, 6.6.6, 6.0.0 and 5.0.0 (-da, 0 entries); 4.0.0 (-ea and -da) and 4.1.0 (-ea): 0 entries, no assert yet; 3.6.2: compile error (API absent). 9.0.0 not run (8.11.4 and 9.12.3 bracket it with unchanged lines). Multi-valued path executed on main (finder, the independent reproduction, the cross-model review) and on 10.6.0, 10.5.2 and 9.12.3; on older releases by reading only. Releases before 9.12.3 through version-specific probes with the same data. Not new in 10.6. All runs on Linux aarch64 with local JDK 25.</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: proof-obligation audit; also reached by code reading</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-11-09, read-only; the prior-report record verdict new, on top of the finder's search and the independent reproduction's, the intended-behaviour check's and the adjudication's checks; a later spot check agrees): scripted prior-report searches (51 queries, 331 distinct hits, 0 high; the finder's 35 queries, 0 high) over apache/lucene issues, PRs and commits, the dev@, java-user@, issues@ and commits@ lists, the JIRA archive, downstream repositories and the web; manual gh searches (BIG_TERM spelled several ways, TermGroupFacetCollector(Manager), GroupFacetCollector, facet prefix, binary and 0xFF wording), the file lists of every open apache/lucene PR updated since 2026-11-05 and of #16847, comment and review greps on #16292, #16779, #15947, #3578 and LUCENE-3802/3856/3890/4333, git pickaxe -S BIG_TERM over the full history (21 commits), JIRA LUCENE and SOLR text searches, lists.apache.org searches of the Solr and Lucene lists, and web searches. Closest item: #3578 (LUCENE-2504, 2010), where the ten-0xFF sentinel was introduced for a sort comparator and its authors called it a heuristic that very unusual binary terms could defeat; not this defect. #16292 carried the range code into the CollectorManager without discussing it; #16779 removed the old collectors. Downstream: no Solr, Elasticsearch or OpenSearch report. None of the six recent index-package PRs #16923, #16996, #17003, #17006, #16988 and #16989 touches grouping. Not fixed upstream (upstream main fb76d84770a8 unchanged at the fix site).</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>f794ff5a505c</code> (12.0.0-SNAPSHOT), OpenJDK 25.0.3, Linux aarch64: the one-test repro with gradle in a clean scratch worktree and with the standalone runner, assertions on and off, and the fix validated there (repro, <code>TestTermGroupFacetCollectorManager</code>, the whole grouping module, <code class='nw'>check</code>). Releases 4.0.0 to 10.6.0 through version-specific probes with the same facet bytes (as binary indexed terms in 4.0.0 and 4.1.0); 3.6.2 has no grouped faceting.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Finding record</dt><dd><ul class='paths'><li><code>Lucene main f794ff5a505c lucene/grouping/src/java/org/apache/lucene/search/grouping/TermGroupFacetCollectorManager.java:54 (@lucene.experimental) and :73 (&#x27;@param facetPrefix only include facet entries with this prefix; may be null&#x27;)</code></li><li><code>Lucene main f794ff5a505c lucene/grouping/src/java/org/apache/lucene/search/grouping/TermGroupFacetCollectorManager.java:201-211 (single-valued: end = facetPrefix + UnicodeUtil.BIG_TERM; ef = facetDV.lookupTerm(end); &#x27;assert ef &lt; 0&#x27;; ef = -ef - 1: the fix site) and :229 (collect skips facetOrd &gt;= endFacetOrd, so a negative end skips every document)</code></li><li><code>Lucene main f794ff5a505c lucene/grouping/src/java/org/apache/lucene/search/grouping/TermGroupFacetCollectorManager.java:296-301 (multi-valued: seekCeil(facetPrefix + BIG_TERM) as the exclusive end ordinal) and :325</code></li><li><code>Lucene main f794ff5a505c lucene/core/src/java/org/apache/lucene/util/UnicodeUtil.java:97-107 (BIG_TERM: ten 0xFF bytes, &#x27;likely to be bigger than other terms (e.g. collation keys) one would normally encounter, and definitely bigger than any UTF-8 terms&#x27;; &#x27;WARNING: This is not a valid UTF8 Term&#x27;)</code></li><li><code>Lucene main f794ff5a505c lucene/grouping/src/test/org/apache/lucene/search/grouping/TestTermGroupFacetCollectorManager.java:735-741 (upstream test oracle: facetValue.startsWith(facetPrefix))</code></li><li><code>SECURITY.md (&#x27;In-scope reports&#x27;; &#x27;Scope and Threat Model&#x27;)</code></li></ul></dd></div><div><dt>The finding in 30 seconds</dt><dd><ul class='paths'><li><code>Lucene main (f794ff5a505c) lucene/grouping/src/java/org/apache/lucene/search/grouping/TermGroupFacetCollectorManager.java:44-45 (class javadoc), :201-211 (single-valued range), :229 (collect skip test), :296-301 and :325 (multi-valued range)</code></li><li><code>Lucene main (f794ff5a505c) lucene/core/src/java/org/apache/lucene/util/UnicodeUtil.java:93 (@lucene.internal), :97-107 (BIG_TERM javadoc and value)</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>Lucene main (f794ff5a505c) lucene/grouping/src/java/org/apache/lucene/search/grouping/TermGroupFacetCollectorManager.java:54 (@lucene.experimental), :73 (facetPrefix), :201-211, :229</code></li></ul></dd></div><div><dt>Why it looks unintended</dt><dd><ul class='paths'><li><code>Lucene main (f794ff5a505c) lucene/grouping/src/java/org/apache/lucene/search/grouping/TermGroupFacetCollectorManager.java:73 (facetPrefix javadoc), :210 (assert)</code></li><li><code>a Lucene clone releases/lucene-solr/4.0.0 lucene/grouping/src/java/org/apache/lucene/search/grouping/term/TermGroupFacetCollector.java:52 (2012 facetPrefix javadoc)</code></li><li><code>Lucene main (f794ff5a505c) lucene/core/src/java/org/apache/lucene/document/SortedDocValuesField.java:38; lucene/grouping/src/java/org/apache/lucene/search/grouping/package-info.java:180-193; lucene/grouping/src/test/org/apache/lucene/search/grouping/TestTermGroupFacetCollectorManager.java:738</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>Lucene main (f794ff5a505c) lucene/core/src/java/org/apache/lucene/util/StringHelper.java:97 (startsWith(BytesRef, BytesRef)); grep of BIG_TERM over lucene/ main sources (UnicodeUtil.java:103 and TermGroupFacetCollectorManager.java:208, :299 only)</code></li></ul></dd></div><div><dt>History</dt><dd><ul class='paths'><li><code>a Lucene clone: git tag --contains 64f0ebe2b6f (4.0.0-alpha, 4.0.0-beta, 4.0.0 first); releases/lucene-solr/4.2.0 TermGroupFacetCollector.java (assert endFacetOrd &lt; 0)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestGroupFacetPrefixBinaryValues.java (one test, grouping module): <a href='../repro/LFV-1427/TestGroupFacetPrefixBinaryValues.java'><code>repro/LFV-1427/TestGroupFacetPrefixBinaryValues.java</code></a> (57 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>Made in parallel with this page from an executed probe on main <code class='nw'>f794ff5a505c</code> (the sorted values, the two lookups, the end ordinal and the results for nine, ten and eleven 0xFF bytes).</p><ul class='paths'><li><a href='../assets/LFV-1427/bug.png'><code>assets/LFV-1427/bug.png</code></a> (402 KB)</li></ul><p class='meta built'>Built 2026-11-09 from the hunt's record of this finding and its doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>. Every listed finding was re-run on Lucene main <code class='nw'>f794ff5a505c</code> on 2026-11-08.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-11-09. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All findings</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  var own = !base && window.top === window && /^(https?|file):$/.test(location.protocol);
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = (own ? String(location.href).split('#')[0] : base) + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

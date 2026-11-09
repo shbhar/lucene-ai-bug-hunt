@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MatchesUtils.disjunction and the Matches of a BooleanQuery or DisjunctionMaxQuery throw IllegalArgumentException(&#x27;Failed to retrieve term offset&#x27;) instead of the declared IOException when a sub-iterator without positions fails to read an offset, because DisjunctionMatchesIterator&#x27;s PriorityQueue comparator wraps it (since 9.11.1) (LFV-1424)</title><style>
+:root{--fg:#1d2329;--dim:#5a6570;--line:#d8dee4;--bg:#fff;--soft:#f5f7f9;--link:#0b5cad}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
+font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+main{max-width:980px;margin:0 auto;padding:24px 18px 64px}a{color:var(--link)}
+h1{font-size:1.55rem;line-height:1.25;margin:.4em 0 .3em}h2{font-size:1.2rem;margin:1.6em 0 .5em}
+.dim{color:var(--dim)}.small{font-size:.9rem}.facts{display:flex;flex-wrap:wrap;gap:6px 16px;margin:.4em 0 1em}
+.note{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:10px 14px}
+pre{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:12px;overflow:auto;font-size:.85rem}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+table{border-collapse:collapse;width:100%;font-size:.92rem}th,td{border-bottom:1px solid var(--line);
+padding:6px 8px;text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:var(--soft)}
+h1,h2,p,li,dd{overflow-wrap:break-word}
+.facts>span{min-width:0;overflow-wrap:anywhere}
+th,td.nw{white-space:nowrap;overflow-wrap:normal}
+.scroll{overflow-x:auto}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
+nav.crumbs{font-size:.9rem;margin-bottom:8px}
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>MatchesUtils.disjunction and the Matches of a BooleanQuery or DisjunctionMaxQuery throw IllegalArgumentException(&#x27;Failed to retrieve term offset&#x27;) instead of the declared IOException when a sub-iterator without positions fails to read an offset, because DisjunctionMatchesIterator&#x27;s PriorityQueue comparator wraps it (since 9.11.1)</h1>
+<p class="facts small"><span>Finding LFV-1424</span><span>Area: core / search: Matches API (DisjunctionMatchesIterator, used by MatchesUtils.disjunction and by the Matches of BooleanQuery and DisjunctionMaxQuery)</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-1424.html">Finding page for LFV-1424</a></p>
+<p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
+<h2>What it shows</h2>
+<p>You merge two match iterators that report no positions (startPosition() == -1, which MatchesIterator documents as &#x27;positions are not available&#x27;) with MatchesUtils.disjunction, or ask Weight#matches of a BooleanQuery or DisjunctionMaxQuery for such matches, and one iterator&#x27;s startOffset() throws IOException. You expect that IOException: startOffset()/endOffset(), next(), MatchesUtils.disjunction, Matches.getMatches and Weight.matches all declare it, and 9.11.0 delivers it. Instead you get java.lang.IllegalArgumentException: Failed to retrieve term offset (with the IOException as its cause), because DisjunctionMatchesIterator orders such iterators by offset in a PriorityQueue comparator lambda, which cannot throw a checked exception and rethrows it as IllegalArgumentException (DisjunctionMatchesIterator.java:202), both while the iterator is built and in next().</p>
+<h2>Expected vs actual</h2>
+<ul><li><b>Expected:</b> <code>MatchesUtils.disjunction(...)</code> throws the sub-iterator&#x27;s <code>java.io.IOException: offset read failed</code>.</li><li><b>Actual:</b> It throws <code>java.lang.IllegalArgumentException: Failed to retrieve term offset</code>, from <code>DisjunctionMatchesIterator.java:202</code>.</li></ul>
+<h2>Files</h2><ul>
+<li><a href="src/org/apache/lucene/search/TestDisjunctionMatchesOffsetIOException.java"><code>src/org/apache/lucene/search/TestDisjunctionMatchesOffsetIOException.java</code></a> <span class="dim">(JUnit test)</span></li>
+</ul><h2>Run it</h2><ul>
+<li>Tested on Lucene main f794ff5a505c (2026-11-06): reproduced.</li>
+<li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
+<li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
+</ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
+LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
+CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
+CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
+CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
+CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
+CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
+
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
+
+# run 1: assertions off (production-like), seed DEADBEEF
+java -da -dsa -Dtests.asserts=false -Xmx512m --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.search.TestDisjunctionMatchesOffsetIOException</code></pre>
+<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
+<h2>Files shown on the finding page</h2><ul><li><a href="TestDisjunctionMatchesOffsetIOException.java"><code>TestDisjunctionMatchesOffsetIOException.java</code></a></li></ul>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-04. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
