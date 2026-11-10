@@ -23,7 +23,7 @@
   --step-3: clamp(1.5rem, 1.32rem + 0.9vw, 2.1rem);
   --step-4: clamp(1.6rem, 1.3rem + 1.9vw, 3rem);
   --s1: .25rem; --s2: .5rem; --s3: .75rem; --s4: 1rem; --s5: 1.5rem; --s6: 2rem; --s7: 3rem;
-  --g1: #a8a6a0; --g2: #898781; --g3: #6e6d68; --g4: #52514e; --g5: #2e2d2b;
+  --g1: #afa0de; --g2: #927ad2; --g3: #7758bb; --g4: #5b3a9b; --g5: #3f2272;
   --new: #008300; --known: #2a78d6; --white: #ffffff; --z-tip: 300;
 }
 *,*::before,*::after{box-sizing:border-box}
@@ -277,7 +277,7 @@ a.card-main:hover .card-title{text-decoration:underline;text-decoration-color:va
     <p class="ex-note" id="x-bars-note"></p>
     <details class="ex-tv"><summary>View as table</summary><div class="ex-scroll" id="x-bars-tv"></div></details>
   </section>
-  <section class="ex-panel" aria-labelledby="x-panel-h">
+  <section class="ex-panel" id="x-panel" aria-labelledby="x-panel-h">
     <div class="ex-panel-h"><h2 id="x-panel-h"><span id="x-panel-n"></span></h2><a id="x-open-table2" href="index.html#bugs">Open in the table</a></div>
     <p class="ex-empty" id="x-panel-empty" hidden>No findings in this view.</p>
     <p class="ex-note" id="x-panel-extra" hidden></p>
@@ -516,11 +516,32 @@ a.card-main:hover .card-title{text-decoration:underline;text-decoration-color:va
     return p.join('&');
   }
   const ownHref = s => { const q = ownQuery(s); return location.pathname.split('/').pop() + (q ? '?' + q : ''); };
-  function writeURL() {
-    const url = ownHref(S) + location.hash;
-    try { if (url !== location.pathname.split('/').pop() + location.search + location.hash) history.replaceState(history.state, '', url); }
-    catch (e) { /* the address stays; the page works */ }
+  // Back and Forward step through the views. writeURL(mode): 'push' for a committed change (a menu, a chip, Any/All,
+  // the group or View switch, a cell, row, class or breadcrumb, Reset, an ignored value removed): a new history entry;
+  // 'type' while the search box is typed in (debounced): the settled query becomes one entry, later settles of the same
+  // typing replace it, and a query typed back to where it began takes its entry away again; 'type-end' (Enter or
+  // leaving the box) settles it and ends that typing; no mode (the first load) only tidies the address it was opened
+  // with. An address that does not change adds nothing.
+  const HIST = { timer: 0, pushed: false, base: '', back: false };
+  function writeURL(mode) {
+    const url = ownHref(S) + location.hash, cur = location.pathname.split('/').pop() + location.search + location.hash;
+    const typing = mode === 'type' || mode === 'type-end';
+    try {
+      if (typing && HIST.pushed && url === HIST.base) { HIST.pushed = false; HIST.back = true; history.back(); }
+      else if (url !== cur) {
+        if (mode === 'push' || (typing && !HIST.pushed)) {
+          history.pushState(null, '', url);
+          if (typing) { HIST.pushed = true; HIST.base = cur; }
+        } else history.replaceState(history.state, '', url);
+      }
+    } catch (e) { /* the address stays; the page works */ }
+    if (mode !== 'type') HIST.pushed = false;
     lastKey = location.search;
+  }
+  function settleSearch(end) {
+    clearTimeout(HIST.timer);
+    HIST.timer = 0;
+    writeURL(end ? 'type-end' : 'type');
   }
   // the same view in the table (index.html, query form, #bugs): the filters it reads exactly as this page counts them;
   // the zoom becomes the filter it stands for
@@ -990,8 +1011,10 @@ a.card-main:hover .card-title{text-decoration:underline;text-decoration-color:va
       'aria-pressed': on.includes(x) ? 'true' : 'false', text: label(x) + ' (' + fmt(c.get(x) || 0) + ')' })));
   }
   function go(next, anim) {
+    clearTimeout(HIST.timer);
+    HIST.timer = 0;
     S = next;
-    writeURL();
+    writeURL('push');
     render(anim !== false);
   }
   const clone = s => Object.assign({}, s, { aspects: s.aspects.slice(), features: s.features.slice(), components: s.components.slice(),
@@ -1015,8 +1038,12 @@ a.card-main:hover .card-title{text-decoration:underline;text-decoration-color:va
     $('x-impact').addEventListener('change', e => { const t = clone(S); t.impact = e.target.value; t.bad = t.bad.filter(b => b[0] !== 'impact' && b[0] !== 'class'); go(refit(t)); });
     $('x-status').addEventListener('change', e => { const t = clone(S); t.status = e.target.value; t.bad = t.bad.filter(b => b[0] !== 'status'); t.foreign = t.foreign.filter(f => f[0] !== 'status'); go(refit(t)); });
     $('x-area').addEventListener('change', e => { const t = clone(S); t.area = e.target.value; t.bad = t.bad.filter(b => b[0] !== 'area'); go(refit(t)); });
-    let qt = 0;
-    $('x-q').addEventListener('input', e => { const t = clone(S); t.q = e.target.value.slice(0, URL_MAX); S = refit(t); clearTimeout(qt); qt = setTimeout(writeURL, 400); render(false); });
+    $('x-q').addEventListener('input', e => {
+      const t = clone(S); t.q = e.target.value.slice(0, URL_MAX); S = refit(t);
+      clearTimeout(HIST.timer); HIST.timer = setTimeout(() => settleSearch(false), 400);
+      render(false);
+    });
+    $('x-q').addEventListener('change', () => settleSearch(true));   // Enter, or the box left: the query is settled
     GROUPS.forEach(g => $('x-group-' + g[0]).addEventListener('change', e => { if (e.target.checked) { const t = clone(S); t.group = g[0]; t.zoom = []; t.bad = t.bad.filter(b => b[0] !== 'group' && b[0] !== 'zoom'); go(t); } }));
     const tog = (id, kind, key) => $(id).addEventListener('click', e => {
       const b = e.target.closest && e.target.closest('button[data-' + kind + ']');
@@ -1090,8 +1117,24 @@ a.card-main:hover .card-title{text-decoration:underline;text-decoration-color:va
     addEventListener('scroll', () => { if (tipFor && document.activeElement !== tipFor) hideTip(); }, { passive: true, capture: true });
     let rt = 0;
     addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(moreCols, 100); }, { passive: true });
-    // Back, Forward or an edited address: the view it names
-    const onURL = () => { if (location.search === lastKey) return; S = readURL(); lastKey = location.search; render(true); };
+    // Back, Forward or an edited address: the view it names, in full (filters, group, zoom; the findings panel from its
+    // top), without a new entry. A step back that writeURL took itself (a search typed back to where it began) only
+    // lands where the view already is
+    const onURL = () => {
+      if (HIST.back) { HIST.back = false; lastKey = location.search; return; }
+      const pending = !!HIST.timer;
+      clearTimeout(HIST.timer);
+      HIST.timer = 0;
+      HIST.pushed = false;
+      if (location.search === lastKey && !pending) return;
+      S = readURL();
+      lastKey = location.search;
+      if (S.aspects.length) $('x-asp-box').open = true;
+      if (S.features.length) $('x-feat-box').open = true;
+      render(true);
+      const p = $('x-panel');
+      if (p) p.scrollTop = 0;
+    };
     addEventListener('popstate', onURL);
     addEventListener('hashchange', onURL);
   }
@@ -1100,8 +1143,8 @@ a.card-main:hover .card-title{text-decoration:underline;text-decoration-color:va
     if (t) t.querySelectorAll('.c').forEach(c => c.setAttribute('tabindex', c === cell ? '0' : '-1'));
   }
   function copyLink() {
-    writeURL();
-    const url = location.href, note = $('x-copy-note'), box = $('x-copy-manual');
+    if (HIST.timer) settleSearch(true);
+    const url = new URL(ownHref(S) + location.hash, location.href).href, note = $('x-copy-note'), box = $('x-copy-manual');
     const say = t => { note.textContent = t; setTimeout(() => { if (note.textContent === t) note.textContent = ''; }, 4000); };
     const manual = () => { const i = el('input', { type: 'text', readonly: 'readonly', value: url, 'aria-label': 'Link to this view' }); box.replaceChildren(i); box.hidden = false; i.select(); say('Copy the link from the field'); };
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(() => { box.hidden = true; say('Link copied'); }, manual);

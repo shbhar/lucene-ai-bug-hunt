@@ -1474,21 +1474,35 @@ java -ea -esa --add-modules jdk.incubator.vector \
     });
     return keep.concat(qs ? [qs] : []).join('&');
   }
+  const HIST = { booted: false, pushed: false, base: '', back: false, turn: false };
+  function histWrite(url, mode) {
+    const typing = mode === 'type' || mode === 'type-end';
+    if (typing && HIST.pushed && url === HIST.base) { HIST.pushed = false; HIST.back = true; history.back(); return; }
+    const here = location.pathname + location.search + location.hash;
+    if ((mode === 'push' && !HIST.turn) || (typing && !HIST.pushed)) {
+      history.pushState(null, '', url);
+      if (typing) { HIST.pushed = true; HIST.base = here; }
+      else { HIST.turn = true; setTimeout(() => { HIST.turn = false; }, 0); }
+    } else history.replaceState(history.state, '', url);
+  }
   function writeURL() {
     clearTimeout(state.ut);
+    const mode = state.hmode || '';
+    state.hmode = '';
     const qs = viewQuery(readState()), all = withView(qs), h = location.hash, frag = BUGS_FRAG.test(h);
     const url = location.pathname + (all ? '?' + all : '') + (frag ? '#bugs' : h);
     if (url !== location.pathname + location.search + h) {
-      try { history.replaceState(history.state, '', url); }
+      try { histWrite(url, mode); }
       catch (e) {
         const f = qs ? '#bugs?' + qs : (frag ? '#bugs' : '');
         const fragFree = !h || h === '#bugs' || frag;
         const queryHasView = [...new URLSearchParams(location.search).keys()].some(k => URL_KEYS.has(k.toLowerCase()));
         if (f && f !== h && fragFree && !queryHasView) {
-          try { history.replaceState(history.state, '', f); } catch (e2) { }
+          try { histWrite(f, mode); } catch (e2) { }
         }
       }
     }
+    if (mode !== 'type') HIST.pushed = false;
     state.urlKey = urlKey();
   }
   function noteChange(delay, src) {
@@ -1504,9 +1518,13 @@ java -ea -esa --add-modules jdk.incubator.vector \
     state.touched = true;
     setLink();
     clearTimeout(state.ut);
+    state.hmode = src === F.q ? (delay ? 'type' : 'type-end') : HIST.booted ? 'push' : '';
     if (delay) state.ut = setTimeout(writeURL, delay); else writeURL();
   }
   function onURL() {
+    if (HIST.back) { HIST.back = false; state.urlKey = urlKey(); return; }
+    HIST.pushed = false;
+    state.hmode = '';
     if (urlKey() === state.urlKey) return;
     clearTimeout(state.ut);
     state.urlKey = urlKey();
@@ -2378,6 +2396,7 @@ java -ea -esa --add-modules jdk.incubator.vector \
     const t = document.getElementById(BUGS_FRAG.test(location.hash) ? 'bugs' : decodeURIComponent(location.hash.slice(1)));
     if (t && t.closest('details')) revealRepro(t.id); else if (t) t.scrollIntoView();
   }
+  HIST.booted = true;
 })();
 
 </script>
