@@ -2,6 +2,8 @@
 
 Finding LFV-1469 · Area: sandbox / search: MultiRangeQuery point builders and PhraseWildcardQuery.Builder (build() hands over the builder's own list) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Finding page: [../../bugs/LFV-1469.html](../../bugs/LFV-1469.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -46,6 +48,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestBuilderReuseAfterBuild.java](TestBuilderReuseAfterBuild.java)
 
 Formal models and scripts this finding's part of the hunt used: [../../models/sandbox-multirange-point-builders-and-phrasewildcardquery-builder-hand-their-own-list-to-built-queries-builder-reuse-rewrites-earlier-query-and-its-cache-key-since-8-3-0-verify-low/](../../models/sandbox-multirange-point-builders-and-phrasewildcardquery-builder-hand-their-own-list-to-built-queries-builder-reuse-rewrites-earlier-query-and-its-cache-key-since-8-3-0-verify-low/)
 

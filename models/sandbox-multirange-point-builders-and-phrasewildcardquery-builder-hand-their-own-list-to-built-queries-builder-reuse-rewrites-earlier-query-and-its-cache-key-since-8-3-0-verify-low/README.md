@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- Sandbox MultiRangeQuery point builders (IntPoint, LongPoint, FloatPoint, DoublePointMultiRangeBuilder) and PhraseWildcardQuery.Builder hand the built query the builder's own list, so adding to the builder after build() silently changes the earlier query's hits, equals/hashCode and toString (since 8.3.0) (finding LFV-1469; [repro](../../repro/LFV-1469/))
+- Sandbox MultiRangeQuery point builders (IntPoint, LongPoint, FloatPoint, DoublePointMultiRangeBuilder) and PhraseWildcardQuery.Builder hand the built query the builder's own list, so adding to the builder after build() silently changes the earlier query's hits, equals/hashCode and toString (since 8.3.0) (finding LFV-1469; [repro](../../repro/LFV-1469/), [finding page](../../bugs/LFV-1469.html))
 
 ## Files
 

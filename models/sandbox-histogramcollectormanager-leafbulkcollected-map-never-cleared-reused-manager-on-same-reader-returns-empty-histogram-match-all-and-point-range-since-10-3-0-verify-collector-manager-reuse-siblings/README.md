@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- Sandbox HistogramCollectorManager never clears its bulk-collected leaf map, so a second search with the same manager on the same reader silently returns an empty histogram for every segment on the point-tree path (since 10.3.0) (finding LFV-1467; [repro](../../repro/LFV-1467/))
+- Sandbox HistogramCollectorManager never clears its bulk-collected leaf map, so a second search with the same manager on the same reader silently returns an empty histogram for every segment on the point-tree path (since 10.3.0) (finding LFV-1467; [repro](../../repro/LFV-1467/), [finding page](../../bugs/LFV-1467.html))
 
 ## Files
 

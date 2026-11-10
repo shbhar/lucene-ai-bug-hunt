@@ -95,6 +95,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [knn-query-layer](knn-query-layer/) | TLA+/TLC | LFV-106, LFV-114, LFV-117, LFV-125, LFV-123 |
 | [kuromoji-completion-romaji-map-vs-hepburn-kunrei-wapuro-tables](kuromoji-completion-romaji-map-vs-hepburn-kunrei-wapuro-tables/) | Python | LFV-849, LFV-850, LFV-848, LFV-854 |
 | [latlon-geo-queries-reference](latlon-geo-queries-reference/) | Python | LFV-578 |
+| [latlonshape-slow-docvalues-box-query-crossing-contains-runs-points-index-clauses-silent-zero-instead-of-rejection-low-plus-index-vs-docvalues-parity-leg-gpt-records-line](latlonshape-slow-docvalues-box-query-crossing-contains-runs-points-index-clauses-silent-zero-instead-of-rejection-low-plus-index-vs-docvalues-parity-leg-gpt-records-line/) | Python | LFV-1474 |
 | [legacy-int7-int4-scalar-quantized-scoring-fp-smt](legacy-int7-int4-scalar-quantized-scoring-fp-smt/) | Python | LFV-841 |
 | [lincheck-fieldnumbers-global-schema](lincheck-fieldnumbers-global-schema/) | TLA+/TLC | LFV-1074, LFV-635 |
 | [lmdirichlet-mu-zero-limit-and-multisimilarity-norm-combsum](lmdirichlet-mu-zero-limit-and-multisimilarity-norm-combsum/) | Python | LFV-902 |

@@ -2,11 +2,13 @@
 
 Finding LFV-1468 · Area: sandbox / search: CoveringQuery (CoveringWeight#isCacheable) and the query cache · Priority: low · Impact: silent wrong results · Novelty: new
 
+Finding page: [../../bugs/LFV-1468.html](../../bugs/LFV-1468.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You build new CoveringQuery(List.of(NumericDocValuesField.newSlowExactQuery("x", 1)), LongValuesSource.fromLongField("min")), count it through a query cache, then change x for one document in place with IndexWriter#updateNumericDocValue and reopen the reader. You expect the reopened searcher to see the new value, because a query whose result depends on updated doc values must report itself not cacheable (SegmentCacheable), and both the clause's own weight and a BooleanQuery over the same clause do. Instead CoveringWeight#isCacheable asks only the minimumNumberMatch source, the segment keeps its core cache key, and the cache keeps serving the result from before the update (count 2 instead of 1 in the repro; in the opposite direction a document that starts matching is missing).
+You build new CoveringQuery(List.of(NumericDocValuesField.newSlowExactQuery("x", 1)), LongValuesSource.fromLongField("min")), count it through a query cache, then change x for one document in place with IndexWriter#updateNumericDocValue and reopen the reader. You expect the reopened searcher to see the new value, because a query whose result depends on updated doc values must report itself not cacheable (SegmentCacheable), and both the clause's own weight and a BooleanQuery over the same clause do. Instead CoveringWeight#isCacheable asks only the minimumNumberMatch source, the segment keeps its core cache key, and the cache keeps serving the result from before the update (count 1 instead of 0 in the one-document repro; in the opposite direction a document that starts matching is missing).
 
 ## Expected vs actual
 
@@ -46,6 +48,10 @@ java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=A
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestCoveringQueryCacheability.java](TestCoveringQueryCacheability.java)
 
 ## Feedback
 

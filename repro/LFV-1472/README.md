@@ -2,6 +2,8 @@
 
 Finding LFV-1472 · Area: sandbox / facets: plain histograms (HistogramCollector's skip-index dense leaf collector, single-valued NUMERIC or SORTED_NUMERIC field) · Priority: low · Impact: crash · Novelty: new
 
+Finding page: [../../bugs/LFV-1472.html](../../bugs/LFV-1472.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -46,6 +48,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestHistogramEmptySkipIndex.java](TestHistogramEmptySkipIndex.java)
 
 ## Feedback
 

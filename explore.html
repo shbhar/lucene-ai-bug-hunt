@@ -1,0 +1,1141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Where the findings cluster · AI-assisted bug hunt in Apache Lucene</title>
+<style>
+:root{
+  color-scheme: light;
+  --wrap: 92rem;
+  --gutter: clamp(1rem, 3.5vw, 3.5rem);
+  --paper: oklch(98.2% 0.006 170); --panel: oklch(95.8% 0.012 168); --ink: oklch(22% 0.03 255);
+  --mute: oklch(47% 0.025 230); --rule: oklch(83% 0.02 180); --accent: oklch(49% 0.165 24);
+  --hi-bg: oklch(52% 0.19 29); --hi-ink: oklch(98.5% 0.005 29);
+  --md-bg: oklch(88% 0.12 85); --md-ink: oklch(33% 0.065 70);
+  --lo-bg: oklch(93% 0.06 150); --lo-ink: oklch(34% 0.08 150);
+  --sans: "Gill Sans", "Gill Sans MT", "Gill Sans Nova", Seravek, "Trebuchet MS", Calibri, "Noto Sans", sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  --step--1: clamp(0.82rem, 0.8rem + 0.1vw, 0.875rem);
+  --step-0: clamp(0.95rem, 0.92rem + 0.2vw, 1.05rem);
+  --step-1: clamp(1.1rem, 1.04rem + 0.3vw, 1.25rem);
+  --step-3: clamp(1.5rem, 1.32rem + 0.9vw, 2.1rem);
+  --step-4: clamp(1.6rem, 1.3rem + 1.9vw, 3rem);
+  --s1: .25rem; --s2: .5rem; --s3: .75rem; --s4: 1rem; --s5: 1.5rem; --s6: 2rem; --s7: 3rem;
+  --g1: #a8a6a0; --g2: #898781; --g3: #6e6d68; --g4: #52514e; --g5: #2e2d2b;
+  --new: #008300; --known: #2a78d6; --white: #ffffff; --z-tip: 300;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html,body{margin:0;background:var(--paper);color:var(--ink)}
+body{font:400 var(--step-0)/1.5 var(--sans);min-height:100dvh;overflow-x:clip;display:flex;flex-direction:column}
+.page{flex:1;width:100%;padding:clamp(1rem,3vw,2.5rem) max(var(--gutter),calc((100% - var(--wrap)) / 2)) var(--s7)}
+a{color:inherit;text-decoration:underline;text-decoration-color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+a:hover{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+p{margin:0 0 var(--s3);max-width:104ch;text-wrap:pretty}
+h1,h2,h3{font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:var(--step-4);line-height:1.05;margin-bottom:var(--s3)}
+h2{font-size:var(--step-1);line-height:1.25;margin-bottom:var(--s2)}
+h3{font-size:var(--step-0);line-height:1.25;margin:var(--s5) 0 var(--s2)}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+.sc{font-variant-caps:all-small-caps;letter-spacing:.07em}
+.masthead{border-bottom:1px solid var(--rule);padding-bottom:var(--s3);margin-bottom:var(--s4)}
+.masthead p{margin-bottom:var(--s2)}
+.register{color:var(--mute);margin-bottom:var(--s2)}
+.crumbs{font-size:var(--step--1);margin-bottom:var(--s2)}
+.purpose{max-width:96ch}
+.ex-totals{font-weight:600}
+.ex-caveat{color:var(--mute);font-size:var(--step--1)}
+.ex-nav{font-size:var(--step--1);color:var(--mute);margin:0}
+.ex-nav [aria-current]{color:var(--ink);font-weight:600}
+/* the filter bar */
+.ex-controls{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:var(--s3) var(--s4);margin-bottom:var(--s5)}
+.ex-fields{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--s3) var(--s4)}
+.fld{display:flex;flex-direction:column;gap:2px;min-width:0}
+.fld>span,.lbl{font-size:var(--step--1);color:var(--mute);font-variant-caps:all-small-caps;letter-spacing:.07em}
+select,input[type=search]{font:inherit;font-size:var(--step--1);color:var(--ink);background:var(--paper);border:1px solid var(--rule);
+  border-radius:4px;min-height:2rem;padding:2px var(--s2);max-width:100%}
+select{max-width:min(15rem,100%)}
+input[type=search]{width:min(22rem,100%)}
+.fld-q{flex:1 1 18rem}
+.fld-q input{width:100%}
+.ex-fields2{margin-top:var(--s3)}
+.segs{display:inline-flex;flex-wrap:nowrap;max-width:100%}
+.segs label{position:relative;display:inline-flex;min-width:0}
+.segs input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.segs span{display:inline-flex;align-items:center;justify-content:center;text-align:center;min-height:2rem;padding:.25rem var(--s3);
+  font-size:var(--step--1);line-height:1.2;color:var(--ink);background:var(--paper);border:1px solid var(--rule);margin-left:-1px}
+.segs label:first-child span{border-radius:6px 0 0 6px;margin-left:0}
+.segs label:last-child span{border-radius:0 6px 6px 0}
+.segs input:hover+span{border-color:var(--ink);position:relative}
+.segs input:checked+span{background:var(--ink);color:var(--paper);border-color:var(--ink);position:relative}
+.segs input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px;position:relative;z-index:1}
+.chiprow{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s3);margin-top:var(--s3)}
+.chiprow[hidden]{display:none}
+.chips{display:flex;flex-wrap:wrap;gap:var(--s1) var(--s2);min-width:0}
+.chip{font:inherit;font-size:var(--step--1);color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:999px;
+  padding:2px var(--s3);min-height:1.75rem;cursor:pointer}
+.chip:hover{border-color:var(--ink)}
+.chip.is-on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.chip.is-bad{border-style:dashed;color:var(--mute)}
+.seg2{display:inline-flex;gap:var(--s3);font-size:var(--step--1)}
+.seg2 label{display:inline-flex;align-items:center;gap:var(--s1);cursor:pointer;min-height:1.5rem}
+.seg2 input{margin:0;accent-color:var(--accent)}
+.ex-mores{display:flex;flex-wrap:wrap;gap:0 var(--s5)}
+.ex-mores details[open]{flex-basis:100%}
+details.ex-more>summary{cursor:pointer;font-size:var(--step--1);margin-top:var(--s3);width:max-content;max-width:100%}
+.ex-foot{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin-top:var(--s3);padding-top:var(--s3);border-top:1px solid var(--rule)}
+.ex-count{font-weight:600;font-variant-numeric:tabular-nums}
+.btn{font:inherit;font-size:var(--step--1);color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:4px;
+  min-height:2rem;padding:2px var(--s3);cursor:pointer}
+.btn:hover{border-color:var(--ink)}
+.ex-acts{display:inline-flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s3);margin-left:auto}
+.ex-note-copy{font-size:var(--step--1);color:var(--mute)}
+.ex-manual input{width:min(28rem,80vw);font-size:var(--step--1)}
+/* layout: the grid and the bars, the panel beside them (below on narrow screens) */
+.ex-layout{display:grid;grid-template-columns:minmax(0,1.85fr) minmax(19rem,1fr);gap:var(--s5) var(--s6);align-items:start}
+@media (max-width:64rem){.ex-layout{grid-template-columns:minmax(0,1fr)}}
+.ex-crumbs{font-size:var(--step--1);margin-bottom:var(--s2)}
+.ex-crumbs ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s2)}
+.ex-crumbs li+li::before{content:"›";color:var(--mute);margin-right:var(--s2)}
+.ex-crumbs [aria-current]{font-weight:600}
+.ex-scope{font-size:var(--step--1);color:var(--mute)}
+.ex-legend{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s3);margin:0 0 var(--s2);padding:0;list-style:none;
+  font-size:var(--step--1)}
+.ex-legend[hidden],.ex-legend li[hidden]{display:none}
+.ex-legend .lh{color:var(--mute)}
+.ex-legend li{display:inline-flex;align-items:center;gap:var(--s1);font-variant-numeric:tabular-nums}
+.sw{display:inline-block;width:1.5rem;height:.875rem;border-radius:2px}
+.sw.sq{width:.875rem}
+.sw.z{background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule)}
+.g1{background:var(--g1)}.g2{background:var(--g2)}.g3{background:var(--g3)}.g4{background:var(--g4)}.g5{background:var(--g5)}
+.b-new{background:var(--new)}.b-known{background:var(--known)}
+.ex-scroll{position:relative;overflow-x:auto;max-width:100%;padding-bottom:var(--s1)}
+.hm{border-collapse:separate;border-spacing:2px;font-size:var(--step--1);margin-left:-2px}
+.hm th{font-weight:400;color:var(--mute);text-align:center;padding:0 2px var(--s1);line-height:1.2;width:3.5rem;min-width:3.25rem}
+.hm thead th{vertical-align:bottom}
+.hm .gh{color:var(--ink);font-weight:600;border-bottom:1px solid var(--mute);padding:0 2px 2px}
+.hm .gap{padding-left:var(--s2)}
+.hm .rh{position:sticky;left:0;z-index:1;width:auto;min-width:0;max-width:12rem;background:var(--paper);text-align:left;color:var(--ink);
+  box-shadow:2px 0 0 var(--paper);padding:0 var(--s3) 0 2px;vertical-align:middle;white-space:normal;overflow-wrap:break-word;line-height:1.25}
+.hm thead .rh{color:var(--mute)}
+.hm td{padding:0}
+.rlink{display:block;padding:.35rem 0;text-decoration-color:var(--rule)}
+.rlink:hover{text-decoration-color:var(--accent)}
+tr.cur .rh{font-weight:600}
+tr.none .rh{color:var(--mute)}
+.c{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:3.25rem;height:2.25rem;
+  border-radius:2px;font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink);text-decoration:none}
+a.c{cursor:pointer}
+a.c:hover{outline:2px solid var(--ink);outline-offset:0}
+.c:focus-visible{outline:2px solid var(--accent);outline-offset:0;box-shadow:inset 0 0 0 2px var(--paper);position:relative;z-index:2}
+.c.z{background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule)}
+.c.dk{color:var(--white)}
+.c.p{background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);font-weight:400}
+.c.t{background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule)}
+tr.none .c.p,tr.none .c.t{color:var(--mute)}
+.split{position:absolute;left:4px;right:4px;bottom:3px;height:5px;display:flex;gap:1px;background:var(--paper);border-radius:2px;
+  box-shadow:0 0 0 1px var(--paper)}
+.split i{display:block;height:100%}
+.ex-note{font-size:var(--step--1);color:var(--mute);margin:var(--s2) 0 0;max-width:80ch}
+.ex-more-cols{font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s1)}
+.ex-more-cols[hidden]{display:none}
+.ex-tv{margin-top:var(--s2);font-size:var(--step--1)}
+.ex-tv summary{cursor:pointer;width:max-content;max-width:100%;text-decoration:underline;text-decoration-color:var(--accent);text-underline-offset:3px}
+.tvt{border-collapse:collapse;margin-top:var(--s2);font-variant-numeric:tabular-nums}
+.tvt th,.tvt td{padding:2px var(--s2);border-bottom:1px solid var(--rule);text-align:right;white-space:nowrap}
+.tvt thead th{font-weight:600;vertical-align:bottom}
+.tvt th:first-child{text-align:left;position:sticky;left:0;background:var(--paper)}
+.tvt tbody th{font-weight:400}
+/* hotspot bars */
+.hs{list-style:none;margin:0;padding:0;display:grid;gap:2px;font-size:var(--step--1)}
+.hrow{display:grid;grid-template-columns:minmax(6.5rem,min(15rem,38%)) minmax(0,1fr);gap:var(--s3);align-items:center;min-height:1.75rem;
+  padding:0 var(--s1);color:inherit;text-decoration:none;border-radius:2px}
+a.hrow:hover{background:var(--panel)}
+a.hrow:hover .hlab{text-decoration:underline;text-decoration-color:var(--accent);text-underline-offset:3px}
+.hlab{font-family:var(--mono);font-size:.92em;overflow-wrap:break-word;min-width:0}
+.htrk{display:flex;align-items:center;gap:var(--s2);min-width:0}
+.hbar{display:flex;gap:2px;height:.875rem;flex:0 0 auto;width:calc((100% - 6rem) * var(--f, 0))}
+.seg{display:block;flex:0 1 0;min-width:2px;height:100%}
+.seg:last-child{border-radius:0 4px 4px 0}
+.hval{flex:0 0 auto;font-variant-numeric:tabular-nums}
+.hval small{color:var(--mute);font-size:1em}
+.hs.mx .hbar{width:calc((100% - 11rem) * var(--f, 0))}
+/* the findings panel */
+.ex-panel{border:1px solid var(--rule);border-radius:6px;padding:var(--s3) var(--s4);background:var(--paper);min-width:0}
+@media (min-width:64.01rem){.ex-panel{position:sticky;top:var(--s3);max-height:calc(100dvh - 1.5rem);overflow:auto}}
+.ex-panel-h{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:var(--s2)}
+.cards{list-style:none;margin:var(--s2) 0 0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s2)}
+.card{border:1px solid var(--rule);border-radius:4px;padding:var(--s2) var(--s3);background:var(--paper);min-width:0}
+.card:hover{border-color:var(--ink)}
+.card-main{display:block;text-decoration:none;color:inherit}
+a.card-main:hover .card-title{text-decoration:underline;text-decoration-color:var(--accent);text-underline-offset:3px}
+.card-meta{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2);font-size:var(--step--1)}
+.card-id{font-family:var(--mono);font-weight:600}
+.card-title{display:block;margin-top:2px;line-height:1.35;overflow-wrap:anywhere}
+.card-links{display:flex;flex-wrap:wrap;gap:var(--s1) var(--s3);margin-top:var(--s1);font-size:var(--step--1);color:var(--mute)}
+.pr{display:inline-block;border-radius:3px;padding:0 .4em;font-size:.86em;font-weight:600;line-height:1.5}
+.pr-high{background:var(--hi-bg);color:var(--hi-ink)}.pr-medium{background:var(--md-bg);color:var(--md-ink)}
+.pr-low{background:var(--panel);color:var(--ink);box-shadow:inset 0 0 0 1px var(--rule)}
+.nov{display:inline-flex;align-items:center;gap:.3em;border:1px solid var(--rule);border-radius:999px;padding:0 .5em;font-size:.86em;line-height:1.5}
+.nov i{display:inline-block;width:.6em;height:.6em;border-radius:50%}
+.imp{color:var(--mute)}
+.ex-morebtn{margin-top:var(--s3)}
+.ex-empty{color:var(--mute)}
+/* the tooltip */
+.tip{position:fixed;left:0;top:0;z-index:var(--z-tip);max-width:min(24rem,calc(100vw - 1rem));padding:var(--s2) var(--s3);background:var(--paper);
+  color:var(--ink);border:1px solid var(--rule);border-radius:4px;box-shadow:0 4px 14px rgba(17,27,40,.14);font-size:var(--step--1);
+  line-height:1.35;pointer-events:none}
+.tip[hidden]{display:none}
+.tip strong{display:block;font-size:var(--step-0);font-weight:700}
+.tip span{display:block}
+.tip .tm{color:var(--mute);margin-top:2px}
+.ex-load{display:flex;align-items:center;gap:var(--s2);color:var(--mute)}
+.ex-load[hidden]{display:none}
+.spin{width:1rem;height:1rem;border:2px solid var(--rule);border-top-color:var(--ink);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes x-in{from{opacity:.25;transform:translateY(3px)}to{opacity:1;transform:none}}
+.x-anim{animation:x-in .18s ease-out}
+@media (prefers-reduced-motion:reduce){.x-anim,.spin{animation:none}}
+.page-foot{border-top:1px solid var(--rule);margin-top:var(--s7);padding-top:var(--s3);font-size:var(--step--1);color:var(--mute)}
+@media (max-width:40rem){
+  .hm{font-size:.8rem}
+  .hm th{width:auto;min-width:2.75rem}
+  .hm .rh{min-width:6rem;max-width:8.5rem;padding-right:var(--s2)}
+  .c{min-width:2.75rem}
+  .hm .gap{padding-left:var(--s2)}
+  .ex-acts{margin-left:0}
+  .segs{display:flex;width:100%}
+  .segs label{flex:1 1 0}
+  .segs span{flex:1 1 auto;padding:.25rem var(--s2)}
+  .hrow{grid-template-columns:minmax(6rem,40%) minmax(0,1fr);gap:var(--s2)}
+}
+@media (forced-colors:active){.c,.seg,.sw,.split i,.nov i{border:1px solid CanvasText}}
+</style>
+</head>
+<body>
+<div class="page">
+<header class="masthead" id="masthead">
+  <p class="register sc">AI-assisted · Apache Lucene</p>
+  <p class="crumbs"><a href="index.html">AI-assisted bug hunt in Apache Lucene</a></p>
+  <h1 id="title">Where the findings cluster</h1>
+  <p class="purpose">Where the findings sit, by feature, kind of defect or module, and how serious they are. Select a row to zoom into its Java classes, a class to list its findings, a cell to filter by its impact too; every finding opens its explainer page.</p>
+  <p class="ex-totals" id="ex-totals" data-total="1386" data-new="1124" data-known="262" data-withheld="2">1,386 findings in the snapshot: 1,124 new and 262 already known; 2 of them with details withheld.</p>
+  <p class="ex-caveat">These are counts of findings. They do not measure how defect-prone an area is: areas differ in size, age and use.</p>
+  <p class="ex-nav"><a href="index.html#bugs">Findings table</a> · <span aria-current="page">Explore</span></p>
+</header>
+<main id="x-main">
+<p class="ex-load" id="x-load" role="status"><span class="spin" aria-hidden="true"></span>Loading the findings…</p>
+<noscript><p>This page draws the findings with JavaScript. The <a href="index.html#bugs">findings table</a> lists them too.</p></noscript>
+<div id="x-app" hidden>
+<form class="ex-controls" id="x-filters" role="search" aria-label="Filter the findings">
+  <div class="ex-fields">
+    <label class="fld fld-q"><span>Search</span><input type="search" id="x-q" maxlength="200" autocomplete="off" spellcheck="false" placeholder="ID, title, class name or any word"></label>
+    <div class="fld"><span id="x-pre-h">View</span><span class="segs" role="radiogroup" aria-labelledby="x-pre-h"><label><input type="radio" name="x-preset" id="x-pre-newmed" value="newmed"><span>New, Medium and above</span></label><label><input type="radio" name="x-preset" id="x-pre-new" value="new"><span>New only</span></label><label><input type="radio" name="x-preset" id="x-pre-all" value="all"><span>All findings</span></label></span></div>
+  </div>
+  <div class="ex-fields ex-fields2">
+    <label class="fld"><span>New or known</span><select id="x-novelty"><option value="new">New only</option><option value="known">Known only</option><option value="all">New and known</option></select></label>
+    <label class="fld"><span>Priority</span><select id="x-priority"></select></label>
+    <label class="fld"><span>Impact</span><select id="x-impact"></select></label>
+    <label class="fld"><span>Upstream</span><select id="x-status"></select></label>
+    <label class="fld"><span>Module</span><select id="x-area"></select></label>
+  </div>
+  <div class="ex-mores"><details class="ex-more" id="x-asp-box"><summary>Aspects<span id="x-asp-n"></span></summary>
+    <div class="chiprow" role="group" aria-label="Aspect"><span class="chips" id="x-aspects"></span><span class="seg2" role="radiogroup" aria-label="Findings with any or all of the chosen aspects"><label><input type="radio" name="x-aspect-mode" id="x-aspect-any" value="any" checked>Any</label><label><input type="radio" name="x-aspect-mode" id="x-aspect-all" value="all">All</label></span></div>
+  </details>
+  <details class="ex-more" id="x-feat-box"><summary>Features<span id="x-feat-n"></span></summary>
+    <div class="chiprow" role="group" aria-label="Feature"><span class="chips" id="x-features"></span><span class="seg2" role="radiogroup" aria-label="Findings with any or all of the chosen features"><label><input type="radio" name="x-feature-mode" id="x-feature-any" value="any" checked>Any</label><label><input type="radio" name="x-feature-mode" id="x-feature-all" value="all">All</label></span></div>
+  </details></div>
+  <div class="chiprow" id="x-active" role="group" aria-labelledby="x-active-h" hidden><span class="lbl" id="x-active-h">Also filtered by</span><span class="chips" id="x-active-chips"></span></div>
+  <div class="ex-foot">
+    <output class="ex-count" id="x-count" aria-live="polite"></output>
+    <span class="fld"><span id="x-group-h" class="sr-only">Group the rows by</span><span class="segs" role="radiogroup" aria-labelledby="x-group-h"><label><input type="radio" name="x-group" id="x-group-feature" value="feature"><span>Feature</span></label><label><input type="radio" name="x-group" id="x-group-aspect" value="aspect"><span>Aspect</span></label><label><input type="radio" name="x-group" id="x-group-module" value="module"><span>Module</span></label></span></span>
+    <span class="ex-acts"><button class="btn" type="button" id="x-reset">Reset</button>
+      <button class="btn" type="button" id="x-copy">Copy link</button><span class="ex-note-copy" id="x-copy-note" role="status"></span>
+      <span class="ex-manual" id="x-copy-manual" hidden></span>
+      <a id="x-open-table" href="index.html#bugs">Open in the table</a></span>
+  </div>
+</form>
+<div class="ex-layout">
+  <section class="ex-gridbox" aria-labelledby="x-grid-h">
+    <nav class="ex-crumbs" id="x-crumbs" aria-label="Drill-down path"></nav>
+    <h2 id="x-grid-h">Features × impact</h2>
+    <p class="ex-scope" id="x-scope" aria-live="polite"></p>
+    <ul class="ex-legend" aria-label="Shading of the serious impact columns, findings per cell"><li class="lh" aria-hidden="true">Serious impacts, findings per cell</li><li><span class="sw z" aria-hidden="true"></span>0</li><li><span class="sw g1" aria-hidden="true"></span>1</li><li><span class="sw g2" aria-hidden="true"></span>2–4</li><li><span class="sw g3" aria-hidden="true"></span>5–9</li><li><span class="sw g4" aria-hidden="true"></span>10–24</li><li><span class="sw g5" aria-hidden="true"></span>25+</li><li class="lh">· other impacts and totals: numbers only</li></ul>
+    <ul class="ex-legend" id="x-split-legend" hidden aria-label="New and known findings"><li class="lh">Bar under each number: the share of</li><li data-k="new"><span class="sw sq b-new" aria-hidden="true"></span>New</li><li data-k="known"><span class="sw sq b-known" aria-hidden="true"></span>Known</li></ul>
+    <p class="sr-only" id="x-keys">Arrow keys move between cells; Enter zooms in.</p>
+    <p class="ex-more-cols" id="x-grid-more" hidden>The grid is wider than the screen: scroll it sideways for the other columns (Serious and Total are the last two).</p>
+    <div class="ex-scroll" id="x-grid"></div>
+    <p class="ex-note" id="x-grid-note"></p>
+    <details class="ex-tv"><summary>View as table</summary><div class="ex-scroll" id="x-grid-tv"></div></details>
+    <h3 id="x-bars-h">Hotspot classes <span class="ex-scope">· the classes with the most findings in this view</span></h3>
+    <p class="ex-note ex-cls-hint">Each finding counts under one class: the first class its title names among the files it concerns, or else its main source file. This choice is approximate.</p>
+    <ul class="ex-legend" id="x-bars-legend" hidden aria-label="New and known findings"><li class="lh">Bars:</li><li data-k="new"><span class="sw sq b-new" aria-hidden="true"></span>New</li><li data-k="known"><span class="sw sq b-known" aria-hidden="true"></span>Known</li></ul>
+    <div id="x-bars"></div>
+    <p class="ex-note" id="x-bars-note"></p>
+    <details class="ex-tv"><summary>View as table</summary><div class="ex-scroll" id="x-bars-tv"></div></details>
+  </section>
+  <section class="ex-panel" aria-labelledby="x-panel-h">
+    <div class="ex-panel-h"><h2 id="x-panel-h"><span id="x-panel-n"></span></h2><a id="x-open-table2" href="index.html#bugs">Open in the table</a></div>
+    <p class="ex-empty" id="x-panel-empty" hidden>No findings in this view.</p>
+    <p class="ex-note" id="x-panel-extra" hidden></p>
+    <ol class="cards" id="x-cards"></ol>
+    <button class="btn ex-morebtn" type="button" id="x-more" hidden></button>
+    <button class="btn ex-morebtn" type="button" id="x-all" hidden>Show all</button>
+  </section>
+</div>
+</div>
+<div class="tip" id="x-tip" role="tooltip" hidden></div>
+</main>
+<footer class="page-foot"><p>Snapshot of 2026-11-10. AI-assisted findings, confirmed by automated checks; apart from the findings whose page names a maintainer triage, not yet triaged by a human Lucene committer; this site files nothing upstream. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></footer>
+</div>
+<script type="application/json" id="x-config">{"v":1,"data":"data/findings-index.json","steps":[[1,1],[2,4],[5,9],[10,24],[25,null]],"darkFrom":3,"pageSize":50,"hot":15}</script>
+<script>
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  let CFG;
+  try { CFG = JSON.parse($('x-config').textContent); } catch (e) { return; }
+  const fmt = n => Number(n).toLocaleString('en-US');
+  const many = (n, one, more) => fmt(n) + ' ' + (n === 1 ? one : more);
+  const sum = a => a.reduce((x, y) => x + y, 0);
+  const cap = s => String(s).charAt(0).toUpperCase() + String(s).slice(1);
+  function el(tag, attrs, kids) {
+    const n = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(k => {
+      const v = attrs[k];
+      if (v == null || v === false) return;
+      if (k === 'text') n.textContent = String(v);
+      else if (k === 'style') Object.keys(v).forEach(s => n.style.setProperty(s, String(v[s])));
+      else n.setAttribute(k, String(v));
+    });
+    (kids || []).forEach(c => { if (c != null) n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
+    return n;
+  }
+  function wbr(name) {
+    const out = [];
+    String(name).replace(/([a-z0-9])([A-Z])/g, '$1\n$2').split('\n').forEach((p, i) => { if (i) out.push(el('wbr')); out.push(p); });
+    return out;
+  }
+  // ---------- the table's rules (site/master/build_master.py and site/explore/table_explore.py) ----------
+  const ID_SEARCH = /^lfv-?0*(\d{1,9})$/i;
+  const idNum = s => { const m = ID_SEARCH.exec(String(s || '').trim()); return m ? Number(m[1]) : -1; };
+  const TAG = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
+  const CLASS = /^[A-Za-z_][A-Za-z0-9_]{0,79}$/;
+  const DOC = /^bugs\/LFV-\d{3,6}\.html$/, REPRO = /^repro\/LFV-\d{3,6}\/$/;
+  const REF = /^https:\/\/(?:github\.com\/apache\/lucene\/(?:issues|pull)\/(\d{1,6})|issues\.apache\.org\/jira\/browse\/(LUCENE-\d{1,6}))$/;
+  const URL_MAX = 200;
+  const norm = s => String(s || '').toLowerCase().replace(/[\s+]+/g, ' ').trim();
+  const upNorm = v => String(v || '').trim().toLowerCase().replace(/[\s_]+/g, '-');
+  const WORK_STATUS = new Set(['candidate', 'reproduced', 'confirmed', 'briefed', 'documented', 'filed', 'filed-or-triaged', 'withheld']);
+  const FOREIGN = { likelihood: 'Likelihood', method: 'First finder', sec: 'Security', new106: 'New in 10.6 only',
+    gff: 'Good first fixes only' };
+  const OURS = new Set(['novelty', 'known', 'priority', 'impact', 'class', 'status', 'area', 'q', 'aspect', 'aspect_mode',
+    'feature', 'feature_mode', 'component', 'group', 'zoom', 'wontfix', 'sort'].concat(Object.keys(FOREIGN)));
+  const PRIOS = [['high', 'High'], ['medium', 'Medium'], ['medium-up', 'Medium and above'], ['low', 'Low']];
+  const GROUPS = [['feature', 'Feature'], ['aspect', 'Aspect'], ['module', 'Module']];
+  const PRESETS = [['newmed', 'New, Medium and above', 'new', 'medium-up'], ['new', 'New only', 'new', ''], ['all', 'All findings', 'all', '']];
+
+  let D = null, R = [], IMP = [], NI = 7, SER = 5, IMPIDX = new Map(), SLUG = new Map(), UNSLUG = new Map();
+  let FEAT = new Map(), ASP = new Map(), UP = new Map(), MODS = new Map(), CLASSES = new Map();
+  let FEAT_ON = new Set(), ASP_ON = new Set(), S = null, shown = PAGE(), lastKey = '';
+  function PAGE() { return CFG.pageSize; }
+
+  // the public table's module of an area (site/master/build_master.py public_js): the first word, lower case; for a
+  // "core" area the package word after it; a withheld row's area as it is
+  function moduleOf(area, held) {
+    if (held) return area || 'unknown';
+    let m = ((/^[A-Za-z][A-Za-z0-9-]*/.exec(area || '') || ['unknown'])[0]).toLowerCase().replace(/^test$/, 'test-framework');
+    if (m === 'core') { const cm = /^core\s*(?:\/\s*)?([A-Za-z][A-Za-z0-9-]*)/i.exec(area || ''); if (cm) m = cm[1].toLowerCase(); }
+    return m;
+  }
+  function prep(o, i) {
+    const s = k => (o[k] == null ? '' : String(o[k])).trim();
+    const r = { id: s('id'), title: s('title'), area: s('area'), priority: s('priority').toLowerCase(), ord: i };
+    r.withheld = o.withheld === true;
+    r.known = s('novelty') === 'known';
+    r.outside = r.known && !r.withheld && s('scope') === 'outside';
+    r.module = moduleOf(r.area, r.withheld);
+    r.summary = r.withheld ? '' : s('summary');
+    r.impact = r.withheld ? 'withheld' : s('impact');
+    r.hide = !r.withheld && o.hide === true;
+    r.features = r.withheld ? [] : (Array.isArray(o.features) ? o.features.filter(x => TAG.test(x)) : []);
+    r.aspects = r.withheld ? [] : (Array.isArray(o.aspects) ? o.aspects.filter(x => TAG.test(x)) : []);
+    r.component = !r.withheld && CLASS.test(s('component')) ? s('component') : '';
+    r.upstream = r.withheld ? '' : s('upstream');
+    r.ref = !r.withheld && REF.test(s('upstream_ref')) ? s('upstream_ref') : '';
+    r.doc = !r.withheld && DOC.test(s('doc')) ? s('doc') : '';
+    r.repro = !r.withheld && REPRO.test(s('repro')) ? s('repro') : '';
+    r.rank = Number.isInteger(o.rank) ? o.rank : null;
+    r.introduced = r.withheld ? '' : s('introduced');
+    r.introduced_date = r.withheld ? '' : s('introduced_date');
+    r.affected = r.withheld ? '' : s('affected');
+    r.text = (r.id + ' ' + r.title + ' ' + r.summary + ' ' + r.area).toLowerCase();
+    return r;
+  }
+  function setup(d) {
+    D = d;
+    IMP = d.impacts; NI = IMP.length; SER = d.serious;
+    IMP.forEach((x, i) => { IMPIDX.set(x[0], i); SLUG.set(x[0], x[1]); UNSLUG.set(x[1], x[0]); UNSLUG.set(x[0], x[0]); });
+    SLUG.set('serious', 'serious'); SLUG.set('withheld', 'withheld'); UNSLUG.set('serious', 'serious'); UNSLUG.set('withheld', 'withheld');
+    d.features.forEach(x => FEAT.set(x[0], x[1]));
+    d.aspects.forEach(x => ASP.set(x[0], x[1]));
+    d.upstream_states.forEach(x => UP.set(x[0], x[1]));
+    R = d.rows.map(prep);
+    R.forEach(r => {
+      MODS.set(norm(r.module), r.module);
+      if (r.component) CLASSES.set(r.component.toLowerCase(), r.component);
+      r.features.forEach(f => FEAT_ON.add(f)); r.aspects.forEach(a => ASP_ON.add(a));
+    });
+  }
+  const featLabel = f => FEAT.get(f) || String(f).replace(/-/g, ' ');
+  const aspLabel = a => ASP.get(a) || String(a).replace(/-/g, ' ');
+  const impLabel = v => v === 'serious' ? 'any serious impact' : v === 'withheld' ? 'details withheld' : (IMP[IMPIDX.get(v)] || [0, 0, v])[2];
+  const groupLabel = (g, v) => g === 'feature' ? featLabel(v) : g === 'aspect' ? aspLabel(v) : v;
+  const SERSET = () => new Set(IMP.slice(0, SER).map(x => x[0]));
+
+  // ---------- the view in the address ----------
+  function blank() {
+    return { novelty: 'new', priority: 'medium-up', impact: '', status: '', area: '', q: '', aspects: [], aspectMode: 'any',
+      features: [], featureMode: 'any', components: [], wontfix: false, group: 'feature', zoom: [], bad: [], foreign: [], others: [], sort: '' };
+  }
+  function readURL(search) {
+    const m = new Map(), others = [];
+    new URLSearchParams(search == null ? location.search : search).forEach((v, k) => {
+      const kl = k.toLowerCase();
+      if (OURS.has(kl)) m.set(kl, String(v).slice(0, URL_MAX).trim()); else others.push([k, v]);
+    });
+    const s = blank(), bad = (k, v, why) => s.bad.push([k, v, why]);
+    s.others = others;
+    const val = k => m.get(k) || '';
+    let nv = val('novelty').toLowerCase(), pr = val('priority');
+    if (nv && !['new', 'known', 'all'].includes(nv)) { bad('novelty', val('novelty'), 'not new, known or all'); nv = ''; }
+    if (!nv && /^(?:1|true|yes|on)$/i.test(val('known'))) nv = 'all';
+    if (pr) {
+      const w = norm(pr).replace(/\s*\(\d+\)$/, ''), hit = PRIOS.find(p => p[0] === w || norm(p[1]) === w);
+      if (hit) pr = hit[0]; else { bad('priority', pr, 'not a priority'); pr = ''; }
+    }
+    if (!nv && !pr) { s.novelty = 'new'; s.priority = 'medium-up'; } else { s.novelty = nv || 'new'; s.priority = pr || ''; }
+    const im = val('impact') || val('class');
+    if (im) {
+      const w = norm(im).replace(/^g:/, '').replace(/ /g, '-'), v = UNSLUG.get(w) || UNSLUG.get(w.replace(/-/g, ' '));
+      if (v) s.impact = v; else bad(val('impact') ? 'impact' : 'class', im, 'not an impact class');
+    }
+    const st = val('status');
+    if (st) {
+      const u = upNorm(st);
+      if (UP.has(u)) s.status = u;
+      else if (WORK_STATUS.has(u)) s.foreign.push(['status', st, 'Status']);
+      else bad('status', st, 'not an upstream state');
+    }
+    const ar = val('area');
+    if (ar) {
+      const k = norm(ar);
+      const k2 = k.replace(/\s*\(\d+\)$/, '');
+      if (k2.startsWith('m:') && MODS.has(k2.slice(2))) s.area = 'm:' + MODS.get(k2.slice(2));
+      else if (MODS.has(k2)) s.area = 'm:' + MODS.get(k2);
+      else bad('area', ar, 'not a module');
+    }
+    s.q = val('q');
+    const list = (k, on, tf) => {
+      const out = [];
+      String(val(k)).split(',').map(x => x.trim()).filter(Boolean).forEach(x => {
+        const v = tf(x);
+        if (v && on(v)) { if (!out.includes(v)) out.push(v); } else bad(k, x, k === 'component' ? 'no such class' : 'no finding has it');
+      });
+      return out;
+    };
+    s.aspects = list('aspect', v => ASP_ON.has(v), x => x.toLowerCase());
+    s.aspectMode = /^all$/i.test(val('aspect_mode')) ? 'all' : 'any';
+    s.features = list('feature', v => FEAT_ON.has(v), x => x.toLowerCase());
+    s.featureMode = /^all$/i.test(val('feature_mode')) ? 'all' : 'any';
+    s.components = list('component', v => !!v, x => CLASSES.get(x.toLowerCase()) || '');
+    s.wontfix = /^(?:1|true|yes|on)$/i.test(val('wontfix'));
+    const g = val('group').toLowerCase();
+    if (g && !GROUPS.some(x => x[0] === g)) bad('group', val('group'), 'not feature, aspect or module');
+    s.group = GROUPS.some(x => x[0] === g) ? g : 'feature';
+    s.sort = val('sort');
+    Object.keys(FOREIGN).forEach(k => { if (val(k)) s.foreign.push([k, val(k), FOREIGN[k]]); });
+    const z = val('zoom');
+    if (z) {
+      const parts = z.split('/').map(x => x.trim());
+      const v0 = zoomValue(s, parts[0]);
+      if (!v0 || parts.length > 2) bad('zoom', z, v0 ? 'too deep' : 'not a ' + s.group + ' of this view');
+      else {
+        s.zoom = [v0];
+        if (parts.length === 2 && parts[1]) {
+          const c = CLASSES.get(parts[1].toLowerCase());
+          if (c && (!s.components.length || s.components.includes(c))) s.zoom.push(c);
+          else bad('zoom', z, 'no such class here');
+        }
+      }
+    }
+    return s;
+  }
+  // the zoom's first part: a value of the group, inside the group's own filter when that is set
+  function zoomValue(s, raw) {
+    const w = String(raw || '').trim();
+    if (!w) return '';
+    if (s.group === 'feature') { const v = w.toLowerCase(); return FEAT_ON.has(v) && (!s.features.length || s.features.includes(v)) ? v : ''; }
+    if (s.group === 'aspect') { const v = w.toLowerCase(); return ASP_ON.has(v) && (!s.aspects.length || s.aspects.includes(v)) ? v : ''; }
+    const v = MODS.get(norm(w));
+    if (!v) return '';
+    if (s.area && s.area.slice(2) !== v) return '';
+    return v;
+  }
+  const enc = v => encodeURIComponent(v).replace(/%2C/g, ',').replace(/%2F/g, '/').replace(/%3A/g, ':');
+  function ownQuery(s) {
+    const p = [], add = (k, v) => p.push(k + '=' + enc(v));
+    const badOf = k => s.bad.filter(b => b[0] === k).map(b => b[1]);
+    const dflt = s.novelty === 'new' && s.priority === 'medium-up';
+    if (!dflt && (s.novelty !== 'new' || !s.priority)) add('novelty', s.novelty);
+    else if (badOf('novelty').length) add('novelty', badOf('novelty')[0]);
+    if (!dflt && s.priority) add('priority', s.priority);
+    else if (badOf('priority').length && !dflt) add('priority', badOf('priority')[0]);
+    const scalar = (k, v) => { if (v) add(k, v); else if (badOf(k).length) add(k, badOf(k)[0]); };
+    scalar('impact', s.impact ? SLUG.get(s.impact) : '');
+    if (!s.impact && badOf('class').length) add('class', badOf('class')[0]);
+    const fst = s.foreign.find(f => f[0] === 'status');
+    scalar('status', s.status || (fst ? fst[1] : ''));
+    scalar('area', s.area);
+    if (s.q.trim()) add('q', s.q.trim());
+    const lst = (k, v) => { const all = v.concat(badOf(k)); if (all.length) add(k, all.join(',')); };
+    lst('aspect', s.aspects.slice().sort());
+    if (s.aspects.length) add('aspect_mode', s.aspectMode);
+    lst('feature', s.features);
+    if (s.features.length && s.featureMode === 'all') add('feature_mode', 'all');
+    lst('component', s.components);
+    if (s.wontfix) add('wontfix', '1');
+    scalar('group', s.group !== 'feature' ? s.group : '');
+    scalar('zoom', s.zoom.join('/'));
+    s.foreign.forEach(f => { if (f[0] !== 'status') add(f[0], f[1]); });
+    if (s.sort) add('sort', s.sort);
+    s.others.forEach(o => p.push(encodeURIComponent(o[0]) + '=' + encodeURIComponent(o[1])));
+    return p.join('&');
+  }
+  const ownHref = s => { const q = ownQuery(s); return location.pathname.split('/').pop() + (q ? '?' + q : ''); };
+  function writeURL() {
+    const url = ownHref(S) + location.hash;
+    try { if (url !== location.pathname.split('/').pop() + location.search + location.hash) history.replaceState(history.state, '', url); }
+    catch (e) { /* the address stays; the page works */ }
+    lastKey = location.search;
+  }
+  // the same view in the table (index.html, query form, #bugs): the filters it reads exactly as this page counts them;
+  // the zoom becomes the filter it stands for
+  function tableQuery(s) {
+    const p = [], add = (k, v) => p.push(k + '=' + enc(v));
+    if (s.novelty !== 'new') add('known', '1');
+    if (s.novelty === 'known') add('novelty', 'known');
+    if (s.wontfix) add('wontfix', '1');
+    if (s.q.trim()) add('q', s.q.trim());
+    let area = s.area, aspects = s.aspects.slice(), amode = s.aspectMode, feats = s.features.slice(), fmode = s.featureMode;
+    let comps = s.components.slice();
+    const z0 = s.zoom[0], z1 = s.zoom[1];
+    if (z0 && s.group === 'module') area = 'm:' + z0;
+    if (z0 && s.group === 'aspect' && !(aspects.length && amode === 'all')) { aspects = [z0]; amode = 'any'; }
+    if (z0 && s.group === 'feature' && !(feats.length && fmode === 'all')) { feats = [z0]; fmode = 'any'; }
+    if (z1) comps = [z1];
+    if (area) add('area', area);
+    if (s.status) add('status', s.status);
+    if (s.priority) add('priority', s.priority);
+    if (s.impact) add('impact', SLUG.get(s.impact));
+    if (s.sort) add('sort', s.sort);
+    if (aspects.length) { add('aspect', aspects.slice().sort().join(',')); add('aspect_mode', amode); }
+    if (feats.length) { add('feature', feats.join(',')); if (fmode === 'all' && feats.length > 1) add('feature_mode', 'all'); }
+    if (comps.length) add('component', comps.join(','));
+    return p.join('&');
+  }
+  const tableHref = s => { const q = tableQuery(s); return 'index.html' + (q ? '?' + q : '') + '#bugs'; };
+
+  // ---------- the rows of a view (the table's pool() and matching(); then the zoom) ----------
+  function pool(s) { return R.filter(r => (r.hide ? s.wontfix : (!r.known || s.novelty !== 'new'))); }
+  function test(s) {
+    const ser = SERSET(), a = s.area, pr = s.priority, im = s.impact, up = s.status;
+    const as = s.aspects, fs = s.features, cs = s.components;
+    return r =>
+      (!a || r.module === a.slice(2)) &&
+      (!up || r.upstream === up) &&
+      (!pr || (pr === 'medium-up' ? (r.priority === 'high' || r.priority === 'medium') : r.priority === pr)) &&
+      (!im || (im === 'serious' ? ser.has(r.impact) : r.impact === im)) &&
+      (!as.length || (s.aspectMode === 'all' ? as.every(x => r.aspects.includes(x)) : as.some(x => r.aspects.includes(x)))) &&
+      (!fs.length || (s.featureMode === 'all' ? fs.every(x => r.features.includes(x)) : fs.some(x => r.features.includes(x)))) &&
+      (!cs.length || cs.includes(r.component)) &&
+      (s.novelty !== 'known' || r.known);
+  }
+  function searched(s) {   // the row an exact id search names
+    const n = idNum(s.q);
+    return n < 0 ? null : (R.find(r => idNum(r.id) === n) || null);
+  }
+  function base(s) {
+    const t = test(s), q = s.q.trim().toLowerCase(), id = q ? searched(s) : null, pq = pfFor(q);
+    const m = r => t(r) && (!q || r === id || r.text.includes(q) || !!(pq && pq.has(r.id)));
+    const rows = pool(s).filter(m);
+    rows.extra = null;
+    if (id && !rows.includes(id) && m(id)) { rows.push(id); rows.extra = id; }
+    return rows;
+  }
+  // why the searched row is shown although the view's toggles hide it (the table's words)
+  const extraWhy = r => r.hide ? "triaged as won't fix" : r.known ? (r.outside ? 'known outside Lucene' : 'known upstream') : '';
+  function zoomTest(s) {
+    const z = s.zoom;
+    if (!z.length) return () => true;
+    const v = z[0], g = s.group;
+    const t0 = g === 'feature' ? r => r.features.includes(v) : g === 'aspect' ? r => r.aspects.includes(v) : r => r.module === v;
+    return z.length < 2 ? t0 : r => t0(r) && r.component === z[1];
+  }
+
+  // ---------- Pagefind: the site's index, exactly as the table uses it ----------
+  const PF = { mod: null, failed: false, req: '', q: '', hits: null, busy: '', timer: 0, seq: 0 };
+  const PF_DELAY = 150, PF_WORD = 3;
+  const PF_URL_ID = /(?:^|\/)bugs\/(LFV-\d{3,})\.html(?:[?#].*)?$/;
+  function pfLoad() {
+    if (PF.failed) return Promise.resolve(null);
+    if (!PF.mod) {
+      if (!/^https?:$/.test(location.protocol)) { PF.failed = true; return Promise.resolve(null); }
+      try {
+        PF.mod = import('./pagefind/pagefind.js').then(m => Promise.resolve(m.init()).then(() => m.filters()).then(() => m))
+          .catch(() => { PF.failed = true; return null; });
+      } catch (e) { PF.failed = true; return Promise.resolve(null); }
+    }
+    return PF.mod;
+  }
+  function pfIds(res) {
+    const f = res && res.filters && res.filters.lfv;
+    if (f && typeof f === 'object') return Promise.resolve(Object.keys(f).filter(k => f[k] > 0));
+    return Promise.all(((res && res.results) || []).map(x => x.data()))
+      .then(ds => ds.map(d => (PF_URL_ID.exec(String((d && d.url) || '')) || [])[1]).filter(Boolean));
+  }
+  const pfWords = q => String(q).toLowerCase().split(/[^\p{L}\p{N}_]+/u).filter(Boolean);
+  const pfNorm = t => String(t || '').toLowerCase().replace(/[^\p{L}\p{N}_]+/gu, '');
+  function pfGenuine(res, q) {
+    const top = res && res.results && res.results[0];
+    if (!top) return Promise.resolve(true);
+    return top.data().then(d => {
+      const toks = String((d && d.content) || '').split(/\s+/);
+      const got = (top.words || []).map(i => pfNorm(toks[i])).concat(String((d && d.meta && d.meta.title) || '').split(/\s+/).map(pfNorm));
+      return pfWords(q).filter(w => w.length >= 2).every(w => { const p = w.slice(0, Math.max(Math.min(w.length, 4), w.length - 3)); return got.some(g => g.includes(p)); });
+    });
+  }
+  function pfFor(q) { return PF.hits && q && PF.q === q ? PF.hits : null; }
+  function pfSync() {
+    const raw = S.q.trim(), q = raw.toLowerCase();
+    if (q === PF.req) return;
+    PF.req = q;
+    clearTimeout(PF.timer);
+    PF.hits = null; PF.q = ''; PF.busy = '';
+    const seq = ++PF.seq;
+    if (!q || !pfWords(q).some(w => w.length >= PF_WORD) || idNum(q) >= 0 || PF.failed) return;
+    PF.busy = q;
+    PF.timer = setTimeout(() => {
+      pfLoad().then(m => (m && PF.seq === seq ? m.search(raw) : null))
+        .then(res => (res && PF.seq === seq ? Promise.all([pfIds(res), pfGenuine(res, raw)]).then(a => (a[1] ? a[0] : [])) : null))
+        .then(ids => {
+          if (PF.seq !== seq) return;
+          PF.busy = '';
+          if (ids) { PF.q = q; PF.hits = new Set(ids); }
+          render(false);
+        })
+        .catch(() => { if (PF.seq === seq) { PF.busy = ''; render(false); } });
+    }, PF_DELAY);
+  }
+  function pfNote(rows) {
+    const q = S.q.trim().toLowerCase(), hits = pfFor(q);
+    if (PF.busy && PF.busy === q) return '; searching the write-ups…';
+    if (!hits) return '';
+    const n = rows.filter(r => hits.has(r.id) && !r.text.includes(q)).length;
+    return n ? '; ' + n + ' matched only in the write-up text' : '';
+  }
+
+  // ---------- counting ----------
+  function bin(n) {
+    if (!(n > 0)) return 0;
+    for (let i = 0; i < CFG.steps.length; i++) { const hi = CFG.steps[i][1]; if (hi == null || n <= hi) return i + 1; }
+    return CFG.steps.length;
+  }
+  const level = s => s.zoom.length;
+  // the grid's rows over the scope: [{key, label, counts[NI], known[NI], held, heldKnown, ids[]}], sorted; the row
+  // without a tag (or class) last, null key
+  function gridRows(s, rows) {
+    const lv = level(s), m = new Map();
+    const keysOf = r => {
+      if (lv) return [r.component || null];
+      if (s.group === 'feature') { const k = s.features.length ? r.features.filter(x => s.features.includes(x)) : r.features; return k.length ? k : [null]; }
+      if (s.group === 'aspect') { const k = s.aspects.length ? r.aspects.filter(x => s.aspects.includes(x)) : r.aspects; return k.length ? k : [null]; }
+      return [r.module];
+    };
+    rows.forEach(r => keysOf(r).forEach(k => {
+      let g = m.get(k);
+      if (!g) m.set(k, g = { key: k, counts: new Array(NI).fill(0), known: new Array(NI).fill(0), held: 0, heldKnown: 0, rows: [] });
+      const i = IMPIDX.get(r.impact);
+      if (i == null) { g.held++; if (r.known) g.heldKnown++; } else { g.counts[i]++; if (r.known) g.known[i]++; }
+      g.rows.push(r);
+    }));
+    const out = [...m.values()].map(g => Object.assign(g, {
+      label: g.key == null ? (lv ? 'No Java class' : s.group === 'feature' ? 'No feature tag' : 'No aspect tag') : (lv ? g.key : groupLabel(s.group, g.key)),
+      serious: sum(g.counts.slice(0, SER)), total: sum(g.counts) + g.held }));
+    out.sort((a, b) => (a.key == null) - (b.key == null) || b.serious - a.serious || b.total - a.total ||
+      a.label.toLowerCase().localeCompare(b.label.toLowerCase()) || String(a.key).localeCompare(String(b.key)));
+    return out;
+  }
+  function hotspots(rows) {
+    const m = new Map();
+    let none = 0;
+    rows.forEach(r => {
+      if (!r.component) { none++; return; }
+      let c = m.get(r.component);
+      if (!c) m.set(r.component, c = { name: r.component, n: 0, known: 0, serious: 0 });
+      c.n++; if (r.known) c.known++; if (IMPIDX.get(r.impact) < SER) c.serious++;
+    });
+    const ranked = [...m.values()].sort((a, b) => b.n - a.n || b.serious - a.serious || a.name.toLowerCase().localeCompare(b.name.toLowerCase()) || a.name.localeCompare(b.name));
+    let kept = ranked.slice(0, CFG.hot), more = null;
+    if (ranked.length > CFG.hot && ranked[CFG.hot - 1].n === ranked[CFG.hot].n) {
+      const k = ranked[CFG.hot - 1].n, above = kept.filter(c => c.n > k);
+      if (above.length) { kept = above; more = [ranked.filter(c => c.n === k).length, k]; }
+    }
+    return { kept, more, none, classes: ranked.length };
+  }
+  const mixed = s => s.novelty === 'all';
+  // the view a click on (row key, column) opens: one level deeper (or the same class), and the impact narrowed to the column
+  function cellTarget(s, key, ci) {
+    const t = Object.assign({}, s, { zoom: s.zoom.slice(), bad: s.bad.filter(b => b[0] !== 'zoom') });
+    const lv = level(s);
+    if (lv === 0) t.zoom = [key]; else if (lv === 1) t.zoom = [s.zoom[0], key];
+    if (ci != null && ci < NI) t.impact = IMP[ci][0];
+    else if (ci === NI) t.impact = s.impact || 'serious';
+    return t;
+  }
+  function barTarget(s, name) {
+    const t = Object.assign({}, s, { zoom: s.zoom.slice(), components: s.components.slice(), bad: s.bad.filter(b => b[0] !== 'zoom' && b[0] !== 'component') });
+    if (level(s) === 0) t.components = [name]; else if (level(s) === 1) t.zoom = [s.zoom[0], name]; else return null;
+    return t;
+  }
+
+  // ---------- drawing ----------
+  const tip = () => $('x-tip');
+  function colName(ci) { return ci < NI ? IMP[ci][2] : ci === NI ? 'Serious impacts' : 'All impacts'; }
+  const SOFT = { corruption: 'cor\u00adrup\u00adtion', unusable: 'un\u00adus\u00adable', results: 're\u00adsults' };
+  const soft = t => String(t).replace(/[A-Za-z]{7,}/g, w => SOFT[w.toLowerCase()] || w);
+  function splitBar(n, k) {
+    if (!(n > 0)) return null;
+    const nn = n - k;
+    return el('span', { class: 'split', 'aria-hidden': 'true' }, [
+      nn ? el('i', { class: 'b-new', style: { 'flex-grow': nn } }) : null, k ? el('i', { class: 'b-known', style: { 'flex-grow': k } }) : null]);
+  }
+  function grid(s, rows, groups) {
+    const lv = level(s), mx = mixed(s);
+    const table = el('table', { class: 'hm x-anim', 'aria-describedby': 'x-keys' });
+    [1, SER, NI - SER, 2].forEach(n => table.appendChild(el('colgroup', n > 1 ? { span: n } : null)));
+    const first = lv ? 'Java class' : s.group === 'feature' ? 'Feature' : s.group === 'aspect' ? 'Aspect' : 'Module';
+    const th = (t, c, x) => el('th', Object.assign({ scope: 'col', class: c || null, text: t }, x || {}));
+    table.appendChild(el('thead', null, [
+      el('tr', null, [el('td', { class: 'rh' }), th('Serious impacts', 'gh', { scope: 'colgroup', colspan: SER }),
+        th('Other impacts', 'gh gap', { scope: 'colgroup', colspan: NI - SER }), el('td', { class: 'gap', colspan: 2 })]),
+      el('tr', null, [th(first, 'rh')].concat(IMP.map((c, i) => th(soft(c[2]), i === SER ? 'gap' : null)), [th('Serious', 'gap'), th('Total')]))]));
+    const body = el('tbody');
+    groups.forEach((g, ri) => {
+      const none = g.key == null, cur = lv === 2 && g.key === s.zoom[1];
+      const tgtRow = none || lv === 2 ? null : cellTarget(s, g.key, NI + 1);
+      const head = el('th', { scope: 'row', class: 'rh' }, [tgtRow ? el('a', { class: 'rlink', href: ownHref(tgtRow), 'data-go': '1',
+        'data-n': g.total, 'aria-label': g.label + ': ' + many(g.total, 'finding', 'findings') + '. Zoom in' }, lv ? wbr(g.label) : [g.label]) : el('span', null, lv ? wbr(g.label) : [g.label])]);
+      const tr = el('tr', { class: (none ? 'none' : '') + (cur ? ' cur' : '') || null, 'aria-current': cur ? 'true' : null }, [head]);
+      const knownOf = ci => ci < NI ? g.known[ci] : ci === NI ? sum(g.known.slice(0, SER)) : sum(g.known) + g.heldKnown;
+      g.counts.concat([g.serious, g.total]).forEach((n, ci) => {
+        let cls = 'c ';
+        if (ci < SER && !none) { const b = bin(n); cls += b ? 'g' + b + (b >= CFG.darkFrom ? ' dk' : '') : 'z'; }
+        else cls += n ? (ci < NI ? 'p' : 't') : 'z';
+        const a = { class: cls, tabindex: '-1', 'data-ri': ri, 'data-ci': ci, 'data-n': n, 'data-k': knownOf(ci), 'data-row': g.label,
+          'data-col': colName(ci), 'data-key': g.key == null ? '' : g.key, 'data-none': none ? '1' : null,
+          'data-held': ci === NI + 1 && g.held ? g.held : null };
+        let cell;
+        const tgt = n && !none && !(lv === 2 && ci === NI + 1) ? cellTarget(s, g.key, ci) : null;
+        const kids = [fmt(n), mx ? splitBar(n, knownOf(ci)) : null];
+        if (n && tgt) {
+          a.href = ownHref(tgt); a['data-go'] = '1';
+          a['aria-label'] = many(n, 'finding', 'findings') + ': ' + g.label + ', ' + colName(ci).toLowerCase() + (mx ? ' (' + fmt(knownOf(ci)) + ' known)' : '') + '. Show them';
+          cell = el('a', a, kids);
+        } else if (n) cell = el('span', a, kids);
+        else cell = el('span', a, [el('span', { class: 'sr-only', text: 'No findings' })]);
+        tr.appendChild(el('td', { class: ci === SER || ci === NI ? 'gap' : null }, [cell]));
+      });
+      body.appendChild(tr);
+    });
+    table.appendChild(body);
+    return table;
+  }
+  function plainTable(head, list) {
+    const th = t => el('th', { scope: 'col', text: t });
+    return el('table', { class: 'tvt' }, [el('thead', null, [el('tr', null, head.map(th))]),
+      el('tbody', null, list.map(r => el('tr', null, [el('th', { scope: 'row', text: r[0] })].concat(r.slice(1).map(n => el('td', { text: typeof n === 'number' ? fmt(n) : n }))))))]);
+  }
+  function bars(s, hs) {
+    const max = Math.max(1, ...hs.kept.map(c => c.n)), mx = mixed(s);
+    return el('ol', { class: 'hs x-anim' + (mx ? ' mx' : '') }, hs.kept.map(c => {
+      const t = barTarget(s, c.name), said = c.name + ': ' + many(c.n, 'finding', 'findings') + (c.known ? ' (' + fmt(c.n - c.known) + ' new, ' + fmt(c.known) + ' known)' : '');
+      const a = { class: 'hrow', 'data-cls': c.name, 'data-n': c.n, 'data-k': c.known };
+      if (t) Object.assign(a, { href: ownHref(t), 'data-go': '1', 'aria-label': said + '. Show them' });
+      return el('li', null, [el(t ? 'a' : 'div', a, [
+        el('span', { class: 'hlab', 'aria-hidden': t ? null : 'true' }, wbr(c.name)),
+        el('span', { class: 'htrk', 'aria-hidden': 'true' }, [
+          el('span', { class: 'hbar', style: { '--f': (c.n / max).toFixed(4) } }, [
+            c.n - c.known ? el('span', { class: 'seg b-new', style: { 'flex-grow': c.n - c.known } }) : null,
+            c.known ? el('span', { class: 'seg b-known', style: { 'flex-grow': c.known } }) : null]),
+          el('span', { class: 'hval' }, [fmt(c.n), mx ? el('small', { text: ' · ' + fmt(c.n - c.known) + ' new · ' + fmt(c.known) + ' known' }) : null])]),
+        t ? null : el('span', { class: 'sr-only', text: said })])]);
+    }));
+  }
+  const brief1 = t => { t = String(t || '').replace(/\s+/g, ' ').trim(); const m = /^(.{40,}?[.!?])\s/.exec(t + ' '); t = m ? m[1] : t; return t.length > 220 ? t.slice(0, 219).replace(/\s+\S*$/, '') + '…' : t; };
+  function refLabel(u) { const m = REF.exec(u || ''); return m ? (m[2] || ((/\/pull\//.test(u) ? 'PR #' : '#') + m[1])) : ''; }
+  // "Known upstream (#2203)": the item a known finding is known from, no state; "#16900 (reported)", "PR #16996 (fix in
+  // progress)": a filed issue or the triage record's link, with its state
+  const upLabel = r => UP.get(r.upstream) || '';
+  function upLinkText(r) {
+    if (r.upstream === 'known') return upLabel(r) + ' (' + refLabel(r.ref) + ')';
+    return refLabel(r.ref) + ' (' + upLabel(r).replace(/ upstream$/, '').toLowerCase() + ')';
+  }
+  const prioLabel = p => ({ high: 'High', medium: 'Medium', low: 'Low' })[p] || 'No priority';
+  function novChip(r) { return el('span', { class: 'nov' }, [el('i', { class: r.known ? 'b-known' : 'b-new', 'aria-hidden': 'true' }), r.known ? 'Known' : 'New']); }
+  function card(r) {
+    const meta = el('span', { class: 'card-meta' }, [el('span', { class: 'card-id', text: r.id }),
+      el('span', { class: 'pr pr-' + (r.priority || 'none'), text: prioLabel(r.priority) }),
+      el('span', { class: 'imp', text: r.withheld ? 'details withheld' : cap(impLabel(r.impact)) }), novChip(r)]);
+    const title = el('span', { class: 'card-title', text: r.title });
+    const main = r.doc ? el('a', { class: 'card-main', href: r.doc, 'data-tipid': r.id }, [meta, title])
+      : el('div', { class: 'card-main', tabindex: r.withheld ? null : '0', 'data-tipid': r.id, role: 'group',
+        'aria-label': r.id + ': ' + r.title + (r.withheld ? '' : ' (no explainer page yet)') }, [meta, title]);
+    const links = [];
+    if (r.doc) links.push(el('a', { href: r.doc, text: 'explainer' }));
+    if (r.repro) links.push(el('a', { href: r.repro, text: 'repro' }));
+    if (r.ref) links.push(el('a', { href: r.ref, target: '_blank', rel: 'noopener noreferrer', text: upLinkText(r) }));
+    else if (r.upstream && !r.withheld) links.push(el('span', { text: upLabel(r) }));
+    return el('li', { class: 'card', 'data-id': r.id }, [main, links.length ? el('span', { class: 'card-links' }, links) : null]);
+  }
+  function tipLinesCard(r) {
+    if (r.withheld) return [['strong', r.id], ['', D.withheld_line + '.'], ['', prioLabel(r.priority) + ' priority · ' + (r.known ? 'Known' : 'New')]];
+    const out = [['strong', r.id + ' · ' + r.title],
+      ['', prioLabel(r.priority) + ' priority' + (r.rank ? ' (rank ' + fmt(r.rank) + ')' : '') + ' · ' + cap(impLabel(r.impact)) + ' · ' + (r.known ? 'Known' : 'New')]];
+    if (r.introduced || r.introduced_date) out.push(['', 'Introduced in: ' + [r.introduced, r.introduced_date].filter(Boolean).join(' · ')]);
+    if (r.affected) out.push(['', 'Affected releases: ' + r.affected]);
+    out.push(['', 'Upstream: ' + (upLabel(r) || '—') + (r.ref ? ' (' + refLabel(r.ref) + ')' : '')]);
+    if (r.summary) out.push(['', brief1(r.summary)]);
+    out.push(['tm', r.doc ? 'Click to open the explainer' : 'No explainer page yet']);
+    return out;
+  }
+  function tipLinesCell(t) {
+    const n = Number(t.getAttribute('data-n')) || 0, k = Number(t.getAttribute('data-k')) || 0;
+    if (t.getAttribute('data-cls') != null) {
+      return [['strong', many(n, 'finding', 'findings')], ['', t.getAttribute('data-cls')]]
+        .concat(k ? [['', fmt(n - k) + ' new · ' + fmt(k) + ' known']] : [])
+        .concat(t.getAttribute('href') ? [['tm', 'Click to see them']] : []);
+    }
+    const out = [['strong', n ? many(n, 'finding', 'findings') : 'No findings'], ['', t.getAttribute('data-row')], ['', t.getAttribute('data-col')]];
+    if (n && mixed(S)) out.push(['', fmt(n - k) + ' new · ' + fmt(k) + ' known']);
+    if (t.getAttribute('data-held')) out.push(['', 'Includes ' + many(Number(t.getAttribute('data-held')), 'finding', 'findings') + ' with details withheld (no impact class shown)']);
+    const g = CUR.groups[Number(t.getAttribute('data-ri'))], ci = Number(t.getAttribute('data-ci'));
+    if (g && n) {
+      const ser = SERSET(), inCol = r => ci < NI ? r.impact === IMP[ci][0] : ci === NI ? ser.has(r.impact) : true;
+      g.rows.filter(inCol).slice().sort((a, b) => a.ord - b.ord).slice(0, 3).forEach(r => out.push(['', r.id + ' ' + (r.title.length > 70 ? r.title.slice(0, 69) + '…' : r.title)]));
+    }
+    if (n) out.push(['tm', t.getAttribute('data-none') ? 'No link: the table has no filter for findings without a tag or class' : 'Click to zoom in and list them']);
+    return out;
+  }
+  let tipFor = null;
+  function showTip(t, lines) {
+    const box = tip();
+    if (!box) return;
+    if (tipFor && tipFor !== t) tipFor.removeAttribute('aria-describedby');
+    tipFor = t;
+    t.setAttribute('aria-describedby', 'x-tip');
+    box.replaceChildren(...lines.map(l => el(l[0] === 'strong' ? 'strong' : 'span', { class: l[0] && l[0] !== 'strong' ? l[0] : null, text: l[1] })));
+    box.hidden = false;
+    const r = t.getBoundingClientRect(), vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight;
+    const w = box.offsetWidth, h = box.offsetHeight;
+    const x = Math.max(8, Math.min(r.left + r.width / 2 - w / 2, vw - w - 8));
+    let y = r.top - h - 8;
+    if (y < 8) y = Math.min(r.bottom + 8, vh - h - 8);
+    box.style.left = Math.round(x) + 'px';
+    box.style.top = Math.round(y) + 'px';
+  }
+  function hideTip() { const b = tip(); if (b) b.hidden = true; if (tipFor) tipFor.removeAttribute('aria-describedby'); tipFor = null; }
+  let CUR = { groups: [], scope: [] };
+
+  function crumbs(s) {
+    const g = GROUPS.find(x => x[0] === s.group)[1].toLowerCase();
+    const items = [['All ' + (g === 'aspect' ? 'aspects' : g + 's'), Object.assign({}, s, { zoom: [] })]];
+    if (s.zoom[0]) items.push([groupLabel(s.group, s.zoom[0]), Object.assign({}, s, { zoom: [s.zoom[0]] })]);
+    if (s.zoom[1]) items.push([s.zoom[1], s]);
+    return el('ol', null, items.map((it, i) => el('li', null, [i === items.length - 1 ? el('span', { 'aria-current': 'location', text: it[0] })
+      : el('a', { href: ownHref(it[1]), 'data-go': '1', text: it[0] })])));
+  }
+  function scopeLine(s, rows) {
+    const nn = rows.filter(r => !r.known).length, held = rows.filter(r => r.withheld).length;
+    const what = s.novelty === 'all' ? many(rows.length, 'finding', 'findings') + ' (' + fmt(nn) + ' new, ' + fmt(rows.length - nn) + ' already known)'
+      : s.novelty === 'known' ? many(rows.length, 'already known finding', 'already known findings') : many(rows.length, 'new finding', 'new findings');
+    const pr = s.priority === 'medium-up' ? ' of medium or high priority' : s.priority ? ' of ' + s.priority + ' priority' : '';
+    return 'Counting ' + what + pr + ' in this view.' + (held ? ' ' + many(held, 'of them has', 'of them have') + ' details withheld: ' +
+      (held === 1 ? 'it is' : 'they are') + ' listed and counted in Total, without an impact class, tag or class.' : '');
+  }
+  function activeChips(s) {
+    const out = [];
+    s.components.forEach(c => out.push(['component', c, 'Class: ' + c]));
+    if (s.status) out.push(['status', s.status, 'Upstream: ' + UP.get(s.status)]);
+    if (s.wontfix) out.push(['wontfix', '1', "With the findings triaged as won't fix"]);
+    s.bad.forEach(b => out.push(['bad', b, 'Ignored: ' + b[0] + '=' + b[1] + ' (' + b[2] + ')']));
+    s.foreign.forEach(f => out.push(['foreign', f, 'Not applied here: ' + f[2] + ' ' + f[1]]));
+    return out;
+  }
+  function render(anim) {
+    const s = S;
+    hideTip();
+    pfSync();   // before the counts: a new search shows "searching the write-ups…" until its hits are in
+    const b = base(s), listed = b.filter(zoomTest(s)), extra = b.extra && listed.includes(b.extra) ? b.extra : null;
+    const scope = extra ? listed.filter(r => r !== extra) : listed, groups = gridRows(s, scope), hs = hotspots(scope);
+    CUR = { groups, scope };
+    const extraNote = extra ? extra.id + (extraWhy(extra) ? ' (' + extraWhy(extra) + ')' : '') : '';
+    const lv = level(s), gl = GROUPS.find(x => x[0] === s.group)[1];
+    // controls
+    PRESETS.forEach(p => { const i = $('x-pre-' + p[0]); if (i) i.checked = s.novelty === p[2] && s.priority === p[3]; });
+    $('x-novelty').value = s.novelty; $('x-priority').value = s.priority; $('x-impact').value = s.impact; $('x-status').value = s.status;
+    syncArea(s);
+    if ($('x-q').value !== s.q) $('x-q').value = s.q;
+    GROUPS.forEach(g => { const i = $('x-group-' + g[0]); if (i) i.checked = s.group === g[0]; });
+    chips('x-aspects', [...ASP_ON].sort((x, y) => aspLabel(x).localeCompare(aspLabel(y))), s.aspects, aspLabel, 'aspect', b, r => r.aspects);
+    $('x-asp-n').textContent = s.aspects.length ? ' (' + s.aspects.length + ' chosen' + (s.aspects.length > 1 ? ', ' + s.aspectMode : '') + ')' : '';
+    chips('x-features', [...FEAT_ON].sort((x, y) => featLabel(x).localeCompare(featLabel(y))), s.features, featLabel, 'feature', b, r => r.features);
+    $('x-aspect-' + s.aspectMode).checked = true; $('x-feature-' + s.featureMode).checked = true;
+    $('x-feat-n').textContent = s.features.length ? ' (' + s.features.length + ' chosen' + (s.features.length > 1 ? ', ' + s.featureMode : '') + ')' : '';
+    const ac = activeChips(s), box = $('x-active-chips');
+    $('x-active').hidden = !ac.length;
+    box.replaceChildren(...ac.map((c, i) => el('button', { type: 'button', class: 'chip ' + (c[0] === 'bad' || c[0] === 'foreign' ? 'is-bad' : 'is-on'),
+      'data-i': i, 'aria-label': 'Remove: ' + c[2], text: c[2] + ' ×' })));
+    box._chips = ac;
+    $('x-count').textContent = 'Showing ' + many(scope.length, 'finding', 'findings') + pfNote(scope) +
+      (extra ? '; ' + extraNote + ' shown because you searched its id' : '');
+    // grid
+    $('x-crumbs').replaceChildren(crumbs(s));
+    $('x-grid-h').textContent = lv === 0 ? gl + 's × impact' : lv === 1 ? groupLabel(s.group, s.zoom[0]) + ': Java classes × impact'
+      : groupLabel(s.group, s.zoom[0]) + ' › ' + s.zoom[1];
+    $('x-scope').textContent = scopeLine(s, scope);
+    // a legend names only the marks drawn (review M3): the split bars exist in All only; each colour only when present
+    legend('x-split-legend', mixed(s), scope.some(r => !r.known), scope.some(r => r.known));
+    const gbox = $('x-grid');
+    gbox.replaceChildren(groups.length ? grid(s, scope, groups) : el('p', { class: 'ex-empty', text: 'No findings in this view.' }));
+    if (!anim) gbox.querySelectorAll('.x-anim').forEach(x => x.classList.remove('x-anim'));
+    const first = gbox.querySelector('a.c') || gbox.querySelector('.c');
+    if (first) first.setAttribute('tabindex', '0');
+    moreCols();
+    const notes = [];
+    const untag = groups.find(g => g.key == null);
+    if (untag) notes.push(many(untag.total, 'finding has', 'findings have') + ' no ' + (lv ? 'Java class' : s.group + ' tag') + ': the muted last row, without links, since the table has no filter for them.');
+    if (!lv && s.group !== 'module') {
+      const tagged = scope.filter(r => (s.group === 'feature' ? r.features : r.aspects).length).length;
+      const tags = sum(groups.filter(g => g.key != null).map(g => g.total));
+      if (tags > tagged) notes.push(fmt(tags) + ' ' + s.group + ' tags on ' + many(tagged, 'finding', 'findings') + ': a finding with several ' + s.group + 's counts once in each of its rows.');
+    }
+    if (scope.some(r => r.withheld)) notes.push('Total includes the findings with details withheld; they have no impact class.');
+    $('x-grid-note').textContent = notes.join(' ');
+    $('x-grid-tv').replaceChildren(plainTable([lv ? 'Java class' : gl].concat(IMP.map(x => x[2]), ['Serious', 'Total'], mixed(s) ? ['Of them known'] : []),
+      groups.map(g => [g.label].concat(g.counts, [g.serious, g.total], mixed(s) ? [sum(g.known) + g.heldKnown] : []))));
+    // bars
+    const bbox = $('x-bars');
+    bbox.replaceChildren(hs.kept.length ? bars(s, hs) : el('p', { class: 'ex-empty', text: 'No Java class in this view.' }));
+    if (!anim) bbox.querySelectorAll('.x-anim').forEach(x => x.classList.remove('x-anim'));
+    const bn = [hs.kept.length ? 'The ' + many(hs.kept.length, 'class', 'classes') + ' with the most findings in this view.' : ''];
+    if (hs.more) bn.push(many(hs.more[0], 'more class has', 'more classes have') + ' ' + many(hs.more[1], 'finding', 'findings') + (hs.more[0] === 1 ? '' : ' each') + ' and ' + (hs.more[0] === 1 ? 'is' : 'are') + ' not shown.');
+    if (hs.none) bn.push(many(hs.none, 'finding concerns', 'findings concern') + ' no Java class here and ' + (hs.none === 1 ? 'is' : 'are') + ' not counted.');
+    $('x-bars-note').textContent = bn.filter(Boolean).join(' ');
+    legend('x-bars-legend', hs.kept.length > 0, hs.kept.some(c => c.n > c.known), hs.kept.some(c => c.known > 0));
+    $('x-bars-tv').replaceChildren(plainTable(['Class', 'New', 'Known', 'Total'], hs.kept.map(c => [c.name, c.n - c.known, c.known, c.n])));
+    // panel
+    const sorted = listed.slice().sort((a, b2) => a.ord - b2.ord);
+    $('x-panel-n').textContent = many(scope.length, 'finding', 'findings');
+    $('x-panel-n').setAttribute('data-n', scope.length);
+    $('x-panel-extra').hidden = !extra;
+    $('x-panel-extra').textContent = extra ? 'Also shown, because you searched its id: ' + extraNote + '.' : '';
+    const th = tableHref(s);
+    ['x-open-table', 'x-open-table2'].forEach(id => { const a = $(id); if (a) a.setAttribute('href', th); });
+    const key = ownQuery(s) + '|' + (pfFor(s.q.trim().toLowerCase()) ? 'pf' : '');
+    if (key !== render.key) { shown = PAGE(); render.key = key; }
+    const list = sorted.slice(0, shown);
+    $('x-cards').replaceChildren(...list.map(card));
+    const more = $('x-more');
+    more.hidden = sorted.length <= shown;
+    more.textContent = 'Show ' + fmt(Math.min(PAGE(), sorted.length - shown)) + ' more (' + fmt(sorted.length - shown) + ' not shown)';
+    $('x-all').hidden = sorted.length <= shown;
+    $('x-panel-empty').hidden = !!sorted.length;
+    CUR.sorted = sorted;
+  }
+  function legend(id, on, hasNew, hasKnown) {
+    const box = $(id);
+    if (!box) return;
+    box.hidden = !(on && (hasNew || hasKnown));
+    box.querySelector('[data-k="new"]').hidden = !hasNew;
+    box.querySelector('[data-k="known"]').hidden = !hasKnown;
+  }
+  // a grid wider than its box (narrow screens): say that more columns are to the side
+  function moreCols() {
+    const g = $('x-grid'), n = $('x-grid-more');
+    if (g && n) n.hidden = !(g.scrollWidth > g.clientWidth + 1);
+  }
+  function syncArea(s) {
+    const sel = $('x-area');
+    if (sel) sel.value = s.area;
+  }
+  // a set of toggle chips with counts over the base rows (before the zoom), as the table's Aspect facet counts its rows
+  function chips(id, all, on, label, kind, rows, of) {
+    const box = $(id), c = new Map();
+    rows.forEach(r => of(r).forEach(x => c.set(x, (c.get(x) || 0) + 1)));
+    box.replaceChildren(...all.map(x => el('button', { type: 'button', class: 'chip' + (on.includes(x) ? ' is-on' : ''), ['data-' + kind]: x,
+      'aria-pressed': on.includes(x) ? 'true' : 'false', text: label(x) + ' (' + fmt(c.get(x) || 0) + ')' })));
+  }
+  function go(next, anim) {
+    S = next;
+    writeURL();
+    render(anim !== false);
+  }
+  const clone = s => Object.assign({}, s, { aspects: s.aspects.slice(), features: s.features.slice(), components: s.components.slice(),
+    zoom: s.zoom.slice(), bad: s.bad.slice(), foreign: s.foreign.slice(), others: s.others.slice() });
+  // a filter change keeps the zoom only while it still names a value of the view
+  function refit(s) {
+    if (s.zoom.length) {
+      const v = zoomValue(s, s.zoom[0]);
+      if (!v) s.zoom = [];
+      else if (s.zoom[1] && s.components.length && !s.components.includes(s.zoom[1])) s.zoom = [v];
+    }
+    return s;
+  }
+
+  function wire() {
+    const F = $('x-filters');
+    F.addEventListener('submit', e => e.preventDefault());
+    PRESETS.forEach(p => { const i = $('x-pre-' + p[0]); if (i) i.addEventListener('change', () => { if (i.checked) { const t = clone(S); t.novelty = p[2]; t.priority = p[3]; t.bad = t.bad.filter(b => b[0] !== 'novelty' && b[0] !== 'priority'); go(refit(t)); } }); });
+    $('x-novelty').addEventListener('change', e => { const t = clone(S); t.novelty = e.target.value; t.bad = t.bad.filter(b => b[0] !== 'novelty'); go(refit(t)); });
+    $('x-priority').addEventListener('change', e => { const t = clone(S); t.priority = e.target.value; t.bad = t.bad.filter(b => b[0] !== 'priority'); go(refit(t)); });
+    $('x-impact').addEventListener('change', e => { const t = clone(S); t.impact = e.target.value; t.bad = t.bad.filter(b => b[0] !== 'impact' && b[0] !== 'class'); go(refit(t)); });
+    $('x-status').addEventListener('change', e => { const t = clone(S); t.status = e.target.value; t.bad = t.bad.filter(b => b[0] !== 'status'); t.foreign = t.foreign.filter(f => f[0] !== 'status'); go(refit(t)); });
+    $('x-area').addEventListener('change', e => { const t = clone(S); t.area = e.target.value; t.bad = t.bad.filter(b => b[0] !== 'area'); go(refit(t)); });
+    let qt = 0;
+    $('x-q').addEventListener('input', e => { const t = clone(S); t.q = e.target.value.slice(0, URL_MAX); S = refit(t); clearTimeout(qt); qt = setTimeout(writeURL, 400); render(false); });
+    GROUPS.forEach(g => $('x-group-' + g[0]).addEventListener('change', e => { if (e.target.checked) { const t = clone(S); t.group = g[0]; t.zoom = []; t.bad = t.bad.filter(b => b[0] !== 'group' && b[0] !== 'zoom'); go(t); } }));
+    const tog = (id, kind, key) => $(id).addEventListener('click', e => {
+      const b = e.target.closest && e.target.closest('button[data-' + kind + ']');
+      if (!b) return;
+      const t = clone(S), v = b.getAttribute('data-' + kind), l = t[key];
+      t[key] = l.includes(v) ? l.filter(x => x !== v) : l.concat([v]);
+      go(refit(t), false);
+      const nb = $(id).querySelector('button[data-' + kind + '="' + v + '"]');
+      if (nb) nb.focus({ preventScroll: true });
+    });
+    tog('x-aspects', 'aspect', 'aspects');
+    tog('x-features', 'feature', 'features');
+    ['any', 'all'].forEach(m => {
+      $('x-aspect-' + m).addEventListener('change', e => { if (e.target.checked) { const t = clone(S); t.aspectMode = m; go(refit(t), false); } });
+      $('x-feature-' + m).addEventListener('change', e => { if (e.target.checked) { const t = clone(S); t.featureMode = m; go(refit(t), false); } });
+    });
+    $('x-active-chips').addEventListener('click', e => {
+      const b = e.target.closest && e.target.closest('button[data-i]');
+      if (!b) return;
+      const c = $('x-active-chips')._chips[Number(b.getAttribute('data-i'))], t = clone(S);
+      if (!c) return;
+      if (c[0] === 'component') { t.components = t.components.filter(x => x !== c[1]); if (t.zoom[1] === c[1]) t.zoom = t.zoom.slice(0, 1); }
+      else if (c[0] === 'status') t.status = '';
+      else if (c[0] === 'wontfix') t.wontfix = false;
+      else if (c[0] === 'bad') t.bad = t.bad.filter(x => x !== c[1]);
+      else if (c[0] === 'foreign') t.foreign = t.foreign.filter(x => x !== c[1]);
+      go(refit(t), false);
+      const n = $('x-active-chips').querySelector('button');
+      (n || $('x-q')).focus({ preventScroll: true });
+    });
+    $('x-reset').addEventListener('click', () => { const t = blank(); t.group = S.group; t.others = S.others; go(t); });
+    $('x-copy').addEventListener('click', copyLink);
+    $('x-more').addEventListener('click', () => { shown += PAGE(); render(false); });
+    $('x-all').addEventListener('click', () => { shown = Infinity; render(false); });
+    // in-page links (cells, rows, bars, breadcrumb): the view they name, in place
+    document.addEventListener('click', e => {
+      const a = e.target.closest && e.target.closest('a[data-go]');
+      if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      e.preventDefault();
+      const href = a.getAttribute('href'), i = href.indexOf('?');
+      go(readURL(i < 0 ? '' : href.slice(i)));
+      const h = $('x-grid-h');
+      if (h && h.getBoundingClientRect().top < 0) h.scrollIntoView({ block: 'start' });
+    });
+    // tooltips: cells and bars, cards
+    const hitOf = e => e.target && e.target.closest ? e.target.closest('.c, .hrow, [data-tipid]') : null;
+    const show = t => {
+      if (t.hasAttribute('data-tipid')) { const r = R.find(x => x.id === t.getAttribute('data-tipid')); if (r) showTip(t, tipLinesCard(r)); }
+      else showTip(t, tipLinesCell(t));
+    };
+    document.addEventListener('pointerover', e => { const t = hitOf(e); if (t && t !== tipFor) show(t); });
+    document.addEventListener('pointerout', e => { const t = hitOf(e); if (t && !(e.relatedTarget && t.contains(e.relatedTarget))) hideTip(); });
+    document.addEventListener('focusin', e => { const t = hitOf(e); if (t) { if (t.matches('.c')) rove(t); show(t); } else hideTip(); });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { hideTip(); return; }
+      const c = e.target && e.target.closest ? e.target.closest('.c') : null;
+      if (!c) return;
+      let ri = Number(c.getAttribute('data-ri')), ci = Number(c.getAttribute('data-ci'));
+      const t = c.closest('table'), last = NI + 1, rows = t.tBodies[0].rows.length - 1;
+      if (e.key === 'ArrowRight') ci = Math.min(last, ci + 1);
+      else if (e.key === 'ArrowLeft') ci = Math.max(0, ci - 1);
+      else if (e.key === 'ArrowDown') ri = Math.min(rows, ri + 1);
+      else if (e.key === 'ArrowUp') ri = Math.max(0, ri - 1);
+      else if (e.key === 'Home') ci = 0;
+      else if (e.key === 'End') ci = last;
+      else return;
+      e.preventDefault();
+      const n = t.querySelector('[data-ri="' + ri + '"][data-ci="' + ci + '"]');
+      if (n) n.focus();
+    });
+    addEventListener('scroll', () => { if (tipFor && document.activeElement !== tipFor) hideTip(); }, { passive: true, capture: true });
+    let rt = 0;
+    addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(moreCols, 100); }, { passive: true });
+    // Back, Forward or an edited address: the view it names
+    const onURL = () => { if (location.search === lastKey) return; S = readURL(); lastKey = location.search; render(true); };
+    addEventListener('popstate', onURL);
+    addEventListener('hashchange', onURL);
+  }
+  function rove(cell) {
+    const t = cell.closest('table');
+    if (t) t.querySelectorAll('.c').forEach(c => c.setAttribute('tabindex', c === cell ? '0' : '-1'));
+  }
+  function copyLink() {
+    writeURL();
+    const url = location.href, note = $('x-copy-note'), box = $('x-copy-manual');
+    const say = t => { note.textContent = t; setTimeout(() => { if (note.textContent === t) note.textContent = ''; }, 4000); };
+    const manual = () => { const i = el('input', { type: 'text', readonly: 'readonly', value: url, 'aria-label': 'Link to this view' }); box.replaceChildren(i); box.hidden = false; i.select(); say('Copy the link from the field'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(() => { box.hidden = true; say('Link copied'); }, manual);
+    else manual();
+  }
+  function fill(sel, first, opts) {
+    sel.replaceChildren(el('option', { value: '', text: first }), ...opts.map(o => el('option', { value: o[0], text: o[1] })));
+  }
+  function start(d) {
+    setup(d);
+    fill($('x-priority'), 'Any priority', PRIOS);
+    fill($('x-impact'), 'Any impact', [['serious', 'Any serious impact']].concat(IMP.map(x => [x[0], x[2]]), [['withheld', 'Details withheld']]));
+    fill($('x-status'), 'Any upstream state', d.upstream_states.map(x => [x[0], x[1]]));
+    const mods = new Map();
+    R.forEach(r => mods.set(r.module, (mods.get(r.module) || 0) + 1));
+    fill($('x-area'), 'All modules', [...mods.keys()].sort().map(m => ['m:' + m, m]));
+    S = readURL();
+    lastKey = location.search;
+    if (S.aspects.length) $('x-asp-box').open = true;
+    if (S.features.length) $('x-feat-box').open = true;
+    wire();
+    writeURL();
+    render(false);
+    $('x-load').hidden = true;
+    $('x-app').hidden = false;
+    moreCols();   // measurable only once the page shows
+  }
+  const fail = why => { const l = $('x-load'); l.replaceChildren(el('span', { text: why })); l.hidden = false; };
+  fetch(CFG.data, { credentials: 'same-origin' })
+    .then(r => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))))
+    .then(d => { if (!d || d.v !== CFG.v || !Array.isArray(d.rows)) throw new Error('unexpected data'); start(d); })
+    .catch(() => fail('The findings could not be loaded. This page reads data/findings-index.json from the site; opened from a disk it ' +
+      'cannot. The findings table (index.html) works either way.'));
+})();
+</script>
+</body>
+</html>

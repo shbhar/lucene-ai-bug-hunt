@@ -1,0 +1,53 @@
+# LatLonShape/XYShape WITHIN over several query geometries misses a line or polygon that lies inside their union but crosses from one part into another, because ComponentTree.containsLine/containsTriangle test each part alone (since 7.5.0 in sandbox; every core release since 8.5.0)
+
+Finding LFV-1478 · Area: core / geo: LatLonShape and XYShape WITHIN queries over an array of query geometries (ComponentTree.containsLine/containsTriangle, the WITHIN leaf predicates of LatLonShapeQuery and XYShapeQuery) · Priority: medium · Impact: silent wrong results · Novelty: new
+
+Finding page: [../../bugs/LFV-1478.html](../../bugs/LFV-1478.html)
+
+AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
+
+## What it shows
+
+You index the line (lat 1.5, lon 1.5)-(lat 1.5, lon 2.5) in a LatLonShape field and run WITHIN over two boxes that share the edge lon 2 (lat 0..3 x lon 0..2 and lat 0..3 x lon 2..4), expecting 1 hit, the answer WITHIN over the single box lat 0..3 x lon 0..4 gives. Instead the count is 0: ComponentTree.containsLine asks each query polygon alone whether it contains the whole segment, neither does, and WITHIN drops the document, while INTERSECTS, DISJOINT and CONTAINS over the same array answer for the union. XYShape, polygon documents (containsTriangle) and overlapping parts fail the same way.
+
+## Expected vs actual
+
+- Expected: Both counts are 1: the single box and the two boxes that cover the same area.
+- Actual: The two-box WITHIN count is 0 (`expected:<1> but was:<0>` at line 28); the single box counts 1.
+
+## Files
+
+- [src/org/apache/lucene/document/TestShapeWithinOverlappingGeometries.java](src/org/apache/lucene/document/TestShapeWithinOverlappingGeometries.java) (JUnit test)
+
+## Run it
+
+- Tested on Lucene main f794ff5a505c (2026-11-06): reproduced.
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
+
+```bash
+# Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
+LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
+CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
+CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
+CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
+CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
+CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
+
+javac -d classes -cp "$CP" $(find src -name '*.java')
+
+# run 1: assertions on, seed DEADBEEF, default flags
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.document.TestShapeWithinOverlappingGeometries
+```
+
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestShapeWithinOverlappingGeometries.java](TestShapeWithinOverlappingGeometries.java)
+
+## Feedback
+
+Open an issue in [lucene-ai-bug-hunt](https://github.com/shbhar/lucene-ai-bug-hunt/issues). Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.

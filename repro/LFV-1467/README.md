@@ -2,6 +2,8 @@
 
 Finding LFV-1467 · Area: sandbox / facets: plain histograms (HistogramCollectorManager's per-manager leafBulkCollected map, used by HistogramCollector's point-tree bulk path) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Finding page: [../../bugs/LFV-1467.html](../../bugs/LFV-1467.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -46,6 +48,10 @@ java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=A
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the finding page
+
+- [TestHistogramCollectorManagerReuse.java](TestHistogramCollectorManagerReuse.java)
 
 Formal models and scripts this finding's part of the hunt used: [../../models/sandbox-histogramcollectormanager-leafbulkcollected-map-never-cleared-reused-manager-on-same-reader-returns-empty-histogram-match-all-and-point-range-since-10-3-0-verify-collector-manager-reuse-siblings/](../../models/sandbox-histogramcollectormanager-leafbulkcollected-map-never-cleared-reused-manager-on-same-reader-returns-empty-histogram-match-all-and-point-range-since-10-3-0-verify-collector-manager-reuse-siblings/)
 
