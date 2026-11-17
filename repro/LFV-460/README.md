@@ -4,7 +4,7 @@ Finding LFV-460 · Area: index / IndexWriter statistics (soft deletes) · Priori
 
 Finding page: [../../bugs/LFV-460.html](../../bugs/LFV-460.html)
 
-AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by diwu-sf (open PR #17006; an independent fix, later than our listing) on 2026-11-07 (https://github.com/apache/lucene/pull/17006). Open PR #17006 (created 2026-11-07, head eec416631bc6, no review yet) lists this as its item 4: hasDeletions() returns false for a segment that only has soft deletes when the writer has no reader on it. The PR makes hasDeletions() count soft deletes for each segment. Our minimal repro passes with the PR's three changed source files applied to main 5adff78bb168, with and without assertions. It does not cite this list. Novelty stays new: listed publicly on 2026-10-27, the PR came later and independently. On 2026-11-07 the owner linked this row in a comment on #17006; the PR itself predates that comment and stays an independent fix. No review yet (2026-11-08). This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by diwu-sf (open PR #17006; an independent fix, later than our listing) on 2026-11-07 (https://github.com/apache/lucene/pull/17006). Open PR #17006 (diwu-sf, opened 2026-11-07; head 5c1d53636d65 of 2026-11-10; no milestone; no review as of 2026-11-14) lists this as its item 4: hasDeletions() returns false for a segment that only has soft deletes when the writer has no reader on it. hasDeletions() now asks numDeletedDocs(info) for every segment. On a build of the head our minimal repro and the row's 17 other tests pass, -ea and -da; the repro fails on main 781025d6fe32. It does not cite this list. Novelty stays new: listed publicly on 2026-10-27, the PR came later and independently; the owner linked this row there on 2026-11-07. This site files nothing upstream.
 
 ## What it shows
 
@@ -22,7 +22,7 @@ Expected `true` (getDocStats maxDoc=2, numDocs=1); actual `false` (`expected:<tr
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
@@ -45,7 +45,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.index.TestIndexWriterHasDeletionsSoftDeletes
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Feedback
 

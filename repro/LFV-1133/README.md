@@ -4,7 +4,7 @@ Finding LFV-1133 · Area: index / index sorting at merge: MultiSorter doc maps, 
 
 Finding page: [../../bugs/LFV-1133.html](../../bugs/LFV-1133.html)
 
-AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fixed, by Jim Ferenczi (jimczi; author of PR #16571, merged it and cherry-picked it to branch_11x; the MultiSorter change in it is by Michael Marshall; an independent fix that does not cite this list) on 2026-11-12 (https://github.com/apache/lucene/pull/16571). Fixed on main by #16571 (jimczi, 'Let a merge write more than one segment'; approved by iverase; merged 2026-11-12; milestone 11.0.0) and on branch_11x (3774f34d1b9). The fix is a side effect. For merges that write several segments, the PR changed MultiSorter so that deleted documents stay out of its queue (a commit by michaeljmarshall dated 2026-09-30, before this bug was found). A reader now enters the queue only when it has a live document, so an empty reader no longer takes a merged doc id. The PR does not mention empty readers, does not cite this list and adds no test for this case. Not on branch_10_6 (head 890b9f70c23, 2026-11-11), so 10.6.x keeps the bug: the minimal repro still fails on 10.6.0 and on that head. This site files nothing upstream.
 
 ## What it shows
 
@@ -21,7 +21,6 @@ You sort an IndexWriter by a long field k and call addIndexes(CodecReader...) wi
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
 - Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
@@ -43,7 +42,7 @@ java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=A
      execute --select-class org.apache.lucene.index.TestIndexSortAddIndexesEmptyReader
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Files shown on the finding page
 

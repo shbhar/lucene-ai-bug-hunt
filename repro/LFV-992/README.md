@@ -22,9 +22,10 @@ Expected: every example compiles. Actual: 16 error lines, overview.html:75, 121,
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- The expected and actual lines above are those of main 645d4fe14a20. On a build of main or of the 11.0 branch since #16962 (merged 2026-11-03), which made the no-argument MatchAllDocsQuery constructor private, the test fails the same way and lists one more line, overview.html:159: 17 error lines (run on branch_11x 9d2b5a15427a and on main 9965d34e3c77 with -ea and -da). Lines 339-340, which the text above calls main only, are on the page of the 11.0 branch too (the same page text at branch_11x 9d2b5a15427a); no release has them.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -53,7 +54,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 The module(s) analysis-icu, facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 Formal models and scripts this finding's part of the hunt used: [../../models/javadoc-package-and-overview-examples-call-removed-apis-siblings-of-16904/](../../models/javadoc-package-and-overview-examples-call-removed-apis-siblings-of-16904/)
 

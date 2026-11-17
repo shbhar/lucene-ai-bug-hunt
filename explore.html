@@ -88,6 +88,11 @@ input[type=search]{width:min(22rem,100%)}
 details.ex-more>summary{cursor:pointer;font-size:var(--step--1);margin-top:var(--s3);width:max-content;max-width:100%}
 .ex-foot{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin-top:var(--s3);padding-top:var(--s3);border-top:1px solid var(--rule)}
 .ex-count{font-weight:600;font-variant-numeric:tabular-nums}
+.ex-tog{display:inline-flex;align-items:center;gap:.4em;font-size:var(--step--1);cursor:pointer}
+.ex-tog[hidden]{display:none}
+.ex-tog input{margin:0;width:1rem;height:1rem;accent-color:var(--ink)}
+.n11{display:inline-block;border-radius:3px;padding:0 .4em;font-size:.86em;font-weight:600;line-height:1.5;
+  font-variant-caps:all-small-caps;letter-spacing:.05em;background:var(--panel);color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
 .btn{font:inherit;font-size:var(--step--1);color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:4px;
   min-height:2rem;padding:2px var(--s3);cursor:pointer}
 .btn:hover{border-color:var(--ink)}
@@ -222,7 +227,7 @@ a.card-main:hover .card-title{text-decoration:underline;text-decoration-color:va
   <p class="crumbs"><a href="index.html">AI-assisted bug hunt in Apache Lucene</a></p>
   <h1 id="title">Where the findings cluster</h1>
   <p class="purpose">Where the findings sit, by feature, kind of defect or module, and how serious they are. Select a row to zoom into its Java classes, a class to list its findings, a cell to filter by its impact too; every finding opens its explainer page.</p>
-  <p class="ex-totals" id="ex-totals" data-total="1386" data-new="1124" data-known="262" data-withheld="2">1,386 findings in the snapshot: 1,124 new and 262 already known; 2 of them with details withheld.</p>
+  <p class="ex-totals" id="ex-totals" data-total="1434" data-new="1160" data-known="274" data-withheld="2">1,434 findings in the snapshot: 1,160 new and 274 already known; 2 of them with details withheld.</p>
   <p class="ex-caveat">These are counts of findings. They do not measure how defect-prone an area is: areas differ in size, age and use.</p>
   <p class="ex-nav"><a href="index.html#bugs">Findings table</a> · <span aria-current="page">Explore</span></p>
 </header>
@@ -252,6 +257,7 @@ a.card-main:hover .card-title{text-decoration:underline;text-decoration-color:va
   <div class="ex-foot">
     <output class="ex-count" id="x-count" aria-live="polite"></output>
     <span class="fld"><span id="x-group-h" class="sr-only">Group the rows by</span><span class="segs" role="radiogroup" aria-labelledby="x-group-h"><label><input type="radio" name="x-group" id="x-group-feature" value="feature"><span>Feature</span></label><label><input type="radio" name="x-group" id="x-group-aspect" value="aspect"><span>Aspect</span></label><label><input type="radio" name="x-group" id="x-group-module" value="module"><span>Module</span></label></span></span>
+    <label class="ex-tog" id="x-new11-wrap" hidden><input type="checkbox" id="x-new11"><span id="x-new11-label">Only findings new in 11.0</span></label>
     <span class="ex-acts"><button class="btn" type="button" id="x-reset">Reset</button>
       <button class="btn" type="button" id="x-copy">Copy link</button><span class="ex-note-copy" id="x-copy-note" role="status"></span>
       <span class="ex-manual" id="x-copy-manual" hidden></span>
@@ -289,7 +295,7 @@ a.card-main:hover .card-title{text-decoration:underline;text-decoration-color:va
 </div>
 <div class="tip" id="x-tip" role="tooltip" hidden></div>
 </main>
-<footer class="page-foot"><p>Snapshot of 2026-11-10. AI-assisted findings, confirmed by automated checks; apart from the findings whose page names a maintainer triage, not yet triaged by a human Lucene committer; this site files nothing upstream. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></footer>
+<footer class="page-foot"><p>Snapshot of 2026-11-17. AI-assisted findings, confirmed by automated checks; apart from the findings whose page names a maintainer triage, not yet triaged by a human Lucene committer; this site files nothing upstream. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></footer>
 </div>
 <script type="application/json" id="x-config">{"v":1,"data":"data/findings-index.json","steps":[[1,1],[2,4],[5,9],[10,24],[25,null]],"darkFrom":3,"pageSize":50,"hot":15}</script>
 <script>
@@ -333,7 +339,11 @@ a.card-main:hover .card-title{text-decoration:underline;text-decoration-color:va
   const FOREIGN = { likelihood: 'Likelihood', method: 'First finder', sec: 'Security', new106: 'New in 10.6 only',
     gff: 'Good first fixes only' };
   const OURS = new Set(['novelty', 'known', 'priority', 'impact', 'class', 'status', 'area', 'q', 'aspect', 'aspect_mode',
-    'feature', 'feature_mode', 'component', 'group', 'zoom', 'wontfix', 'sort'].concat(Object.keys(FOREIGN)));
+    'feature', 'feature_mode', 'component', 'group', 'zoom', 'wontfix', 'new11', 'sort'].concat(Object.keys(FOREIGN)));
+  // new in 11.0 (2026-11-14): the table's toggle and parameter (new11=1), applied here too
+  const N11_FILTER = 'Only findings new in 11.0', N11_LABEL = 'new in 11.0';
+  const N11_FACT = 'New in 11.0: in the Lucene 11.0 release branch (not yet released), not in 10.6.x';
+  const has11 = () => R.some(r => r.n11);
   const PRIOS = [['high', 'High'], ['medium', 'Medium'], ['medium-up', 'Medium and above'], ['low', 'Low']];
   const GROUPS = [['feature', 'Feature'], ['aspect', 'Aspect'], ['module', 'Module']];
   const PRESETS = [['newmed', 'New, Medium and above', 'new', 'medium-up'], ['new', 'New only', 'new', ''], ['all', 'All findings', 'all', '']];
@@ -361,6 +371,7 @@ a.card-main:hover .card-title{text-decoration:underline;text-decoration-color:va
     r.summary = r.withheld ? '' : s('summary');
     r.impact = r.withheld ? 'withheld' : s('impact');
     r.hide = !r.withheld && o.hide === true;
+    r.n11 = !r.withheld && o.new11 === true;
     r.features = r.withheld ? [] : (Array.isArray(o.features) ? o.features.filter(x => TAG.test(x)) : []);
     r.aspects = r.withheld ? [] : (Array.isArray(o.aspects) ? o.aspects.filter(x => TAG.test(x)) : []);
     r.component = !r.withheld && CLASS.test(s('component')) ? s('component') : '';
@@ -399,7 +410,7 @@ a.card-main:hover .card-title{text-decoration:underline;text-decoration-color:va
   // ---------- the view in the address ----------
   function blank() {
     return { novelty: 'new', priority: 'medium-up', impact: '', status: '', area: '', q: '', aspects: [], aspectMode: 'any',
-      features: [], featureMode: 'any', components: [], wontfix: false, group: 'feature', zoom: [], bad: [], foreign: [], others: [], sort: '' };
+      features: [], featureMode: 'any', components: [], wontfix: false, new11: false, group: 'feature', zoom: [], bad: [], foreign: [], others: [], sort: '' };
   }
   function readURL(search) {
     const m = new Map(), others = [];
@@ -453,6 +464,8 @@ a.card-main:hover .card-title{text-decoration:underline;text-decoration-color:va
     s.featureMode = /^all$/i.test(val('feature_mode')) ? 'all' : 'any';
     s.components = list('component', v => !!v, x => CLASSES.get(x.toLowerCase()) || '');
     s.wontfix = /^(?:1|true|yes|on)$/i.test(val('wontfix'));
+    // as the table's toggle: on only while a finding has the flag (the table then ignores the parameter too)
+    if (/^(?:1|true|yes|on)$/i.test(val('new11'))) { if (has11()) s.new11 = true; else bad('new11', val('new11'), 'no finding is new in 11.0'); }
     const g = val('group').toLowerCase();
     if (g && !GROUPS.some(x => x[0] === g)) bad('group', val('group'), 'not feature, aspect or module');
     s.group = GROUPS.some(x => x[0] === g) ? g : 'feature';
@@ -508,6 +521,7 @@ a.card-main:hover .card-title{text-decoration:underline;text-decoration-color:va
     if (s.features.length && s.featureMode === 'all') add('feature_mode', 'all');
     lst('component', s.components);
     if (s.wontfix) add('wontfix', '1');
+    scalar('new11', s.new11 ? '1' : '');
     scalar('group', s.group !== 'feature' ? s.group : '');
     scalar('zoom', s.zoom.join('/'));
     s.foreign.forEach(f => { if (f[0] !== 'status') add(f[0], f[1]); });
@@ -550,6 +564,7 @@ a.card-main:hover .card-title{text-decoration:underline;text-decoration-color:va
     if (s.novelty !== 'new') add('known', '1');
     if (s.novelty === 'known') add('novelty', 'known');
     if (s.wontfix) add('wontfix', '1');
+    if (s.new11) add('new11', '1');
     if (s.q.trim()) add('q', s.q.trim());
     let area = s.area, aspects = s.aspects.slice(), amode = s.aspectMode, feats = s.features.slice(), fmode = s.featureMode;
     let comps = s.components.slice();
@@ -592,13 +607,18 @@ a.card-main:hover .card-title{text-decoration:underline;text-decoration-color:va
   function base(s) {
     const t = test(s), q = s.q.trim().toLowerCase(), id = q ? searched(s) : null, pq = pfFor(q);
     const m = r => t(r) && (!q || r === id || r.text.includes(q) || !!(pq && pq.has(r.id)));
-    const rows = pool(s).filter(m);
+    // "Only findings new in 11.0" is a toggle, as on the table: an exact id search lists its row whatever it says.
+    // rows.n11: the flagged findings of the view before the toggle is applied, the toggle's count (as the chips count
+    // the base rows): the number ticking it lists
+    const pre = pool(s).filter(m), rows = s.new11 ? pre.filter(r => r.n11) : pre;
+    rows.n11 = pre.filter(r => r.n11).length;
     rows.extra = null;
     if (id && !rows.includes(id) && m(id)) { rows.push(id); rows.extra = id; }
     return rows;
   }
   // why the searched row is shown although the view's toggles hide it (the table's words)
-  const extraWhy = r => r.hide ? "triaged as won't fix" : r.known ? (r.outside ? 'known outside Lucene' : 'known upstream') : '';
+  const extraWhy = (r, s) => [pool(s).includes(r) ? '' : r.hide ? "triaged as won't fix" : r.known ? (r.outside ? 'known outside Lucene' : 'known upstream') : '',
+    s.new11 && !r.n11 && !r.withheld ? 'not new in 11.0' : ''].filter(Boolean).join(', ');
   function zoomTest(s) {
     const z = s.zoom;
     if (!z.length) return () => true;
@@ -820,7 +840,8 @@ a.card-main:hover .card-title{text-decoration:underline;text-decoration-color:va
   function card(r) {
     const meta = el('span', { class: 'card-meta' }, [el('span', { class: 'card-id', text: r.id }),
       el('span', { class: 'pr pr-' + (r.priority || 'none'), text: prioLabel(r.priority) }),
-      el('span', { class: 'imp', text: r.withheld ? 'details withheld' : cap(impLabel(r.impact)) }), novChip(r)]);
+      el('span', { class: 'imp', text: r.withheld ? 'details withheld' : cap(impLabel(r.impact)) }), novChip(r),
+      r.n11 ? el('span', { class: 'n11', text: N11_LABEL }) : null]);
     const title = el('span', { class: 'card-title', text: r.title });
     const main = r.doc ? el('a', { class: 'card-main', href: r.doc, 'data-tipid': r.id }, [meta, title])
       : el('div', { class: 'card-main', tabindex: r.withheld ? null : '0', 'data-tipid': r.id, role: 'group',
@@ -838,6 +859,7 @@ a.card-main:hover .card-title{text-decoration:underline;text-decoration-color:va
       ['', prioLabel(r.priority) + ' priority' + (r.rank ? ' (rank ' + fmt(r.rank) + ')' : '') + ' · ' + cap(impLabel(r.impact)) + ' · ' + (r.known ? 'Known' : 'New')]];
     if (r.introduced || r.introduced_date) out.push(['', 'Introduced in: ' + [r.introduced, r.introduced_date].filter(Boolean).join(' · ')]);
     if (r.affected) out.push(['', 'Affected releases: ' + r.affected]);
+    if (r.n11) out.push(['', N11_FACT]);
     out.push(['', 'Upstream: ' + (upLabel(r) || '—') + (r.ref ? ' (' + refLabel(r.ref) + ')' : '')]);
     if (r.summary) out.push(['', brief1(r.summary)]);
     out.push(['tm', r.doc ? 'Click to open the explainer' : 'No explainer page yet']);
@@ -894,7 +916,7 @@ a.card-main:hover .card-title{text-decoration:underline;text-decoration-color:va
     const what = s.novelty === 'all' ? many(rows.length, 'finding', 'findings') + ' (' + fmt(nn) + ' new, ' + fmt(rows.length - nn) + ' already known)'
       : s.novelty === 'known' ? many(rows.length, 'already known finding', 'already known findings') : many(rows.length, 'new finding', 'new findings');
     const pr = s.priority === 'medium-up' ? ' of medium or high priority' : s.priority ? ' of ' + s.priority + ' priority' : '';
-    return 'Counting ' + what + pr + ' in this view.' + (held ? ' ' + many(held, 'of them has', 'of them have') + ' details withheld: ' +
+    return 'Counting ' + what + pr + (s.new11 ? ' that are new in 11.0' : '') + ' in this view.' + (held ? ' ' + many(held, 'of them has', 'of them have') + ' details withheld: ' +
       (held === 1 ? 'it is' : 'they are') + ' listed and counted in Total, without an impact class, tag or class.' : '');
   }
   function activeChips(s) {
@@ -913,7 +935,7 @@ a.card-main:hover .card-title{text-decoration:underline;text-decoration-color:va
     const b = base(s), listed = b.filter(zoomTest(s)), extra = b.extra && listed.includes(b.extra) ? b.extra : null;
     const scope = extra ? listed.filter(r => r !== extra) : listed, groups = gridRows(s, scope), hs = hotspots(scope);
     CUR = { groups, scope };
-    const extraNote = extra ? extra.id + (extraWhy(extra) ? ' (' + extraWhy(extra) + ')' : '') : '';
+    const extraNote = extra ? extra.id + (extraWhy(extra, s) ? ' (' + extraWhy(extra, s) + ')' : '') : '';
     const lv = level(s), gl = GROUPS.find(x => x[0] === s.group)[1];
     // controls
     PRESETS.forEach(p => { const i = $('x-pre-' + p[0]); if (i) i.checked = s.novelty === p[2] && s.priority === p[3]; });
@@ -921,6 +943,10 @@ a.card-main:hover .card-title{text-decoration:underline;text-decoration-color:va
     syncArea(s);
     if ($('x-q').value !== s.q) $('x-q').value = s.q;
     GROUPS.forEach(g => { const i = $('x-group-' + g[0]); if (i) i.checked = s.group === g[0]; });
+    // the new-in-11.0 toggle: shown while a finding has the flag; its count is the view's (base: rows.n11)
+    $('x-new11-wrap').hidden = !has11();
+    $('x-new11').checked = s.new11;
+    $('x-new11-label').textContent = N11_FILTER + ' (' + fmt(b.n11) + ')';
     chips('x-aspects', [...ASP_ON].sort((x, y) => aspLabel(x).localeCompare(aspLabel(y))), s.aspects, aspLabel, 'aspect', b, r => r.aspects);
     $('x-asp-n').textContent = s.aspects.length ? ' (' + s.aspects.length + ' chosen' + (s.aspects.length > 1 ? ', ' + s.aspectMode : '') + ')' : '';
     chips('x-features', [...FEAT_ON].sort((x, y) => featLabel(x).localeCompare(featLabel(y))), s.features, featLabel, 'feature', b, r => r.features);
@@ -1038,6 +1064,7 @@ a.card-main:hover .card-title{text-decoration:underline;text-decoration-color:va
     $('x-impact').addEventListener('change', e => { const t = clone(S); t.impact = e.target.value; t.bad = t.bad.filter(b => b[0] !== 'impact' && b[0] !== 'class'); go(refit(t)); });
     $('x-status').addEventListener('change', e => { const t = clone(S); t.status = e.target.value; t.bad = t.bad.filter(b => b[0] !== 'status'); t.foreign = t.foreign.filter(f => f[0] !== 'status'); go(refit(t)); });
     $('x-area').addEventListener('change', e => { const t = clone(S); t.area = e.target.value; t.bad = t.bad.filter(b => b[0] !== 'area'); go(refit(t)); });
+    $('x-new11').addEventListener('change', e => { const t = clone(S); t.new11 = e.target.checked; t.bad = t.bad.filter(b => b[0] !== 'new11'); go(refit(t)); });
     $('x-q').addEventListener('input', e => {
       const t = clone(S); t.q = e.target.value.slice(0, URL_MAX); S = refit(t);
       clearTimeout(HIST.timer); HIST.timer = setTimeout(() => settleSearch(false), 400);

@@ -19,6 +19,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [brazilian-stemmer-step2-ira-branch-removes-ava](brazilian-stemmer-step2-ira-branch-removes-ava/) | Python | LFV-1384 |
 | [bulk-overload-precondition-matrix](bulk-overload-precondition-matrix/) | Python | LFV-475 |
 | [bytebuffers-output-block-expansion-recycler-and-view-aliasing](bytebuffers-output-block-expansion-recycler-and-view-aliasing/) | TLA+/TLC | LFV-836 |
+| [casefoldingfilter-in-place-fold](casefoldingfilter-in-place-fold/) | Python | LFV-1520 |
 | [cjk-compiled-dictionary-source-round-trip](cjk-compiled-dictionary-source-round-trip/) | Python | LFV-717, LFV-710 |
 | [classic-highlighter-simple-fragmenter-no-catch-up-after-offset-gap](classic-highlighter-simple-fragmenter-no-catch-up-after-offset-gap/) | Python | LFV-1367 |
 | [classification](classification/) | Python | LFV-382, LFV-380, LFV-395, LFV-388 |
@@ -40,6 +41,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [docandscorequery-public-factory-count-and-iterator-contracts](docandscorequery-public-factory-count-and-iterator-contracts/) | Python | LFV-955 |
 | [docterms-range-scorer-float-ordinals-above-2p24](docterms-range-scorer-float-ordinals-above-2p24/) | Python | LFV-1108 |
 | [document-field-factories](document-field-factories/) | Python | LFV-140 |
+| [documented-legal-values-vs-code](documented-legal-values-vs-code/) | Python | LFV-1498 |
 | [docvaluesstats-sorted-double-stats-decode-sortable-doubles-as-raw-bits](docvaluesstats-sorted-double-stats-decode-sortable-doubles-as-raw-bits/) | Python | LFV-1129 |
 | [dv-norms-cursor-coherence](dv-norms-cursor-coherence/) | Python | LFV-415, LFV-419, LFV-418 |
 | [dv-overlays](dv-overlays/) | TLA+/TLC | LFV-110 |
@@ -84,6 +86,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [indexingchain-schema](indexingchain-schema/) | Alloy, Python | LFV-118, LFV-116, LFV-127, LFV-124 |
 | [indexrearranger-and-pkindexsplitter-failed-run-cleanup](indexrearranger-and-pkindexsplitter-failed-run-cleanup/) | Python | LFV-1011 |
 | [indexsorted-leaf-delegate-points-work-after-mixed-leaf](indexsorted-leaf-delegate-points-work-after-mixed-leaf/) | TLA+/TLC | LFV-1088 |
+| [indexwriter-adds-after-failed-deleteall](indexwriter-adds-after-failed-deleteall/) | Python | LFV-1531 |
 | [indri-query-family-composite-score-boost-visitor-explain-laws](indri-query-family-composite-score-boost-visitor-explain-laws/) | Python | LFV-874, LFV-872, LFV-871, LFV-875 |
 | [iw-addindexes-merge-source-tla](iw-addindexes-merge-source-tla/) | TLA+/TLC | LFV-1074, LFV-629, LFV-632 |
 | [iw-blocking-calls-watchdog-failure-visibility](iw-blocking-calls-watchdog-failure-visibility/) | TLA+/TLC | LFV-648 |
@@ -146,6 +149,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [sortednumeric-double-float-sortable-vs-raw-decoding-facet-and-join](sortednumeric-double-float-sortable-vs-raw-decoding-facet-and-join/) | Python | LFV-1111 |
 | [sortednumeric-dv-update](sortednumeric-dv-update/) | Alloy | LFV-134 |
 | [sorters-selectors](sorters-selectors/) | Python | LFV-372 |
+| [sortingcodecreader-binary-docvalues-2gib-copy](sortingcodecreader-binary-docvalues-2gib-copy/) | Python | LFV-1486 |
 | [span-containing-within-lockstep-misses-nested-little-spans](span-containing-within-lockstep-misses-nested-little-spans/) | TLA+/TLC | LFV-909 |
 | [spatial-extras](spatial-extras/) | Python | LFV-369 |
 | [spatial-extras-composite-and-prefix-tree-query-cross-check](spatial-extras-composite-and-prefix-tree-query-cross-check/) | Python | LFV-705 |
@@ -164,11 +168,14 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [study-similarity-impacts-smt](study-similarity-impacts-smt/) | Python | LFV-063, LFV-072, LFV-073 |
 | [study-topk-pruning-proof](study-topk-pruning-proof/) | SMT-LIB (Z3/cvc5), Dafny, Python | LFV-060 |
 | [subtoken-offset-containment-sweep](subtoken-offset-containment-sweep/) | Python | LFV-603 |
+| [success-flag-refactors-cleanup-behaviour](success-flag-refactors-cleanup-behaviour/) | Python | LFV-1506 |
 | [suggester-lookup-num-overflow-and-presize](suggester-lookup-num-overflow-and-presize/) | Python | LFV-999, LFV-998, LFV-1003 |
 | [suggesters](suggesters/) | TLA+/TLC | LFV-263 |
 | [taxonomy-index-pair-tla](taxonomy-index-pair-tla/) | TLA+/TLC | LFV-481, LFV-489 |
 | [taxonomy-writer-concurrent-add](taxonomy-writer-concurrent-add/) | TLA+/TLC | LFV-521, LFV-520, LFV-512 |
+| [termautomatonquery-non-scoring-use](termautomatonquery-non-scoring-use/) | Python | LFV-1514 |
 | [termvectors-compressing](termvectors-compressing/) | Python | LFV-244 |
+| [tests-gui-build-option-not-passed-to-test-jvm](tests-gui-build-option-not-passed-to-test-jvm/) | Python | LFV-1522 |
 | [timeout-partial-results](timeout-partial-results/) | Python | LFV-465 |
 | [trydvupdate-bypasses-ram-buffer-unbounded-heap](trydvupdate-bypasses-ram-buffer-unbounded-heap/) | Python | LFV-1075 |
 | [twin-family-static-diff](twin-family-static-diff/) | Python | LFV-427 |

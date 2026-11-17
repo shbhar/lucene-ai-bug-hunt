@@ -21,7 +21,7 @@ You group with GroupingSearch and set a group sort or within-group sort that dep
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces (the repro adapted to an API change on this commit).
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces (the repro adapted to an API change on this commit). The change: #16962 made the no-argument MatchAllDocsQuery constructor private on main (24d9e7d1a0d) and on the 11.0 branch (branch_11x, a6a26f9b251), so replace new MatchAllDocsQuery() with MatchAllDocsQuery.INSTANCE before you compile the test there.
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
 - On 9.1 to 9.12, GroupDocs has public fields: write scoreDocs and groupSortValues instead of scoreDocs() and groupSortValues() (two lines).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
@@ -46,7 +46,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.search.grouping.TestGroupingSearchRewritesSorts
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Files shown on the finding page
 

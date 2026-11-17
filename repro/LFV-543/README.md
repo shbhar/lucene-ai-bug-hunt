@@ -1,4 +1,4 @@
-# On main, CheckIndex's HNSW graph test reports valid segments written by Lucene 9.12.0-9.12.1 and 10.0.0-10.1.0 as broken ('has repeated neighbors'), because the check has no version gate
+# On main and branch_11x, CheckIndex's HNSW graph test reports valid segments written by Lucene 9.12.0-9.12.1 and 10.0.0-10.1.0 as broken ('has repeated neighbors'), because the check has no version gate
 
 Finding LFV-543 · Area: index / CheckIndex HNSW graph check · Priority: low · Impact: wrong error · Novelty: known upstream
 
@@ -20,7 +20,7 @@ You open, on Lucene main, an index that Lucene 9.12.0, 9.12.1, 10.0.0 or 10.1.0 
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
 - Fixtures: the test reads repeated-neighbors.9.12.0.zip, repeated-neighbors.10.0.0.zip and repeated-neighbors.10.1.0.zip, indexes of 1,000 one-dimensional vectors written by those releases whose HNSW graphs list a neighbour twice, from its package on the class path. This site ships no binary index files, so the recipe first makes them with fixture-src/DupGen3.java and each release's lucene-core jar (Maven Central): it tries seeds 0 to 99 and keeps the first index with a repeated neighbour, and the zips go to src/, which the run puts on the class path; without them every test fails for another reason.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
@@ -52,7 +52,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.index.TestCheckIndexOldGraphRepeatedNeighbors
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Feedback
 

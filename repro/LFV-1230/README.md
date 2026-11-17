@@ -21,7 +21,7 @@ You open a field written with the legacy Lucene99 scalar-quantized HNSW format (
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced.
 - Helpers: the test uses three unchanged classes of Lucene's own backward-codecs test sources that the release jars do not contain (Lucene99RWV1HnswScalarQuantizationVectorsFormat, Lucene99RWScalarQuantizedVectorsFormat and Lucene99ScalarQuantizedVectorsWriter), so the recipe first copies them from lucene/backward-codecs/src/test/org/apache/lucene/backward_codecs/lucene99/ of the checkout into src/ here, where they compile with the test.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
@@ -48,7 +48,7 @@ java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=A
      execute --select-class org.apache.lucene.backward_codecs.lucene99.TestLucene99SQQueryDimensionMessage
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Files shown on the finding page
 

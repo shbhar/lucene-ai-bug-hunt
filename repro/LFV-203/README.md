@@ -1,6 +1,6 @@
-# FunctionScoreQuery scores negative values as 0, but its block-max bound stays negative, so top-k search skips competitive documents
+# FunctionScoreQuery over a skip-indexed doc-values field scores negative values as 0, but its block-max bound stays negative, so the top-k search of a BooleanQuery that has it as a scoring clause can skip competitive documents or, next to another scoring clause, not return (main and branch_11x, both unreleased)
 
-Finding LFV-203 · Area: queries / FunctionScoreQuery block-max pruning (#16431) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-203 · Area: queries / FunctionScoreQuery block-max pruning (#16431) · Priority: medium · Impact: silent wrong results · Novelty: new
 
 Finding page: [../../bugs/LFV-203.html](../../bugs/LFV-203.html)
 
@@ -22,9 +22,10 @@ Expected `IndexSearcher.search(q, 1)` to return the document (term score + 0); a
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- This folder holds the registered repro, which shows the missing hit (one document with delta = -1000). The tests of the second consequence in the title, a search that does not return, are not shipped here: one document with delta = -1 and the term clause boosted by 10 (update of 2026-11-15); 6,000 or 1,002 documents with two SHOULD function clauses, where the minimum competitive score is already positive and the search does not return with assertions on either (update of 2026-11-16; in the runs that did not return, the size of the negative bound was between about 1 billion and about 10^15 times that score); and 4,097 documents with two MUST function clauses, the clause over the negative field written second, where the search does not return with assertions on or off (second part of that update). The finding page quotes the 1,002-document and the 4,097-document test in full, with their commands and output, in its collapsed block "Mechanism, terms and numbers" ("Shape 2" and "Shape 3"), and describes the one-document and the 6,000-document test there ("Shape 1" and "Shape 2"); the Affected versions text of its finding record gives the shape of each.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -46,7 +47,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.queries.function.TestFunctionScoreQueryNegativeValueMaxScore
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 Formal models and scripts this finding's part of the hunt used: [../../models/function-queries-bmw/](../../models/function-queries-bmw/)
 

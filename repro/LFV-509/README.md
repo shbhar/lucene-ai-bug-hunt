@@ -6,12 +6,12 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You configure IndexWriter with new SoftDeletesRetentionMergePolicy(field, query, new BPReorderingMergePolicy(base, reorderer)) to keep soft-deleted history and to reorder doc IDs on merge, then call forceMerge or let natural merges run. You expect the merged segments to be reordered, as BPReorderingMergePolicy documents for all forced merges and as the reverse nesting does on the same documents. Instead the retention policy replaces each merge with a new OneMerge that forwards only wrapForMerge, so IndexWriter's call to reorder() reaches the default that returns null: the merged segment silently keeps its original doc order and carries no bp.reordered diagnostic.
+Since #16571 (main 354165bd7d9, 2026-11-12; also on branch_11x) only the missing bp.reordered diagnostic is left of this defect; releases 9.9.0 to 10.6.0 have all of it. On those releases you configure IndexWriter with new SoftDeletesRetentionMergePolicy(field, query, new BPReorderingMergePolicy(base, reorderer)) to keep soft-deleted history and to reorder doc IDs on merge, then call forceMerge or let natural merges run. You expect the merged segments to be reordered, as BPReorderingMergePolicy documents for all forced merges and as the reverse nesting does on the same documents. Instead the retention policy replaces each merge with a new OneMerge that forwards only wrapForMerge, so IndexWriter's call to reorder() reaches the default that returns null: the merged segment silently keeps its original doc order and carries no bp.reordered diagnostic (on main since #16571, and on branch_11x, the merge is reordered again and only the diagnostic is still missing).
 
 ## Expected vs actual
 
 - Expected: You expect the merged segments to be reordered, as BPReorderingMergePolicy documents for all forced merges and as the reverse nesting does on the same documents.
-- Actual: The retention policy replaces each merge with a new OneMerge that forwards only wrapForMerge, so IndexWriter's call to reorder() reaches the default that returns null: the merged segment silently keeps its original doc order and carries no bp.reordered diagnostic.
+- Actual: The retention policy replaces each merge with a new OneMerge that forwards only wrapForMerge, so IndexWriter's call to reorder() reaches the default that returns null: the merged segment silently keeps its original doc order and carries no bp.reordered diagnostic (on main since #16571, and on branch_11x, the merge is reordered again and only the diagnostic is still missing).
 
 ## Files
 
@@ -19,7 +19,8 @@ You configure IndexWriter with new SoftDeletesRetentionMergePolicy(field, query,
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces (the repro adapted to an API change on this commit).
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still fails 2 of 3, with and without assertions, in the narrower form the next line describes (run with the test adapted as that line says).
+- Tested on Lucene main 781025d6fe32 (2026-11-13): still fails 2 of 3, with and without assertions, but narrower than on the releases: since 354165bd7d9 (#16571) the forced merge is reordered again, and only the bp.reordered diagnostic and the setMergeInfo, mergeInit and mergeFinished calls on the wrapped merge are still missing (run with the test adapted to #16962, which made the no-argument MatchAllDocsQuery constructor private on main (24d9e7d1a0d) and on the 11.0 branch (branch_11x, a6a26f9b251): three lines pass a lambda returning MatchAllDocsQuery.INSTANCE instead of MatchAllDocsQuery::new).
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
@@ -42,7 +43,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.misc.index.TestSoftDeletesRetentionDropsReorder
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Feedback
 

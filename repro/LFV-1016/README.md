@@ -19,8 +19,10 @@ You run IndexSearcher.search(q, 10) on a 3-document index, where q ORs a clause 
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces (the repro adapted to an API change on this commit).
-- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still fails 5 of 5 without assertions and 2 of 5 with assertions, the two direct calls of ScorerUtil.minRequiredScore (run on 2026-11-17 with the test adapted as the next line says); the re-run of 2026-11-16 on this commit ran another test of this finding, a one-test class that is not in this folder (the BooleanQuery search on a 3-document index, with MatchAllDocsQuery.INSTANCE): it passed with assertions on and failed with them off, the search not returning within 10 s.
+- Tested on Lucene main 781025d6fe32 (2026-11-13): still fails 5 of 5 without assertions and 2 of 5 with assertions, the two direct calls of ScorerUtil.minRequiredScore (run with the test adapted to #16962, which made the no-argument MatchAllDocsQuery constructor private on main (24d9e7d1a0d) and on the 11.0 branch (branch_11x, a6a26f9b251): lines 130 and 157 pass MatchAllDocsQuery.INSTANCE instead of new MatchAllDocsQuery()).
+- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced, with the test as shipped.
+- The runs of the five tests on 9965d34e3c77 and 781025d6fe32 took one test per JVM, with --select-method org.apache.lucene.search.TestMinRequiredScoreTermination#testBooleanQueryWithMisbehavingClauseTerminates (and so on for the other four tests) in place of --select-class: a call that does not return leaves its thread running until the JVM exits. The command block runs the five tests in one JVM, as the run on 645d4fe14a20 did.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,7 +43,7 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
      execute --select-class org.apache.lucene.search.TestMinRequiredScoreTermination
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 Formal models and scripts this finding's part of the hunt used: [../../models/rescoretopn-negative-rescore-values-maxscore-hang/](../../models/rescoretopn-negative-rescore-values-maxscore-hang/)
 

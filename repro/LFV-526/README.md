@@ -2,7 +2,7 @@
 
 Finding LFV-526 · Area: analysis-common / pattern tokenizers (SimplePatternTokenizer String constructors) · Priority: medium · Impact: crash · Novelty: known outside Lucene
 
-AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by John Wagster (john-wagster; issue #16999 and open PR #17001, an independent report and fix, later than our listing) on 2026-11-06 (https://github.com/apache/lucene/pull/17001). Issue #16999 (2026-11-06) reports this defect, found through a downstream simple_pattern tokenizer (elastic/elasticsearch#164857, 2026-11-05), and open PR #17001 (head 30272b603518, no review yet) determinizes with determinizeWorkLimit, as SimplePatternSplitTokenizer does. Neither cites this list. Our repro passes with the PR's SimplePatternTokenizer.java on main f794ff5a505c (-ea and -da) and fails without it. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by John Wagster (john-wagster; issue #16999 and open PR #17001, an independent report and fix, later than our listing) on 2026-11-06 (https://github.com/apache/lucene/pull/17001). Issue #16999 (john-wagster, 2026-11-06) reports this defect, found through a downstream simple_pattern tokenizer (elastic/elasticsearch#164857, 2026-11-05). Open PR #17001 (same author and day; no milestone, CI green and approved by rmuir on 2026-11-16) changes SimplePatternTokenizer, SimplePatternSplitTokenizer and their two factories; it removes both tokenizers' three-argument String constructor and the factories' determinizeWorkLimit argument. Neither cites this list. rmuir (Member) commented on 2026-11-12; the author replied on 2026-11-14 and pushed a second commit on 2026-11-16. Sent through the one-argument String constructor, the repro's two patterns return the expected tokens on a build of that commit and fail on main 781025d6fe32, with and without assertions. The recorded repro uses the three-argument constructor, which the PR removes, so it does not compile against that build. This site files nothing upstream.
 
 ## What it shows
 
@@ -19,7 +19,7 @@ You build a tokenizer with new SimplePatternTokenizer("ab|ac") (or the three-arg
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
@@ -42,7 +42,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.analysis.pattern.TestSimplePatternTokenizerStringCtor
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Feedback
 

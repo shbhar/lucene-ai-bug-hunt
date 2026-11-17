@@ -8,12 +8,12 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-The LeafCollector class javadoc explains that collect() receives segment-relative doc IDs and shows 'a simple example showing how to collect docIDs into a BitSet' with an anonymous Collector and LeafCollector. Copied into code on any current release it does not compile: the anonymous Collector does not implement the abstract scoreMode() (needsScores() from 5.1.0 to 7.x), and the anonymous LeafCollector does not implement setScorer(Scorable), because the example's setScorer(Scorer) has only been an overload since 8.0.0. With scoreMode() returning ScoreMode.COMPLETE_NO_SCORES and a Scorable parameter the example compiles and collects exactly the expected global doc IDs, so only the javadoc is wrong.
+The LeafCollector class javadoc explains that collect() receives segment-relative doc IDs and shows 'a simple example showing how to collect docIDs into a BitSet' with an anonymous Collector and LeafCollector. Copied into code on any current release it does not compile: the anonymous Collector does not implement the abstract scoreMode() (needsScores() from 5.1.0 to 7.x), and the anonymous LeafCollector does not implement setScorer(Scorable), because the example's setScorer(Scorer) has only been an overload since 8.0.0. With scoreMode() returning ScoreMode.COMPLETE_NO_SCORES and a Scorable parameter the example compiles and collects exactly the expected global doc IDs, so only the javadoc is wrong. On main, #16805 (e0a3a951e7e, merged on 2026-11-09, not on branch_11x) removed IndexSearcher.search(Query, Collector), which the example calls: since then javac reports a third error there, and the corrected example compiles on main only without that call (run on main 781025d6fe32).
 
 ## Expected vs actual
 
-- Expected: The example compiles, as it did on 5.0.0 and as the corrected example does on main.
-- Actual: javac reports 2 errors: `<anonymous Example$1>` does not override abstract method `scoreMode()` in `Collector`, and `<anonymous Example$1$1>` does not override abstract method `setScorer(Scorable)` in `LeafCollector`; the same with assertions off.
+- Expected: The example compiles, as it did on 5.0.0 and as the corrected example does on 10.6.0 and on branch_11x. On main since #16805 (merged on 2026-11-09) the corrected example compiles only without its `search(Query, Collector)` call.
+- Actual: javac reports 2 errors: `<anonymous Example$1>` does not override abstract method `scoreMode()` in `Collector`, and `<anonymous Example$1$1>` does not override abstract method `setScorer(Scorable)` in `LeafCollector`. On main since #16805 (run on `781025d6fe32`) there is a third error, for the `search(Query, Collector)` call: no suitable method found. The same with assertions off.
 
 ## Files
 
@@ -21,7 +21,7 @@ The LeafCollector class javadoc explains that collect() receives segment-relativ
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
@@ -43,7 +43,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.search.TestLeafCollectorJavadocExample
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Files shown on the finding page
 

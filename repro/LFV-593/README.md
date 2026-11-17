@@ -2,7 +2,7 @@
 
 Finding LFV-593 · Area: index / IndexWriter construction from a near-real-time reader (ReaderPool pre-enrollment, PendingSoftDeletes reader constructor, soft-deletes accounting) · Priority: medium · Impact: data corruption · Novelty: known upstream
 
-AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by diwu-sf (open PR #16996; an independent fix, later than our listing) on 2026-11-06 (https://github.com/apache/lucene/pull/16996). Open PR #16996 (created 2026-11-06, head d4be814cd3e0, no review yet) fixes the delete counts of a writer opened from an NRT reader's commit with soft deletes. Its author found it while adding soft deletes to a test in #16923. Our four-test repro passes with the PR's two changed source files applied to main 5adff78bb168, with and without assertions. It does not cite this list. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by diwu-sf (open PR #16996; an independent fix, later than our listing) on 2026-11-06 (https://github.com/apache/lucene/pull/16996). Open PR #16996 (diwu-sf, opened 2026-11-06; head 0bfde549724d of 2026-11-10; no milestone; no comment or review as of 2026-11-14) fixes the delete counts of a writer opened from an NRT reader's commit with soft deletes. Its author found it while adding soft deletes to a test in #16923. On a build of the head our four-test repro and the row's other repro classes pass and the two controls still pass, with and without assertions; the repro fails 4 of 4 on main 781025d6fe32. Without its two source changes 5 of the 18 tests in its two test classes fail. Its text says that #17003 needs this fix on such a writer. It does not cite this list. This site files nothing upstream.
 
 ## What it shows
 
@@ -19,7 +19,7 @@ You configure a soft-deletes field, soft-delete one document (for example with a
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
@@ -41,7 +41,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.index.TestWriterFromSoftDeletesNrtReader
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Feedback
 

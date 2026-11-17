@@ -23,7 +23,7 @@ Expected the merged segment's docs, in pairs, to be the blocks `[c0p0, c1p1, c2p
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - Fixture: the test reads blocks.9.8.0.zip, an index of 3 blocks (a child and its parent) in 2 segments written by Lucene 9.8.0, from its package on the class path. This site ships no binary index files, so the recipe first makes it with fixture-src/MakePre99BlockIndex.java and lucene-core-9.8.0.jar (Maven Central) and puts it in src/, which the run puts on the class path; without it the test fails for another reason.
@@ -54,7 +54,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.misc.index.TestReorderPre99Blocks
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Feedback
 

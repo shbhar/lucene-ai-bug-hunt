@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FunctionScoreQuery scores negative values as 0, but its block-max bound stays negative, so top-k search skips competitive documents (LFV-203)</title><style>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FunctionScoreQuery over a skip-indexed doc-values field scores negative values as 0, but its block-max bound stays negative, so the top-k search of a BooleanQuery that has it as a scoring clause can skip competitive documents or, next to another scoring clause, not return (main and branch_11x, both unreleased) (LFV-203)</title><style>
 :root{--fg:#1d2329;--dim:#5a6570;--line:#d8dee4;--bg:#fff;--soft:#f5f7f9;--link:#0b5cad}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
 font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
@@ -17,8 +17,8 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 .scroll{overflow-x:auto}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
-</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>FunctionScoreQuery scores negative values as 0, but its block-max bound stays negative, so top-k search skips competitive documents</h1>
-<p class="facts small"><span>Finding LFV-203</span><span>Area: queries / FunctionScoreQuery block-max pruning (#16431)</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>FunctionScoreQuery over a skip-indexed doc-values field scores negative values as 0, but its block-max bound stays negative, so the top-k search of a BooleanQuery that has it as a scoring clause can skip competitive documents or, next to another scoring clause, not return (main and branch_11x, both unreleased)</h1>
+<p class="facts small"><span>Finding LFV-203</span><span>Area: queries / FunctionScoreQuery block-max pruning (#16431)</span><span>Priority: medium</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
 <p><a href="../../bugs/LFV-203.html">Finding page for LFV-203</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
@@ -29,9 +29,10 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/queries/function/TestFunctionScoreQueryNegativeValueMaxScore.java"><code>src/org/apache/lucene/queries/function/TestFunctionScoreQueryNegativeValueMaxScore.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.</li>
+<li>Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.</li>
 <li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
 <li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
+<li>This folder holds the registered repro, which shows the missing hit (one document with delta = -1000). The tests of the second consequence in the title, a search that does not return, are not shipped here: one document with delta = -1 and the term clause boosted by 10 (update of 2026-11-15); 6,000 or 1,002 documents with two SHOULD function clauses, where the minimum competitive score is already positive and the search does not return with assertions on either (update of 2026-11-16; in the runs that did not return, the size of the negative bound was between about 1 billion and about 10^15 times that score); and 4,097 documents with two MUST function clauses, the clause over the negative field written second, where the search does not return with assertions on or off (second part of that update). The finding page quotes the 1,002-document and the 4,097-document test in full, with their commands and output, in its collapsed block &quot;Mechanism, terms and numbers&quot; (&quot;Shape 2&quot; and &quot;Shape 3&quot;), and describes the one-document and the 6,000-document test there (&quot;Shape 1&quot; and &quot;Shape 2&quot;); the Affected versions text of its finding record gives the shape of each.</li>
 <li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -49,6 +50,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.queries.function.TestFunctionScoreQueryNegativeValueMaxScore</code></pre>
-<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
+<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on the 11.0 branch the build takes the default from the seed).</p>
 <p>Formal models and scripts this finding's part of the hunt used: <a href="../../models/function-queries-bmw/index.html">function-queries-bmw</a></p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-10. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-17. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

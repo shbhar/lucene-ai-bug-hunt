@@ -21,6 +21,7 @@ An application indexes with a stored-fields format built on the public Lucene90C
 
 ## Run it
 
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main f794ff5a505c (2026-11-06): reproduced.
 - This test fails only with assertions enabled: run the java command below with -ea -esa -Dtests.asserts=true in place of -da -dsa -Dtests.asserts=false. With assertions off it passes, because the bulk copy itself is correct.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
@@ -43,7 +44,7 @@ java -da -dsa -Dtests.asserts=false -Xmx1g --add-modules jdk.incubator.vector --
      execute --select-class org.apache.lucene.codecs.lucene90.compressing.TestBulkMergeDirtyChunkMaxDocs
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Files shown on the finding page
 

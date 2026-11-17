@@ -4,7 +4,7 @@ Finding LFV-013 · Area: index / doc-values updates · Priority: medium · Impac
 
 Finding page: [../../bugs/LFV-013.html](../../bugs/LFV-013.html)
 
-AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by Jim Ferenczi (Lucene PMC; open PR #16989) on 2026-11-06 (https://github.com/apache/lucene/pull/16989). PR #16989 (jimczi, open, head ed11f35a1cfe) references this bug. It makes ReadersAndUpdates register a doc-values-update field only when an update applies in this generation, and adds our minimal repro unchanged as TestMergeDuringUnfinishedDocValuesUpdate. It is in the 10.6.1 milestone; kkewwei approved it on 2026-11-07, no committer review yet. Our minimal repro passes with the PR's changed source file shadowed on main f794ff5a505c, with and without assertions, and fails on stock f794ff5a505c (2026-11-08). This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fixed, by Jim Ferenczi (Lucene PMC; PR #16989, merged 2026-11-09) on 2026-11-09 (https://github.com/apache/lucene/pull/16989). Jim Ferenczi fixed it in PR #16989 (opened 2026-11-06, approved by kkewwei on 2026-11-07, merged into main on 2026-11-09 as fa859ba65f6) and cherry-picked the fix to branch_11x and branch_10_6 the same day. ReadersAndUpdates now registers a doc-values-update field that is new to a segment only when one of its pending updates applies in this generation. The PR says the bug was found via this list (#16937) and names LFV-013. It adds our minimal repro as TestMergeDuringUnfinishedDocValuesUpdate, with added checks that the merged index keeps both updates. Our repro passes on main 781025d6fe32 with and without assertions and fails again when only the fix is reverted. The other update kinds, soft deletes, a reader opened during the update, addIndexes of that reader and a background merge are fixed too. First fixed releases: 10.6.1 and 11.0.0, both unreleased as of 2026-11-14. This site files nothing upstream.
 
 ## What it shows
 
@@ -22,7 +22,6 @@ Expected `maybeMerge()` to succeed; actual: `NullPointerException ... "this.curr
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
@@ -30,7 +29,7 @@ Expected `maybeMerge()` to succeed; actual: `NullPointerException ... "this.curr
 
 ```bash
 # Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
-LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
+LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
@@ -45,7 +44,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.index.TestMergeDuringUnfinishedDocValuesUpdate
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Feedback
 

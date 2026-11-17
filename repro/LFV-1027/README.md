@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-The org.apache.lucene.util.fst package overview shows five usage examples (build an FST, look up by key, look up by value, iterate in sorted order, N-shortest paths) and the values they print. Copied into code on any release since 9.0.0 they do not compile: Util.getByOutput was removed in 9.0.0 (LUCENE-8638, which deleted the page's link to it but kept the code block), the public FSTCompiler(INPUT_TYPE, Outputs) constructor was removed in 9.9.0 (#12715; FSTCompiler.Builder is the API), and Util.Result became a record in 10.0.0 (#13328), so '.input' and '.output' are private and need input() and output(). With those three edits, dropping the lookup-by-value block because it has no replacement, the examples compile on main and print exactly the documented values, so only the javadoc is wrong.
+The org.apache.lucene.util.fst package overview shows five usage examples (build an FST, look up by key, look up by value, iterate in sorted order, N-shortest paths) and the values they print. Copied into code on any release since 9.0.0 they do not compile: Util.getByOutput was removed in 9.0.0 (LUCENE-8638, which deleted the page's link to it but kept the code block), the public FSTCompiler(INPUT_TYPE, Outputs) constructor was removed in 9.9.0 (#12715; FSTCompiler.Builder is the API), and Util.Result became a record in 10.0.0 (#13328), so '.input' and '.output' are private and need input() and output(). With those three edits, dropping the lookup-by-value block because it has no named replacement, the examples compile on main and print the values in the page's comments, with the iteration's sorted pairs in between, so only the javadoc is wrong.
 
 ## Expected vs actual
 
@@ -21,7 +21,7 @@ The org.apache.lucene.util.fst package overview shows five usage examples (build
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
@@ -43,7 +43,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.util.fst.TestFstPackageExamples
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Files shown on the finding page
 

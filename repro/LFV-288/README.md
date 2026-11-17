@@ -4,7 +4,7 @@ Finding LFV-288 · Area: highlighter / UnifiedHighlighter builder and highlight 
 
 Finding page: [../../bugs/LFV-288.html](../../bugs/LFV-288.html)
 
-AI-assisted finding, confirmed by automated checks. Upstream status: Fixed, by Christoph Büscher (PR #16983, approved by Luca Cavanna; an independent fix, later than our listing) on 2026-11-04 (https://github.com/apache/lucene/pull/16983). Fixed on main by #16983 (Christoph Büscher; approved and merged by Luca Cavanna on 2026-11-04, milestone 11.0.0) and on branch_11x (e01ea7c7829). Luca Cavanna had asked in the review of #16975 whether ignoring the flags was intended; Christoph Büscher found it already broken on main and fixed it separately in #16983. The PR does not cite this list. Not on branch_10_6 (head 5deb5791f6c, 2026-11-08), so 10.6.x keeps the bug. Novelty stays new (owner decision 2026-11-04: listed publicly 2026-10-27, the fix came later and independently). This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fixed, by Christoph Büscher (PR #16983, approved by Luca Cavanna; an independent fix, later than our listing) on 2026-11-04 (https://github.com/apache/lucene/pull/16983). Fixed on main by #16983 (Christoph Büscher; approved and merged by Luca Cavanna on 2026-11-04, milestone 11.0.0) and on branch_11x (e01ea7c7829). Luca Cavanna had asked in the review of #16975 whether ignoring the flags was intended; Christoph Büscher found it already broken on main and fixed it separately in #16983. The PR does not cite this list. Not on branch_10_6 (head 5deb5791f6c, 2026-11-08), so 10.6.x keeps the bug. Novelty stays new: listed publicly on 2026-10-27, the fix came later and independently. This site files nothing upstream.
 
 ## What it shows
 
@@ -47,7 +47,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.search.uhighlight.TestUnifiedHighlighterBuilderWithFlags
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Feedback
 

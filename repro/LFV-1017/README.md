@@ -1,4 +1,4 @@
-# On main (11.0), the MIGRATE.md recipe for compound-file settings (iwc.getCodec().compoundFormat().setShouldUseCompoundFile / setMaxCFSSegmentSizeMB) changes the CompoundFormat of the single shared default codec, so one writer's settings silently become the compound-file settings of every other default-codec IndexWriter in the JVM
+# On main and branch_11x (both unreleased), the MIGRATE.md recipe for compound-file settings (iwc.getCodec().compoundFormat().setShouldUseCompoundFile / setMaxCFSSegmentSizeMB) changes the CompoundFormat of the single shared default codec, so one writer's settings silently become the compound-file settings of every other default-codec IndexWriter in the JVM
 
 Finding LFV-1017 · Area: codecs / compound-file settings (CompoundFormat on the shared default codec; MIGRATE.md 11.0 recipe) · Priority: low · Impact: minor · Novelty: known outside Lucene
 
@@ -19,7 +19,7 @@ You follow the 11.0 MIGRATE.md recipe on one writer's fresh IndexWriterConfig (C
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
@@ -41,7 +41,7 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
      execute --select-class org.apache.lucene.index.TestCompoundFormatRecipeScope
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Feedback
 

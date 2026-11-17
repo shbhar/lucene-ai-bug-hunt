@@ -1,4 +1,4 @@
-# An IOException late in a doc-values update write leaves IndexWriter open but inconsistent: published update files are never checkpointed and get deleted while still referenced, and a failed pooled-reader re-open silently drops the update
+# An IOException late in a doc-values update write leaves IndexWriter open but inconsistent: the failed call does not checkpoint the update files it published, so they can be deleted while still referenced, and after a failed pooled-reader re-open the acknowledged update can be missing from later successful commits and from the index after close(), with no further exception
 
 Finding LFV-110 · Area: index / IndexWriter doc-values update write path (ReadersAndUpdates.writeFieldUpdates, the checkpoint after writeReaderPool, IndexFileDeleter reference counts) · Priority: medium · Impact: data corruption · Novelty: new
 
@@ -8,12 +8,12 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You update a doc-values field (updateNumericDocValue, updateBinaryDocValue, or a soft delete) and open an NRT reader, flush or commit, and the doc-values update write throws a non-tragic IOException after the new files were already published into the segment's SegmentCommitInfo (re-opening the writer's pooled segment reader fails, or a second segment's update write in the same batch fails); the writer stays open (isOpen() true, no tragic exception) and you keep using it. You expect the acknowledged update to reach the next NRT reader and commit, and every file the writer's SegmentInfos references to stay on disk, as in 6.x and as the since-deleted test testNoLostDeletesOrUpdates required. Instead the writer skips its IndexFileDeleter checkpoint and keeps a stale pooled reader whose pending update was already pruned: in releases (and on main with maxDocValuesOverlays=0) the next update rewrites the column from that stale reader and a later commit succeeds with the update reverted (doc 0 = 0 instead of 100, no exception), while with overlays (main's default) or on the partial-batch path the writer later deletes the published files and NRT opens or commits fail with NoSuchFileException. On main's default config the silent revert happens too when the next step is a merge of that segment, for example forceMerge(1): the merge reads the stale pooled reader, the published overlay files are no longer referenced, and the following commit succeeds with the old value and a clean CheckIndex.
+You update a doc-values field (updateNumericDocValue, updateBinaryDocValue, or a soft delete) and open an NRT reader, flush or commit, and the doc-values update write throws a non-tragic IOException after the new files were already published into the segment's SegmentCommitInfo (re-opening the writer's pooled segment reader fails, or a second segment's update write in the same batch fails); the writer stays open (isOpen() true, no tragic exception) and you keep using it. You expect the acknowledged update to reach the next NRT reader and commit, and every file the writer's SegmentInfos references to stay on disk, as in 6.x and as the since-deleted test testNoLostDeletesOrUpdates required. Instead the writer skips its IndexFileDeleter checkpoint and keeps a stale pooled reader whose pending update was already pruned: in releases (and on main with maxDocValuesOverlays=0) the next update rewrites the column from that stale reader and a later commit succeeds with the update reverted (doc 0 = 0 instead of 100, no exception), while with overlays (main's default), when the next step is another update or a delete in that segment, or on the partial-batch path the writer later deletes the published files and NRT opens or commits fail with NoSuchFileException. On main's default config the silent revert happens too when the next step is a merge of that segment, for example forceMerge(1): the merge reads the stale pooled reader, the published overlay files are no longer referenced, and the following commit succeeds with the old value and a clean CheckIndex. No merge call is needed for it: when the application goes on adding documents no later call throws and the commits made after the default merge policy has merged the segment hold the old value, and when it closes the writer without adding a document, close() returns normally and the index has the old value (10.6.0, branch_11x and main).
 
 ## Expected vs actual
 
 - Expected: After the failed refresh, the second update and the commit, the reopened index holds `n` = 100 200 2 3.
-- Actual: 10.6.0, 10.5.2, 9.12.3: the commit succeeds and holds 0 200 2 3; main: the next refresh throws `FileNotFoundException: _0_1_Lucene90_0.dvm`.
+- Actual: 10.6.0, 10.5.2, 9.12.3: the commit succeeds and holds 0 200 2 3; main and `branch_11x`: the next refresh throws `FileNotFoundException: _0_1_Lucene90_0.dvm`.
 
 ## Files
 
@@ -22,7 +22,7 @@ You update a doc-values field (updateNumericDocValue, updateBinaryDocValue, or a
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
@@ -49,7 +49,7 @@ java -da -dsa -Dtests.asserts=false -Xmx2g --add-modules jdk.incubator.vector --
      execute --select-class org.apache.lucene.index.TestDocValuesUpdateReopenFailureFullRewrite
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Files shown on the finding page
 

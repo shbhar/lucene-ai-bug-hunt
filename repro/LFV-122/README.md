@@ -1,4 +1,4 @@
-# SortedNumericSortField's class javadoc on main says missing values sort first or last via SortField.STRING_FIRST / STRING_LAST, but a numeric sort cannot use these string sentinels: the constructor accepts them, then every search or index sort with them throws ClassCastException
+# SortedNumericSortField's class javadoc on main and branch_11x (both unreleased) says missing values sort first or last via SortField.STRING_FIRST / STRING_LAST, but a numeric sort cannot use these string sentinels: the constructor accepts them, then every search or index sort with them throws ClassCastException
 
 Finding LFV-122 · Area: search / sorting (SortedNumericSortField missing values; javadoc) · Priority: low · Impact: minor · Novelty: new
 
@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You follow the SortedNumericSortField class javadoc on main ('Like sorting by string, this also supports sorting missing values as first or last, via SortField#STRING_FIRST or SortField#STRING_LAST') and build new SortedNumericSortField("f", SortField.Type.LONG, false, SortedNumericSelector.Type.MIN, SortField.STRING_LAST). You expect documents without a value to sort last, or, if the sentinels are not supported, the constructor to reject them. Instead the constructor accepts the sentinel, and IndexSearcher.search with that sort, or IndexWriterConfig.setIndexSort with it, throws ClassCastException 'SortField$2 cannot be cast to class java.lang.Long', because a numeric sort needs a missing value of its own numeric type (for example Long.MAX_VALUE to sort missing documents last), as MIGRATE.md and the upstream tests show.
+You follow the SortedNumericSortField class javadoc on main or branch_11x ('Like sorting by string, this also supports sorting missing values as first or last, via SortField#STRING_FIRST or SortField#STRING_LAST') and build new SortedNumericSortField("f", SortField.Type.LONG, false, SortedNumericSelector.Type.MIN, SortField.STRING_LAST). You expect documents without a value to sort last, or, if the sentinels are not supported, the constructor to reject them. Instead the constructor accepts the sentinel, and IndexSearcher.search with that sort, or IndexWriterConfig.setIndexSort with it, throws ClassCastException 'SortField$2 cannot be cast to class java.lang.Long', because a numeric sort needs a missing value of its own numeric type (for example Long.MAX_VALUE to sort missing documents last), as MIGRATE.md and the upstream tests show.
 
 The test shows (javadoc defect) that the `SortedNumericSortField` class javadoc says missing values can sort last via `SortField.STRING_LAST`, but a LONG sort built with it fails at search time.
 
@@ -22,7 +22,7 @@ Expected: the search sorts the document that has no value (or the constructor re
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
@@ -45,7 +45,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.search.TestSortedNumericSortFieldStringLast
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Feedback
 

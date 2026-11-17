@@ -4,7 +4,7 @@ Finding LFV-1079 · Area: queries / function queries: valuesource.VectorSimilari
 
 Finding page: [../../bugs/LFV-1079.html](../../bugs/LFV-1079.html)
 
-AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by sjs004 (PR #16974) on 2026-11-03 (https://github.com/apache/lucene/pull/16974). PR #16974 (sjs004, open, head 0f61ec686b9c) references this bug. It adds the similarity function to VectorSimilarityFunction#equals. The owner approved it on 2026-11-03; no committer review yet. Our minimal repro passes with the PR's changed source file shadowed on main f794ff5a505c, with and without assertions, and fails on stock f794ff5a505c (2026-11-08). This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by sjs004 (PR #16974) on 2026-11-03 (https://github.com/apache/lucene/pull/16974). PR #16974 (sjs004, open, head 0f61ec686b9c, no milestone) cites this row ("Resolves LFV-1079" of the tracking issue #16937). It adds the similarity function to VectorSimilarityFunction#equals, the same one condition as this row's fix, and three tests. The owner approved it on 2026-11-03, on this head; no committer has reviewed or commented as of 2026-11-14. On a build of that head our minimal repro passes; it fails on main 781025d6fe32, with and without assertions. The three new tests fail without the source change. Novelty stays new: the PR comes from this list. This site files nothing upstream.
 
 ## What it shows
 
@@ -21,7 +21,7 @@ You build two function-query value sources over the same vector field and the sa
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main e1faeba08bde (2026-11-02): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
@@ -44,7 +44,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.queries.function.TestVectorSimilarityFunctionEquals
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Files shown on the finding page
 

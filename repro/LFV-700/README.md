@@ -4,7 +4,7 @@ Finding LFV-700 · Area: suggest / analyzing: BlendedInfixSuggester result colle
 
 Finding page: [../../bugs/LFV-700.html](../../bugs/LFV-700.html)
 
-AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by sjs004 (PR #16993) on 2026-11-06 (https://github.com/apache/lucene/pull/16993). PR #16993 (sjs004, open, head 4327468c86f9) references this bug. It makes BlendedInfixSuggester's bounded add evict the lowest entry only after a new suggestion was actually added, so a rejected duplicate no longer drops a distinct suggestion. No review yet. Our minimal repro passes with the PR's changed source file shadowed on main f794ff5a505c, with and without assertions, and fails on stock f794ff5a505c (2026-11-08). This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by Simranjeet Singh (sjs004; open PR #16993, which cites this list) on 2026-11-06 (https://github.com/apache/lucene/pull/16993). PR #16993 (sjs004, opened 2026-11-06, open, head 4327468c86f9, no milestone) references this bug. It makes BlendedInfixSuggester's bounded add evict the lowest entry only after a new suggestion was actually added, so a rejected duplicate no longer drops a distinct suggestion. The owner approved it on 2026-11-10; no committer has reviewed or commented as of 2026-11-14; its CI is green (13 of 13 runs). On a build of that head our minimal repro and the six other test classes of this row (28 tests, 17 of them failing on main 781025d6fe32) pass with and without assertions. The PR's new test fails when only its main-source change is reverted. The suggest module's tests pass at the head and after a merge onto 781025d6fe32, which is clean. Nothing is left open for this row. Novelty stays new: the PR cites this list, which listed the bug publicly on 2026-10-27. This site files nothing upstream.
 
 ## What it shows
 
@@ -22,7 +22,7 @@ For {the lake:1000, lake:950, lake:950, my lake:920}, `lookup("lake", false, 2)`
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
@@ -47,7 +47,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.search.suggest.analyzing.TestBlendedInfixDuplicateEviction
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Feedback
 

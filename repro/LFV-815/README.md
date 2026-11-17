@@ -19,8 +19,9 @@ You rescore the top hits with new SortRescorer(sort) or expression.getRescorer(b
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces (the repro adapted to an API change on this commit).
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces (the repro adapted to an API change on this commit). The change: #16962 made the no-argument MatchAllDocsQuery constructor private on main (24d9e7d1a0d) and on the 11.0 branch (branch_11x, a6a26f9b251), so replace new MatchAllDocsQuery() with MatchAllDocsQuery.INSTANCE before you compile the test there.
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- The constant of the replacement named above exists from Lucene 10.4.0 on. With the jars of a release from 9.1.0 to 10.6.0 the test compiles as shipped: for such a release, put the five jars of that release (Maven Central, org.apache.lucene: lucene-core, lucene-codecs, lucene-test-framework, lucene-expressions, lucene-queries) in place of the five $LUCENE jars. The fourth test, testExpressionRescorerWithQueryScoreBinding, compiles an expression, so the run needs the third-party runtime jars of the expressions module: add CP=$CP:antlr4-runtime-4.13.2.jar (Maven Central, org.antlr) before the java command on a build of main or of the 11.0 branch, and with the 10.6.0 jars also asm-9.6.jar and asm-commons-9.6.jar (org.ow2.asm). Without them that one test stops with NoClassDefFoundError instead of the expected failure; the other three fail as described. Run on 2026-11-17 with these jars, with assertions on and off: the four tests fail 4 of 4, with the replacement on a build of main 9965d34e3c77 and of the 11.0 branch (branch_11x 9d2b5a15427a; there V=11.0.0-SNAPSHOT), and as shipped with the 10.6.0 jars.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -45,7 +46,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 The module(s) expressions also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Feedback
 

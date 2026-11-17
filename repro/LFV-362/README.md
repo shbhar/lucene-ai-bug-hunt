@@ -2,7 +2,7 @@
 
 Finding LFV-362 · Area: codecs / bloom (BloomFilteringPostingsFormat, DefaultBloomFilterFactory, FuzzySet sizing) · Priority: low · Impact: minor · Novelty: known outside Lucene
 
-AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by Greg Miller (gsmiller; open PR #17019; an independent fix, later than our listing) on 2026-11-11 (https://github.com/apache/lucene/pull/17019). Open PR #17019 (gsmiller, opened 2026-11-11, head 030bb9d3c820, milestone 11.0.0; no review or comment as of 2026-11-14) fixes the overflow: FuzzySet.createOptimalSet caps the set at 2^30 bits and keeps at least one hash function, and createSetBasedOnMaxMemory multiplies in long. On a build of that head our minimal repro passes; it fails on main 781025d6fe32, with and without assertions. Below 226,279,579 docs the default factory's sizing is unchanged. It does not cite this list; 'an independent fix' means only that. This site files nothing upstream.
 
 ## What it shows
 
@@ -21,7 +21,7 @@ You index a primary key into a field that uses BloomFilteringPostingsFormat with
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
@@ -50,7 +50,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      -cp "classes:$CP" FarmScaleBloom
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Feedback
 

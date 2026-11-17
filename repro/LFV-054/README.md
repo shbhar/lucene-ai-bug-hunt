@@ -1,4 +1,4 @@
-# LRUQueryCache's 16 hard partitions give a 0% hit rate with the class-javadoc configuration (main only)
+# LRUQueryCache's 16 hard partitions give a 0% hit rate with the class-javadoc configuration (main and branch_11x, both unreleased)
 
 Finding LFV-054 · Area: search / query cache · Priority: low · Impact: minor · Novelty: new
 
@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-On main, you build an LRUQueryCache with the configuration from its class javadoc (maxSize 256, 50 MB) and run one filter over more than 16 segments. You expect the filter to be cached. Instead maxSize and RAM are hard-split across 16 partitions routed by query, so it gets a 0% hit rate forever; maxSize &lt; 16 caches nothing, and partition counts that are 0, negative or not a power of two crash or waste capacity.
+On main or branch_11x (both unreleased), you build an LRUQueryCache with the configuration from its class javadoc (maxSize 256, 50 MB) and run one filter over more than 16 segments. You expect the filter to be cached. Instead maxSize and RAM are hard-split across 16 partitions routed by query, so it gets a 0% hit rate forever; maxSize &lt; 16 caches nothing, and partition counts that are 0, negative or not a power of two crash or waste capacity.
 
 The test shows that on main an `LRUQueryCache(256, 64 MB, ctx -> true, +inf)` never hits for one filter over 17 one-document segments: 16 partitions of 16 entries, and all of one query's entries go to the same partition.
 
@@ -22,7 +22,7 @@ Expected 17 cache hits when the same TermQuery is searched a second time (17 ent
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
@@ -45,7 +45,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.search.TestLRUQueryCacheManySegments
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 Formal models and scripts this finding's part of the hunt used: [../../models/study-search-concurrency-model/](../../models/study-search-concurrency-model/)
 

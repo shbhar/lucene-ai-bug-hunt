@@ -19,14 +19,14 @@ You build a vector index with HNSW maxConn 16 (the default), later open a writer
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
-- Tested on Lucene branch_10_6 4ae946e5a9b9 (2026-10-26): reproduced.
+- Tested on Lucene 10.6.0 (4ae946e5a9b9) (2026-10-26): reproduced (6 of the 7 tests fail, with and without assertions; the seventh keeps maxConn unchanged and passes).
+- Passes on Lucene main 9965d34e3c77 (2026-11-16): all 7 tests pass there, with and without assertions. Main is not affected, so that run is a control.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
 # Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
-LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
+LUCENE=/path/to/lucene; V=10.6.0-SNAPSHOT
 CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
 CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
 CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
@@ -41,7 +41,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.codecs.lucene99.TestHnswMergeReuseChangedMaxConn
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 Formal models and scripts this finding's part of the hunt used: [../../models/hnsw-10x-merge-reuse-maxconn-mismatch/](../../models/hnsw-10x-merge-reuse-maxconn-mismatch/)
 

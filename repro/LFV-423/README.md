@@ -20,7 +20,7 @@ On main you open an index whose vector segment was written by Lucene 9.8.0 (Luce
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
 - Before compiling, copy Lucene95RWHnswVectorsFormat.java and Lucene95HnswVectorsWriter.java, unchanged classes of Lucene's own test sources that the release jars do not contain, from lucene/backward-codecs/src/test/org/apache/lucene/backward_codecs/lucene95/ of the checkout into src/org/apache/lucene/backward_codecs/lucene95/ here.
 - Fixture (optional): testIndexWrittenByLucene980 also reads hnsw-9.8.0.zip, an index of 5,000 16-dimensional vectors written by Lucene 9.8.0, from its package on the class path, and is skipped without it. This site ships no binary index files, so the recipe first makes it with fixture-src/MakeOldHnswIndex.java and lucene-core-9.8.0.jar (Maven Central) and puts it in src/, which the run puts on the class path.
@@ -50,7 +50,7 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
      execute --select-class org.apache.lucene.index.TestExitableFilteredKnnOldHnswFormat
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 2 other file(s) of the recorded repro are not exported.
 

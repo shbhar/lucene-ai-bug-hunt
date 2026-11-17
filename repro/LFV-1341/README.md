@@ -21,7 +21,7 @@ You build Geo3DPoint.newDistanceQuery("g", PlanetModel.WGS84, 0.0, 10.0, 1000.0)
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced.
 - The test under src/ checks the same pair with a single assertFalse, so run 1 fails with a bare java.lang.AssertionError, with assertions on and off alike. The expected and actual lines above are those of the finding page's copy at the top of this folder, TestSignedZeroEqualsHashCode.java, which prints the two hash codes, 209447998 and -1938035650; copy it over src/org/apache/lucene/spatial3d/TestSignedZeroEqualsHashCode.java to see them.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
@@ -45,7 +45,7 @@ java -ea -esa -Xmx512m --add-modules jdk.incubator.vector --enable-native-access
      execute --select-class org.apache.lucene.spatial3d.TestSignedZeroEqualsHashCode
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Files shown on the finding page
 

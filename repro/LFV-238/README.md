@@ -20,8 +20,9 @@ You run a grouped search (GroupingSearch, or the grouping collector managers) on
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces (the repro adapted to an API change on this commit).
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces (the repro adapted to an API change on this commit). The change: #16962 made the no-argument MatchAllDocsQuery constructor private on main (24d9e7d1a0d) and on the 11.0 branch (branch_11x, a6a26f9b251), so replace new MatchAllDocsQuery() with MatchAllDocsQuery.INSTANCE before you compile the test there.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- The constant of the replacement named above exists from Lucene 10.4.0 on. With the jars of a release from 10.5.0 to 10.6.0 the tests compile as shipped (the collector managers they use do not exist before 10.5.0): for such a release, put the five jars of that release (Maven Central, org.apache.lucene: lucene-core, lucene-codecs, lucene-test-framework, lucene-grouping, lucene-queries) in place of the five $LUCENE jars. Run on 2026-11-17, with assertions on and off: with the replacement the six tests fail 6 of 6 on a build of main 9965d34e3c77 and of the 11.0 branch (branch_11x 9d2b5a15427a; there V=11.0.0-SNAPSHOT); with the 10.6.0 jars they fail 6 of 6 as shipped; with the 10.5.0 and the 10.5.2 jars 3 of the 6 fail, because GroupingSearch by a field searched sequentially before 10.6.0.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -45,7 +46,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
        --select-class org.apache.lucene.search.grouping.TestConcurrentGroupingGroupTieOrder
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Feedback
 

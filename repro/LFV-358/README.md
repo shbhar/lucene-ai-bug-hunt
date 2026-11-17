@@ -4,7 +4,7 @@ Finding LFV-358 · Area: facet / DrillSideways (sequential DrillSidewaysScorer, 
 
 Finding page: [../../bugs/LFV-358.html](../../bugs/LFV-358.html)
 
-AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by Eugene Rizhkov (reugn; open PR #16981, an independent fix, later than our listing) on 2026-11-04 (https://github.com/apache/lucene/pull/16981). Open PR #16981 (reugn, created 2026-11-04, head d854833204fc, no review yet; Luca Cavanna asked Greg Miller and Mike McCandless to review it on 2026-11-06) fixes the precedence bug as a side part of DrillSideways timeout and intra-segment concurrency support; its own brute-force TestDrillSidewaysScorer found it. Our minimal repro passes with the PR's DrillSideways, DrillSidewaysQuery and DrillSidewaysScorer shadowed on main f794ff5a505c, with and without assertions, and fails on stock f794ff5a505c. It does not cite this list. Novelty stays new. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by Eugene Rizhkov (reugn; open PR #16981, an independent fix, later than our listing) on 2026-11-04 (https://github.com/apache/lucene/pull/16981). Open PR #16981 (reugn, opened 2026-11-04, head d854833204fc, no milestone, no review as of 2026-11-14; javanna asked gsmiller and mikemccand to review it on 2026-11-06) fixes the precedence bug as a side part of DrillSideways timeout and intra-segment concurrency support; its own brute-force TestDrillSidewaysScorer found it. On a build of that head our minimal repro passes with and without assertions; it fails on main 781025d6fe32. It also passes on the PR merged onto 781025d6fe32; the merge is clean. The PR does not cite this list. Novelty stays new: listed publicly on 2026-10-27, before the PR; an independent fix means only that the PR does not cite the list. This site files nothing upstream.
 
 ## What it shows
 
@@ -22,7 +22,7 @@ Expected: drill-down hits [0] (only doc 0 has a:1 and the phrase "x y"). Actual:
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
@@ -48,7 +48,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Feedback
 

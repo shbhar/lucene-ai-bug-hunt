@@ -1,4 +1,4 @@
-# DictionaryCompoundWordTokenFilterFactory (main only) warns 'onlyLongestMatch has been removed' when the key is absent and stays silent when onlyLongestMatch="false" is passed
+# DictionaryCompoundWordTokenFilterFactory (main and branch_11x, both unreleased) warns 'onlyLongestMatch has been removed' when the key is absent and stays silent when onlyLongestMatch="false" is passed
 
 Finding LFV-439 · Area: analysis-common / compound word factory (DictionaryCompoundWordTokenFilterFactory parameter handling) · Priority: low · Impact: minor · Novelty: new
 
@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You build DictionaryCompoundWordTokenFilterFactory on main without the onlyLongestMatch key, for example with only onlyLongestMatchIgnoreSubwords, and expect no message about a key you never used; instead every construction logs the WARNING 'onlyLongestMatch has been removed and replaced by onlyLongestMatchIgnoreSubwords'. A configuration that does pass onlyLongestMatch="false", the one setting whose meaning is now ignored, gets no warning, because the factory reads the removed key with default true and warns when the value is true (getBoolean(args, "onlyLongestMatch", true); if (onlyLongestMatch) LOG.warning(...)), not when the key is present. Only the log is wrong: the tokens are the same with or without the warning.
+You build DictionaryCompoundWordTokenFilterFactory on main without the onlyLongestMatch key, for example with only onlyLongestMatchIgnoreSubwords, and expect no message about a key you never used; instead every construction logs the WARNING 'onlyLongestMatch has been removed and replaced by onlyLongestMatchIgnoreSubwords'. A configuration that does pass onlyLongestMatch="false" gets no warning, because the factory reads the removed key with default true and warns when the value is true (getBoolean(args, "onlyLongestMatch", true); if (onlyLongestMatch) LOG.warning(...)), not when the key is present. Within one build, only the log is wrong: the tokens are the same with or without the warning. Update 2026-11-16: from 10.6.0 to branch_11x and main the tokens do change for two configurations (onlyLongestMatchIgnoreSubwords="false" with onlyLongestMatch absent or "true"): the change that added the warning (#14356) removed the old option on purpose, and these two now emit every dictionary match instead of the longest match per start position.
 
 The test shows that `DictionaryCompoundWordTokenFilterFactory` on main logs "onlyLongestMatch has been removed" for a configuration that never passes `onlyLongestMatch` (only `dictionary`).
 
@@ -22,7 +22,7 @@ Expected no WARNING; actual `expected:<[]> but was:<[onlyLongestMatch has been r
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
@@ -46,7 +46,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.analysis.compound.TestDictionaryCompoundFactoryRemovedKeyWarning
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 Formal models and scripts this finding's part of the hunt used: [../../models/analysis-spi-chain-fuzz/](../../models/analysis-spi-chain-fuzz/)
 

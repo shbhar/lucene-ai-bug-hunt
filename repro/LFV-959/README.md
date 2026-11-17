@@ -1,4 +1,4 @@
-# Main (the future 11.0) turns incremental doc-values updates on by default (IndexWriterConfig.DEFAULT_MAX_DOC_VALUES_OVERLAYS = 8; opt-in, 0, in 10.6), but neither the 11.0.0 section of CHANGES.txt nor MIGRATE.md records the change: the only note is the 10.6.0 'Opt-in' entry, because main's 'Enabled by default' note was moved to 10.6.0 and then reworded (documentation defect, unreleased)
+# branch_11x (the future 11.0) and main turn incremental doc-values updates on by default (IndexWriterConfig.DEFAULT_MAX_DOC_VALUES_OVERLAYS = 8; opt-in, 0, in 10.6), but neither the 11.0.0 section of CHANGES.txt nor MIGRATE.md records the change: the only note is the 10.6.0 'Opt-in' entry, because main's 'Enabled by default' note was moved to 10.6.0 and then reworded (documentation defect, unreleased)
 
 Finding LFV-959 · Area: release notes (lucene/CHANGES.txt 11.0.0, lucene/MIGRATE.md 10.x -> 11.0) x index / doc-values updates (IndexWriterConfig#DEFAULT_MAX_DOC_VALUES_OVERLAYS, GITHUB#16418, GITHUB#16648) · Priority: low · Impact: minor · Novelty: new
 
@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You upgrade from Lucene 10.6 to 11.0 and use doc-values updates (for example IndexWriter.updateNumericDocValue) with a default IndexWriterConfig; you expect the 11.0 release notes or the migration guide to say so if the default write path changed, as they do for the query cache, which 11.0 turns off by default. Instead main turns incremental doc-values updates on by default (DEFAULT_MAX_DOC_VALUES_OVERLAYS = 8, against 0 in 10.6), so a one-document update writes a small sparse overlay (402 bytes of update files in the repro) instead of rewriting the column (2892 bytes), yet the only CHANGES.txt entry for the feature is the 10.6.0 one, which says 'Opt-in; enable with IndexWriterConfig#setMaxDocValuesOverlays(n)', and MIGRATE.md says nothing. Main did carry an 'Enabled by default' note until it was moved into the 10.6.0 section and then, correctly for 10.6.0, reworded to the release candidate's text.
+You upgrade from Lucene 10.6 to 11.0 and use doc-values updates (for example IndexWriter.updateNumericDocValue) with a default IndexWriterConfig; you expect the 11.0 release notes or the migration guide to say so if the default write path changed, as they do for the query cache, which 11.0 turns off by default. Instead branch_11x (the future 11.0) and main turn incremental doc-values updates on by default (DEFAULT_MAX_DOC_VALUES_OVERLAYS = 8, against 0 in 10.6), so a one-document update writes a small sparse overlay (402 bytes of update files in the repro) instead of rewriting the column (2892 bytes), yet the only CHANGES.txt entry for the feature is the 10.6.0 one, which says 'Opt-in; enable with IndexWriterConfig#setMaxDocValuesOverlays(n)', and MIGRATE.md says nothing. Main did carry an 'Enabled by default' note until it was moved into the 10.6.0 section and then, correctly for 10.6.0, reworded to the release candidate's text.
 
 ## Expected vs actual
 
@@ -21,7 +21,7 @@ You upgrade from Lucene 10.6 to 11.0 and use doc-values updates (for example Ind
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
@@ -43,7 +43,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.index.TestDocValuesOverlaysDefaultAsReleaseNotes
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Files shown on the finding page
 

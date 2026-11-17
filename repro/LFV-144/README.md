@@ -1,4 +1,4 @@
-# A FLOAT or DOUBLE sort on a NUMERIC doc-values field with a skip index and no points silently returns wrong or missing top hits when values have the sign bit set (negative values, or -0.0 with a tie-break sort): skipper pruning compares sortable-encoded bounds with the raw IEEE-bit block min/max
+# A FLOAT or DOUBLE sort on a NUMERIC doc-values field with a skip index and no points can silently return wrong or missing top hits when values have the sign bit set (negative values, or -0.0 with a tie-break sort): skipper pruning compares sortable-encoded bounds with the raw IEEE-bit block min/max
 
 Finding LFV-144 · Area: search / sorting (NumericComparator doc-values-skipper pruning for FLOAT/DOUBLE) · Priority: medium · Impact: silent wrong results · Novelty: new
 
@@ -22,7 +22,7 @@ Expected the top 3 `[-9999.0, -9998.0, -9997.0]`; actual `[-8191.0, -8190.0, -81
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
@@ -45,7 +45,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.search.TestFloatSortSkipIndexNegative
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Feedback
 

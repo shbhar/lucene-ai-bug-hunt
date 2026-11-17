@@ -1,0 +1,62 @@
+# Test suite on branch_11x and main (both unreleased): three tests are still switched off by @AwaitsFix although the issues the annotations name are closed and the tests pass when switched on (the whole TestMoreTermsBackwardsCompatibility, TestAncientIndicesCompatibility.testWildcardQueryExceptions990 and TestScorerUtil.testLikelyImpactsEnum); the 10.6.0 sources run all three
+
+Finding LFV-1511 · Area: test sources / @AwaitsFix test group: back-compat index tests (backward-codecs) and core search tests · Priority: low · Impact: minor · Novelty: new
+
+Finding page: [../../bugs/LFV-1511.html](../../bugs/LFV-1511.html)
+
+AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
+
+## What it shows
+
+You run Lucene's own test suite on branch_11x or main. You expect TestMoreTermsBackwardsCompatibility, TestAncientIndicesCompatibility.testWildcardQueryExceptions990 and TestScorerUtil.testLikelyImpactsEnum to run, as they do in the 10.6.0 sources. Instead a default run reports them as skipped ('awaitsfix' test group is not enabled): each still carries an @AwaitsFix annotation, which the test framework describes as being for tests that 'exhibit a known issue and are temporarily disabled', although the issues the annotations name are closed and all three tests pass when switched on (the ScorerUtil test since its fix #14306 on 2025-02-27, which is read from its thread and git: the commits of that day were not built; the two back-compat tests since #16741 made 9.x indexes readable again on 2026-10-15, run at that commit and at its parent). No shipped class is affected and nothing is known to be broken behind the tests; what 11.0 would lack is regression coverage that 10.6.0 has, mainly for reading 9.x indexes, and the repair is the removal of the three annotation lines and of the one import line that only the class annotation uses.
+
+## Expected vs actual
+
+- Expected: `skipped=0 failed=0` for each of the three tests, as on 10.6.0.
+- Actual: `expected:<skipped=[0 failed=0; skipped=0 failed=0; skipped=0] failed=0; > but was:<skipped=[3 failed=0; skipped=1 failed=0; skipped=1] failed=0; >` on main and on the 11.0 branch, assertions on and off.
+
+## Files
+
+- [src/org/apache/lucene/TestTestsOfClosedIssuesRun.java](src/org/apache/lucene/TestTestsOfClosedIssuesRun.java) (JUnit test)
+
+## Run it
+
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene branch_11x daa54f2e0cd3 (2026-11-13): reproduced.
+- In no release: the test of this folder, a one-method check written for the finding, fails on Lucene main and on the 11.0 release branch (branch_11x daa54f2e0cd3), with and without assertions, and passes with the 10.6.0 release jars and the test sources of the 10.6.0 tag, so 11.0.0 would be the first release whose test sources have it. It concerns Lucene's own test sources only: no shipped class is involved, no test of Lucene fails, and the three tests pass when they are switched on. What the test does: it is a test about tests. It runs three of Lucene's own, unchanged test classes the way a default test run does (through JUnit's JUnitCore, without -Dtests.awaitsfix=true): the whole TestMoreTermsBackwardsCompatibility, TestAncientIndicesCompatibility.testWildcardQueryExceptions990 and TestScorerUtil.testLikelyImpactsEnum, and it expects that none of their executions is skipped and none fails. It fails with 'expected:&lt;skipped=[0 failed=0; skipped=0 failed=0; skipped=0] failed=0; &gt; but was:&lt;skipped=[3 failed=0; skipped=1 failed=0; skipped=1] failed=0; &gt;': five executions are skipped (three of the first class, one of each of the other two) and none fails. The test uses no randomness of its own, and it is evidence for this finding, not a regression test to keep. With the 10.6.0 jars the recipe needs the test sources of the 10.6.0 tag as $LUCENE and the release jars in place of the $LUCENE jars; the test then passes (the three tests run there). The skips can also be seen without this test, in the checkout: the commands ./gradlew -p lucene/backward-codecs test --tests TestMoreTermsBackwardsCompatibility --tests TestAncientIndicesCompatibility.testWildcardQueryExceptions990 and ./gradlew -p lucene/core test --tests TestScorerUtil.testLikelyImpactsEnum report these tests as skipped, and with -Ptests.awaitsfix=true added they run and pass.
+- Class path: the three test classes that the test runs are Lucene's own test sources, which no jar holds. The recipe first compiles them, unchanged, from the checkout into stock-classes/ (javac takes the two other classes they use, their base class and TestIndexSortBackwardsCompatibility, from the same source tree), and the run puts $LUCENE/lucene/backward-codecs/src/test on the class path, where the back-compat tests find their index files; without these lines the test does not compile.
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
+
+```bash
+# Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
+LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
+CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
+CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
+CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
+CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
+CP=$CP:$LUCENE/lucene/backward-codecs/build/libs/lucene-backward-codecs-$V.jar
+CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
+CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
+
+# the three stock test classes the test runs, compiled unchanged from the checkout's own test sources
+# (javac takes two more classes that they use from the same source tree)
+T=$LUCENE/lucene/backward-codecs/src/test
+javac -d stock-classes -cp "$CP:$T" $T/org/apache/lucene/backward_index/TestMoreTermsBackwardsCompatibility.java $T/org/apache/lucene/backward_index/TestAncientIndicesCompatibility.java $LUCENE/lucene/core/src/test/org/apache/lucene/search/TestScorerUtil.java
+CP=$CP:stock-classes
+
+javac -d classes -cp "$CP" $(find src -name '*.java')
+
+# run 1: assertions on, seed 5EED0797
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=5EED0797 \
+     -cp "classes:$LUCENE/lucene/backward-codecs/src/test:$CP" org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.TestTestsOfClosedIssuesRun
+```
+
+## Files shown on the finding page
+
+- [TestTestsOfClosedIssuesRun.java](TestTestsOfClosedIssuesRun.java)
+
+## Feedback
+
+Open an issue in [lucene-ai-bug-hunt](https://github.com/shbhar/lucene-ai-bug-hunt/issues). Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.

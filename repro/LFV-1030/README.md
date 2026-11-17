@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-Lucene main's MIGRATE.md tells users who open a Lucene 9.x or 10.x index to upgrade its segments by opening an IndexWriter and calling forceMerge(1), with the comment 'Rewrites all segments to latest format' (line 179), and line 153 offers forceMerge() as a way 'to upgrade segment formats immediately'. With the default merge policy, forceMerge(1) does nothing on an index that already has one segment and no deletions: TieredMergePolicy reports it as already merged, so on Lucene's own single-segment 9.0.0 test index the segment is still version 9.0.0 with codec Lucene90 afterwards. The code behaves as designed (forceMerge only promises a segment count, and UpgradeIndexMergePolicy and IndexUpgrader exist for exactly this case); the guide should wrap the merge policy in UpgradeIndexMergePolicy or point to IndexUpgrader.
+MIGRATE.md on Lucene main and branch_11x tells users who open a Lucene 9.x or 10.x index to upgrade its segments by opening an IndexWriter and calling forceMerge(1), with the comment 'Rewrites all segments to latest format' (line 179 at main 645d4fe14a20), and line 153 offers forceMerge() as a way 'to upgrade segment formats immediately'. With the default merge policy, forceMerge(1) does nothing on an index that already has one segment and no deletions: TieredMergePolicy reports it as already merged, so on Lucene's own single-segment 9.0.0 test index the segment is still version 9.0.0 with codec Lucene90 afterwards. The code behaves as designed (forceMerge only promises a segment count, and UpgradeIndexMergePolicy and IndexUpgrader exist for exactly this case); the guide should wrap the merge policy in UpgradeIndexMergePolicy or point to IndexUpgrader.
 
 ## Expected vs actual
 
@@ -21,7 +21,7 @@ Lucene main's MIGRATE.md tells users who open a Lucene 9.x or 10.x index to upgr
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main e1faeba08bde: 1 test(s) run, 1 failed (testForceMergeUpgradesSingleSegmentIndex).
 - Fixture: the test reads moreterms.9.0.0.zip, a test resource of Lucene's backward-codecs module (lucene/backward-codecs/src/test/org/apache/lucene/backward_index/ in the checkout), so the run puts $LUCENE/lucene/backward-codecs/src/test on the class path; without it the test fails for another reason.
@@ -46,7 +46,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.backward_index.TestMigrateUpgradeExample
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Files shown on the finding page
 

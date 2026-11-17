@@ -21,7 +21,7 @@ You open the front page of the Lucene 10.6.0 documentation (docs/index.html in t
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main e1faeba08bde (2026-11-02): reproduced.
 - The test reads index.html and the module javadoc folders of the documentation tree named by the system property docs.dir, which the java command below leaves out. Build the full documentation first with ./gradlew :lucene:documentation:documentation and add -Ddocs.dir=$LUCENE/lucene/documentation/build/site to the java command (with gradle: "-Ptests.jvmargs=-Ddocs.dir=$LUCENE/lucene/documentation/build/site"), or point docs.dir at the docs/ folder of an unpacked lucene-10.6.0 binary release. Without docs.dir the test fails with a NullPointerException, which is not the finding. The Lucene jars play no part: the documentation tree decides the result.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
@@ -45,7 +45,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.TestFrontPageJavadocLinks
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Files shown on the finding page
 

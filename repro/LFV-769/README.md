@@ -4,7 +4,7 @@ Finding LFV-769 · Area: monitor / QueryIndex term-filter map (searcher refresh 
 
 Finding page: [../../bugs/LFV-769.html](../../bugs/LFV-769.html)
 
-AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by Eugene Rizhkov (reugn; open PR #16995, an independent change, later than our listing) on 2026-11-06 (https://github.com/apache/lucene/pull/16995). Open PR #16995 (created 2026-11-06), which adds an executor option to the Monitor, turns QueryIndex.termFilters into a ConcurrentHashMap as part of that feature and so makes the registered repro pass; it does not describe this race or cite this list. Novelty stays new. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by Eugene Rizhkov (reugn; open PR #16995, an independent change, later than our listing) on 2026-11-06 (https://github.com/apache/lucene/pull/16995). Open PR #16995 (reugn, opened 2026-11-06, head 1121aacf03b3, no milestone, no review or comment as of 2026-11-14, CI green) adds an executor option to the Monitor. As part of that feature it turns QueryIndex.termFilters into a ConcurrentHashMap, which fixes this race. On a build of that head our repro passes with and without assertions, also with an executor configured; it fails on main 781025d6fe32, and it fails again on the head with only that line reverted. The PR merges cleanly onto 781025d6fe32. It does not cite this list. Novelty stays new: listed publicly on 2026-10-27, before the PR; an independent change means only that the PR does not cite the list. This site files nothing upstream.
 
 ## What it shows
 
@@ -22,7 +22,7 @@ You share one Monitor between threads: some threads call Monitor.match on docume
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
@@ -52,7 +52,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.monitor.TestReadonlyMonitorTermFilterMapRace
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Files shown on the finding page
 

@@ -4,7 +4,7 @@ Finding LFV-002 · Area: index / IndexWriter merge · Priority: medium · Impact
 
 Finding page: [../../bugs/LFV-002.html](../../bugs/LFV-002.html)
 
-AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by Jim Ferenczi (Lucene PMC; open PR #16988) on 2026-11-06 (https://github.com/apache/lucene/pull/16988). PR #16988 (jimczi, open, head cefaebe70ce5) references this bug. It clamps the delGen of the carried-over on-disk doc-values value in IndexWriter's merge to the completed delGen, and adds our minimal repro as TestMergeDocValuesCarryOverRace with one added setting (setMaxDocValuesOverlays(16)). It is in the 10.6.1 milestone; no review yet. Our minimal repro passes with the PR's changed source file shadowed on main f794ff5a505c, with and without assertions, and fails on stock f794ff5a505c (2026-11-08). This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by Jim Ferenczi (Lucene PMC; open PR #16988) on 2026-11-06 (https://github.com/apache/lucene/pull/16988). Open PR #16988 (jimczi, opened 2026-11-06; head 50e62f0aa526 of 2026-11-09; milestone 10.6.1; CI passed; as of 2026-11-14 no comment or review, jimczi asked ChrisHegarty for one on 2026-11-13) says it was found via this list and names LFV-002. It clamps the delGen of the carried-over on-disk doc-values value in IndexWriter's merge to min(minResidual - 1, completedDelGen) and adds our minimal repro as TestMergeDocValuesCarryOverRace with one added setting (setMaxDocValuesOverlays(16)). On a build of the head our minimal repro passes, with and without assertions; it fails on main 781025d6fe32 and passes there with the PR's change applied. Novelty stays new: the PR cites the list. This site files nothing upstream.
 
 ## What it shows
 
@@ -22,7 +22,7 @@ Expected the k0 document's last update `n=2` after the merge, commit and reopen;
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
@@ -45,7 +45,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.index.TestMergeDocValuesCarryOverRace
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Feedback
 

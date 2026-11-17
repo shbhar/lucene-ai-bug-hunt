@@ -1,4 +1,4 @@
-# Test suite on main: #16028 removed @Test from six test classes that do not extend LuceneTestCase, so their 18 test methods never run (TestRuntimeDependenciesSane and TestCandidateMatcherVisibility report no tests; TestClassloadingDeadlock, TestModularLayer and TestScripts each report one green placeholder; the opt-in TestHunspellRepositoryTestCases fails with 'No runnable methods')
+# Test suite on main and branch_11x (both unreleased): #16028 removed @Test from six test classes that do not extend LuceneTestCase, so their 18 test methods never run (TestRuntimeDependenciesSane and TestCandidateMatcherVisibility report no tests; TestClassloadingDeadlock, TestModularLayer and TestScripts each report one green placeholder; the opt-in TestHunspellRepositoryTestCases fails with 'No runnable methods')
 
 Finding LFV-389 · Area: test infrastructure / JUnit 4 test discovery (core, core.tests, monitor, distribution.tests, analysis-common hunspell) · Priority: low · Impact: minor · Novelty: new
 
@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You run Lucene's test suite on main and expect TestRuntimeDependenciesSane, TestCandidateMatcherVisibility, TestClassloadingDeadlock, TestModularLayer and TestScripts to run their 17 test methods, and TestHunspellRepositoryTestCases to check Hunspell's test data when -Phunspell.repo.path is set. Instead the build passes without running any of those methods: #16028 removed their @Test annotations, which is harmless in LuceneTestCase subclasses (LuceneTestCase finds test* methods by name), but these six classes do not extend LuceneTestCase, so JUnit 4 finds only @Test methods and there are none. Two classes report zero tests, three report one green placeholder named after the class, and the Hunspell runner fails with 'No runnable methods'.
+You run Lucene's test suite on main or branch_11x and expect TestRuntimeDependenciesSane, TestCandidateMatcherVisibility, TestClassloadingDeadlock, TestModularLayer and TestScripts to run their 17 test methods, and TestHunspellRepositoryTestCases to check Hunspell's test data when -Phunspell.repo.path is set. Instead the build passes without running any of those methods: #16028 removed their @Test annotations, which is harmless in LuceneTestCase subclasses (LuceneTestCase finds test* methods by name), but these six classes do not extend LuceneTestCase, so JUnit 4 finds only @Test methods and there are none. Two classes report zero tests, three report one green placeholder named after the class, and the Hunspell runner fails with 'No runnable methods'.
 
 The test shows that main's TestCandidateMatcherVisibility (not a LuceneTestCase subclass) lost its @Test annotations in #16028, so JUnit 4 finds none of its three test* methods.
 
@@ -22,7 +22,7 @@ Expected `JUnitCore.runClasses(TestCandidateMatcherVisibility.class)` to run 3 t
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
@@ -48,7 +48,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.monitor.outsidepackage.TestCandidateMatcherVisibilityRuns
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Feedback
 

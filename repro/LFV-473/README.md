@@ -1,4 +1,4 @@
-# A non-tragic exception during an NRT reopen or commit full flush aborts the DWPTs other threads filled during that flush, silently losing acknowledged documents and updates while the writer stays open
+# A non-tragic exception during an NRT reopen or commit full flush aborts the DWPTs other threads filled during that flush, silently losing acknowledged documents and updates: the writer stays open without them, or, when the exception is the AlreadyClosedException that close() on another thread gives a reopen in flight, that close() returns normally without the documents
 
 Finding LFV-473 · Area: index / DocumentsWriter full flush (DocumentsWriterFlushControl.abortFullFlushes, blockedFlushes) and the error paths of IndexWriter.getReader and prepareCommit · Priority: medium · Impact: data corruption · Novelty: known upstream
 
@@ -19,8 +19,9 @@ One thread opens an NRT reader from the IndexWriter (or commits) while other thr
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- What this folder covers: the test class holds the three routes with an injected failure (an I/O error while the near-real-time reader opens, an IOException from a merge policy's findFullFlushMerges during a reopen, and an IOException from a merge policy's keepFullyDeletedSegment during a commit) and a control with a successful reopen. The route named in the title, a close() on another thread during a reopen, has no test in this folder. Run on 2026-11-17 on Lucene main 9965d34e3c77, with and without assertions: 4 tests found, 3 tests failed (the three routes: the commit after the failure holds 1 of the 3 expected documents) and the control passed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -41,7 +42,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.index.TestGetReaderFailureDropsConcurrentDocs
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 Formal models and scripts this finding's part of the hunt used: [../../models/dw-flush-control-deletequeue-tla/](../../models/dw-flush-control-deletequeue-tla/)
 

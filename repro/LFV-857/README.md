@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You normalize a keyword field with ICUFoldingFilter and index 'O´Brien' (an acute accent used as an apostrophe); you expect the term 'obrien', because Lucene's own folding table DiacriticFolding.txt deletes U+00B4 along with the other spacing diacritics, as every release up to 8.11.x did and as the filter still does for ` and ^. Since 9.0.0 the term is 'o brien': a 2021 build change (LUCENE-9900) started passing the data files to the gennorm2 compiler sorted by file name, which puts the standard NFKC files last, and in gennorm2 a later file overrides an earlier one, so ´ ¨ ¯ ¸ ˘ ˜ and other spacing accents now become a space and 236 modifier letters fold to their base letter instead of being removed. The change was meant only to make regeneration incremental and its review assumed the order did not matter; 292 entries of Lucene's tables are now dead, and 271 code points fold differently.
+You normalize a keyword field with ICUFoldingFilter and index 'O´Brien' (an acute accent used as an apostrophe); you expect the term 'obrien', because Lucene's own folding table DiacriticFolding.txt deletes U+00B4 along with the other spacing diacritics, as every release up to 8.11.x did and as the filter still does for ` and ^. Since 9.0.0 the term is 'o brien': a 2021 build change (LUCENE-9900) started passing the data files to the gennorm2 compiler sorted by file name, which puts the standard NFKC files last, and in gennorm2 a later file overrides an earlier one, so ´ ¨ ¯ ¸ ˘ ˜ and other spacing accents now become a space and 236 modifier letters fold to their base letter instead of being removed. The change was meant only to make regeneration incremental and its review assumed the order did not matter; 292 entries of Lucene's tables are now dead, and 271 code points fold differently (the 236, the 292 and the 271 are the counts on main a9779ef3c193 with ICU4J 78.3; the 10.6.0 release has 199, 255 and 234, and main and branch_11x with ICU4J 79.1, since 2026-11-16, have 289, 345 and 324).
 
 `ICUFoldingFilter` turns the spacing ACUTE ACCENT U+00B4 inside a term into a space, although Lucene's own UTR#30 table DiacriticFolding.txt removes it (since 9.0 the build lets the NFKC data override the table).
 
@@ -22,7 +22,7 @@ Expected: `a´b` -&gt; `ab`; actual: `a b` (`term 0 expected:<a[]b> but was:<a[ 
 
 ## Run it
 
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces.
+- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
@@ -49,7 +49,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 The module(s) analysis-icu also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Feedback
 
