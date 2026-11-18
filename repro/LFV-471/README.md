@@ -1,6 +1,6 @@
-# tryDeleteDocument / tryUpdateDocValue running while commit() flushes returns a sequence number above the commit's, yet its change is in that commit
+# tryDeleteDocument / tryUpdateDocValue running while commit() flushes returns a sequence number above the commit's, yet its change is in that commit; when a thread adds a new version of a document and then deletes the old one with tryDeleteDocument, both during that flush, the commit holds the delete without the add and so no version of the document
 
-Finding LFV-471 · Area: index / IndexWriter sequence numbers (tryDeleteDocument, tryUpdateDocValue vs commit) · Priority: low · Impact: silent wrong results · Novelty: new
+Finding LFV-471 · Area: index / IndexWriter sequence numbers (tryDeleteDocument, tryUpdateDocValue vs commit) · Priority: medium · Impact: silent wrong results · Novelty: new
 
 Finding page: [../../bugs/LFV-471.html](../../bugs/LFV-471.html)
 
@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You call tryDeleteDocument or tryUpdateDocValue with an NRT reader while another thread is inside commit(), after the commit has fixed its sequence number and before it snapshots its segments. You expect what the commit javadoc promises ('All sequence numbers &lt;= this value will be reflected in the commit, and all others will not'): a change whose returned number is above the commit's is not in that commit. Instead the call returns the commit's number plus one (8 against 7), yet the delete or doc-values update is already in the commit point, while deleteDocuments(Term), deleteDocuments(Query) and updateNumericDocValue(Term) in the same window get 8 too and correctly stay out.
+You call tryDeleteDocument or tryUpdateDocValue with an NRT reader while another thread is inside commit(), after the commit has fixed its sequence number and before it snapshots its segments. You expect what the commit javadoc promises ('All sequence numbers &lt;= this value will be reflected in the commit, and all others will not'): a change whose returned number is above the commit's is not in that commit. Instead the call returns a number above the commit's (8 against 7 in the first five-test class, 7 against 6 in the one-test repro), yet the delete or doc-values update is already in the commit point, while deleteDocuments(Term), deleteDocuments(Query) and updateNumericDocValue(Term) in the same window get 8 too and correctly stay out.
 
 The test shows that while `commit()` flushes a buffered segment (after it has fixed its sequence number), another thread calls `tryDeleteDocument(nrtReader, 0)`; the delete gets a number above the commit's, yet it is in that commit (`tryUpdateDocValue` shares the code path).
 
@@ -22,9 +22,10 @@ Expected, per the `commit()` javadoc ("All sequence numbers &lt;= this value wil
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- What this folder covers: the test shows the first part of the title: tryDeleteDocument, called while commit() flushes, returns a sequence number above the commit's and its delete is in that commit. The second part of the title, a commit that holds no version of a document replaced during that flush, has no test in this folder. Run on 2026-11-18 on Lucene main 1cfa86310f76, with and without assertions: 1 test found, 1 test failed (tryDeleteDocument 7, the commit 6, the delete in the commit).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

@@ -21,6 +21,7 @@ You index one document, 'wifi', search it with a TermAutomatonQuery that accepts
 
 ## Run it
 
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): reproduced, with assertions on and off.
 - Tested on Lucene main 9965d34e3c77 (2026-11-16): reproduced, with assertions on and off.
 - Tested on Lucene main 781025d6fe32 (2026-11-13): reproduced, with assertions on and off.
 - Tested on Lucene branch_11x daa54f2e0cd3 (2026-11-13): reproduced, with assertions on and off.

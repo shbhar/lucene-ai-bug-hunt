@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You build a UniformSplit (or SharedTermsUniformSplit) postings format with targetNumBlockLines=4 and deltaNumLines=2, which the constructor accepts because its documented rule is only 0 &lt;= delta &lt; target, and commit a field with 3 terms. You expect the commit to succeed and the blocks to hold target +- delta lines. Instead the flush throws (AssertionError 'blockLines size: 3' with assertions on, IndexOutOfBoundsException 'Index -1 out of bounds for length 3' with them off) and the IndexWriter closes, because the code that splits a field's last block assumes its look-back window of 2*delta lines starts at line 1 or later, which is false whenever 3*delta &gt; target and the last block has between target-delta+1 and 2*delta lines.
+You build a UniformSplit (or SharedTermsUniformSplit) postings format with targetNumBlockLines=4 and deltaNumLines=2, which the constructor accepts because its documented rule is only 0 &lt;= delta &lt; target, and commit a field with 3 terms. You expect the commit to succeed and the blocks to hold target +- delta lines. Instead the flush throws (AssertionError 'blockLines size: 3' with assertions on, IndexOutOfBoundsException 'Index -1 out of bounds for length 3' with them off) and the IndexWriter closes, because the code that splits a field's last block assumes its look-back window of 2\*delta lines starts at line 1 or later, which is false whenever 3\*delta &gt; target and the last block has between target-delta+1 and 2\*delta lines.
 
 The test shows that UniformSplitPostingsFormat(4, 2), which its constructor accepts (documented rule 0 &lt;= deltaNumLines &lt; targetNumBlockLines), cannot commit a field with 3 terms: the last-block split in BlockWriter starts its window at 3 - 2*2 = -1.
 
@@ -22,7 +22,7 @@ Expected the commit to succeed; actual: it throws (`AssertionError: blockLines s
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

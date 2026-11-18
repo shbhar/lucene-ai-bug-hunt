@@ -4,7 +4,7 @@ Finding LFV-155 · Area: misc / DocValuesStats double statistics (DocValuesStats
 
 Finding page: [../../bugs/LFV-155.html](../../bugs/LFV-155.html)
 
-AI-assisted finding, confirmed by automated checks. Upstream status: Fixed, by Uwe Schindler (merged PR #16971 by sjs004) on 2026-11-04 (https://github.com/apache/lucene/pull/16971). Uwe Schindler approved PR #16971 (by sjs004, opened 2026-11-03), merged it into main on 2026-11-04 (milestone 11.0.0) and cherry-picked it to branch_11x the same day. The PR fixes this bug, adds a test and references this bug. Not on branch_10_6 (head 5deb5791f6c, 2026-11-08), so 10.6.x keeps the bug. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fixed, by Uwe Schindler (uschindler; Lucene PMC; merged PR #16971 by Simranjeet Singh, sjs004) on 2026-11-04 (https://github.com/apache/lucene/pull/16971). Uwe Schindler approved PR #16971 (by sjs004, opened 2026-11-03), merged it into main on 2026-11-04 (milestone 11.0.0) and cherry-picked it to branch_11x the same day. The PR fixes this bug, adds a test and references this bug. Not on branch_10_6 (head 5deb5791f6c, 2026-11-08), so 10.6.x keeps the bug. This site files nothing upstream.
 
 ## What it shows
 

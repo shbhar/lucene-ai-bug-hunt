@@ -1,4 +1,4 @@
-# A MUST_NOT clause next to a scoring ToParentBlockJoinQuery is checked against child documents instead of parents, so excluded parents are returned, and the search throws when a parent/child block straddles a 4096-doc window
+# A MUST_NOT clause next to a scoring ToParentBlockJoinQuery is checked against child documents instead of parents, so excluded parents can be returned, and the search can throw when a parent/child block straddles a 4096-doc window
 
 Finding LFV-222 · Area: join / block join (ToParentBlockJoinQuery.BlockJoinBulkScorer) x search / BooleanQuery MUST_NOT bulk scoring (ReqExclBulkScorer, #16669) · Priority: high · Impact: silent wrong results · Novelty: known upstream
 
@@ -22,7 +22,7 @@ Expected `search(q, 10)` to return only `p1` (as `count(q)` = 1 does); actual `[
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

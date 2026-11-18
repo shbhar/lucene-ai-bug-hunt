@@ -1,4 +1,4 @@
-# A codec file whose extension contains '_' (IndexFileNames.segmentFileName(si.name, "", "my_ext") = "_0.my_ext", accepted by CODEC_FILE_PATTERN) is recorded by SegmentInfo as the non-existent "_0_ext", so the first flush throws NoSuchFileException and closes the IndexWriter as tragic, because IndexFileNames.indexOfSegmentName takes a '_' after the first '.' as the end of the segment name (since 5.0.0)
+# A codec file whose extension contains '\_' (IndexFileNames.segmentFileName(si.name, "", "my_ext") = "\_0.my_ext", accepted by CODEC_FILE_PATTERN) is recorded by SegmentInfo as the non-existent "\_0_ext", so the first flush throws NoSuchFileException and closes the IndexWriter as tragic, because IndexFileNames.indexOfSegmentName takes a '\_' after the first '.' as the end of the segment name (since 5.0.0)
 
 Finding LFV-1327 · Area: index / segment file naming (IndexFileNames.indexOfSegmentName, SegmentInfo.namedForThisSegment) · Priority: low · Impact: minor · Novelty: new
 
@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You write a custom codec whose format also writes one per-segment file named with IndexFileNames.segmentFileName(si.name, "", "my_ext"), which gives "_0.my_ext", a name that CODEC_FILE_PATTERN (checked by SegmentInfo) accepts, then add one document and commit. You expect the commit to succeed and the segment's files() to list "_0.my_ext", as it does for the extension "myext". Instead SegmentInfo records the file as "_0_ext", because IndexFileNames.indexOfSegmentName takes the '_' inside the extension as the end of the segment name, so the flush throws NoSuchFileException: _0_ext and the IndexWriter closes itself as tragic, losing the document.
+You write a custom codec whose format also writes one per-segment file named with IndexFileNames.segmentFileName(si.name, "", "my_ext"), which gives "\_0.my_ext", a name that CODEC_FILE_PATTERN (checked by SegmentInfo) accepts, then add one document and commit. You expect the commit to succeed and the segment's files() to list "\_0.my_ext", as it does for the extension "myext". Instead SegmentInfo records the file as "\_0_ext", because IndexFileNames.indexOfSegmentName takes the '\_' inside the extension as the end of the segment name, so the flush throws NoSuchFileException: \_0_ext and the IndexWriter closes itself as tragic, losing the document.
 
 ## Expected vs actual
 
@@ -21,7 +21,7 @@ You write a custom codec whose format also writes one per-segment file named wit
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

@@ -1,4 +1,4 @@
-# Range facet counters add every hit the fastMatchQuery rejects to FacetResult.value, so the dimension total is too high and depends on the segment layout
+# Range facet counters can add hits the fastMatchQuery rejects to FacetResult.value, so the dimension total can be too high and depend on the segment layout
 
 Finding LFV-151 · Area: facet / range and range-on-range facet counts (FacetResult.value with a fastMatchQuery) · Priority: low · Impact: silent wrong results · Novelty: new
 
@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You build a range facet counter (LongRangeFacetCounts or DoubleRangeFacetCounts on a single-valued field or values source, or a range-on-range counter) with a fastMatchQuery that removes only hits outside every range, which is what it is for, and read FacetResult.value. You expect the same dimension total as without the fastMatchQuery: the number of hits that fall into at least one range. Instead each segment adds all of its hits up front but subtracts only the documents the fastMatchQuery let through, so the hits it rejected stay in the total (3 instead of 1 in the minimal repro, while the range count is 1), and the same documents and query give 3 in one segment and 1 in two.
+You build a range facet counter (LongRangeFacetCounts or DoubleRangeFacetCounts on a single-valued field or values source, or a range-on-range counter) with a fastMatchQuery that removes only hits outside every range, which is what it is for, and read FacetResult.value. You expect the same dimension total as without the fastMatchQuery: the number of hits that fall into at least one range. Instead each segment where the fastMatchQuery has a scorer adds all of its hits up front but subtracts only the documents the fastMatchQuery let through, so the hits it rejected stay in the total (3 instead of 1 in the minimal repro, while the range count is 1), and the same documents and query give 3 in one segment and 1 in two.
 
 The test shows that LongRangeFacetCounts with a fastMatchQuery that only rejects documents outside the range counts those rejected hits in FacetResult.value (one segment, v = 0, 10, 20, range [0,5]).
 
@@ -22,7 +22,7 @@ Expected total 1 (only v=0 is in a range, the same as without the fastMatchQuery
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
@@ -45,8 +45,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.facet.range.TestLongRangeFacetFastMatchTotal
 ```
-
-The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 

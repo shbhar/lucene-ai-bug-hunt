@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You load a Hunspell dictionary with the suffix rule 'SFX A abc d [c]' (strip abc, add d, condition [c]) on the root xabc and expect the condition to be tested where Hunspell lines it up, at the end of the root, which for a condition shorter than the strip is the end of the strip: xd should be a correct word with stem xabc and 'SFX A abc e [a]' should never apply, as C Hunspell 1.3.2 answers and as Lucene itself answers when the same condition is written as the literal c. Instead Lucene rejects xd and accepts xe as a form of xabc, and the prefix rules 'PFX B abc d [a]' and 'PFX B abc e [c]' on the root abcx are reversed the same way (dx rejected, ex accepted); spell, getRoots and HunspellStemFilter give these wrong verdicts and stems with no error. The cause is AffixCondition.compile: for a condition with [ ] or . and no more character patterns than the strip, it decides the rule once at load by matching the strip against 'kind == PREFIX ? ".*" + condition : condition + ".*"', which tests the strip's start for SFX and its end for PFX, the two templates swapped between the kinds.
+You load a Hunspell dictionary with the suffix rule 'SFX A abc d [c]' (strip abc, add d, condition [c]) on the root xabc and expect the condition to be tested where Hunspell lines it up, at the end of the root, which for a condition shorter than the strip is the end of the strip: xd should be a correct word with stem xabc and 'SFX A abc e [a]' should never apply, as C Hunspell 1.3.2 answers and as Lucene itself answers when the same condition is written as the literal c. Instead Lucene rejects xd and accepts xe as a form of xabc, and the prefix rules 'PFX B abc d [a]' and 'PFX B abc e [c]' on the root abcx are reversed the same way (dx rejected, ex accepted); spell, getRoots and HunspellStemFilter give these wrong verdicts and stems with no error. The cause is AffixCondition.compile: for a condition with [ ] or . and no more character patterns than the strip, it decides the rule once at load by matching the strip against 'kind == PREFIX ? ".\*" + condition : condition + ".\*"', which tests the strip's start for SFX and its end for PFX, the two templates swapped between the kinds.
 
 The test shows that a Hunspell suffix rule whose bracket condition is shorter than its strip is checked against the start of the strip instead of the end of the root (`SFX A abc d [c]` on root `xabc`).
 
@@ -22,7 +22,7 @@ Expected `spell("xd")` to be true (xabc ends in c, and the same rule with the li
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You delete a cluster of documents around the HNSW entry node and merge, for example with forceMerge(1), so the merge reuses and repairs the biggest segment's graph. You expect kNN recall to stay about the same. Instead the repair cannot reconnect an entry node that lost every neighbour, every search starts at that isolated node and returns only it (recall@10 0.906 to 0.000 in the repro), and CheckIndex reports no problem.
+You delete a cluster of documents around the HNSW entry node and merge, for example with forceMerge(1), so the merge reuses and repairs the biggest segment's graph. You expect kNN recall to stay about the same. Instead the repair cannot reconnect an entry node that lost every neighbour, an unfiltered kNN query whose k is small enough for a graph search (1 to 195 on the repro's index) starts at that isolated node and returns only it (recall@10 0.906 to 0.000 in the repro), and CheckIndex reports no problem.
 
 The test shows that with the default codec, deleting the 31-doc cluster that the HNSW entry node (doc 171) links into and calling forceMerge(1) reuses the graph but leaves the entry with no neighbours, so kNN search returns only that node.
 
@@ -22,7 +22,7 @@ Expected: a k=10 KnnFloatVectorQuery returns 10 hits among the 1419 live docs. A
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

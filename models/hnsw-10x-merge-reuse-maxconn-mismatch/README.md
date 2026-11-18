@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- On 10.5.1, 10.5.2 and branch_10_6 (the 10.6.0 RC1 revision), an HNSW merge that reuses a graph written with a different maxConn either fails and closes the IndexWriter (maxConn raised) or commits a segment that no kNN query can search (maxConn lowered) (finding LFV-811; [repro](../../repro/LFV-811/))
+- On 10.5.1, 10.5.2 and 10.6.0, an HNSW merge that reuses a graph written with a different maxConn can either fail and close the IndexWriter (maxConn raised) or commit a segment on which a kNN query throws when it reads a neighbour list longer than twice the new maxConn (maxConn lowered) (finding LFV-811; [repro](../../repro/LFV-811/))
 
 ## Files
 

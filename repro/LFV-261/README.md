@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You set StableTflSimilarity on the searcher, whose javadoc derives a term's rarity from the length |t| of the query term, and you search with a SynonymQuery (for example the one QueryBuilder builds when a synonym filter stacks 'dog' and 'dogs' at one position) or with a CombinedFieldQuery. You expect the real query terms' length to be used, so that SynonymQuery{ab, cd} on a document that contains 'ab' once scores like TermQuery(ab), and a one-field CombinedFieldQuery scores like a TermQuery on a copy field. Instead both queries hand the similarity a fixed placeholder term ('synonym pseudo-term', 19 code points; 'pseudo_term', 11 code points), so every synonym group is scored as an almost maximally rare 19-character term and every combined-field term as an 11-character one: SynonymQuery{ab, cd} scores 1.4050181 instead of 1.3490043, and in 200-token documents the group {dog, dogs} scores 2.13x TermQuery(dog) and outranks a document that matches 'elephant'.
+You set StableTflSimilarity on the searcher, whose javadoc derives a term's rarity from the length |t| of the query term, and you search with a SynonymQuery (for example the one QueryBuilder builds when a synonym filter stacks 'dog' and 'dogs' at one position) or with a CombinedFieldQuery. You expect the real query terms' length to be used, so that SynonymQuery{ab, cd} on a document that contains 'ab' once scores like TermQuery(ab), and a one-field CombinedFieldQuery scores like a TermQuery on a copy field. Instead both queries hand the similarity a fixed placeholder term ('synonym pseudo-term', 19 code points; 'pseudo_term', 11 code points), so every synonym group is scored as an almost maximally rare 19-character term and every combined-field term as an 11-character one: SynonymQuery{ab, cd} scores 1.4050181 instead of 1.3490043 in a 3-token document, and in 200-token documents the group {dog, dogs} scores 2.13x TermQuery(dog) and outranks a document that matches 'elephant'.
 
 The test shows that with StableTflSimilarity, SynonymQuery passes the placeholder term "synonym pseudo-term" (19 code points) to the similarity instead of its real terms, so a synonym group gets the rarity of a 19-character term.
 
@@ -22,7 +22,7 @@ Expected: SynonymQuery{ab, cd} on a document with the single token "ab" scores l
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

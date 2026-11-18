@@ -8,13 +8,13 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You index a dateline-crossing rectangle with BBoxStrategy in the default geo context and score it with makeOverlapRatioValueSource and a query rectangle that also crosses the dateline, and you expect the documented score intersectionArea/queryArea*p + intersectionArea/targetArea*(1-p), where intersectionArea is 'the area of the intersection between the query and target envelopes'. When the two boxes wrap far enough round the globe that they overlap twice, once across the dateline and once on the far side (query rect(10,-170,-10,10) and document rect(170,20,-10,10) share 170..-170 across the dateline, 20 degrees, and 10..20, 10 degrees), the score counts only the piece across the dateline: 0.10317460317460317 instead of 0.15476190476190477 at p = 0.5. The both-cross branch computes the width as right - left + 360, which is only that piece, while the branch for one crossing box already adds up both pieces.
+You index a dateline-crossing rectangle with BBoxStrategy in the default geo context and score it with makeOverlapRatioValueSource and a query rectangle that also crosses the dateline, and you expect the documented score intersectionArea/queryArea\*p + intersectionArea/targetArea\*(1-p), where intersectionArea is 'the area of the intersection between the query and target envelopes'. When the two boxes wrap far enough round the globe that they overlap twice, once across the dateline and once on the far side (query rect(10,-170,-10,10) and document rect(170,20,-10,10) share 170..-170 across the dateline, 20 degrees, and 10..20, 10 degrees), the score counts only the piece across the dateline: 0.10317460317460317 instead of 0.15476190476190477 at p = 0.5. The both-cross branch computes the width as right - left + 360, which is only that piece, while the branch for one crossing box already adds up both pieces.
 
 The test shows that `BBoxStrategy.makeOverlapRatioValueSource` counts only the dateline piece when two dateline-crossing boxes overlap twice (query `rect(10,-170,-10,10)`, document `rect(170,20,-10,10)`, true overlap 20 + 10 = 30 degrees).
 
 ## Expected vs actual
 
-Expected: the documented score 600/3600*0.5 + 600/4200*0.5 = 0.15476190476190477; actual (-ea and -da): 0.10317460317460317 (width 20, from `right - left + 360`, BBoxOverlapRatioValueSource.java:181).
+Expected: the documented score 600/3600\*0.5 + 600/4200\*0.5 = 0.15476190476190477; actual (-ea and -da): 0.10317460317460317 (width 20, from `right - left + 360`, BBoxOverlapRatioValueSource.java:181).
 
 ## Files
 
@@ -22,7 +22,7 @@ Expected: the documented score 600/3600*0.5 + 600/4200*0.5 = 0.15476190476190477
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

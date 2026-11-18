@@ -1,4 +1,4 @@
-# Nori: user-dictionary nouns still use the context ids of mecab-ko-dic 2.0.3 after Lucene 10.0 moved to mecab-ko-dic 2.1.1, so the particle after a user noun gets the wrong part of speech (학교가: 가 becomes the verb 'go'; 학생이: 이 becomes the copula) and KoreanAnalyzer indexes spurious terms such as 가 and 이
+# Nori: user-dictionary nouns still use the context ids of mecab-ko-dic 2.0.3 after Lucene 10.0 moved to mecab-ko-dic 2.1.1, so the particle after a user noun can get the wrong part of speech (학교가: 가 becomes the verb 'go'; 학생이: 이 becomes the copula) and KoreanAnalyzer can index spurious terms such as 가 and 이
 
 Finding LFV-658 · Area: analysis / nori KoreanTokenizer user dictionary (UserDictionary right ids, UserMorphData left id vs the bundled mecab-ko-dic-2.1.1 connection costs) · Priority: medium · Impact: silent wrong results · Novelty: new
 
@@ -22,7 +22,7 @@ Expected `[학교]`, the terms without the user entry; actual: `[학교, 가]` (
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

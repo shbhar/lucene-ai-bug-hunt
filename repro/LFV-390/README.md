@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You enable Lucene's opt-in native dot product (-Dlucene.useNativeDotProduct=true plus a library built from the example lucene/misc/src/c/dotProduct.c) on an SVE machine and call VectorUtil.dotProduct(byte[], byte[]) on two legal arrays of 2,147,483,645 bytes whose exact dot product is 3, expecting 3 as the Panama and default providers return. Instead the SVE kernel vdot8s_sve keeps its loop index and vector length in int32_t, so its loop test 'i + 4 * vec_length &lt;= limit' (dotProduct.c:66) overflows once i reaches 2^31 - 4*VL (VL = SVE vector length in bytes); in the compiled code the bound wraps negative while the load offset is a 64-bit register, so the loop keeps loading past the end of both arrays until it hits an unmapped page and the JVM dies with SIGSEGV in vdot8s_sve. Every length from 2^31 - 4*VL up to the JVM maximum crashes (2,147,483,520 at 256-bit SVE, 2,147,483,584 at 128-bit SVE), while one element less returns the exact result; a 64-bit loop index with svwhilelt_b8_s64 fixes it.
+You enable Lucene's opt-in native dot product (-Dlucene.useNativeDotProduct=true plus a library built from the example lucene/misc/src/c/dotProduct.c) on an SVE machine and call VectorUtil.dotProduct(byte[], byte[]) on two legal arrays of 2,147,483,645 bytes whose exact dot product is 3, expecting 3 as the Panama and default providers return. Instead the SVE kernel vdot8s_sve keeps its loop index and vector length in int32_t, so its loop test 'i + 4 * vec_length &lt;= limit' (dotProduct.c:66) overflows once i reaches 2^31 - 4\*VL (VL = SVE vector length in bytes); in the compiled code the bound wraps negative while the load offset is a 64-bit register, so the loop keeps loading past the end of both arrays until it hits an unmapped page and the JVM dies with SIGSEGV in vdot8s_sve. Every length from 2^31 - 4\*VL up to the JVM maximum crashes (2,147,483,520 at 256-bit SVE, 2,147,483,584 at 128-bit SVE), while one element less returns the exact result; a 64-bit loop index with svwhilelt_b8_s64 fixes it.
 
 ## Expected vs actual
 
@@ -21,7 +21,7 @@ You enable Lucene's opt-in native dot product (-Dlucene.useNativeDotProduct=true
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
 - How to read the outcome: a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

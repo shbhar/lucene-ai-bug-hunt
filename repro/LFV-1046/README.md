@@ -1,6 +1,6 @@
-# A deleteDocuments or updateDocument(s) call with a term over 32,766 bytes is rejected but stays in IndexWriter's shared delete queue, so every later add and delete and the next commit, NRT reopen or close() fail until rollback() (regression in 9.9.0; up to 9.8.0 such a delete was a no-op)
+# A term over 32,766 bytes passed to deleteDocuments(Term...), or to an updateDocument(s) call whose documents are indexed without error, is rejected but stays in IndexWriter's shared delete queue, so later deletes, some later adds and the next commit, NRT reopen or close() fail, and with assertions off a later commit can return without the documents that were buffered when the term was rejected (regression in 9.9.0; up to 9.8.0 such a delete was a no-op)
 
-Finding LFV-1046 · Area: index / IndexWriter buffered delete terms (DocumentsWriterDeleteQueue.DeleteSlice.apply, BufferedUpdates.DeletedTerms) · Priority: medium · Impact: index unusable · Novelty: new
+Finding LFV-1046 · Area: index / IndexWriter buffered delete terms (DocumentsWriterDeleteQueue.DeleteSlice.apply, BufferedUpdates.DeletedTerms) · Priority: medium · Impact: crash · Novelty: new
 
 Finding page: [../../bugs/LFV-1046.html](../../bugs/LFV-1046.html)
 
@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You add a document, call deleteDocuments(new Term("id", t)) with t longer than 32,766 bytes, and commit. No indexed term can be that long, so you expect the delete to match nothing (as it did up to 9.8.0) or to be rejected, and the commit to contain the document. Instead the delete throws BytesRefHash.MaxBytesLengthExceededException after it was already queued and is never removed from the queue, so every later addDocument and delete throws the same exception and commit() fails (with assertions off an IllegalStateException 'Can't close queue unless all changes are applied', with -ea an AssertionError that closes the writer); the only clean way out is rollback().
+You add a document, call deleteDocuments(new Term("id", t)) with t longer than 32,766 bytes, and commit. No indexed term can be that long, so you expect the delete to match nothing (as it did up to 9.8.0) or to be rejected, and the commit to contain the document. Instead the delete throws BytesRefHash.MaxBytesLengthExceededException after it was already queued and is never removed from the queue, so later deletes throw the same exception, as does an addDocument called right after it (not every later add does), and commit() fails (with assertions off an IllegalStateException 'Can't close queue unless all changes are applied', with -ea an AssertionError that closes the writer); with assertions off a second commit() then returns without the document.
 
 ## Expected vs actual
 
@@ -21,8 +21,9 @@ You add a document, call deleteDocuments(new Term("id", t)) with t longer than 3
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- What this folder covers: the test adds one document, lets deleteDocuments with a 32,767-byte term throw, and calls commit(): the failed commit is the finding reproducing. The other clauses of the title (an updateDocument call with such a term, the later deletes and adds, an NRT reopen or close(), and the later commit that returns without the buffered document) have no test in this folder; the finding page gives their runs. Run on 2026-11-18 on Lucene main 1cfa86310f76, with and without assertions: 1 test found, 1 test failed (AssertionError 'pendingNumDocs 1 != 0 totalMaxDoc' with assertions on; IllegalStateException 'Can't close queue unless all changes are applied' with assertions off).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

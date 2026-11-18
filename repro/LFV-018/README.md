@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You wrap several readers in a ParallelLeafReader where more than one has term vectors for the same field. You expect term vectors from the first reader that has the field, as documented. Instead, since #14373, they come from the wrong reader, and an index written from it with addIndexes fails CheckIndex.
+You wrap several readers in a ParallelLeafReader where more than one has the same field and a reader after the first has term vectors for it. You expect term vectors from the first reader that has the field, as documented. Instead, since #14373, they come from the wrong reader, and an index written from it with addIndexes fails CheckIndex at level 2 or 3.
 
 The test shows that `ParallelLeafReader.termVectors()` returns a term vector from the second reader for a field that the first reader owns ("first reader having a given field wins") and indexes without term vectors.
 
@@ -22,7 +22,7 @@ Expected: no term vector for `body` (getFieldInfos() and terms() come from the f
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

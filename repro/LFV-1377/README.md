@@ -1,4 +1,4 @@
-# SpatialQuery's dense scorers decide 'no match' from a counter summed from bulk-iterator DocIdSetIterator#cost(), so LatLonPoint geometry queries and LatLonShape/XYShape queries with WITHIN or DISJOINT silently drop matching documents when a custom PointValues hands the bulk IntersectVisitor callbacks iterators with an upper-bound cost (latent: every in-tree PointValues reports exact costs; since 9.1.0)
+# SpatialQuery's dense scorers decide 'no match' from a counter summed from bulk-iterator DocIdSetIterator#cost(), so LatLonPoint geometry queries and LatLonShape/XYShape queries with WITHIN or DISJOINT can silently drop matching documents when a custom PointValues hands the bulk IntersectVisitor callbacks iterators with an upper-bound cost (latent: every in-tree PointValues reports exact costs; since 9.1.0)
 
 Finding LFV-1377 · Area: document / spatial queries (SpatialQuery.RelationScorerSupplier dense scorers, used by LatLonPoint.newGeometryQuery/newPolygonQuery and LatLonShape/XYShape queries) over a custom PointValues · Priority: low · Impact: minor · Novelty: new
 
@@ -21,7 +21,7 @@ A PointValues wrapper delegates everything to the default codec's points but han
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

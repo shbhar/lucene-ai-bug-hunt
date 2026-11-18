@@ -1,4 +1,4 @@
-# XY distance sort used as a later Sort key drops closer tied hits, because XYPointDistanceComparator.setBottom keeps an old, too-small bounding box when the bottom grows (a missing-value bottom of +Infinity, or growth after 1024 bottom updates)
+# XY distance sort used as a later Sort key can drop closer tied hits, because XYPointDistanceComparator.setBottom keeps an old, too-small bounding box when the bottom grows (a missing-value bottom of +Infinity, or growth after 1024 bottom updates)
 
 Finding LFV-1132 · Area: core / document: XY distance sort (XYDocValuesField.newDistanceSort, XYPointDistanceComparator) · Priority: medium · Impact: silent wrong results · Novelty: new
 
@@ -21,7 +21,7 @@ You sort three documents, (cat b, distance 1), (cat a, no location) and (cat a, 
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces (the repro adapted to an API change on this commit). The change: #16962 made the no-argument MatchAllDocsQuery constructor private on main (24d9e7d1a0d) and on the 11.0 branch (branch_11x, a6a26f9b251), so replace new MatchAllDocsQuery() with MatchAllDocsQuery.INSTANCE before you compile the test there.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces (the repro adapted to an API change on this commit). The change: #16962 made the no-argument MatchAllDocsQuery constructor private on main (24d9e7d1a0d) and on the 11.0 branch (branch_11x, a6a26f9b251), so replace new MatchAllDocsQuery() with MatchAllDocsQuery.INSTANCE before you compile the test there.
 - Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

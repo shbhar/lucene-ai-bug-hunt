@@ -1,4 +1,4 @@
-# BPIndexReorderer assumes every segment ends with a parent document: once a segment ends with child documents that have no parent after them, each BP reordering merge in which that segment comes last throws and closes the IndexWriter
+# BPIndexReorderer assumes every segment ends with a parent document: once a segment ends with child documents that have no parent after them, each BP reordering merge of at least 64 documents (default reorderer settings) in which that segment comes last throws and closes the IndexWriter
 
 Finding LFV-417 · Area: misc / BP merge-time reordering (BPIndexReorderer with document blocks) · Priority: medium · Impact: index unusable · Novelty: new
 
@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You index document blocks with IndexWriterConfig#setParentField, merge through BPReorderingMergePolicy with a BPIndexReorderer, and a segment ends up ending with child documents that have no parent after them, for example because you deleted or updated only the parent of its last block and a merge dropped it, or because IndexWriter rejected a block at one of its children (with the documented IllegalArgumentException) just before a flush. You expect later merges to work: IndexWriter accepted every call, CheckIndex calls the index clean and a plain merge of the same segment succeeds. Instead BPIndexReorderer, which assumes the merged view ends with a parent, runs past the end of its arrays in the next reordering merge in which that segment comes last (ArrayIndexOutOfBoundsException with assertions off, AssertionError with them on), and IndexWriter closes with a tragic exception, loses uncommitted changes and fails the same way after every reopen.
+You index document blocks with IndexWriterConfig#setParentField, merge through BPReorderingMergePolicy with a BPIndexReorderer, and a segment ends up ending with child documents that have no parent after them, for example because you deleted or updated only the parent of its last block and a merge dropped it, or because IndexWriter rejected a block at one of its children (with the documented IllegalArgumentException) just before a flush. You expect later merges to work: IndexWriter accepted every call, CheckIndex calls the index clean and a plain merge of the same segment succeeds. Instead BPIndexReorderer, which assumes the merged view ends with a parent, runs past the end of its arrays in the next reordering merge in which that segment comes last (ArrayIndexOutOfBoundsException with assertions off once the merge covers at least 64 documents, AssertionError with them on), and IndexWriter closes with a tragic exception, loses uncommitted changes and, reopened with the same configuration, fails the same way on its next such merge.
 
 The test shows that with setParentField and BPReorderingMergePolicy(BPIndexReorderer), a block that IndexWriter rejects at a child (immense term) as the last block of a segment makes the next forceMerge(1) fail.
 
@@ -22,7 +22,7 @@ Expected: forceMerge(1) succeeds; actual: it throws (AssertionError at BPIndexRe
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

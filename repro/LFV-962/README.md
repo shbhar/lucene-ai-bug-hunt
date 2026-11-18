@@ -1,4 +1,4 @@
-# RegExp builds about n^2/2 transitions for a run of n repeated nullable atoms (a.*.*...b, a(x?)^n b, [a-z]*, (bc)?), and on main RegexpQuery keeps that automaton: a 2,002-character regexp of language a.*b holds 502,502 transitions and 170 MB (10.5.2: 4 states, 7 KB)
+# RegExp builds about n^2/2 transitions for a run of n repeated nullable atoms (a.\*.\*...b, a(x?)^n b, [a-z]\*, (bc)?), and on main RegexpQuery keeps that automaton: a 2,002-character regexp of language a.\*b holds 502,502 transitions and 170 MB (10.5.2: 4 states, 7 KB)
 
 Finding LFV-962 · Area: util / automaton (RegExp, Operations.concatenate; reached from RegexpQuery and the classic and flexible query parsers) · Priority: low · Impact: crash · Novelty: known upstream
 
@@ -6,7 +6,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You build a RegexpQuery, directly or by typing /regexp/ syntax into the classic or flexible query parser, for a regexp with a long run of the same nullable atom, for example 'a' followed by 1,000 copies of '.*' and then 'b', and expect an automaton about as small as its language a.*b (4 states, which is what 10.5.2 keeps and what WildcardQuery builds for a run of '*' since #16382). Instead Operations.concatenate gives every accept state a link to each following piece for as long as those pieces accept the empty string, so the run gets about n^2/2 transitions (502,502 here), and on main, where RegexpQuery no longer determinizes (#15939), the query keeps that automaton: ramBytesUsed 170 MB, about 3 s to build, and OutOfMemoryError under a 1 GB heap from about 4,000 characters. The same happens for x?, x*, [a-z]*, (ab)*, (bc)? and [^x]*; search results are always correct, and released versions pay the quadratic cost only while building (OutOfMemoryError at about 12,000 characters under 1 GB, or a TooComplexToDeterminizeException for 447 'x?' in a row).
+You build a RegexpQuery, directly or by typing /regexp/ syntax into the classic or flexible query parser, for a regexp with a long run of the same nullable atom, for example 'a' followed by 1,000 copies of '.\*' and then 'b', and expect an automaton about as small as its language a.\*b (4 states, which is what 10.5.2 keeps and what WildcardQuery builds for a run of '\*' since #16382). Instead Operations.concatenate gives every accept state a link to each following piece for as long as those pieces accept the empty string, so the run gets about n^2/2 transitions (502,502 here), and on main, where RegexpQuery no longer determinizes (#15939), the query keeps that automaton: ramBytesUsed 170 MB, about 3 s to build, and OutOfMemoryError under a 1 GB heap from about 4,000 characters. The same happens for x?, x\*, [a-z]\*, (ab)\*, (bc)? and [^x]\*; search results are always correct, and released versions pay the quadratic cost only while building (OutOfMemoryError at about 12,000 characters under 1 GB, or a TooComplexToDeterminizeException for 447 'x?' in a row).
 
 ## Expected vs actual
 
@@ -21,7 +21,7 @@ You build a RegexpQuery, directly or by typing /regexp/ syntax into the classic 
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

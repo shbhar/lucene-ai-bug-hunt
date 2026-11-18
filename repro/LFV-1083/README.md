@@ -1,4 +1,4 @@
-# If commit() fails with an InfoStream exception after the pending segments file is synced, the commit's file references are released twice, so a later rollback() (or close() with commitOnClose=false) deletes files of the last commit and the index can no longer be opened
+# If commit() fails with an InfoStream exception after the pending segments file is synced, the commit's file references are released twice, so with assertions off a later rollback() (or close() with commitOnClose=false) deletes files of the last commit and the index can no longer be opened
 
 Finding LFV-1083 · Area: index / IndexWriter commit failure handling (IndexWriter.startCommit, prepareCommitInternal and rollback; IndexFileDeleter reference counts) · Priority: medium · Impact: index unusable · Novelty: new
 
@@ -21,7 +21,7 @@ You enable an InfoStream on an IndexWriter, commit one document, add a second on
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main e1faeba08bde (2026-11-02): reproduced.
 - Recorded outcome of run 1 on Lucene main e1faeba08bde: 1 test(s) run, 1 failed (testRollbackKeepsLastCommit).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

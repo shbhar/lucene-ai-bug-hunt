@@ -1,4 +1,4 @@
-# Geo3D distance, path and outside-distance sorts (Geo3DDocValuesField) drop hits under IndexSearcher.searchAfter: compareTop compares the cursor, which is in meters, with the document's distance in planet units, so on WGS84 every page after the first loses all finite-distance hits (released since 6.1.0)
+# Geo3D distance, path and outside-distance sorts (Geo3DDocValuesField) drop hits under IndexSearcher.searchAfter: compareTop compares the cursor, which is in meters, with the document's distance in planet units, so on WGS84 a page after a cursor of more than a few meters (more for a path sort along a very long path) loses all finite-distance hits (released since 6.1.0)
 
 Finding LFV-544 · Area: spatial3d / Geo3DDocValuesField sort comparators (Geo3DPointDistanceComparator, Geo3DPointOutsideDistanceComparator: compareTop under searchAfter paging) · Priority: medium · Impact: silent wrong results · Novelty: new
 
@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You sort by Geo3DDocValuesField.newDistanceSort (or the path or outside-distance sorts) on the default WGS84 planet model, take the last FieldDoc of page 1 and call IndexSearcher.searchAfter(last, query, n, sort), expecting the next hits in distance order, as searchAfter documents. Instead the comparator's value() returns the distance in meters (as the factories' javadoc says), but compareTop compares that meters cursor with the document's distance in planet units (distances on a planet of mean radius 1), so every document with a finite distance looks 'already collected on a previous page' and is skipped. With six documents 3 to 8 degrees north of the origin and page size 2, page 2 should be [2, 3, 4, 5] and is []; on PlanetModel.SPHERE, where meters and planet units coincide, the same paging is correct.
+You sort by Geo3DDocValuesField.newDistanceSort (or the path or outside-distance sorts) on the default WGS84 planet model, take the last FieldDoc of page 1 and call IndexSearcher.searchAfter(last, query, n, sort), expecting the next hits in distance order, as searchAfter documents. Instead the comparator's value() returns the distance in meters (as the factories' javadoc says), but compareTop compares that meters cursor with the document's distance in planet units (distances on a planet of mean radius 1), so, once the cursor is more than a few meters (more for a path sort along a very long path), every document with a finite distance looks 'already collected on a previous page' and is skipped. With six documents 3 to 8 degrees north of the origin and page size 2, page 2 should be [2, 3, 4, 5] and is []; on PlanetModel.SPHERE, where meters and planet units coincide, the same paging is correct.
 
 The test shows that paging a Geo3D distance sort (`Geo3DDocValuesField.newDistanceSort`, WGS84) with `IndexSearcher.searchAfter` loses hits: the cursor is in meters but `compareTop` compares it with the planet-unit distance.
 
@@ -22,7 +22,7 @@ Two points, page size 1: expected page 2 = [doc 1]; actual: no hits (`hits on pa
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

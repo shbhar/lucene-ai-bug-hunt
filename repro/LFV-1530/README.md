@@ -1,4 +1,4 @@
-# Flexible StandardQueryParser passes the empty text that marks an open range bound through Analyzer.normalize, so with an analyzer whose normalization of the empty string is not empty a one-sided range such as [abc TO *] becomes a closed range and can match the wrong documents (none in every executed case where the analyzer's term for the empty string sorts first); every release from 7.0.0 to 10.6.0, branch_11x and main
+# Flexible StandardQueryParser passes the empty text that marks an open range bound through Analyzer.normalize, so with an analyzer whose normalization of the empty string is not empty a one-sided range such as [abc TO *] becomes a closed range and can match the wrong documents (none in every executed case where the analyzer's term for the empty string sorts before every indexed term); every release from 7.0.0 to 10.6.0, branch_11x and main
 
 Finding LFV-1530 · Area: queryparser / flexible StandardQueryParser (term range bounds: TermRangeQueryNodeProcessor after OpenRangeQueryNodeProcessor) · Priority: low · Impact: minor · Novelty: new
 
@@ -21,6 +21,8 @@ You parse the one-sided range "[abc TO *]" with the flexible StandardQueryParser
 
 ## Run it
 
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces, with assertions on and off.
+- Tested on Lucene branch_11x 89e68e0f3a50 (2026-11-17): reproduced, with assertions on and off (11.0.0-SNAPSHOT).
 - Tested on Lucene main 9965d34e3c77 (2026-11-16): reproduced, with assertions on and off.
 - Tested on Lucene branch_11x 9d2b5a15427a (2026-11-16): reproduced, with assertions on and off (11.0.0-SNAPSHOT).
 - Tested on Lucene 10.6.0 (4ae946e5a9b9) (2026-10-26): reproduced, with assertions on and off, on the 10.6.0 release jars, which are built from this commit (the tag releases/lucene/10.6.0).

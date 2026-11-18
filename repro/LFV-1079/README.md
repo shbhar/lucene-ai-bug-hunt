@@ -4,7 +4,7 @@ Finding LFV-1079 · Area: queries / function queries: valuesource.VectorSimilari
 
 Finding page: [../../bugs/LFV-1079.html](../../bugs/LFV-1079.html)
 
-AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by sjs004 (PR #16974) on 2026-11-03 (https://github.com/apache/lucene/pull/16974). PR #16974 (sjs004, open, head 0f61ec686b9c, no milestone) cites this row ("Resolves LFV-1079" of the tracking issue #16937). It adds the similarity function to VectorSimilarityFunction#equals, the same one condition as this row's fix, and three tests. The owner approved it on 2026-11-03, on this head; no committer has reviewed or commented as of 2026-11-14. On a build of that head our minimal repro passes; it fails on main 781025d6fe32, with and without assertions. The three new tests fail without the source change. Novelty stays new: the PR comes from this list. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by Simranjeet Singh (sjs004; open PR #16974, which cites this list) on 2026-11-03 (https://github.com/apache/lucene/pull/16974). PR #16974 (sjs004; open when read on 2026-11-18, one commit of 2026-11-03, no milestone) cites this row ("Resolves LFV-1079" of the tracking issue #16937). It adds the similarity function to VectorSimilarityFunction#equals, the same one condition as this row's fix, and three tests. The owner approved it on 2026-11-03; no committer had reviewed or commented when read on 2026-11-18. On a build of the pull request at that commit our minimal repro passes; it fails on main 781025d6fe32, with and without assertions. The three new tests fail without the source change. Novelty stays new: the PR comes from this list. This site files nothing upstream.
 
 ## What it shows
 
@@ -21,7 +21,7 @@ You build two function-query value sources over the same vector field and the sa
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main e1faeba08bde (2026-11-02): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

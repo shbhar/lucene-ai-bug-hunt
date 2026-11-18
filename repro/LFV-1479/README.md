@@ -19,7 +19,7 @@ You build a Geo3DPoint polygon query for a small rectangle with a hole (about 22
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 781025d6fe32 (2026-11-13): reproduced.
 - What the test does: it builds the rectangle with its hole and calls Geo3DPoint.newPolygonQuery, nothing else. It indexes no document and runs no search, and it fails with the IllegalArgumentException thrown by that call. The outside-polygon sort and the two controls named above (the same rectangle without the hole, and newLargePolygonQuery) are not part of this test.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

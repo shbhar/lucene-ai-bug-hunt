@@ -1,4 +1,4 @@
-# If the merge scheduler's InfoStream throws on the log line right after IndexWriter hands out a merge, that merge stays marked as running with no thread to run it, so the writer hangs in its own tragic rollback after an Error, or in close() after an exception (8.6.0 to main)
+# If the merge scheduler's logging throws on the log line right after IndexWriter hands out a merge, that merge stays marked as running with no thread to run it, so the writer hangs in its own tragic rollback after an Error on the indexing thread, or in close() after an exception (8.6.0 to main)
 
 Finding LFV-844 · Area: index / IndexWriter merge hand-off to the merge scheduler (IndexWriterMergeSource.getNextMerge, runningMerges) · Priority: low · Impact: hang · Novelty: new
 
@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You turn on IndexWriter's InfoStream for merge-scheduler messages, and the logging call throws once (an OutOfMemoryError, or an exception from the logging backend). It throws on the message the writer prints right after it hands a merge to the merge scheduler. You expect what the IndexWriter javadoc promises: after an Error the writer closes itself, and after an exception close() still finishes, because no merge is actually running. Instead, the merge has already been moved from 'pending' to 'running', and no thread ever runs or finishes it, so after an Error addDocument hangs forever inside the writer's own rollback (abortMerges), and after an exception close() hangs forever in waitForMerges.
+You turn on IndexWriter's InfoStream for merge-scheduler messages, and the logging call throws once (an OutOfMemoryError, or an exception from the logging backend). It throws on the message the writer prints right after it hands a merge to the merge scheduler. You expect what the IndexWriter javadoc promises: after an Error the writer closes itself, and after an exception close() still finishes, because no merge is actually running. Instead, the merge has already been moved from 'pending' to 'running', and no thread ever runs or finishes it, so after an Error on the indexing thread addDocument hangs forever inside the writer's own rollback (abortMerges), and after an exception close() hangs forever in waitForMerges.
 
 The test shows that when the merge scheduler's `InfoStream` throws an `OutOfMemoryError` on the " checked out merge" line, the merge is already in `runningMerges` with no thread to run it, so the writer's own tragic rollback (`abortMerges`) waits for it and `addDocument` never returns.
 
@@ -22,10 +22,10 @@ Expected the 4th `addDocument` to throw the Error and the writer to close itself
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 2 failed.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with java.lang.AssertionError: expected addDocument to throw the Error, still blocked after 10 s, and 1 container failed, the test framework's ThreadLeakError for the thread that is still blocked (the recorded outcome counts it as the second failure).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

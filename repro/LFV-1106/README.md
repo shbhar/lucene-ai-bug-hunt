@@ -23,6 +23,7 @@ You build one join query with JoinUtil.createJoinQuery(..., ScoreMode.Max) and, 
 - Tested on Lucene main 781025d6fe32 (2026-11-13): still fails 1 of 1, with and without assertions (run with the test adapted to #16962, which made the no-argument MatchAllDocsQuery constructor private on main (24d9e7d1a0d) and on the 11.0 branch (branch_11x, a6a26f9b251): line 67 passes MatchAllDocsQuery.INSTANCE instead of new MatchAllDocsQuery()).
 - Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced, with the test as shipped.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- This finding was re-run on Lucene main 1cfa86310f76 on 2026-11-17: still reproduces (the repro adapted to an API change on this commit).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

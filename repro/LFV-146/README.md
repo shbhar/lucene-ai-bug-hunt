@@ -1,4 +1,4 @@
-# Two field names that differ only in an unpaired surrogate are written to disk as the same U+FFFD name, so IndexWriter commits an index that DirectoryReader and a new IndexWriter refuse to open (on branch_11x and main also colliding field attribute keys and commit user-data keys)
+# Two field names in one segment that differ only in an unpaired surrogate are written to disk as the same U+FFFD name, so IndexWriter commits an index that DirectoryReader and a new IndexWriter refuse to open (on branch_11x and main also colliding field attribute keys and commit user-data keys)
 
 Finding LFV-146 · Area: index / FieldInfos and segment metadata strings (DataOutput#writeString in .fnm, segments_N and .si) · Priority: medium · Impact: index unusable · Novelty: known outside Lucene
 
@@ -6,7 +6,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You add a document with two field names that differ only in an unpaired surrogate, for example 'f\uD800' and 'f\uFFFD' (or two different lone surrogates in the same position), and commit; addDocument and commit return normally, as IndexWriter documents that malformed UTF-16 is silently replaced with U+FFFD, and you expect the committed index to open. Instead DataOutput#writeString writes both names as the same bytes ('f' + U+FFFD), so DirectoryReader.open and a new IndexWriter throw IllegalArgumentException 'duplicate field names: 0 and 1 have: f\uFFFD' for the whole index, and CheckIndex can only recover it by dropping the whole segment. On branch_11x and main the same happens for two colliding field attribute keys or commit user-data keys ('duplicate key'), and a lone-surrogate index-sort field name is stored in its U+FFFD form, so a new IndexWriter with the same sort is refused.
+You add a document with two field names that differ only in an unpaired surrogate, for example 'f\uD800' and 'f\uFFFD' (or two different lone surrogates in the same position), and commit; addDocument and commit return normally, as IndexWriter documents that malformed UTF-16 is silently replaced with U+FFFD, and you expect the committed index to open. Instead DataOutput#writeString writes both names as the same bytes ('f' + U+FFFD), so DirectoryReader.open and a new IndexWriter throw IllegalArgumentException 'duplicate field names: 0 and 1 have: f\uFFFD' for the whole index, and CheckIndex can only recover it by dropping the whole segment. On branch_11x and main the same happens for two colliding field attribute keys or commit user-data keys ('duplicate key'). On 10.6.0 as well as on those two builds a lone-surrogate index-sort field name is stored in its U+FFFD form, so a new IndexWriter with the same sort is refused.
 
 ## Expected vs actual
 
@@ -20,7 +20,7 @@ You add a document with two field names that differ only in an unpaired surrogat
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
 - This folder holds the finding's registered tests. TestUnpairedSurrogateNameCollision has four tests: testFieldNames (the field-name variant), testIndexSortFieldName, and testCommitUserDataKeys and testFieldAttributeKeys (the two map-key variants). Run on 2026-11-16 with assertions on and off: on the 10.6.0 release jars 2 of 4 fail (testFieldNames and testIndexSortFieldName; the two map-key tests pass there), and on branch_11x daa54f2e0cd3 (11.0.0-SNAPSHOT) and on main 781025d6fe32 and 01deb8e63e0b 4 of 4 fail. TestUnpairedSurrogateNameCollisionWriter (two tests of the field-name variant, in the writing session and through CheckIndex) fails 2 of 2 on the 10.6.0 release jars, branch_11x daa54f2e0cd3 and main 01deb8e63e0b. The one-test repro of the commit user-data keys that the finding's record cites (one empty document, the keys '\uD800' and '\uD801', then DirectoryReader.open) is not in this folder; run the same day with assertions on and off, it fails 1 of 1 on branch_11x daa54f2e0cd3 and on main 781025d6fe32 and 01deb8e63e0b and passes on the 10.6.0 release jars. testCommitUserDataKeys here is the same kind of check with the keys 'k\uD800' and 'k\uFFFD'.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

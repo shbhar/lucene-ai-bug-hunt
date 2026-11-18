@@ -1,6 +1,6 @@
-# ConcurrentQueryLoader workers exit at the first exception from Monitor.register and are never replaced, so once every worker is gone add() blocks forever and close() never gets to report the IOException
+# ConcurrentQueryLoader workers exit at the first exception from Monitor.register and are never replaced, so once every worker is gone and the queue is full add() blocks forever and close() does not get to report the IOException, and an unchecked exception from register is not recorded, so close() can return normally with that worker's queries unregistered
 
-Finding LFV-513 · Area: monitor / bulk query loading (ConcurrentQueryLoader worker error handling) · Priority: low · Impact: hang · Novelty: known upstream
+Finding LFV-513 · Area: monitor / bulk query loading (ConcurrentQueryLoader worker error handling) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -19,8 +19,9 @@ You bulk-load standing queries into a Monitor with the documented pattern, loade
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- What this folder covers: the test shows the first part of the title: add() is still blocked 30 s after the loader's only worker stopped at an IOException from Monitor.register (one worker, a queue of 4). The second part of the title, an unchecked exception from register that is not recorded, so that close() returns normally with that worker's queries unregistered (the outcome behind the impact class shown above), has no test in this folder. Run on 2026-11-18 on Lucene main 1cfa86310f76, with and without assertions: 1 test found, 1 test failed (add() still blocked 30 s after the loader's only worker stopped).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

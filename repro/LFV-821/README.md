@@ -1,4 +1,4 @@
-# ContextQuery throws AssertionError 'input should not end with the context separator' (only with -ea) when its inner RegexCompletionQuery or FuzzyCompletionQuery accepts the empty string ('.*', 'z*', 'b?', or a fuzzy prefix within the edit budget), also through the automatic rewrite of a plain completion query on a ContextSuggestField: an incomplete fix of LUCENE-8287 (released since 5.3.0)
+# ContextQuery throws AssertionError 'input should not end with the context separator' (only with -ea) when its inner RegexCompletionQuery or FuzzyCompletionQuery accepts the empty string ('.\*', 'z\*', 'b?', or a fuzzy prefix within the edit budget), also through the automatic rewrite of a plain completion query on a ContextSuggestField: an incomplete fix of LUCENE-8287 (released since 5.3.0)
 
 Finding LFV-821 · Area: suggest / document (NRT) suggester (ContextQuery: ContextCompletionWeight.setInnerWeight when the inner automaton accepts the empty string) · Priority: low · Impact: minor · Novelty: known upstream
 
@@ -6,7 +6,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You index suggestions in a ContextSuggestField and query them with a RegexCompletionQuery such as '.*' or 'z*' (or a FuzzyCompletionQuery with nonFuzzyPrefix 0 whose edit budget covers the whole prefix); you expect what a plain SuggestField returns for the same query, here every suggestion. Instead, with Java assertions enabled, the suggest call throws 'AssertionError: input should not end with the context separator': the inner automaton accepts the empty string, so the matched path ends right at the context separator, which ContextQuery's setInnerWeight asserts cannot happen. Upstream fixed this assertion in 2018 (LUCENE-8287) only for an empty regex text; with assertions disabled the results are correct.
+You index suggestions in a ContextSuggestField and query them with a RegexCompletionQuery such as '.\*' or 'z\*' (or a FuzzyCompletionQuery with nonFuzzyPrefix 0 whose edit budget covers the whole prefix); you expect what a plain SuggestField returns for the same query, here every suggestion. Instead, with Java assertions enabled, the suggest call throws 'AssertionError: input should not end with the context separator': the inner automaton accepts the empty string, so the matched path ends right at the context separator, which ContextQuery's setInnerWeight asserts cannot happen. Upstream fixed this assertion in 2018 (LUCENE-8287) only for an empty regex text; with assertions disabled the results are correct.
 
 ## Expected vs actual
 
@@ -19,7 +19,7 @@ You index suggestions in a ContextSuggestField and query them with a RegexComple
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

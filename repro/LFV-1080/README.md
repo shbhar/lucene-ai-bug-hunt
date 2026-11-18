@@ -21,7 +21,7 @@ You run IndexRearranger.execute() and it fails after it has started its work, fo
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main e1faeba08bde (2026-11-02): reproduced.
 - Recorded outcome of run 1 on Lucene main e1faeba08bde: 1 test(s) run, 1 failed (testFailedExecuteStopsWorker).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

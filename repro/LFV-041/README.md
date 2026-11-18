@@ -19,9 +19,9 @@ You parse a query string that contains an invalid /regex/ with the classic, Mult
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing: the class has seven tests, and a build with the finding reports 7 tests found and 2 failed, testB1_ClassicContract (expected ParseException but got java.lang.IllegalArgumentException) and testB2_FlexibleContract (expected QueryNodeException but got java.lang.IllegalArgumentException); the five testA tests record what the parsers do today and pass.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,8 +44,6 @@ java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=A
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class TestVerifyQpRegexIAE
 ```
-
-The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 

@@ -4,7 +4,7 @@ Finding LFV-460 · Area: index / IndexWriter statistics (soft deletes) · Priori
 
 Finding page: [../../bugs/LFV-460.html](../../bugs/LFV-460.html)
 
-AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by diwu-sf (open PR #17006; an independent fix, later than our listing) on 2026-11-07 (https://github.com/apache/lucene/pull/17006). Open PR #17006 (diwu-sf, opened 2026-11-07; head 5c1d53636d65 of 2026-11-10; no milestone; no review as of 2026-11-14) lists this as its item 4: hasDeletions() returns false for a segment that only has soft deletes when the writer has no reader on it. hasDeletions() now asks numDeletedDocs(info) for every segment. On a build of the head our minimal repro and the row's 17 other tests pass, -ea and -da; the repro fails on main 781025d6fe32. It does not cite this list. Novelty stays new: listed publicly on 2026-10-27, the PR came later and independently; the owner linked this row there on 2026-11-07. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by Di Wu (diwu-sf; open PR #17006; not a Lucene committer; an independent fix, later than our listing) on 2026-11-07 (https://github.com/apache/lucene/pull/17006). Open PR #17006 (diwu-sf, opened 2026-11-07; last commit of 2026-11-10; no milestone; no review when read on 2026-11-18) lists this as its item 4: hasDeletions() returns false for a segment that only has soft deletes when the writer has no reader on it. hasDeletions() now asks numDeletedDocs(info) for every segment. On a build of the pull request at that commit our minimal repro and this finding's 17 other tests pass, -ea and -da; the repro fails on main 781025d6fe32. It does not cite this list. Novelty stays new: listed publicly on 2026-10-27, the PR came later and independently; the owner linked this row there on 2026-11-07. This site files nothing upstream.
 
 ## What it shows
 
@@ -22,7 +22,7 @@ Expected `true` (getDocStats maxDoc=2, numDocs=1); actual `false` (`expected:<tr
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

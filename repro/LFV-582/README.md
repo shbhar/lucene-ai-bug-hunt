@@ -1,4 +1,4 @@
-# SynonymQuery, MultiPhraseQuery, CombinedFieldQuery and SpanOrQuery ask IndexSearcher#termStats only about terms that occur in the local reader, so an override that supplies distributed (whole-collection) statistics is never asked about a query term that occurs only on other shards, and documents on those shards score differently than in the whole collection (since 8.3.0, LUCENE-8921)
+# SynonymQuery, MultiPhraseQuery, CombinedFieldQuery and SpanOrQuery ask IndexSearcher#termStats only about terms that occur in the local reader, so an override that supplies distributed (whole-collection) statistics is never asked about a query term that occurs only on other shards, and documents on the shard being searched can score differently than in the whole collection (since 8.3.0, LUCENE-8921)
 
 Finding LFV-582 · Area: search / IndexSearcher#termStats distributed-statistics hook (SynonymQuery, MultiPhraseQuery, CombinedFieldQuery, SpanWeight) · Priority: medium · Impact: silent wrong results · Novelty: new
 
@@ -22,7 +22,7 @@ Expected doc 0's score on shard 0 to equal its score in the whole collection, `0
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

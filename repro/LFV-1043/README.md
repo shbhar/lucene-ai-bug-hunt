@@ -1,4 +1,4 @@
-# IndexWriter on main: a push of the buffered deletes that finds nothing left to freeze leaks one flush-ticket count, so for the rest of the writer's life every NRT reader reports isCurrent() == false, even right after commit(), while openIfChanged() returns null
+# IndexWriter on main and branch_11x: a push of the buffered deletes that finds nothing left to freeze leaks one flush-ticket count, so for the rest of the writer's life every NRT reader reports isCurrent() == false, even right after commit(), while openIfChanged() returns null
 
 Finding LFV-1043 · Area: index / IndexWriter NRT (DocumentsWriterFlushQueue flush-ticket count, DocumentsWriter.anyChanges) · Priority: low · Impact: minor · Novelty: new
 
@@ -21,7 +21,7 @@ Several threads add and delete documents on one IndexWriter; afterwards you comm
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main e1faeba08bde: 1 test(s) run, 1 failed (testNullTicketDoesNotLeaveTicketCount).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

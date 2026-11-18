@@ -1,4 +1,4 @@
-# TermStates#equals compares only docFreq, so BooleanQuery still merges blended or fuzzy TermQuery clauses whose totalTermFreq differs, and similarities that read totalTermFreq then score them wrongly (the part of the #10309 fix, #12354, that was left out; main only)
+# TermStates#equals compares only docFreq, so BooleanQuery still merges blended or fuzzy TermQuery clauses whose totalTermFreq differs, and similarities that read totalTermFreq then score them wrongly (the part of the #10309 fix, #12354, that was left out; main and branch_11x, both unreleased)
 
 Finding LFV-435 · Area: search / TermQuery equality and BooleanQuery clause de-duplication (blended and fuzzy TermStates) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
@@ -19,7 +19,7 @@ You OR two fuzzy queries, FuzzyQuery('aaaab', 1) and FuzzyQuery('baaaa', 1), whi
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

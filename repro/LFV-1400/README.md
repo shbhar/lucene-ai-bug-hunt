@@ -1,6 +1,6 @@
-# IndexWriter.addIndexes (both overloads) accepts an index without the parent field into a writer configured with IndexWriterConfig#setParentField, although the IndexWriter constructor refuses such an index; the next merge of an added segment with the writer's own segments that hold no document blocks throws IllegalStateException and closes the writer, and after a commit that merge fails again under every writer configuration (since 9.10.0)
+# IndexWriter.addIndexes (both overloads) accepts an index without the parent field into a writer configured with IndexWriterConfig#setParentField, although the IndexWriter constructor refuses such an index (since 9.10.0); a later merge can then throw and close the writer or, when the writer has an index sort and holds document blocks, write a segment whose top-level documents are out of the declared index sort, on which a search sorted by that sort returned wrong top hits on 9.10.0, 9.12.3, 10.0.0, 10.5.2 and 10.6.0 (the right hits on main and branch_11x, both unreleased)
 
-Finding LFV-1400 · Area: index / IndexWriter.addIndexes validation vs. IndexWriterConfig#setParentField (document blocks, parent field) and the merge-time parent-field check (FieldInfos.getAndValidateParentField through SlowCompositeCodecReaderWrapper in IndexWriter.mergeMiddle) · Priority: medium · Impact: index unusable · Novelty: new
+Finding LFV-1400 · Area: index / IndexWriter.addIndexes validation vs. IndexWriterConfig#setParentField (document blocks, parent field) and the merge-time parent-field check (FieldInfos.getAndValidateParentField through SlowCompositeCodecReaderWrapper in IndexWriter.mergeMiddle) · Priority: medium · Impact: silent wrong results · Novelty: new
 
 Finding page: [../../bugs/LFV-1400.html](../../bugs/LFV-1400.html)
 
@@ -21,8 +21,9 @@ You write a small index with a default IndexWriterConfig, open a second writer c
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced.
+- What this folder covers: the test shows the first outcome of the title: without an index sort, addIndexes accepts the source and the next merge throws IllegalStateException and closes the writer. The outcome under an index sort that the title and the impact class name (a segment whose top-level documents are out of the declared index sort, and wrong top hits of a search sorted by that sort on the releases that were run) has no test in this folder; the finding page gives those runs. Run on 2026-11-18 on Lucene main 1cfa86310f76, with and without assertions: 1 test found, 1 test failed (IllegalStateException 'expected parent doc field to be "_parent " across all segments but found a segment with different field "null"').
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You keep a shape in a doc-values-only field (LatLonShape.createDocValueField or XYShape.createDocValueField), run LatLonShape/XYShape.newSlowDocValuesBoxQuery through a query cache, then move one document's shape out of the box with IndexWriter#updateDocValues and reopen the reader. You expect the reopened searcher to stop matching that document, because a query that reads doc values must report itself not cacheable once those doc values have been updated (SegmentCacheable). Instead its Weight#isCacheable stays true (inherited from SpatialQuery#queryIsCacheable, which always returns true), the segment keeps its core cache key, and the cache keeps serving the pre-update result (5 hits instead of 4 in the repro) until the segment is merged away or the entry is evicted.
+You keep a shape in a doc-values-only field (LatLonShape.createDocValueField or XYShape.createDocValueField), run LatLonShape/XYShape.newSlowDocValuesBoxQuery through a query cache, then move one document's shape out of the box with IndexWriter#updateDocValues and reopen the reader. You expect the reopened searcher to stop matching that document, because a query that reads doc values must report itself not cacheable once those doc values have been updated (SegmentCacheable). Instead its Weight#isCacheable stays true (inherited from SpatialQuery#queryIsCacheable, which always returns true), the segment keeps its core cache key, and the cache keeps serving the pre-update result (5 hits instead of 4 in a 20-document test) until the segment is merged away or the entry is evicted.
 
 The test shows that `LatLonShape.newSlowDocValuesBoxQuery` stays cacheable after an in-place doc-values update, so `LRUQueryCache` keeps serving the result from before the update.
 
@@ -22,7 +22,7 @@ Expected count `0` after the only shape is moved out of the box and the reader i
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

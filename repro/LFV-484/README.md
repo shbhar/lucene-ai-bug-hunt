@@ -1,4 +1,4 @@
-# Cross-field BlendedTermQuery gives a sparse field's term a docFreq above that field's docCount, so matches score negative (and since 10.3 are dropped from top-k), and a field with no indexed terms makes search throw NullPointerException
+# Cross-field BlendedTermQuery gives a sparse field's term a docFreq above that field's docCount, so matches can score negative (and since 10.3 can be dropped from top-k), a top-k search can fail to return (since 10.3), and a field with no indexed terms can make search throw NullPointerException
 
 Finding LFV-484 · Area: search / BlendedTermQuery cross-field statistics blending · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
@@ -19,8 +19,9 @@ You build a BlendedTermQuery for "lucene" on the fields title and keywords, as i
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- What this folder covers: the test class holds the negative score of a match through the sparse field on one segment, the same match missing from search(q, 10) on three segments, and the NullPointerException for a blended field with no indexed terms. The search that does not return, named in the title, has no test in this folder. Run on 2026-11-18 on Lucene main 1cfa86310f76, with and without assertions: 3 tests found, 3 tests failed (the document that matches only through the sparse field scores -0.10 with BOOLEAN_REWRITE and -0.001 with DISJUNCTION_MAX_REWRITE; on three segments search(q, 10) returns 2 of the 3 matching documents; NullPointerException).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

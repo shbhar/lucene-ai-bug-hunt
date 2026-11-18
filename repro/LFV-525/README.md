@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You tokenize 'say "hello world' with SimplePatternTokenizer and the pattern "[^"]*"|[a-z]+ (a quoted string or a word) and expect [say, hello, world], because the javadoc says the longest match at each start point is the next token and the class otherwise skips one character and tries again (PatternTokenizer with the same regex gives these three tokens). Instead you get only [say]: the lookahead from the unclosed quote runs to the end of the input without ever matching, and that end-of-input branch ends tokenization instead of retrying at the next character, so 'hello' and 'world' are never indexed (minimal case: abc|b on 'ab' gives [] instead of [b]). SimplePatternSplitTokenizer has the same branch and emits the whole rest as one token: separator &lt;[^&gt;]*&gt;|[ ]+ on 'x &lt; y' gives [x, '&lt; y'] instead of String.split's [x, &lt;, y]; nothing throws.
+You tokenize 'say "hello world' with SimplePatternTokenizer and the pattern "[^"]\*"|[a-z]+ (a quoted string or a word) and expect [say, hello, world], because the javadoc says the longest match at each start point is the next token and the class otherwise skips one character and tries again (PatternTokenizer with the same regex gives these three tokens). Instead you get only [say]: the lookahead from the unclosed quote runs to the end of the input without ever matching, and that end-of-input branch ends tokenization instead of retrying at the next character, so 'hello' and 'world' are never indexed (minimal case: abc|b on 'ab' gives [] instead of [b]). SimplePatternSplitTokenizer has the same branch and emits the whole rest as one token: separator &lt;[^&gt;]\*&gt;|[ ]+ on 'x &lt; y' gives [x, '&lt; y'] instead of String.split's [x, &lt;, y]; nothing throws.
 
 The test shows that SimplePatternTokenizer stops scanning when a lookahead that never matched reaches the end of the input, instead of retrying at the next character as it does when the lookahead dies earlier.
 
@@ -22,7 +22,7 @@ Expected pattern `abc|b` on `ab` to give `[b]` (as on `abx`); actual `[]` (`toke
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

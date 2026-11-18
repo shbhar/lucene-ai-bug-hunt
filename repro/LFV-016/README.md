@@ -19,7 +19,7 @@ You update a doc-values field and then delete documents with a query on that fie
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
 - Recorded outcome of run 1 on Lucene main a9779ef3c193: 9 test(s) run, 6 failed (testA1_deleteNewValueAfterUpdate_flushedSegment, testA2_deleteOldValueAfterUpdate_flushedSegment, testA3_deleteNewValueAfterUpdate_inRamDoc, testB1_crossPacket_resolvedButUnwrittenUpdate, testB2_tryUpdateDocValueThenDelete, testS1_softDeleteThenPurgeByExistsQuery).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

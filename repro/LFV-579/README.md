@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You index vectors with IndexWriter#addBatch and a DENSE VectorColumn into an HNSW or scalar-quantized format whose per-field flat storage is your own FlatFieldVectorsWriter (plugged in through the public Lucene99FlatVectorsWriter strategyFactory constructor, without overriding addDenseValues), and Lucene rejects the third vector of a 3-document batch (NaN, or a zero vector with COSINE). You expect what the addDenseValues javadoc and Lucene's own recovery test promise: the batch's documents are deleted, the writer stays open and consistent, and the next commit writes a readable, searchable segment. Instead the flat writer has kept the batch's first two vectors while the HNSW wrapper added no graph nodes for them (and the scalar-quantized wrapper no centroid sums or COSINE magnitudes), so with assertions on the next commit fails ('Level 0 expects to have all nodes', or an assertion in the quantizer) and closes the writer, losing every uncommitted document, and with assertions off it commits an HNSW graph that cannot be read back (EOFException, CheckIndex at level 2 or more fails, a kNN query for a document's own vector returns another document), or the COSINE quantized writer throws ArrayIndexOutOfBoundsException at commit or commits NaN codes so that kNN finds no document of the segment.
+You index vectors with IndexWriter#addBatch and a DENSE VectorColumn into an HNSW or scalar-quantized format whose per-field flat storage is your own FlatFieldVectorsWriter (plugged in through the public Lucene99FlatVectorsWriter strategyFactory constructor, without overriding addDenseValues), and Lucene rejects the third vector of a 3-document batch (NaN, or a zero vector with COSINE). You expect what the addDenseValues javadoc and Lucene's own recovery test promise: the batch's documents are deleted, the writer stays open and consistent, and the next commit writes a readable, searchable segment. Instead the flat writer has kept the batch's first two vectors while the HNSW wrapper added no graph nodes for them (and the scalar-quantized wrapper no centroid sums or COSINE magnitudes), so with assertions on the next commit fails ('Level 0 expects to have all nodes', or an assertion in the quantizer) and closes the writer, losing every uncommitted document, and with assertions off it commits an HNSW graph that cannot be read back (EOFException, CheckIndex with fail-fast at level 2 or more fails, a kNN query for a document's own vector returns another document), or the COSINE quantized writer throws ArrayIndexOutOfBoundsException at commit or commits NaN codes so that kNN finds no document of the segment.
 
 after `IndexWriter#addBatch` rejects the third vector of a DENSE vector batch, the stock HNSW writer is out of step with a flat field writer that keeps the default `addDenseValues`, so the next commit fails or writes a broken graph.
 
@@ -22,7 +22,7 @@ Expected: commit succeeds and CheckIndex is clean; actual: `AssertionError: Leve
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

@@ -21,7 +21,7 @@ You write an index with SimpleTextCodec, an index sort and a parent field, add o
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 781025d6fe32 (2026-11-13): reproduced.
 - What the test does: it writes one block (an empty child document and its parent) with SimpleTextCodec, an index sort and a parent field, deletes the parent by its id term, force-merges to one segment and runs CheckIndex at Level.MIN_LEVEL_FOR_INTEGRITY_CHECKS (level 2). It asserts that the status CheckIndex returns is clean, and it fails with CheckIndex's whole report as the message; the line 'test: index sort..........ERROR [Index -2 out of bounds for length 1]' in that report is the finding. SimpleTextCodec is in Lucene's codecs module, so the test needs the lucene-codecs jar on the class path, as in the recipe below. The control with the default codec is not part of this test.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

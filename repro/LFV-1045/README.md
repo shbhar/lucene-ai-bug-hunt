@@ -21,7 +21,7 @@ Several threads replace documents by key with updateDocument while another threa
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - This is a timing race between the 16 indexing threads and the committing thread, and it shows reliably when the test's threads share two CPUs. Pin the java command to two CPUs; on Linux: taskset -c 0,1 java ... with the rest of the command as printed. The flag -XX:ActiveProcessorCount=2 alone does not pin the threads: it only tells the JVM how many CPUs to assume. The runs named above were made with such a pin. Run on 2026-11-17 on Lucene main 9965d34e3c77 with the command below pinned to two CPUs: with assertions on it failed after 29 s, with the AssertionError 'expected: DWDQ: [ generation: 407 ] but was: DWDQ: [ generation: 408 ]' in DocumentsWriter.doFlush; with assertions off it failed after 142 s with 'commit 3669, key 79', two live documents for one key. The numbers in these messages differ from run to run. Without the pin, on a machine with 64 CPUs, the same command ran for 300 s without a failure and was then stopped. A pinned run can also end without a failure, after it has checked all 5,000 commits (in the re-run of 2026-11-16 on this commit, 1 of 8 pinned runs with assertions on did); run it again then.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

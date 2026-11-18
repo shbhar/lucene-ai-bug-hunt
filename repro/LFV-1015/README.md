@@ -1,4 +1,4 @@
-# RescoreTopNQuery passes negative DoubleValuesSource values through as negative scores, so a top-k BooleanQuery that ORs it with another clause silently returns no hits
+# RescoreTopNQuery passes negative DoubleValuesSource values through as negative scores, so a top-k BooleanQuery that ORs it with another clause can silently return no hits
 
 Finding LFV-1015 · Area: search / rescoring (RescoreTopNQuery scores, consumed by MaxScoreBulkScorer dynamic pruning) · Priority: medium · Impact: silent wrong results · Novelty: new
 
@@ -22,7 +22,7 @@ Expected: 1 hit (the document matches the MatchAllDocsQuery clause); actual: `ex
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

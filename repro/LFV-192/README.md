@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You run a WildcardQuery or RegexpQuery whose automaton is not deterministic, for example '*a?????????' or 'a*b??????????', and expect its ramBytesUsed() to estimate the heap the query holds, which is what the Accountable javadoc says and what LRUQueryCache uses to stay within maxRamBytesUsed. On main such a query runs on an NFARunAutomaton that builds DFA states lazily during the search and keeps them on the query object, but AutomatonQuery stored ramBytesUsed() in a final field when it was constructed, so after one search the value is 36x to 310x too small (5,674 bytes reported vs 205,216 retained over 1,024 terms; 6,714 vs 2,081,152 on a 20,000-document field). An LRUQueryCache with a 1 MiB budget then keeps 4 such queries as keys that retain 2.7 to 7.4 MB while it accounts about 36 KB in total and evicts nothing; the matching documents are correct.
+You run a WildcardQuery or RegexpQuery whose automaton is not deterministic, for example '\*a?????????' or 'a\*b??????????', and expect its ramBytesUsed() to estimate the heap the query holds, which is what the Accountable javadoc says and what LRUQueryCache uses to stay within maxRamBytesUsed. On main such a query runs on an NFARunAutomaton that builds DFA states lazily during the search and keeps them on the query object, but AutomatonQuery stored ramBytesUsed() in a final field when it was constructed, so after one search the value is 36x to 310x too small (5,674 bytes reported vs 205,216 retained over 1,024 terms; 6,714 vs 2,081,152 on a 20,000-document field). An LRUQueryCache with a 1 MiB budget then keeps 4 such queries as keys that retain 2.7 to 7.4 MB while it accounts about 36 KB in total and evicts nothing; the matching documents are correct.
 
 The test shows that `AutomatonQuery.ramBytesUsed()` is frozen at construction: after one `count` of `WildcardQuery(f:*a?????????)` over all 1,024 10-char a/b terms, its lazily determinized NFA has grown but the query's value has not.
 
@@ -22,7 +22,7 @@ Expected `q.ramBytesUsed() >= q.getCompiled().ramBytesUsed()` (the query holds t
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

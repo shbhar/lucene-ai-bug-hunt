@@ -1,4 +1,4 @@
-# SpanNotQuery with a negative post (or dist) drops every include span that follows the last exclude span in a document, because NO_MORE_POSITIONS - post overflows int
+# SpanNotQuery with a negative post (or dist) drops the include spans after the one that uses up a document's exclude spans, because NO_MORE_POSITIONS - post overflows int
 
 Finding LFV-279 · Area: queries / span queries (SpanNotQuery: the exclusion filter in SpanNotWeight#getSpans) · Priority: medium · Impact: silent wrong results · Novelty: new
 
@@ -22,7 +22,7 @@ Expected spans `[1,2), [2,3)` (as with post = 0, since "b" overlaps neither "a")
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

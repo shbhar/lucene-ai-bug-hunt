@@ -1,4 +1,4 @@
-# HTMLStripCharFilter silently drops all text after a &lt;!-- --&gt;-wrapped &lt;script&gt; or &lt;style&gt; block whose content has an unbalanced quote (for example the apostrophe in a JS comment '// Don't remove' or a CSS comment '/* client's fix */'): the quote opens a quoted-string state that ignores '--&gt;' and the end tag, and at end of input everything after the quote is removed, including the text after the closed &lt;/script&gt; or &lt;/style&gt;
+# HTMLStripCharFilter silently drops the text after a &lt;!-- --&gt;-wrapped &lt;script&gt; or &lt;style&gt; block whose content has an unbalanced quote (for example the apostrophe in a JS comment '// Don't remove' or a CSS comment '/* client's fix */'): the quote opens a quoted-string state that ignores '--&gt;' and the end tag, and unless a later matching quote and then an unquoted '--&gt;' and end tag bring the scanner back to text, at end of input everything after the quote is removed, including the text after the closed &lt;/script&gt; or &lt;/style&gt;
 
 Finding LFV-311 · Area: analysis / HTMLStripCharFilter (JFlex grammar: SCRIPT_COMMENT, STYLE_COMMENT, SINGLE_/DOUBLE_QUOTED_STRING and the %eof exclude list; also the 'htmlStrip' char filter SPI) · Priority: medium · Impact: silent wrong results · Novelty: new
 
@@ -22,7 +22,7 @@ Expected the output of `<script><!--\n// Don't remove\n//--></script><p>Welcome 
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

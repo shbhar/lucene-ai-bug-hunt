@@ -19,6 +19,8 @@ You call searcher.search(query, 10, Sort.INDEXORDER) on an index with two segmen
 
 ## Run it
 
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): reproduced, with assertions on and off.
+- Tested on Lucene branch_11x 89e68e0f3a50 (2026-11-17): reproduced, with assertions on and off.
 - Tested on Lucene main 9965d34e3c77 (2026-11-16): reproduced, with assertions on and off.
 - Tested on Lucene branch_11x 9d2b5a15427a (2026-11-16): reproduced, with assertions on and off.
 - Tested on Lucene main 781025d6fe32 (2026-11-13): reproduced, with assertions on and off.

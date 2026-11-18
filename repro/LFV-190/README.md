@@ -1,4 +1,4 @@
-# IndriDirichletSimilarity produces negative scores, and since 10.3.0 a top-k TermQuery search under it silently returns no hits, because BatchScoreBulkScorer passes a hit to the collector only if its score is at least the initial minimum competitive score of 0
+# IndriDirichletSimilarity produces negative scores, and since 10.3.0 a top-k TermQuery search under it can silently return no hits, because BatchScoreBulkScorer passes a hit to the collector only if its score is at least the initial minimum competitive score of 0
 
 Finding LFV-190 · Area: search / similarities and top-k bulk scoring (IndriDirichletSimilarity, TermQuery bulk scorer, BatchScoreBulkScorer) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
@@ -6,7 +6,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You set IndriDirichletSimilarity on the writer and the searcher, run a plain TermQuery with IndexSearcher#search(query, 10), and expect the documents that count() and explain() report as matches. Since 10.3.0 you get no hits at all: the similarity scores are logarithms of probabilities and therefore negative, and the batch bulk scorer that TermQuery uses since 10.3.0 hands a hit to the collector only if its score is at least the minimum competitive score, which starts at 0. In the 4-document repro the term 'washington' matches 2 documents (explain value -1.098113) and search returns 0 of them; 10.2.2 returns both.
+You set IndriDirichletSimilarity on the writer and the searcher, run a plain TermQuery with IndexSearcher#search(query, 10), and expect the documents that count() and explain() report as matches. Since 10.3.0 you can get no hits at all: the similarity scores are logarithms of probabilities and therefore negative, and the batch bulk scorer that TermQuery uses since 10.3.0 hands a hit to the collector only if its score is at least the minimum competitive score, which starts at 0. In the 4-document repro the term 'washington' matches 2 documents (explain value -1.098113) and search returns 0 of them; 10.2.2 returns both.
 
 ## Expected vs actual
 
@@ -19,7 +19,7 @@ You set IndriDirichletSimilarity on the writer and the searcher, run a plain Ter
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

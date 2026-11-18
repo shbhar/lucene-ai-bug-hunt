@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You call MathUtil.asinh(1e200), or evaluate the expression asinh(x) for a document whose x is 1e200, and expect about 461.21, because the inverse hyperbolic sine of a finite number is finite (at most about 710.5). Instead you get Infinity, because the code computes log(sqrt(x*x + 1) + x) and x*x overflows for every |x| &gt;= 2^512; acosh does the same, asinh(1e-17) and atanh(1e-17) return 0 instead of 1e-17 because 1 + x*x (or (1+x)/(1-x)) rounds to exactly 1, and acosh(-1e8) returns -Infinity (acosh(-1e200) +Infinity) although its javadoc says that any argument below 1 gives NaN.
+You call MathUtil.asinh(1e200), or evaluate the expression asinh(x) for a document whose x is 1e200, and expect about 461.21, because the inverse hyperbolic sine of a finite number is finite (at most about 710.5). Instead you get Infinity, because the code computes log(sqrt(x\*x + 1) + x) and x\*x overflows for every |x| &gt;= 2^512; acosh does the same, asinh(1e-17) and atanh(1e-17) return 0 instead of 1e-17 because 1 + x\*x (or (1+x)/(1-x)) rounds to exactly 1, and acosh(-1e8) returns -Infinity (acosh(-1e200) +Infinity) although its javadoc says that any argument below 1 gives NaN.
 
 The test shows that MathUtil.asinh returns Infinity for the finite argument 1e200, because it computes log(sqrt(a * a + 1) + a) and a * a overflows for every |a| &gt;= 2^512.
 
@@ -22,7 +22,7 @@ Expected: `asinh(1e200) = ln(2e200) = 461.2101657793691`. Actual (-ea and -da): 
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

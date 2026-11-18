@@ -22,7 +22,7 @@ Expected `IndexSearcher.search(q, 1)` to return the document (term score + 0); a
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - This folder holds the registered repro, which shows the missing hit (one document with delta = -1000). The tests of the second consequence in the title, a search that does not return, are not shipped here: one document with delta = -1 and the term clause boosted by 10 (update of 2026-11-15); 6,000 or 1,002 documents with two SHOULD function clauses, where the minimum competitive score is already positive and the search does not return with assertions on either (update of 2026-11-16; in the runs that did not return, the size of the negative bound was between about 1 billion and about 10^15 times that score); and 4,097 documents with two MUST function clauses, the clause over the negative field written second, where the search does not return with assertions on or off (second part of that update). The finding page quotes the 1,002-document and the 4,097-document test in full, with their commands and output, in its collapsed block "Mechanism, terms and numbers" ("Shape 2" and "Shape 3"), and describes the one-document and the 6,000-document test there ("Shape 1" and "Shape 2"); the Affected versions text of its finding record gives the shape of each.

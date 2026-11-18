@@ -21,7 +21,7 @@ You push more than 715,827,882 elements into a growable LongHeap or TernaryLongH
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
 - What the tests do: testLongHeapPushAtBoundary and testTernaryLongHeapPushAtBoundary build a full heap of 715,827,882 values (a 5.73 GB array) and expect push to throw; they are the two tests that call Lucene's own push. To run them, leave out -Dtests.method=testGrowth* and give the JVM -Xmx8g in place of -Xmx2g: on Lucene main 9965d34e3c77 and on the 11.0 release branch (branch_11x 9d2b5a15427a) the whole class then reports 6 tests found and 6 tests successful, with and without assertions (run on 2026-11-17). With the fix recommended on the finding page compiled in front of the jars, these two tests fail, because push then really tries to grow the array and the 8 GB do not hold it. The one-test repro that fails while the defect is present is TestLongHeapGrowthOverflow.java, the file shown on the finding page; its command is on that page.
 - How to read the outcome: this class is a verification test whose tests expect the faulty behaviour, so a passing test is the finding reproducing; the two tests that the commands below select (testGrowth*) repeat the growth arithmetic inside the test and pass on any build (see the note above).

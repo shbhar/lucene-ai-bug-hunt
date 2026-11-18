@@ -1,4 +1,4 @@
-# On main, when the default terms dictionary (Lucene103BlockTreeTermsReader) fails to open, its cleanup calls close(), whose finally block runs fieldMap.clear() on a field the constructor has not assigned yet, so the real IOException or CorruptIndexException carries a spurious suppressed NullPointerException
+# On main and branch_11x, when the default terms dictionary (Lucene103BlockTreeTermsReader) fails to open, its cleanup calls close(), whose finally block runs fieldMap.clear() on a field the constructor has not assigned yet, so the real IOException or CorruptIndexException carries a spurious suppressed NullPointerException
 
 Finding LFV-1263 · Area: codecs / default terms dictionary reader (Lucene103BlockTreeTermsReader) failed-open cleanup · Priority: low · Impact: minor · Novelty: new
 
@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You open a DirectoryReader on an index written with the default codec, and opening one segment's terms dictionary fails, for example because the Directory throws an IOException while opening the .tip file. You expect that IOException to propagate, carrying as suppressed exceptions at most the failures of closing the files that were already open. On main it does propagate, but it carries a suppressed NullPointerException 'Cannot invoke IntObjectHashMap.clear() because this.fieldMap is null': the constructor's failure cleanup calls this.close(), and close() clears fieldMap in a finally block without a null check, although the constructor assigns fieldMap only near its end, after all the file opens and checks.
+You open a DirectoryReader on an index written with the default codec, and opening one segment's terms dictionary fails, for example because the Directory throws an IOException while opening the .tip file. You expect that IOException to propagate, carrying as suppressed exceptions at most the failures of closing the files that were already open. On main and branch_11x it does propagate, but it carries a suppressed NullPointerException 'Cannot invoke IntObjectHashMap.clear() because this.fieldMap is null': the constructor's failure cleanup calls this.close(), and close() clears fieldMap in a finally block without a null check, although the constructor assigns fieldMap only near its end, after all the file opens and checks.
 
 ## Expected vs actual
 
@@ -21,7 +21,7 @@ You open a DirectoryReader on an index written with the default codec, and openi
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

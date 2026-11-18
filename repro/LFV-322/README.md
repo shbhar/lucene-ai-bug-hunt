@@ -6,7 +6,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You build a Monitor whose presearcher uses RegexpQueryHandler, register ordinary regexp queries such as /cat|dog/, /colou*r/ or /e.?mail/, and match documents containing 'dog', 'color' or 'email'. You expect Monitor.match to report each query, because the regexp matches the document and the presearcher may only skip queries that cannot match. Instead the handler indexes each query under a piece of its pattern text cut only at '.', '*' and '?' ('cat|dog', 'colou', '?mail'), no document term contains that piece, so the query is never run and the match is silently lost.
+You build a Monitor whose presearcher uses RegexpQueryHandler, register ordinary regexp queries such as /cat|dog/, /colou\*r/ or /e.?mail/, and match documents containing 'dog', 'color' or 'email'. You expect Monitor.match to report each query, because the regexp matches the document and the presearcher may only skip queries that cannot match. Instead the handler indexes each query under a piece of its pattern text cut only at '.', '\*' and '?' ('cat|dog', 'colou', '?mail'), no document term contains that piece, so the query is never run and the match is silently lost.
 
 ## Expected vs actual
 
@@ -19,7 +19,7 @@ You build a Monitor whose presearcher uses RegexpQueryHandler, register ordinary
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

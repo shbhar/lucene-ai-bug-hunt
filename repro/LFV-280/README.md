@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You index a field with a per-field postings codec (for example a Lucene104Codec subclass that maps the field to its own postings format), then, in a writer session whose codec's postings format is not per-field (SimpleTextCodec or a custom codec), delete every document that has the field and force-merge, and then go back to the per-field codec and merge again. You expect the committed index to open, because every call returned normally. Instead the merged segment still records the field's old format name and suffix although the merge wrote no files for that group, so DirectoryReader.open and CheckIndex fail with CorruptIndexException caused by a missing &lt;segment&gt;_&lt;format&gt;_&lt;suffix&gt;.psm (for example _4_FST50_0.psm).
+You index a field with a per-field postings codec (for example a Lucene104Codec subclass that maps the field to its own postings format), then, in a writer session whose codec's postings format is not per-field (SimpleTextCodec or a custom codec), delete every document that has the field and force-merge, and then go back to the per-field codec and merge again. You expect the committed index to open, because every call returned normally. Instead the merged segment still records the field's old format name and suffix although the merge wrote no files for that group, so DirectoryReader.open and CheckIndex fail with CorruptIndexException caused by a missing &lt;segment&gt;\_&lt;format&gt;\_&lt;suffix&gt;.psm (for example \_4_FST50_0.psm).
 
 The test shows that after a SimpleTextCodec session deletes the only doc with field g and force-merges, a later default-codec merge keeps g's stale per-field postings attributes and the committed index cannot be opened.
 
@@ -22,7 +22,7 @@ Expected `DirectoryReader.open` to succeed with 2 docs; actual `CorruptIndexExce
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

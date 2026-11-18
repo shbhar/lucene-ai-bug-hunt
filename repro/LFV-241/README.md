@@ -1,4 +1,4 @@
-# After a primary change, an NRT replica keeps a file it already copied from the old primary when the new primary's file has the same name, matching by name only, so the replica serves and commits the wrong documents with CheckIndex clean
+# After a primary change, an NRT replica keeps a file it already copied from the old primary when the new primary's file has the same name, matching by name only, so the replica can serve and commit the wrong documents with CheckIndex clean
 
 Finding LFV-241 · Area: replicator / NRT segment replication (CopyJob.transferAndCancel, ReplicaNode.newNRTPoint) · Priority: medium · Impact: data corruption · Novelty: new
 
@@ -24,6 +24,7 @@ Expected B to show P2's live docs `[a0, a1]`; actual `[a0, b1]` (`expected:<[a0,
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- The test calls new MatchAllDocsQuery() on line 83. On Lucene main (since 24d9e7d1a0d) and on the 11.0 branch (branch_11x, since a6a26f9b251) that constructor is private (#16962, merged 2026-11-03), so on a build of either the javac line stops there: replace new MatchAllDocsQuery() with MatchAllDocsQuery.INSTANCE before you compile the test. The constant exists from Lucene 10.4.0 on, and with the jars of the 10.6.0 release the test compiles as shipped (put the five jars of that release, Maven Central, org.apache.lucene, in place of the five $LUCENE jars). Run on 2026-11-17, with assertions on and off: with the replacement the test fails 1 of 1 on a build of main 1cfa86310f76 (V=12.0.0-SNAPSHOT) and of the 11.0 branch (branch_11x 89e68e0f3a50, V=11.0.0-SNAPSHOT), and as shipped it fails 1 of 1 with the 10.6.0 jars, each time with the failure stated above (expected [a0, a1], actual [a0, b1]); these runs had the four test jars and no other third-party jar on the class path.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -45,8 +46,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.replicator.nrt.TestNRTCopyAcrossPrimaryChange
 ```
-
-The module(s) facet, replicator also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 

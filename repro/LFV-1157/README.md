@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You update a doc-values field (for example with updateNumericDocValue) of a document whose segment is being merged, so the update is carried over to the merged segment, and the next commit writes it through a temporary reader whose close() throws an IOException; the commit fails and the writer stays open. You expect a second commit, once the fault is gone, to write the update, which is what the cleanup code itself prepares for ('so that a 2nd attempt to write will write to a new file'). Instead the segment's fieldInfosGen was already advanced to the new _N_&lt;gen&gt;.fnm, which the cleanup then deleted, so every later commit and NRT reader open fails on that missing file until rollback(), which throws away everything since the last commit.
+You update a doc-values field (for example with updateNumericDocValue) of a document whose segment is being merged, so the update is carried over to the merged segment, and the next commit writes it through a temporary reader whose close() throws an IOException; the commit fails and the writer stays open. You expect a second commit, once the fault is gone, to write the update, which is what the cleanup code itself prepares for ('so that a 2nd attempt to write will write to a new file'). Instead the segment's fieldInfosGen was already advanced to the new \_N\_&lt;gen&gt;.fnm, which the cleanup then deleted, so every later commit and NRT reader open fails on that missing file until rollback(), which throws away everything since the last commit.
 
 ## Expected vs actual
 
@@ -21,7 +21,7 @@ You update a doc-values field (for example with updateNumericDocValue) of a docu
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

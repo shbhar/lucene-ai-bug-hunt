@@ -1,4 +1,4 @@
-# ExitableDirectoryReader's vector-values wrappers forward scorer() but not rescorer(), so full-precision rescoring of a quantized vector field read through ExitableDirectoryReader (even with a timeout that never fires) silently returns the quantized scores (since 10.4.0)
+# ExitableDirectoryReader's vector-values wrappers forward scorer() but not rescorer(), so full-precision rescoring that calls rescorer() on a quantized vector field read through ExitableDirectoryReader (even with a timeout that never fires) silently returns the quantized scores (since 10.4.0)
 
 Finding LFV-1381 · Area: index / ExitableDirectoryReader vector-values wrappers (ExitableFloatVectorValues, ExitableFloat16VectorValues, ExitableByteVectorValues) x search / full-precision vector rescoring (FloatVectorValues#rescorer, FullPrecisionFloatVectorSimilarityValuesSource, RescoreTopNQuery.createFullPrecisionRescorerQuery) on scalar-quantized fields · Priority: medium · Impact: silent wrong results · Novelty: new
 
@@ -21,7 +21,7 @@ You index a vector field with a scalar-quantized format such as Lucene104ScalarQ
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

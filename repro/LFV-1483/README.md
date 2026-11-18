@@ -21,7 +21,7 @@ You build an interval source over a range or a prefix of terms with Intervals.ra
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 781025d6fe32 (2026-11-13): reproduced.
 - What the test does: it calls Intervals.range with the two-byte bound {01 F4} and asserts that a source comes back; it indexes nothing and runs no search, and it fails with the ArrayIndexOutOfBoundsException thrown by that call. Intervals.prefix, the other bounds and the comparison with TermRangeQuery named above are not part of this test.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

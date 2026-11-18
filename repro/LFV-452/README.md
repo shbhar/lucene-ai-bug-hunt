@@ -1,4 +1,4 @@
-# If closing a pooled segment reader throws inside IndexWriter.deleteAll, the segments are already cleared but the change is never counted: the writer stays open and its NRT readers show an empty index, yet hasUncommittedChanges() is false and commit() and close() keep every document, until a later unrelated commit silently applies the failed deleteAll
+# If closing a pooled segment reader throws inside IndexWriter.deleteAll, the segments are already cleared but the change is never counted: the writer stays open and its NRT readers show an empty index, yet, when nothing else is uncommitted, hasUncommittedChanges() is false and commit() and close() keep every document, until a later unrelated commit silently applies the failed deleteAll
 
 Finding LFV-452 · Area: index / IndexWriter deleteAll (change accounting on the exception path, ReaderPool.dropAll) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
@@ -19,8 +19,9 @@ You commit two documents, open and close an NRT reader (so the writer keeps pool
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- The class has three tests. The two triggers of this finding are testIOExceptionClosingPooledReader and testCoreClosedListenerThrows. The third, testDeleteOfOpenFileFails, relies on setAssertNoDeleteOpenFile, a mode of the test framework's MockDirectoryWrapper, and is not counted as a trigger. All three fail on Lucene main 1cfa86310f76, with assertions on and off (run 2026-11-18).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

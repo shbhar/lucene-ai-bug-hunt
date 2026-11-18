@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You index DoubleDocValuesField("d") values 0.9999999999999999, 1.0 and 1.0000000000000002 and search new FunctionRangeQuery(ValueSource.fromDoubleValuesSource(DoubleValuesSource.fromDoubleField("d")), 1.0, 1.0, true, true), expecting only the document whose value is 1.0, as you get with new DoubleFieldSource("d") or with FunctionMatchQuery over the same DoubleValuesSource. Instead all three match, because the bridged FunctionValues keeps the exact double in doubleVal but does not override getRangeScorer, so it inherits the FunctionValues default that parses both bounds with Float.parseFloat and compares the value cast to float. Likewise {1.0 TO *] misses 1.0000000000000002, [* TO 1e300] matches 1e301, [16777217 TO 16777217] on a long field also matches 16777216, and [* TO 1700000000000] over epoch milliseconds also matches 1700000060000, all without an error.
+You index DoubleDocValuesField("d") values 0.9999999999999999, 1.0 and 1.0000000000000002 and search new FunctionRangeQuery(ValueSource.fromDoubleValuesSource(DoubleValuesSource.fromDoubleField("d")), 1.0, 1.0, true, true), expecting only the document whose value is 1.0, as you get with new DoubleFieldSource("d") or with FunctionMatchQuery over the same DoubleValuesSource. Instead all three match, because the bridged FunctionValues keeps the exact double in doubleVal but does not override getRangeScorer, so it inherits the FunctionValues default that parses both bounds with Float.parseFloat and compares the value cast to float. Likewise {1.0 TO \*] misses 1.0000000000000002, [\* TO 1e300] matches 1e301, [16777217 TO 16777217] on a long field also matches 16777216, and [\* TO 1700000000000] over epoch milliseconds also matches 1700000060000, all without an error.
 
 The test shows that FunctionRangeQuery over ValueSource.fromDoubleValuesSource(DoubleValuesSource.fromDoubleField("d")) compares the value and the bounds as floats, so [1.0 TO 1.0] matches a document whose value is 1.0000000000000002.
 
@@ -22,7 +22,7 @@ Expected 0 hits; actual 1 hit (`expected:<0> but was:<1>`), with -ea and -da.
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

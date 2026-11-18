@@ -1,4 +1,4 @@
-# LatLon distance sort used as a later Sort key drops closer tied hits after 1024 bottom updates, because LatLonPointDistanceComparator keeps a stale bounding box when the bottom grows (every release since 6.1.0)
+# LatLon distance sort used as a later Sort key can drop closer tied hits after 1024 bottom updates, because LatLonPointDistanceComparator keeps a stale bounding box when the bottom grows (every release since 6.1.0)
 
 Finding LFV-1136 · Area: core document / LatLon distance sort (LatLonPointDistanceComparator.setBottom: sampled competitive bounding box) · Priority: medium · Impact: silent wrong results · Novelty: new
 
@@ -21,7 +21,7 @@ You search with Sort(cat INT, LatLonDocValuesField.newDistanceSort("loc", 0, 0))
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

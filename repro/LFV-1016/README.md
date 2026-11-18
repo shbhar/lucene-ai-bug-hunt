@@ -1,4 +1,4 @@
-# ScorerUtil.minRequiredScore (new in 10.3.0, #14827) never terminates when the remaining clauses' max score is negative at a minimum competitive score of 0, so with assertions disabled a top-k BooleanQuery with a negative-scoring SHOULD clause spins forever in MaxScoreBulkScorer, the infinite loop that LUCENE-10428 had turned into an exception
+# ScorerUtil.minRequiredScore (new in 10.3.0, #14827) can loop forever when the remaining clauses' max score is negative at a minimum competitive score of 0, so with assertions disabled a top-k BooleanQuery with a negative-scoring SHOULD clause can spin forever in MaxScoreBulkScorer, the infinite loop that LUCENE-10428 had turned into an exception
 
 Finding LFV-1016 · Area: search / top-k dynamic pruning (ScorerUtil.minRequiredScore, called by MaxScoreBulkScorer) · Priority: medium · Impact: hang · Novelty: known upstream
 
@@ -19,10 +19,11 @@ You run IndexSearcher.search(q, 10) on a 3-document index, where q ORs a clause 
 
 ## Run it
 
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still fails 5 of 5 without assertions and 2 of 5 with assertions, the two direct calls of ScorerUtil.minRequiredScore (run on 2026-11-18 with the test adapted as the 781025d6fe32 line says); the re-run of 2026-11-17 on this commit ran another test of this finding, a one-test class that is not in this folder (the BooleanQuery search on a 3-document index, with MatchAllDocsQuery.INSTANCE): it passed with assertions on and failed with them off, the search not returning within 10 s.
 - Tested on Lucene main 9965d34e3c77 (2026-11-16): still fails 5 of 5 without assertions and 2 of 5 with assertions, the two direct calls of ScorerUtil.minRequiredScore (run on 2026-11-17 with the test adapted as the next line says); the re-run of 2026-11-16 on this commit ran another test of this finding, a one-test class that is not in this folder (the BooleanQuery search on a 3-document index, with MatchAllDocsQuery.INSTANCE): it passed with assertions on and failed with them off, the search not returning within 10 s.
 - Tested on Lucene main 781025d6fe32 (2026-11-13): still fails 5 of 5 without assertions and 2 of 5 with assertions, the two direct calls of ScorerUtil.minRequiredScore (run with the test adapted to #16962, which made the no-argument MatchAllDocsQuery constructor private on main (24d9e7d1a0d) and on the 11.0 branch (branch_11x, a6a26f9b251): lines 130 and 157 pass MatchAllDocsQuery.INSTANCE instead of new MatchAllDocsQuery()).
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced, with the test as shipped.
-- The runs of the five tests on 9965d34e3c77 and 781025d6fe32 took one test per JVM, with --select-method org.apache.lucene.search.TestMinRequiredScoreTermination#testBooleanQueryWithMisbehavingClauseTerminates (and so on for the other four tests) in place of --select-class: a call that does not return leaves its thread running until the JVM exits. The command block runs the five tests in one JVM, as the run on 645d4fe14a20 did.
+- The runs of the five tests on 1cfa86310f76, 9965d34e3c77 and 781025d6fe32 took one test per JVM, with --select-method org.apache.lucene.search.TestMinRequiredScoreTermination#testBooleanQueryWithMisbehavingClauseTerminates (and so on for the other four tests) in place of --select-class: a call that does not return leaves its thread running until the JVM exits. The command block runs the five tests in one JVM, as the run on 645d4fe14a20 did.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

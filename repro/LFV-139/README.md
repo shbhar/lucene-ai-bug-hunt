@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You index one segment of IndexWriter.MAX_DOCS (2,147,483,519) documents with default settings, one of which has b:y, and count the matches of +*:* -b:y (MatchAllDocsQuery as FILTER plus a MUST_NOT term query) with a plain IndexSearcher; you expect 2,147,483,518. Instead you get 2,147,479,551: all 3,967 documents of the last window [2,147,479,552, MAX_DOCS) are silently missing, because ReqExclBulkScorer's WindowBits.applyMask computes Math.min(NO_MORE_DOCS, offset + bitSet.length()) in int, the sum wraps negative for a 4096-bit window based at 2^31-4096 or above, and the method then clears the whole window. Only segments with more than 2,147,479,552 documents and required clauses denser than 0.3% of maxDoc are affected, and only code since #16669 has the bug: 10.6.0 (released 2026-10-29), main and branch_10x.
+You index one segment of IndexWriter.MAX_DOCS (2,147,483,519) documents with default settings, one of which has b:y, and count the matches of +\*:\* -b:y (MatchAllDocsQuery as FILTER plus a MUST_NOT term query) with a plain IndexSearcher; you expect 2,147,483,518. Instead you get 2,147,479,551: all 3,967 documents of the last window [2,147,479,552, MAX_DOCS) are silently missing, because ReqExclBulkScorer's WindowBits.applyMask computes Math.min(NO_MORE_DOCS, offset + bitSet.length()) in int, the sum wraps negative for a 4096-bit window based at 2^31-4096 or above, and the method then clears the whole window. Only segments with more than 2,147,479,552 documents and required clauses denser than 0.3% of maxDoc are affected, and only code since #16669 has the bug: 10.6.0 (released 2026-10-29), main and branch_10x.
 
 The test shows that `ReqExclBulkScorer` drops every match of a dense required clause in the 4096-doc window based at 2^31-4096 when a `MUST_NOT` clause is present, because `WindowBits.applyMask` adds `offset + bitSet.length()` in `int` (no index built).
 
@@ -22,7 +22,7 @@ Expected 99 hits (the last 100 doc IDs of a `MAX_DOCS` segment minus one exclude
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

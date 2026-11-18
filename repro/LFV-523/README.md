@@ -1,4 +1,4 @@
-# A zero-length token makes TokenStreamToAutomaton drop every path through it, so ConcatenateGraphFilter emits nothing and the document suggester, AnalyzingSuggester and FuzzySuggester silently lose that suggestion (stock trigger: a standalone tatweel U+0640 with ArabicAnalyzer, PersianAnalyzer or SoraniAnalyzer)
+# A zero-length token makes TokenStreamToAutomaton drop every path through it, so for a value with no other path ConcatenateGraphFilter emits nothing and the document suggester, AnalyzingSuggester and FuzzySuggester silently lose that suggestion (one stock trigger: a standalone tatweel U+0640 with ArabicAnalyzer, PersianAnalyzer or SoraniAnalyzer)
 
 Finding LFV-523 · Area: analysis / TokenStreamToAutomaton (core), reached through ConcatenateGraphFilter (analysis-common) and the completion suggesters (suggest: NRT document suggester, AnalyzingSuggester, FuzzySuggester) · Priority: low · Impact: silent wrong results · Novelty: new
 
@@ -22,7 +22,7 @@ Expected one output token for the one path; actual none (`expected:<1> but was:<
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

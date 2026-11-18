@@ -21,7 +21,7 @@ You open a field written with the legacy Lucene99 scalar-quantized HNSW format (
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced.
 - Helpers: the test uses three unchanged classes of Lucene's own backward-codecs test sources that the release jars do not contain (Lucene99RWV1HnswScalarQuantizationVectorsFormat, Lucene99RWScalarQuantizedVectorsFormat and Lucene99ScalarQuantizedVectorsWriter), so the recipe first copies them from lucene/backward-codecs/src/test/org/apache/lucene/backward_codecs/lucene99/ of the checkout into src/ here, where they compile with the test.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

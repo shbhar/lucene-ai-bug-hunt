@@ -1,6 +1,6 @@
-# With index sorting and a parent field, deleting only a block's parent makes every later merge fail
+# With index sorting and a parent field, deleting only a block's parent can leave a segment whose later merges fail
 
-Finding LFV-011 · Area: index / IndexWriter merge · Priority: high · Impact: index unusable · Novelty: new
+Finding LFV-011 · Area: index / IndexWriter merge · Priority: medium · Impact: index unusable · Novelty: new
 
 Finding page: [../../bugs/LFV-011.html](../../bugs/LFV-011.html)
 
@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You use index sorting with a parent field and document blocks, and delete only the parent document of a block. You expect later merges to work. Instead MultiSorter finds no parent for the orphaned child (nextSetBit returns NO_MORE_DOCS), every later merge of that segment throws (an EOFException with the default codec on a file-system directory, IndexOutOfBoundsException on ByteBuffersDirectory), the writer closes tragically and uncommitted documents are lost.
+You use index sorting with a parent field and document blocks, and delete only the parent document of a block. You expect later merges to work. Instead, once the orphaned child, still live, is the last document of its segment (no parent-marked document follows it there), MultiSorter finds no parent for it (nextSetBit returns NO_MORE_DOCS), and in the runs where every document has a sort value and the segment holds two or more different sort values the merges of that segment throw (an EOFException with the default codec on a file-system directory, IndexOutOfBoundsException on ByteBuffersDirectory), the writer closes tragically and uncommitted documents are lost.
 
 The test shows that with an index sort and `setParentField`, deleting only the parent of a block `[c1, p1]` leaves the merged segment `[x, c1]` ending with a parentless child, and the next `forceMerge(1)` throws.
 
@@ -22,9 +22,10 @@ Expected: the second merge succeeds; actual (-ea and -da): IndexOutOfBoundsExcep
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still reproduces.
+- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- The line numbers under 'Expected vs actual' (MultiSorter.java:166-168) are those of main 645d4fe14a20, where this test was recorded. The merged #16571 (2026-11-12) moved the code: on main 1cfa86310f76 the lookup is at MultiSorter.java:176 and the failing frame is MultiSorter.setComparableValues at MultiSorter.java:178.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
