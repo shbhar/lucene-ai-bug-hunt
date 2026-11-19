@@ -24,7 +24,7 @@ Expected `ramBytesUsed()` within 5% of the heap RamUsageTester measures (37,224 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- This finding was re-run on Lucene main 1cfa86310f76 on 2026-11-17: still reproduces (the repro adapted to an API change on this commit). The change: #16962 made the no-argument MatchAllDocsQuery constructor private on main (24d9e7d1a0d) and on the 11.0 branch (branch_11x, a6a26f9b251), so replace new MatchAllDocsQuery() with MatchAllDocsQuery.INSTANCE before you compile the test there; in the commands below, V=12.0.0-SNAPSHOT on a build of main 1cfa86310f76 and V=11.0.0-SNAPSHOT on a build of the 11.0 branch at daa54f2e0cd3.
+- This finding was re-run on Lucene main ec3b3cca8f10 on 2026-11-18: still reproduces (the repro adapted to an API change on this commit). The change: #16962 made the no-argument MatchAllDocsQuery constructor private on main (24d9e7d1a0d) and on the 11.0 branch (branch_11x, a6a26f9b251), so replace new MatchAllDocsQuery() with MatchAllDocsQuery.INSTANCE before you compile the test there; in the commands below, V=12.0.0-SNAPSHOT on a build of main ec3b3cca8f10 and V=11.0.0-SNAPSHOT on a build of the 11.0 branch at daa54f2e0cd3.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

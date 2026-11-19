@@ -22,7 +22,7 @@ Expected: `count(id:a)` is 0 on the next NRT reader (a hard-deleted doc stays de
 
 ## Run it
 
-- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
+- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - Known upstream in part: in the review of the change that introduced this code (LUCENE-8298, apache/lucene#9345), Adrien Grand wrote on 2018-05-09 that "the ability to un-hard-delete is a bit scary to me because of the documents that got marked as deleted because they failed indexing", about a patch that already had this branch; it was merged unchanged. The comment names the hazard on a patch in review; it does not say that merged or released Lucene does it. What this folder covers: the test shows that released code does it for a document the application hard-deleted (the soft-delete count of -1, the merge that keeps the document and the document that IndexWriter rejected are on the finding page). Run on 2026-11-18 on Lucene main 1cfa86310f76, with and without assertions: 1 test found, 1 test failed (expected:&lt;0&gt; but was:&lt;1&gt;).

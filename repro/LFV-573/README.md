@@ -22,7 +22,7 @@ Expected count 1 at radius 8154434.476304402 m (the point's own distance); actua
 
 ## Run it
 
-- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
+- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

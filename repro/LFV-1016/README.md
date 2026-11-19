@@ -24,6 +24,7 @@ You run IndexSearcher.search(q, 10) on a 3-document index, where q ORs a clause 
 - Tested on Lucene main 781025d6fe32 (2026-11-13): still fails 5 of 5 without assertions and 2 of 5 with assertions, the two direct calls of ScorerUtil.minRequiredScore (run with the test adapted to #16962, which made the no-argument MatchAllDocsQuery constructor private on main (24d9e7d1a0d) and on the 11.0 branch (branch_11x, a6a26f9b251): lines 130 and 157 pass MatchAllDocsQuery.INSTANCE instead of new MatchAllDocsQuery()).
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced, with the test as shipped.
 - The runs of the five tests on 1cfa86310f76, 9965d34e3c77 and 781025d6fe32 took one test per JVM, with --select-method org.apache.lucene.search.TestMinRequiredScoreTermination#testBooleanQueryWithMisbehavingClauseTerminates (and so on for the other four tests) in place of --select-class: a call that does not return leaves its thread running until the JVM exits. The command block runs the five tests in one JVM, as the run on 645d4fe14a20 did.
+- This finding was re-run on Lucene main ec3b3cca8f10 on 2026-11-18: still reproduces (the repro adapted to an API change on this commit).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

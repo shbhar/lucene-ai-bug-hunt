@@ -1,6 +1,6 @@
 # MatchesUtils.disjunction and the Matches of a BooleanQuery or DisjunctionMaxQuery throw IllegalArgumentException('Failed to retrieve term offset') instead of the declared IOException when a sub-iterator without positions fails to read an offset, because DisjunctionMatchesIterator's PriorityQueue comparator wraps it (since 9.11.1)
 
-Finding LFV-1424 · Area: core / search: Matches API (DisjunctionMatchesIterator, used by MatchesUtils.disjunction and by the Matches of BooleanQuery and DisjunctionMaxQuery) · Priority: low · Impact: minor · Novelty: new
+Finding LFV-1424 · Area: core / search: Matches API (DisjunctionMatchesIterator, used by MatchesUtils.disjunction and by the Matches of BooleanQuery and DisjunctionMaxQuery) · Priority: low · Impact: minor · Novelty: known outside Lucene
 
 Finding page: [../../bugs/LFV-1424.html](../../bugs/LFV-1424.html)
 
@@ -21,7 +21,7 @@ You merge two match iterators that report no positions (startPosition() == -1, w
 
 ## Run it
 
-- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
+- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
 - Tested on Lucene main f794ff5a505c (2026-11-06): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

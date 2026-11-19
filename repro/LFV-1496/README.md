@@ -21,7 +21,7 @@ You build a spell index from a word-list file with spellChecker.indexDictionary(
 
 ## Run it
 
-- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
+- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
 - Tested on Lucene main 781025d6fe32 (2026-11-13): reproduced.
 - What the test does: it writes a one-word dictionary file under a LeakFS (the test framework's file system wrapper that tracks open files), opens a SpellChecker and then an IndexWriter on the same Directory, so that the writer holds the write lock, and expects spellChecker.indexDictionary(new PlainTextDictionary(dictionaryFile), ...) to throw LockObtainFailedException, which it does. No fault is injected. After the SpellChecker, the writer and the Directory are closed, it asks the LeakFS whether a file is still open. The test fails with 'file handle leaks: [InputStream(.../dict.txt)]', the same with and without assertions. Beside core the recipe needs the suggest and analysis-common jars, which it lists. The writer that holds the lock is the unnamed variable _ (Java 22 or later; the recipe uses JDK 25), so the same file also compiles in a Lucene checkout, which builds with -Xlint:try -Werror. The file that is not exported is the earlier form of this test, with the lock holder as a named variable.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

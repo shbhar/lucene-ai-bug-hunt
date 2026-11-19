@@ -19,7 +19,7 @@ You parse a query string that contains an invalid /regex/ with the classic, Mult
 
 ## Run it
 
-- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
+- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
 - Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
 - How to read the outcome: a failing test is the finding reproducing: the class has seven tests, and a build with the finding reports 7 tests found and 2 failed, testB1_ClassicContract (expected ParseException but got java.lang.IllegalArgumentException) and testB2_FlexibleContract (expected QueryNodeException but got java.lang.IllegalArgumentException); the five testA tests record what the parsers do today and pass.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

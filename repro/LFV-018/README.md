@@ -1,6 +1,6 @@
 # ParallelLeafReader.termVectors() no longer honours 'the first reader having the field wins'
 
-Finding LFV-018 · Area: index / readers · Priority: medium · Impact: data corruption · Novelty: new
+Finding LFV-018 · Area: index / readers · Priority: medium · Impact: data corruption · Novelty: known outside Lucene
 
 Finding page: [../../bugs/LFV-018.html](../../bugs/LFV-018.html)
 
@@ -22,7 +22,7 @@ Expected: no term vector for `body` (getFieldInfos() and terms() come from the f
 
 ## Run it
 
-- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
+- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

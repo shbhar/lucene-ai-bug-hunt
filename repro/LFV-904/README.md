@@ -1,6 +1,6 @@
 # IndexWriter.deleteDocuments(Query) and updateDocuments(Query, ...) rewrite the query separately on each segment, so reader-dependent queries (kNN, the default FuzzyQuery and other top-N term rewrites, CommonTermsQuery, MoreLikeThisQuery, score ranges) delete a set that depends on the segment layout and differs from what IndexSearcher.search returns
 
-Finding LFV-904 · Area: core / index write path (delete-by-query: FrozenBufferedUpdates.applyQueryDeletes) x core / search and queries (reader-dependent rewrites) · Priority: medium · Impact: data corruption · Novelty: new
+Finding LFV-904 · Area: core / index write path (delete-by-query: FrozenBufferedUpdates.applyQueryDeletes) x core / search and queries (reader-dependent rewrites) · Priority: medium · Impact: data corruption · Novelty: known upstream
 
 Finding page: [../../bugs/LFV-904.html](../../bugs/LFV-904.html)
 
@@ -22,7 +22,7 @@ Expected: `KnnFloatVectorQuery` k=1 matches 1 of the 2 documents (one per segmen
 
 ## Run it
 
-- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
+- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

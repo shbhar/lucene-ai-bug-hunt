@@ -22,7 +22,7 @@ Expected: every example compiles. Actual: 16 error lines, overview.html:75, 121,
 
 ## Run it
 
-- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
+- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - The expected and actual lines above are those of main 645d4fe14a20. On a build of main or of the 11.0 branch since #16962 (merged 2026-11-03), which made the no-argument MatchAllDocsQuery constructor private, the test fails the same way and lists one more line, overview.html:159: 17 error lines (run on branch_11x 9d2b5a15427a and on main 9965d34e3c77 with -ea and -da). Lines 339-340, which the text above calls main only, are on the page of the 11.0 branch too (the same page text at branch_11x 9d2b5a15427a); no release has them.

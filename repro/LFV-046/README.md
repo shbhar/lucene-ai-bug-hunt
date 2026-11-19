@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You index, or query with, a non-zero COSINE float vector whose float32 squared norm is 0 or subnormal. You expect it to be rejected like an all-zero vector or to score sensibly. Instead it is accepted: on the default codec it scores +Inf/NaN, a NaN batch maximum hides 64 neighbouring documents and CheckIndex falsely fails; on OSQ one such vector makes the segment centroid NaN, so kNN returns 0 hits and every merge fails.
+You index, or query with, a non-zero COSINE float vector whose float32 squared norm is 0 or subnormal. You expect it to be rejected like an all-zero vector or to score sensibly. Instead it is accepted: on the default codec it scores +Inf/NaN, a NaN batch maximum hides up to 63 neighbouring documents and CheckIndex falsely fails; on OSQ one such vector makes the segment centroid NaN, so kNN returns 0 hits and every merge fails.
 
 The test shows that `KnnFloatVectorField` accepts the non-zero COSINE vector {1e-30, 0}, whose float32 squared norm underflows to 0, and that it then scores +Inf, so a kNN query for {0.6, 0.8} on the default codec ranks it above the identical vector.
 
@@ -22,7 +22,7 @@ Expected: the identical vector (doc 0) is the top hit, or the tiny vector is rej
 
 ## Run it
 
-- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
+- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

@@ -22,14 +22,14 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p><a href="../../bugs/LFV-046.html">Finding page for LFV-046</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
-<p>You index, or query with, a non-zero COSINE float vector whose float32 squared norm is 0 or subnormal. You expect it to be rejected like an all-zero vector or to score sensibly. Instead it is accepted: on the default codec it scores +Inf/NaN, a NaN batch maximum hides 64 neighbouring documents and CheckIndex falsely fails; on OSQ one such vector makes the segment centroid NaN, so kNN returns 0 hits and every merge fails.</p>
+<p>You index, or query with, a non-zero COSINE float vector whose float32 squared norm is 0 or subnormal. You expect it to be rejected like an all-zero vector or to score sensibly. Instead it is accepted: on the default codec it scores +Inf/NaN, a NaN batch maximum hides up to 63 neighbouring documents and CheckIndex falsely fails; on OSQ one such vector makes the segment centroid NaN, so kNN returns 0 hits and every merge fails.</p>
 <p>The test shows that <code>KnnFloatVectorField</code> accepts the non-zero COSINE vector {1e-30, 0}, whose float32 squared norm underflows to 0, and that it then scores +Inf, so a kNN query for {0.6, 0.8} on the default codec ranks it above the identical vector.</p>
 <h2>Expected vs actual</h2>
 <p>Expected: the identical vector (doc 0) is the top hit, or the tiny vector is rejected like the zero vector. Actual: doc 1 is the top hit with score Infinity (-da: <code>top hit (score Infinity) expected:&lt;0&gt; but was:&lt;1&gt;</code>; -ea: Lucene&#x27;s own <code>assert Float.isFinite(r)</code> in <code>VectorUtil.cosine</code> fires).</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/document/TestCosineTinyNormTopHit.java"><code>src/org/apache/lucene/document/TestCosineTinyNormTopHit.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.</li>
+<li>Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.</li>
 <li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
 <li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
@@ -50,4 +50,4 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.document.TestCosineTinyNormTopHit</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on the 11.0 branch the build takes the default from the seed).</p>
 <p>Formal models and scripts this finding's part of the hunt used: <a href="../../models/study-quantization-smt/index.html">study-quantization-smt</a></p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-18. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-19. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

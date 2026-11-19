@@ -20,7 +20,7 @@ You run a query once through a CachingCollector or CachingCollectorManager that 
 
 ## Run it
 
-- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
+- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
 - On Lucene main 781025d6fe32 (2026-11-13) the second test, TestCachingCollectorIncompleteCacheLegacy, needs a small adaptation, because #16805 (e0a3a951e7e) removed IndexSearcher.search(Query, Collector) on main: on line 49, pass cc through a CollectorManager whose newCollector() returns cc and whose reduce() returns null. With that change it still fails 4 of 5 there, with and without assertions. The first test, TestCachingCollectorManagerIncompleteCache, needs no change.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

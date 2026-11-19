@@ -19,7 +19,7 @@ You commit two documents, open and close an NRT reader (so the writer keeps pool
 
 ## Run it
 
-- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
+- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
 - Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
 - The class has three tests. The two triggers of this finding are testIOExceptionClosingPooledReader and testCoreClosedListenerThrows. The third, testDeleteOfOpenFileFails, relies on setAssertNoDeleteOpenFile, a mode of the test framework's MockDirectoryWrapper, and is not counted as a trigger. All three fail on Lucene main 1cfa86310f76, with assertions on and off (run 2026-11-18).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

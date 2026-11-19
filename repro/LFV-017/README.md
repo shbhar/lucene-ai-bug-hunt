@@ -21,7 +21,7 @@ Several indexing threads allocate new segment names while the writer checkpoints
 
 ## Run it
 
-- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
+- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
 - Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
 - Recorded outcome of run 1 on Lucene main a9779ef3c193: 2 test(s) run, 2 failed (testAddIndexesRaceLowersVersionAndHidesChanges, testDwptCreationRaceLosesIncrements).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

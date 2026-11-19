@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-With the OSQ format and MAXIMUM_INNER_PRODUCT or EUCLIDEAN, you index vectors with components around 1e17-1e19. You expect finite scores, as the float path gives. Instead the correction terms overflow to inf - inf, the quantized score is NaN, and NaN drops whole 64-document batches (one outlier made 301 of 301 scores NaN).
+With the OSQ format and MAXIMUM_INNER_PRODUCT or EUCLIDEAN, you index vectors with components around 1e17-1e19. You expect finite scores, as the float path gives. Instead float32 products of the correction terms overflow to inf - inf, the quantized score is NaN, and NaN drops whole 64-document batches (with MAXIMUM_INNER_PRODUCT one outlier component of 6e21 made 301 of 301 scores NaN).
 
 The test shows that with the flat Lucene104ScalarQuantizedVectorsFormat and EUCLIDEAN, a 16-dim vector with one component -1e19 (all float quantities finite) gets a NaN quantized score, and a kNN query for that vector finds nothing.
 
@@ -22,7 +22,7 @@ Expected: doc 0 found with a finite score (the float format gives 1.0). Actual (
 
 ## Run it
 
-- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
+- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

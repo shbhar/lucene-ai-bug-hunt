@@ -22,7 +22,7 @@ Expected hits [0, 64] (both have similarity 1.0 &gt;= resultSimilarity); main re
 
 ## Run it
 
-- Not run on Lucene main 1cfa86310f76 (2026-11-17): the recorded test does not compile there (javac: cannot find symbol: class Explicit, location: class FloatVectorSimilarityQuery). Last run on Lucene main 5adff78bb168 on 2026-11-08: still reproduces.
+- Not run on Lucene main ec3b3cca8f10 (2026-11-18): the recorded test does not compile there (javac: cannot find symbol: class Explicit, location: class FloatVectorSimilarityQuery). Last run on Lucene main 5adff78bb168 on 2026-11-08: still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

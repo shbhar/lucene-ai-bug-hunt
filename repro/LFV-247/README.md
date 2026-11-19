@@ -1,4 +1,4 @@
-# Geo3DDocValuesField.newDistanceSort and newOutsideDistanceSort with a maximum radius below about 10 km test each document's 21-bit decoded point, which lies metres off the planet surface, against the circle's nearly tangent plane: about half the documents inside the circle, even at its centre, get distance +Infinity and sort last, documents up to about 8 km away get finite distances, and inside documents get outside distances of up to the radius instead of 0.0
+# Geo3DDocValuesField.newDistanceSort and newOutsideDistanceSort with a maximum radius below about 10 km test each document's 21-bit decoded point, which lies metres off the planet surface, against the circle's nearly tangent plane: up to about half the documents inside the circle, even at its centre, get distance +Infinity and sort last, documents up to about 8 km away get finite distances, and inside documents get outside distances of up to the radius instead of 0.0
 
 Finding LFV-247 · Area: spatial3d / Geo3DDocValuesField distance sorts (Geo3DPointDistanceComparator, Geo3DPointOutsideDistanceComparator; GeoStandardCircle membership test on the decoded doc value) · Priority: medium · Impact: silent wrong results · Novelty: new
 
@@ -24,7 +24,7 @@ Expected: a finite distance near 0 m (the document is at the centre of the 1 km 
 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- This finding was re-run on Lucene main 1cfa86310f76 on 2026-11-17: still reproduces (the repro adapted to an API change on this commit). The change: #16962 made the no-argument MatchAllDocsQuery constructor private on main (24d9e7d1a0d) and on the 11.0 branch (branch_11x, a6a26f9b251), so replace new MatchAllDocsQuery() with MatchAllDocsQuery.INSTANCE before you compile the test there; in the commands below, V=12.0.0-SNAPSHOT on a build of main 1cfa86310f76 and V=11.0.0-SNAPSHOT on a build of the 11.0 branch at daa54f2e0cd3.
+- This finding was re-run on Lucene main ec3b3cca8f10 on 2026-11-18: still reproduces (the repro adapted to an API change on this commit). The change: #16962 made the no-argument MatchAllDocsQuery constructor private on main (24d9e7d1a0d) and on the 11.0 branch (branch_11x, a6a26f9b251), so replace new MatchAllDocsQuery() with MatchAllDocsQuery.INSTANCE before you compile the test there; in the commands below, V=12.0.0-SNAPSHOT on a build of main ec3b3cca8f10 and V=11.0.0-SNAPSHOT on a build of the 11.0 branch at daa54f2e0cd3.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

@@ -25,7 +25,7 @@ Expected `GITHUB#7820` (the issue CheckIndex.java links); actual `GITHUB#17820` 
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced with the 10.6.0 release's lucene/CHANGES.txt as the input; main's own CHANGES.txt passes.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - The test reads the CHANGES.txt file named by the system property changes.txt, so add -Dchanges.txt=&lt;file&gt; to the java command. To reproduce, give it the 10.6.0 release's text: git show releases/lucene/10.6.0:lucene/CHANGES.txt &gt; CHANGES-10.6.0.txt. The Lucene jars play no part, so any recent build runs it. Main's own lucene/CHANGES.txt passes, because main cites GITHUB#7820.
-- This finding was re-run on Lucene main 1cfa86310f76 on 2026-11-17: still reproduces; in the commands below, V=12.0.0-SNAPSHOT on a build of main 1cfa86310f76.
+- This finding was re-run on Lucene main ec3b3cca8f10 on 2026-11-18: still reproduces; in the commands below, V=12.0.0-SNAPSHOT on a build of main ec3b3cca8f10.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 - Not runnable from this site as is: this repro also needs extra JVM setup (a system property or an instrumentation hook, for example) that is not exported here; see the comments at the top of the source.

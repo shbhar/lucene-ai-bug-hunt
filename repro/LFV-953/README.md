@@ -1,6 +1,6 @@
-# Polygon.fromGeoJSON throws NullPointerException instead of its own ParseException 'coordinates should be an array, but got: ...' when "coordinates" (or an element of a MultiPolygon's coordinates) is JSON null or an object, because the error message calls o.getClass() on the null the parser uses for those values (every release since 6.2.0)
+# Polygon.fromGeoJSON throws NullPointerException instead of its own ParseException ('coordinates should be an array, but got: ...' or 'elements of coordinates array should be an array, but got: ...') when "coordinates" is JSON null or an object such as {}, or when an element of a MultiPolygon's coordinates is such an object, because both error messages call o.getClass() on the null the parser uses for those values (every release since 6.2.0)
 
-Finding LFV-953 · Area: core / geo GeoJSON parsing (Polygon.fromGeoJSON, SimpleGeoJSONPolygonParser) · Priority: low · Impact: wrong error · Novelty: new
+Finding LFV-953 · Area: core / geo GeoJSON parsing (Polygon.fromGeoJSON, SimpleGeoJSONPolygonParser) · Priority: low · Impact: wrong error · Novelty: known outside Lucene
 
 Finding page: [../../bugs/LFV-953.html](../../bugs/LFV-953.html)
 
@@ -22,7 +22,7 @@ Expected `ParseException` (as for a string value). Actual: `NullPointerException
 
 ## Run it
 
-- Tested on Lucene main 1cfa86310f76 (2026-11-17): still reproduces.
+- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
