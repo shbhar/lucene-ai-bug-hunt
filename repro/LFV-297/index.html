@@ -20,6 +20,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>RescoreTopNQuery throws (AssertionError with -ea, ArrayIndexOutOfBoundsException with -da) instead of matching nothing when its inner query matches no document: rewrite passes an empty top-n list to DocAndScoreQuery.createDocAndScoreQuery, which requires a non-empty one</h1>
 <p class="facts small"><span>Finding LFV-297</span><span>Area: search / rescoring</span><span>Priority: medium</span><span>Impact: crash</span><span>Novelty: known upstream</span></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks. <b>Upstream status:</b> Fixed, by Greg Miller (Lucene PMC; PR #16926) on 2026-10-28. Greg Miller fixed it on main and branch_11x (11.0) by returning MatchNoDocsQuery when the inner query leaves nothing to rescore, the same guard as our fix. They left it out of 10.6 because they were not sure it is severe enough, so the 10.x line keeps the bug. <a href="https://github.com/apache/lucene/pull/16926">Source</a>. This site files nothing upstream.</p>
+<p class="note small"><b>Fixed upstream:</b> <a href="https://github.com/apache/lucene/pull/16926">#16926</a> (commit <a href="https://github.com/apache/lucene/commit/645d4fe14a203471fd120709c8bcbacbf3d9d256">645d4fe14a20</a>), merged 2026-10-28; also on the 11.0 release branch (<a href="https://github.com/apache/lucene/commit/f85446cb1af1">f85446cb1af1</a>).</p>
 <h2>What it shows</h2>
 <p>You wrap a query in RescoreTopNQuery, for example full-precision rescoring of a kNN query with a filter, and on this index the inner query matches nothing (the filter matches no document, the term is absent, or the index is empty). You expect 0 hits, which is what the inner query alone returns. Instead the search throws an AssertionError with assertions enabled, or ArrayIndexOutOfBoundsException &#x27;Index 0 out of bounds for length 0&#x27; without them, because rewrite() hands its empty top-n list to a helper that reads the first entry; the kNN query&#x27;s own rewrite checks for this case and returns MatchNoDocsQuery.</p>
 <h2>Expected vs actual</h2>
@@ -27,7 +28,8 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/search/TestRescoreTopNQueryNoCandidates.java"><code>src/org/apache/lucene/search/TestRescoreTopNQueryNoCandidates.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.</li>
+<li>This finding was re-run on Lucene main 1ae70c6e45b8 on 2026-11-19: it no longer reproduces there; in the commands below, V=12.0.0-SNAPSHOT on a build of main 1ae70c6e45b8.</li>
 <li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

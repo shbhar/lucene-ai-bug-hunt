@@ -227,7 +227,7 @@ a.card-main:hover .card-title{text-decoration:underline;text-decoration-color:va
   <p class="crumbs"><a href="index.html">AI-assisted bug hunt in Apache Lucene</a></p>
   <h1 id="title">Where the findings cluster</h1>
   <p class="purpose">Where the findings sit, by feature, kind of defect or module, and how serious they are. Select a row to zoom into its Java classes, a class to list its findings, a cell to filter by its impact too; every finding opens its explainer page.</p>
-  <p class="ex-totals" id="ex-totals" data-total="1437" data-new="1147" data-known="290" data-withheld="2">1,437 findings in the snapshot: 1,147 new and 290 already known; 2 of them with details withheld.</p>
+  <p class="ex-totals" id="ex-totals" data-total="1454" data-new="1156" data-known="298" data-withheld="2">1,454 findings in the snapshot: 1,156 new and 298 already known; 2 of them with details withheld.</p>
   <p class="ex-caveat">These are counts of findings. They do not measure how defect-prone an area is: areas differ in size, age and use.</p>
   <p class="ex-nav"><a href="index.html#bugs">Findings table</a> · <span aria-current="page">Explore</span></p>
 </header>
@@ -342,7 +342,7 @@ a.card-main:hover .card-title{text-decoration:underline;text-decoration-color:va
     'feature', 'feature_mode', 'component', 'group', 'zoom', 'wontfix', 'new11', 'sort'].concat(Object.keys(FOREIGN)));
   // new in 11.0 (2026-11-14): the table's toggle and parameter (new11=1), applied here too
   const N11_FILTER = 'Only findings new in 11.0', N11_LABEL = 'new in 11.0';
-  const N11_FACT = 'New in 11.0: in the Lucene 11.0 release branch (not yet released), not in 10.6.x';
+  const N11_FACT = 'New in 11.0: in the Lucene 11.0 release branch (not yet released), not in 10.6.x, or in 10.6.x only behind an opt-in setting and in 11.0 with every setting';
   const has11 = () => R.some(r => r.n11);
   const PRIOS = [['high', 'High'], ['medium', 'Medium'], ['medium-up', 'Medium and above'], ['low', 'Low']];
   const GROUPS = [['feature', 'Feature'], ['aspect', 'Aspect'], ['module', 'Module']];
@@ -379,6 +379,7 @@ a.card-main:hover .card-title{text-decoration:underline;text-decoration-color:va
     r.component = !r.withheld && CLASS.test(s('component')) ? s('component') : '';
     r.upstream = r.withheld ? '' : s('upstream');
     r.ref = !r.withheld && REF.test(s('upstream_ref')) ? s('upstream_ref') : '';
+    r.fixed = !r.withheld && o.fixed === true && r.upstream === 'fixed' && /\/pull\/\d+$/.test(r.ref) && s('fix_pr') === r.ref;
     r.doc = !r.withheld && DOC.test(s('doc')) ? s('doc') : '';
     r.repro = !r.withheld && REPRO.test(s('repro')) ? s('repro') : '';
     r.rank = Number.isInteger(o.rank) ? o.rank : null;
@@ -834,6 +835,7 @@ a.card-main:hover .card-title{text-decoration:underline;text-decoration-color:va
   // progress)": a filed issue or the triage record's link, with its state
   const upLabel = r => UP.get(r.upstream) || '';
   function upLinkText(r) {
+    if (r.fixed) return upLabel(r) + ' (#' + REF.exec(r.ref)[1] + ')';
     if (r.upstream === 'known') return upLabel(r) + ' (' + refLabel(r.ref) + ')';
     return refLabel(r.ref) + ' (' + upLabel(r).replace(/ upstream$/, '').toLowerCase() + ')';
   }

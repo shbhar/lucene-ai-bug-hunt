@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>A scoring JoinUtil term join (ScoreMode Max, Min, Avg or Total, run where scores are needed) throws IllegalArgumentException &#x27;cost must be &gt;= 0&#x27; on a segment whose Terms#size() for the join&#x27;s to-field returns -1, the value its javadoc documents for a term count that is not stored: TermsIncludingScoreQuery multiplies maxDoc by it. Run with an application&#x27;s reader view that reports -1; on 10.6.0, branch_11x and main the stock postings formats and six stock reader views that were run report a real count (the join throws on 6.1.0 to 10.6.0, branch_11x and main) (LFV-1539)</title><style>
+:root{--fg:#1d2329;--dim:#5a6570;--line:#d8dee4;--bg:#fff;--soft:#f5f7f9;--link:#0b5cad}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
+font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+main{max-width:980px;margin:0 auto;padding:24px 18px 64px}a{color:var(--link)}
+h1{font-size:1.55rem;line-height:1.25;margin:.4em 0 .3em}h2{font-size:1.2rem;margin:1.6em 0 .5em}
+.dim{color:var(--dim)}.small{font-size:.9rem}.facts{display:flex;flex-wrap:wrap;gap:6px 16px;margin:.4em 0 1em}
+.note{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:10px 14px}
+pre{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:12px;overflow:auto;font-size:.85rem}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+table{border-collapse:collapse;width:100%;font-size:.92rem}th,td{border-bottom:1px solid var(--line);
+padding:6px 8px;text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:var(--soft)}
+h1,h2,p,li,dd{overflow-wrap:break-word}
+.facts>span{min-width:0;overflow-wrap:anywhere}
+th,td.nw{white-space:nowrap;overflow-wrap:normal}
+.scroll{overflow-x:auto}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
+nav.crumbs{font-size:.9rem;margin-bottom:8px}
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>A scoring JoinUtil term join (ScoreMode Max, Min, Avg or Total, run where scores are needed) throws IllegalArgumentException &#x27;cost must be &gt;= 0&#x27; on a segment whose Terms#size() for the join&#x27;s to-field returns -1, the value its javadoc documents for a term count that is not stored: TermsIncludingScoreQuery multiplies maxDoc by it. Run with an application&#x27;s reader view that reports -1; on 10.6.0, branch_11x and main the stock postings formats and six stock reader views that were run report a real count (the join throws on 6.1.0 to 10.6.0, branch_11x and main)</h1>
+<p class="facts small"><span>Finding LFV-1539</span><span>Area: join / JoinUtil scoring term join (TermsIncludingScoreQuery: the cost its scorer supplier computes from Terms#size(); BitSetIterator&#x27;s constructor check)</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: new</span></p>
+<p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
+<h2>What it shows</h2>
+<p>You put an index reader behind a view whose Terms#size() returns -1, the value the javadoc documents for a term count that is not stored, and run a JoinUtil term join that maps scores (ScoreMode.Max) on it. You expect the hit and the score that the plain reader gives; the same view answers the same join without scores (ScoreMode.None) correctly. Instead IndexSearcher.search throws IllegalArgumentException &#x27;cost must be &gt;= 0, got -2&#x27; (the test&#x27;s segment has two documents): to estimate its cost the join&#x27;s query multiplies the segment&#x27;s maxDoc by the to-field&#x27;s term count, gets a negative number and hands it to an iterator whose constructor rejects it. Read without such a view, an index written with the stock postings formats that were run on 10.6.0, branch_11x and main did not show it: they report a real count.</p>
+<h2>Expected vs actual</h2>
+<ul><li><b>Expected:</b> <code>searcher.search(join, 10)</code> returns 1 hit, the &quot;to&quot; document, as the plain reader does and as the same view does for the join without scores.</li><li><b>Actual:</b> <code>java.lang.IllegalArgumentException: cost must be &gt;= 0, got -2</code>, thrown by <code>BitSetIterator</code>&#x27;s constructor while the join&#x27;s scorer is built.</li></ul>
+<h2>Files</h2><ul>
+<li><a href="src/org/apache/lucene/search/join/TestScoringJoinUnknownTermCount.java"><code>src/org/apache/lucene/search/join/TestScoringJoinUnknownTermCount.java</code></a> <span class="dim">(JUnit test)</span></li>
+</ul><h2>Run it</h2><ul>
+<li>Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.</li>
+<li>Tested on Lucene branch_11x 89e68e0f3a50 (a commit of 2026-11-17): reproduced.</li>
+<li>A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there.</li>
+<li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
+<li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
+</ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
+LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
+CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
+CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
+CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
+CP=$CP:$LUCENE/lucene/join/build/libs/lucene-join-$V.jar
+CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
+CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
+CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
+
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
+
+# run 1: assertions off (production-like), seed DEADBEEF
+java -da -dsa -Dtests.asserts=false -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.search.join.TestScoringJoinUnknownTermCount</code></pre>
+<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on the 11.0 branch the build takes the default from the seed).</p>
+<p>Formal models and scripts this finding's part of the hunt used: <a href="../../models/scoring-term-join-unknown-term-count/index.html">scoring-term-join-unknown-term-count</a></p>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-19. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

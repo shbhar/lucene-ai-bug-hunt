@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- BM25Similarity/StableTflSimilarity k3 query-term saturation is skipped for duplicate SHOULD clauses when 2 &lt;= minimumNumberShouldMatch &lt; number of SHOULD clauses (finding LFV-103; [repro](../../repro/LFV-103/), [finding page](../../bugs/LFV-103.html))
+- BM25Similarity/StableTflSimilarity k3 query-term saturation is skipped for unboosted duplicate SHOULD clauses that the rewrite leaves unmerged (2 &lt;= minimumNumberShouldMatch &lt; number of SHOULD clauses) (finding LFV-103; [repro](../../repro/LFV-103/), [finding page](../../bugs/LFV-103.html))
 
 ## Files
 

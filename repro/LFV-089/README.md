@@ -1,4 +1,4 @@
-# CheckIndex silently skips FLOAT16 vector fields: it reports 'OK [0 fields, 0 vectors]' and never runs checkFloat16VectorValues
+# CheckIndex's vectors test silently skips FLOAT16 vector fields: for an index with only FLOAT16 vectors it reports 'OK [0 fields, 0 vectors]', and checkFloat16VectorValues never runs
 
 Finding LFV-089 · Area: index / CheckIndex vectors · Priority: low · Impact: minor · Novelty: new
 
@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You index vectors with KnnFloat16VectorField (default codec) and run CheckIndex at level 2 or higher. You expect it to count and check the FLOAT16 fields the way it does FLOAT32 and BYTE fields; the same 2-field, 3-vector index built with KnnFloatVectorField reports 2 fields / 3 vectors. Instead it prints 'test: vectors.............OK [0 fields, 0 vectors]', because the skip guard in CheckIndex.testVectors tests only the FLOAT32 and BYTE getters, so every FLOAT16 field is skipped and the dedicated checkFloat16VectorValues (iteration, dimension, size and kNN self-search checks) never runs.
+You index vectors with KnnFloat16VectorField (default codec) and run CheckIndex at level 2 or higher. You expect it to count and check the FLOAT16 fields the way it does FLOAT32 and BYTE fields; a 2-field, 3-vector index built with KnnFloatVectorField reports 2 fields / 3 vectors. For the same index built with KnnFloat16VectorField it prints 'test: vectors.............OK [0 fields, 0 vectors]', because the skip guard in CheckIndex.testVectors tests only the FLOAT32 and BYTE getters, so every FLOAT16 field is skipped and the dedicated checkFloat16VectorValues (iteration, dimension, size and kNN self-search checks) never runs.
 
 The test shows that `CheckIndex` at level 2 (`Level.MIN_LEVEL_FOR_INTEGRITY_CHECKS`) skips a `KnnFloat16VectorField`, so the FLOAT16 vector checks never run.
 
@@ -22,8 +22,8 @@ Expected: 1 vector field and 1 vector checked for an index with one FLOAT16 vect
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

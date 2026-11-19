@@ -1,4 +1,4 @@
-# With doc-values overlays (on by default on main), a second advanceExact on the same document does not restart a multi-valued SORTED_NUMERIC column's values, so SortedNumericSortField sorts return the wrong top hits (or throw)
+# With doc-values overlays (on by default on main and the 11.0 branch), a second advanceExact on the same document does not restart a multi-valued SORTED_NUMERIC column's values, so SortedNumericSortField sorts return the wrong top hits (or throw)
 
 Finding LFV-1051 · Area: index / doc-values overlays (OverlaySortedNumericDocValues over DocValuesOverlayMerger), seen through search / field sorting (SortedNumericSelector, LongComparator, TopFieldCollector) · Priority: medium · Impact: silent wrong results · Novelty: new
 
@@ -21,8 +21,8 @@ You index three documents with a multi-valued SortedNumericDocValuesField m = {5
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

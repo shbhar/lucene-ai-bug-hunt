@@ -19,13 +19,13 @@ You load a Hunspell dictionary that declares 'CIRCUMFIX X', a prefix rule 'pre' 
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): reproduced, with assertions on and off.
-- Tested on Lucene branch_11x 9d2b5a15427a (2026-11-16): reproduced, with assertions on and off (11.0.0-SNAPSHOT).
-- Tested on Lucene 10.6.0 (4ae946e5a9b9) (2026-10-26): reproduced, with assertions on and off, on the 10.6.0 release jars, which are built from this commit (the tag releases/lucene/10.6.0).
-- Tested on Lucene main 781025d6fe32 (2026-11-13): reproduced, with assertions on and off.
-- Tested on Lucene branch_11x daa54f2e0cd3 (2026-11-13): reproduced, with assertions on and off (11.0.0-SNAPSHOT).
+- Tested on Lucene main 9965d34e3c77 (a commit of 2026-11-16): reproduced, with assertions on and off.
+- Tested on Lucene branch_11x 9d2b5a15427a (a commit of 2026-11-16): reproduced, with assertions on and off (11.0.0-SNAPSHOT).
+- Tested on Lucene 10.6.0 (4ae946e5a9b9) (a commit of 2026-10-26): reproduced, with assertions on and off, on the 10.6.0 release jars, which are built from this commit (the tag releases/lucene/10.6.0).
+- Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced, with assertions on and off.
+- Tested on Lucene branch_11x daa54f2e0cd3 (a commit of 2026-11-13): reproduced, with assertions on and off (11.0.0-SNAPSHOT).
 - Not new in 11.0: the test fails the same way with the 10.6.0 release jars, on the 11.0 release branch (branch_11x) and on Lucene main, with and without assertions; the finding's record lists every release from 8.9.0 on. Known outside Lucene only: the issue tracker of the reference implementation of the format (Hunspell) has an issue about the same answer on the same dictionary shape (issue 1060, closed in 2026 by a change of the reference implementation); no Lucene issue, pull request or list thread was found that describes it. What the test does: it loads a dictionary with the line CIRCUMFIX X, a prefix rule 'pre' and a suffix rule 'suf' that both carry the flag X, and the one entry stem/PS, and asks Hunspell.spell about three words: 'prestemsuf' (a word, as expected), 'stemsuf' (not a word, as expected) and 'prestem', which is expected not to be a word. The third assertion fails with java.lang.AssertionError: the prefix without its suffix: spell("prestem") returned true. The dictionary and the words are fixed text; the test needs no index. On a checkout of the 11.0 branch set V=11.0.0-SNAPSHOT; for the release, put the four 10.6.0 jars from Maven Central (org.apache.lucene: lucene-core, lucene-codecs, lucene-test-framework, lucene-analysis-common) in place of the four $LUCENE jars. For the Gradle alternative at the end of this page the module is lucene/analysis/common.
-- This finding was re-run on Lucene main ec3b3cca8f10 on 2026-11-18: still reproduces.
+- This finding was re-run on Lucene main 1ae70c6e45b8 on 2026-11-19: still reproduces.
 - How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with java.lang.AssertionError: the prefix without its suffix (the two assertions before it pass).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

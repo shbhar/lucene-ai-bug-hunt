@@ -19,11 +19,11 @@ You build one join query with JoinUtil.createJoinQuery(..., ScoreMode.Max) and, 
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still fails 1 of 1, with and without assertions (run with the test adapted as the next line says).
-- Tested on Lucene main 781025d6fe32 (2026-11-13): still fails 1 of 1, with and without assertions (run with the test adapted to #16962, which made the no-argument MatchAllDocsQuery constructor private on main (24d9e7d1a0d) and on the 11.0 branch (branch_11x, a6a26f9b251): line 67 passes MatchAllDocsQuery.INSTANCE instead of new MatchAllDocsQuery()).
-- Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced, with the test as shipped.
-- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
-- This finding was re-run on Lucene main ec3b3cca8f10 on 2026-11-18: still reproduces (the repro adapted to an API change on this commit).
+- Tested on Lucene main 9965d34e3c77 (a commit of 2026-11-16): still fails 1 of 1, with and without assertions (run with the test adapted as the next line says).
+- Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): still fails 1 of 1, with and without assertions (run with the test adapted to #16962, which made the no-argument MatchAllDocsQuery constructor private on main (24d9e7d1a0d) and on the 11.0 branch (branch_11x, a6a26f9b251): line 67 passes MatchAllDocsQuery.INSTANCE instead of new MatchAllDocsQuery()).
+- Tested on Lucene main 5adff78bb168 (a commit of 2026-11-02): reproduced, with the test as shipped.
+- Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
+- This finding was re-run on Lucene main 1ae70c6e45b8 on 2026-11-19: still reproduces (the repro adapted to an API change on this commit).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

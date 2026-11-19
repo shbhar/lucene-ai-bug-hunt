@@ -1,4 +1,4 @@
-# Merges through BPReorderingMergePolicy with BpVectorReorderer break document blocks even when a parent field is configured
+# Merges through BPReorderingMergePolicy with BpVectorReorderer can break document blocks when a parent field is configured
 
 Finding LFV-093 · Area: misc / BP merge-time reordering · Priority: medium · Impact: silent wrong results · Novelty: new
 
@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You index documents in blocks (children followed by their parent) with IndexWriterConfig#setParentField, and use BPReorderingMergePolicy with a BpVectorReorderer over a float vector field. You expect merges to keep every block together with its parent last, because IndexWriter only lets a merge reorder documents when the parent field identifies the blocks, and setParentField promises that IndexWriter does not alter the order of a block. Instead BpVectorReorderer moves each document on its own and puts every document without a vector after all documents with one, so the merged segment's blocks are silently scrambled and ToParentBlockJoinQuery joins children to the wrong parent (59 of 60 children in one run), with no exception and with assertions on or off.
+You index documents in blocks (children followed by their parent) with IndexWriterConfig#setParentField, and use BPReorderingMergePolicy with a BpVectorReorderer over a float vector field. You expect merges to keep every block together with its parent last, because IndexWriter lets a merge of segments that have blocks reorder documents only when a parent field identifies the blocks, and setParentField promises that IndexWriter does not alter the order of a block. Instead BpVectorReorderer moves each document on its own and puts every document without a vector after all documents with one, so when every child has a vector and no parent has one, a reordered merge writes all children before all parents, and ToParentBlockJoinQuery joins children to the wrong parent (59 of 60 children in a 30-block run), with no exception and with assertions on or off.
 
 The test shows that forceMerge through BPReorderingMergePolicy with BpVectorReorderer breaks document blocks even though IndexWriterConfig#setParentField is set (2 blocks [child with vector, parent], one segment each).
 
@@ -22,8 +22,8 @@ Expected each child directly before its own parent, e.g. [c0, p0, c1, p1]. Actua
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

@@ -21,8 +21,8 @@ You build a valid three-point Line whose first segment lies on longitude -180 an
 
 ## Run it
 
-- Tested on Lucene main 5adff78bb168 (2026-11-02): fails with assertions on and off (IllegalArgumentException: invalid longitude -180.00000000000003).
-- This finding was re-run on Lucene main ec3b3cca8f10 on 2026-11-18: still reproduces.
+- Tested on Lucene main 5adff78bb168 (a commit of 2026-11-02): fails with assertions on and off (IllegalArgumentException: invalid longitude -180.00000000000003).
+- This finding was re-run on Lucene main 1ae70c6e45b8 on 2026-11-19: still reproduces.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

@@ -22,8 +22,8 @@ Expected: the crash state of the second commit opens at commit 1 or 2. Actual: D
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

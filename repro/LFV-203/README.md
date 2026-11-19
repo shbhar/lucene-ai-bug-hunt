@@ -1,4 +1,4 @@
-# FunctionScoreQuery over a skip-indexed doc-values field scores negative values as 0, but its block-max bound stays negative, so the top-k search of a BooleanQuery that has it as a scoring clause can skip competitive documents or, next to another scoring clause, not return (main and branch_11x, both unreleased)
+# FunctionScoreQuery over a skip-indexed doc-values field scores negative values as 0, but its block-max bound can be negative, so the top-k search of a BooleanQuery that has it as a scoring clause can skip competitive documents or, next to another scoring clause, not return (main and branch_11x, both unreleased)
 
 Finding LFV-203 · Area: queries / FunctionScoreQuery block-max pruning (#16431) · Priority: medium · Impact: silent wrong results · Novelty: new
 
@@ -8,9 +8,9 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You index a numeric doc-values field with a skip index (NumericDocValuesField.indexedField("delta", v)) and search BooleanQuery(SHOULD FunctionScoreQuery(MatchAllDocsQuery, DoubleValuesSource.fromLongField("delta")), SHOULD TermQuery(body:b)) for the top hit, expecting the same hit as an exhaustive search, because FunctionScoreQuery documents that a negative value simply scores 0 (MIGRATE.md, LUCENE-7996). Instead, with 5,000 documents where doc 0 has delta 1, all others have -1000, and only doc 4999 matches body:b, TOP_SCORES and the plain IndexSearcher.search(q, 1) return doc 0 (score 1.0) instead of doc 4999. The cause is that the scorer's getMaxScore returns innerMaxScore * valueMaxScore * boost without the clamp at 0 that score() applies, so a block of negative values reports a bound of -1000 for documents that all score 0, and MaxScoreBulkScorer skips windows that hold competitive documents.
+You index a numeric doc-values field with a skip index (NumericDocValuesField.indexedField("delta", v)) and search BooleanQuery(SHOULD FunctionScoreQuery(MatchAllDocsQuery, DoubleValuesSource.fromLongField("delta")), SHOULD TermQuery(body:b)) for the top hit, expecting the same hit as an exhaustive search, because Lucene's MIGRATE.md documents that FunctionScoreQuery maps negative values to 0 (LUCENE-7996). Instead, with 5,000 documents where doc 0 has delta 1 and all others have -1000, doc 4999 has body:b and every other document has body:x, TOP_SCORES and the plain IndexSearcher.search(q, 1) return doc 0 (score 1.0) instead of doc 4999. The cause is that the scorer's getMaxScore returns innerMaxScore * valueMaxScore * boost without the clamp at 0 that score() applies, so a block of negative values reports a bound of -1000 for documents that all score 0, and MaxScoreBulkScorer skips windows that hold competitive documents.
 
-The test shows that a `FunctionScoreQuery` whose skip-indexed field value is negative (scored as 0) reports a negative `getMaxScore`, so a top-k disjunction skips a matching document (1 doc, `body:b`, `delta = -1000`).
+The test shows that a top-k disjunction with a `FunctionScoreQuery` clause returns no hit for a matching document whose skip-indexed field value is negative (1 doc, `body:b`, `delta = -1000`). It asserts the number of hits only; that the clause scores the document 0 and reports a `getMaxScore` of -1000 was measured separately.
 
 ## Expected vs actual
 
@@ -22,8 +22,8 @@ Expected `IndexSearcher.search(q, 1)` to return the document (term score + 0); a
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - This folder holds the registered repro, which shows the missing hit (one document with delta = -1000). The tests of the second consequence in the title, a search that does not return, are not shipped here: one document with delta = -1 and the term clause boosted by 10 (update of 2026-11-15); 6,000 or 1,002 documents with two SHOULD function clauses, where the minimum competitive score is already positive and the search does not return with assertions on either (update of 2026-11-16; in the runs that did not return, the size of the negative bound was between about 1 billion and about 10^15 times that score); and 4,097 documents with two MUST function clauses, the clause over the negative field written second, where the search does not return with assertions on or off (second part of that update). The finding page quotes the 1,002-document and the 4,097-document test in full, with their commands and output, in its collapsed block "Mechanism, terms and numbers" ("Shape 2" and "Shape 3"), and describes the one-document and the 6,000-document test there ("Shape 1" and "Shape 2"); the Affected versions text of its finding record gives the shape of each.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

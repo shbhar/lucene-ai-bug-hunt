@@ -1,4 +1,4 @@
-# DoubleValuesSource.fromDoubleField/fromFloatField declare their raw IEEE-bit decoders INCREASING, so on a skip-indexed raw-bits field one NaN makes a block's score bound NaN (FunctionScoreQuery under TOP_SCORES then silently drops the true top hit) and all-negative blocks get inverted bounds
+# DoubleValuesSource.fromDoubleField/fromFloatField declare their raw IEEE-bit decoders INCREASING, so on a skip-indexed raw-bits field one NaN with the sign bit clear (such as Double.NaN) makes its block's score bound NaN (a BooleanQuery of FunctionScoreQuery and another scoring clause under TOP_SCORES can then silently drop the true top hit) and an all-negative block such as {-1.0, -2.0} gets inverted bounds
 
 Finding LFV-189 · Area: search / function scoring (DoubleValuesSource skip-index score bounds for FunctionScoreQuery block-max pruning) · Priority: low · Impact: silent wrong results · Novelty: new
 
@@ -8,9 +8,9 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You index doubles as raw IEEE bits in a NUMERIC doc-values field with a skip index (NumericDocValuesField.indexedField('rating', Double.doubleToRawLongBits(v))) and search BooleanQuery(SHOULD FunctionScoreQuery(MatchAllDocsQuery, DoubleValuesSource.fromDoubleField('rating')), SHOULD TermQuery) for the top hit, expecting the same top hit as an exhaustive search (a NaN value simply scores 0, as upstream TestFunctionScoreQuery#testNaN expects). Instead, with 5,000 docs valued 0.5, one NaN at doc 4500 and 50.0 at doc 4999, TOP_SCORES returns doc 1 (score 4.19) instead of doc 4999 (score 50). The cause is that fromDoubleField declares Double::longBitsToDouble INCREASING, so a block's maximum is read as the decoded largest raw long: NaN's raw bits are above every number's, giving a NaN bound, and negative values are in reverse raw order, so a block holding {-1.0, -2.0} reports getMaxScore -2.0 and getMinScore -1.0.
+You index doubles as raw IEEE bits in a NUMERIC doc-values field with a skip index (NumericDocValuesField.indexedField('rating', Double.doubleToRawLongBits(v))) and search BooleanQuery(SHOULD FunctionScoreQuery(MatchAllDocsQuery, DoubleValuesSource.fromDoubleField('rating')), SHOULD TermQuery) for the top hit, expecting the same top hit as an exhaustive search (a NaN value simply scores 0, as upstream TestFunctionScoreQuery#testNaN expects). Instead, with 4,098 docs valued 0.5, one NaN at doc 4096, 50.0 at doc 4097 and the term on doc 1 only, IndexSearcher.search(q, 1) returns doc 1 (score 0.63) instead of doc 4097 (score 50). The cause is that fromDoubleField declares Double::longBitsToDouble INCREASING, so a block's maximum is read as the decoded largest raw long: Double.NaN's raw bits (0x7ff8000000000000) are above every number's, giving a NaN bound, and negative values are in reverse raw order, so a block holding {-1.0, -2.0} reports getMaxScore -2.0 and getMinScore -1.0.
 
-The test shows that `DoubleValuesSource.fromDoubleField` reads skip-index bounds as if raw IEEE bits were ordered like doubles, so a block of {-1.0, -2.0} gets a max bound of -2.0, and one NaN in a block makes `FunctionScoreQuery` in a disjunction lose the true top hit.
+The test shows that `DoubleValuesSource.fromDoubleField` reads skip-index bounds as if raw IEEE bits were ordered like doubles, so a block of {-1.0, -2.0} gets a max bound of -2.0, and one `Double.NaN` in the best document's skip block makes `FunctionScoreQuery` in a disjunction lose the true top hit.
 
 ## Expected vs actual
 
@@ -22,8 +22,8 @@ Expected: `getMaxScore >= -1.0`, and doc 4097 (rating 50) as the top hit of `sea
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 2 test(s) run, 2 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

@@ -8,9 +8,9 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You delete a cluster of documents around the HNSW entry node and merge, for example with forceMerge(1), so the merge reuses and repairs the biggest segment's graph. You expect kNN recall to stay about the same. Instead the repair cannot reconnect an entry node that lost every neighbour, an unfiltered kNN query whose k is small enough for a graph search (1 to 195 on the repro's index) starts at that isolated node and returns only it (recall@10 0.906 to 0.000 in the repro), and CheckIndex reports no problem.
+You delete a cluster of documents around the HNSW entry node and merge, for example with forceMerge(1), so the merge reuses and repairs an existing segment's graph. You expect kNN recall to stay about the same. Instead the repair of an entry node that lost every neighbour searches from that node itself and finds no other node, an unfiltered kNN query whose k is small enough for a graph search (1 to 195 on the repro's index) starts at that isolated node and returns only it (recall@10 over 50 queries 0.906 to 0.000 on that index), and CheckIndex reports no problem.
 
-The test shows that with the default codec, deleting the 31-doc cluster that the HNSW entry node (doc 171) links into and calling forceMerge(1) reuses the graph but leaves the entry with no neighbours, so kNN search returns only that node.
+The test shows that with the default codec, after deleting the 31-doc cluster that the HNSW entry node (doc 171) links into and calling forceMerge(1), a k=10 kNN query returns 1 hit where 10 are due. Reading the graph back shows why: the merge reuses the graph and leaves the entry with no neighbours.
 
 ## Expected vs actual
 
@@ -22,8 +22,8 @@ Expected: a k=10 KnnFloatVectorQuery returns 10 hits among the 1419 live docs. A
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

@@ -21,8 +21,8 @@ You add a document, call deleteDocuments(new Term("id", t)) with t longer than 3
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - What this folder covers: the test adds one document, lets deleteDocuments with a 32,767-byte term throw, and calls commit(): the failed commit is the finding reproducing. The other clauses of the title (an updateDocument call with such a term, the later deletes and adds, an NRT reopen or close(), and the later commit that returns without the buffered document) have no test in this folder; the finding page gives their runs. Run on 2026-11-18 on Lucene main 1cfa86310f76, with and without assertions: 1 test found, 1 test failed (AssertionError 'pendingNumDocs 1 != 0 totalMaxDoc' with assertions on; IllegalStateException 'Can't close queue unless all changes are applied' with assertions off).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

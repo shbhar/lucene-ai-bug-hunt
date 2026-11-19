@@ -21,11 +21,11 @@ You build an AnalyzingInfixSuggester with its default settings over the stock Ar
 
 ## Run it
 
-- Tested on Lucene main 596ef11ddf96 (2026-11-17): reproduced, with assertions on and off.
-- Tested on Lucene branch_11x 89e68e0f3a50 (2026-11-17): reproduced, with assertions on and off (11.0.0-SNAPSHOT).
-- Tested on Lucene 10.6.0 (4ae946e5a9b9) (2026-10-26): reproduced, with assertions on and off, on the 10.6.0 release jars, which are built from this commit (the tag releases/lucene/10.6.0).
+- Tested on Lucene main 596ef11ddf96 (a commit of 2026-11-17): reproduced, with assertions on and off.
+- Tested on Lucene branch_11x 89e68e0f3a50 (a commit of 2026-11-17): reproduced, with assertions on and off (11.0.0-SNAPSHOT).
+- Tested on Lucene 10.6.0 (4ae946e5a9b9) (a commit of 2026-10-26): reproduced, with assertions on and off, on the 10.6.0 release jars, which are built from this commit (the tag releases/lucene/10.6.0).
 - What each build does: the test fails the same way on Lucene main, on the 11.0 release branch (branch_11x) and with the 10.6.0 release jars, with and without assertions. What the test does: it builds an AnalyzingInfixSuggester with the two-argument constructor (the default settings) over the stock ArabicAnalyzer, adds one suggestion (foo, a space, U+0640, a space, bar), calls refresh() and looks up the key that is the suggestion up to and including U+0640 with lookup(key, 10, true, false); it expects 1 suggestion and fails with java.lang.AssertionError: expected:&lt;1&gt; but was:&lt;0&gt;. The test draws no random value of its own and failed the same way with every seed that was run. On a checkout of the 11.0 branch set V=11.0.0-SNAPSHOT; for the release, put the five 10.6.0 jars from Maven Central (org.apache.lucene: lucene-core, lucene-codecs, lucene-test-framework, lucene-analysis-common, lucene-suggest) in place of the five $LUCENE jars. The file compiles unchanged against these three builds and against the jars of releases back to 9.1.0 (run on 10.5.2, 9.12.3 and 9.1.0: the same failure). With the jars of a release from 5.0.0 to 9.0.0 it needs one change, the import org.apache.lucene.util.LuceneTestCase, and that release's own test-framework dependencies (run on 9.0.0, 8.11.4, 7.7.3, 6.6.6 and 5.0.0: the same failure; the last two with JUnit's own runner in place of the console launcher). The 4.x releases need a rewritten test (other constructor arguments, build() in place of add() and refresh()). The file at the top of this folder, which the finding page shows, is the same file; it is the form for the Gradle alternative at the end of this page, whose module is lucene/suggest.
-- This finding was re-run on Lucene main ec3b3cca8f10 on 2026-11-18: still reproduces.
+- This finding was re-run on Lucene main 1ae70c6e45b8 on 2026-11-19: still reproduces.
 - How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with java.lang.AssertionError: expected:&lt;1&gt; but was:&lt;0&gt;.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

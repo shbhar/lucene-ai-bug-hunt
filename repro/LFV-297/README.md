@@ -4,6 +4,8 @@ Finding LFV-297 · Area: search / rescoring · Priority: medium · Impact: crash
 
 AI-assisted finding, confirmed by automated checks. Upstream status: Fixed, by Greg Miller (Lucene PMC; PR #16926) on 2026-10-28 (https://github.com/apache/lucene/pull/16926). Greg Miller fixed it on main and branch_11x (11.0) by returning MatchNoDocsQuery when the inner query leaves nothing to rescore, the same guard as our fix. They left it out of 10.6 because they were not sure it is severe enough, so the 10.x line keeps the bug. This site files nothing upstream.
 
+Fixed upstream: [#16926](https://github.com/apache/lucene/pull/16926) (commit [645d4fe14a20](https://github.com/apache/lucene/commit/645d4fe14a203471fd120709c8bcbacbf3d9d256)), merged 2026-10-28; also on the 11.0 release branch ([f85446cb1af1](https://github.com/apache/lucene/commit/f85446cb1af1)).
+
 ## What it shows
 
 You wrap a query in RescoreTopNQuery, for example full-precision rescoring of a kNN query with a filter, and on this index the inner query matches nothing (the filter matches no document, the term is absent, or the index is empty). You expect 0 hits, which is what the inner query alone returns. Instead the search throws an AssertionError with assertions enabled, or ArrayIndexOutOfBoundsException 'Index 0 out of bounds for length 0' without them, because rewrite() hands its empty top-n list to a helper that reads the first entry; the kNN query's own rewrite checks for this case and returns MatchNoDocsQuery.
@@ -19,7 +21,8 @@ You wrap a query in RescoreTopNQuery, for example full-precision rescoring of a 
 
 ## Run it
 
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
+- This finding was re-run on Lucene main 1ae70c6e45b8 on 2026-11-19: it no longer reproduces there; in the commands below, V=12.0.0-SNAPSHOT on a build of main 1ae70c6e45b8.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

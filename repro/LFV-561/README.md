@@ -1,4 +1,4 @@
-# With failFast off (the default), CheckIndex reports an index clean ('No problems were detected', Status.clean true, exit code 0) although its HNSW graph test printed ERROR, because testSegment never rethrows hnswGraphsStatus.error
+# With failFast off (the default), CheckIndex reports an index with no other problem clean ('No problems were detected', Status.clean true, exit code 0) although its HNSW graph test printed ERROR, because testSegment never rethrows hnswGraphsStatus.error
 
 Finding LFV-561 · Area: index / CheckIndex HNSW graph check · Priority: low · Impact: wrong error · Novelty: new
 
@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You run CheckIndex at level 2 or 3 (the command line with -level 2, or setLevel) without failFast on an index whose HNSW graph is broken, for example a neighbour that is not on its level or a neighbour list out of order. You expect the segment to count as bad, as it does for every other sub-test: Status.clean false, exit code 1, and -exorcise able to act; with failFast on, the same index does throw CheckIndexException. Instead the HNSW sub-test prints 'test: hnsw graphs.........ERROR: ...' and only stores the exception, because testSegment's rethrow chain has no clause for hnswGraphsStatus.error, so the run ends with 'No problems were detected with this index.', Status.clean true, numBadSegments 0 and exit code 0.
+You run CheckIndex at level 2 or 3 (the command line with -level 2, or setLevel) without failFast on an index whose HNSW graph the sub-test rejects with an exception, for example a repeated neighbour, a neighbour that is in the graph but not on the node's level, or a neighbour list out of order. You expect the segment to count as bad, as it does for every other sub-test: Status.clean false, exit code 1, and -exorcise able to act; with failFast on, the same index does throw CheckIndexException. Instead the HNSW sub-test prints 'test: hnsw graphs.........ERROR: ...' and only stores the exception, because testSegment's rethrow chain has no clause for hnswGraphsStatus.error, so the run ends with 'No problems were detected with this index.', Status.clean true, numBadSegments 0 and exit code 0.
 
 The test shows that CheckIndex at level 2 without failFast reports an index clean although its HNSW graph test failed (one byte of .vex edited so node 0's level-0 neighbours 1,2,3 become 1,1,2; checksum footer rewritten).
 
@@ -22,8 +22,8 @@ Expected: Status.clean == false once 'test: hnsw graphs' prints ERROR; actual: '
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

@@ -6,6 +6,8 @@ Finding page: [../../bugs/LFV-013.html](../../bugs/LFV-013.html)
 
 AI-assisted finding, confirmed by automated checks. Upstream status: Fixed, by Jim Ferenczi (Lucene PMC; PR #16989, merged 2026-11-09) on 2026-11-09 (https://github.com/apache/lucene/pull/16989). Jim Ferenczi fixed it in PR #16989 (opened 2026-11-06, approved by kkewwei on 2026-11-07, merged into main on 2026-11-09 as fa859ba65f6) and cherry-picked the fix to branch_11x and branch_10_6 the same day. ReadersAndUpdates now registers a doc-values-update field that is new to a segment only when one of its pending updates applies in this generation. The PR says the bug was found via this list (#16937) and names LFV-013. It adds our minimal repro as TestMergeDuringUnfinishedDocValuesUpdate, with added checks that the merged index keeps both updates. Our repro passes on main 781025d6fe32 with and without assertions and fails again when only the fix is reverted. The other update kinds, soft deletes, a reader opened during the update, addIndexes of that reader and a background merge are fixed too. First fixed releases: 10.6.1 and 11.0.0, both unreleased as of 2026-11-14. This site files nothing upstream.
 
+Fixed upstream: [#16989](https://github.com/apache/lucene/pull/16989) (commit [fa859ba65f60](https://github.com/apache/lucene/commit/fa859ba65f605856c39991bbb37016cf37110448)), merged 2026-11-09; also on the 11.0 release branch ([8925978b8769](https://github.com/apache/lucene/commit/8925978b8769)) and the 10.6 branch ([4c8e0e4b8545](https://github.com/apache/lucene/commit/4c8e0e4b8545)).
+
 ## What it shows
 
 You update a doc-values field that is new to a segment while that segment is being merged. You expect the merge to finish. Instead writeFieldUpdates records the not-yet-applicable field as NUMERIC with dvGen=-1, the merge throws NullPointerException in DocIDMerger, and the IndexWriter closes tragically.
@@ -22,8 +24,9 @@ Expected `maybeMerge()` to succeed; actual: `NullPointerException ... "this.curr
 
 ## Run it
 
-- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- This finding was re-run on Lucene main 1ae70c6e45b8 on 2026-11-19: it no longer reproduces there; in the commands below, V=12.0.0-SNAPSHOT on a build of main 1ae70c6e45b8.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>deleteDocuments(Query) on a doc-values field is evaluated against stale values when doc-values updates are pending (LFV-016)</title><style>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>deleteDocuments(Query) on a doc-values field is evaluated against stale values when earlier updates of that field are still pending (LFV-016)</title><style>
 :root{--fg:#1d2329;--dim:#5a6570;--line:#d8dee4;--bg:#fff;--soft:#f5f7f9;--link:#0b5cad}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
 font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
@@ -17,20 +17,20 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 .scroll{overflow-x:auto}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
-</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>deleteDocuments(Query) on a doc-values field is evaluated against stale values when doc-values updates are pending</h1>
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>deleteDocuments(Query) on a doc-values field is evaluated against stale values when earlier updates of that field are still pending</h1>
 <p class="facts small"><span>Finding LFV-016</span><span>Area: index / doc-values updates</span><span>Priority: high</span><span>Impact: data corruption</span><span>Novelty: known upstream</span></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
-<p>You update a doc-values field and then delete documents with a query on that field before the updates are written. You expect the delete to see the updated values. Instead delete-by-query is resolved against the written values, and inside a packet deletes run before doc-values updates, so the wrong documents are deleted or kept.</p>
+<p>You update a doc-values field and then delete documents with a query on that field before the updates are written. You expect the delete to see the updated values. Instead delete-by-query is resolved against the written values, which do not include updates still held in memory, so a document whose match depends on such an update is wrongly deleted or kept.</p>
 <h2>Expected vs actual</h2>
-<ul><li><b>Expected:</b> You expect the delete to see the updated values.</li><li><b>Actual:</b> Delete-by-query is resolved against the written values, and inside a packet deletes run before doc-values updates, so the wrong documents are deleted or kept.</li></ul>
+<ul><li><b>Expected:</b> You expect the delete to see the updated values.</li><li><b>Actual:</b> Delete-by-query is resolved against the written values, which do not include updates still held in memory, so a document whose match depends on such an update is wrongly deleted or kept.</li></ul>
 <h2>Files</h2><ul>
 <li><a href="src/TestVerifyDvDeleteQueryStaleness.java"><code>src/TestVerifyDvDeleteQueryStaleness.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.</li>
-<li>Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.</li>
+<li>Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.</li>
+<li>Tested on Lucene main b83101cdd2 (a commit of 2026-10-23): reproduced.</li>
 <li>Recorded outcome of run 1 on Lucene main a9779ef3c193: 9 test(s) run, 6 failed (testA1_deleteNewValueAfterUpdate_flushedSegment, testA2_deleteOldValueAfterUpdate_flushedSegment, testA3_deleteNewValueAfterUpdate_inRamDoc, testB1_crossPacket_resolvedButUnwrittenUpdate, testB2_tryUpdateDocValueThenDelete, testS1_softDeleteThenPurgeByExistsQuery).</li>
-<li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
+<li>How to read the outcome: the six tests named above fail when the finding reproduces; the three control tests C1, C2 and C3 pass.</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT

@@ -21,8 +21,8 @@ You give a per-field postings codec two SPI-registered postings formats with dif
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 5adff78bb168 (a commit of 2026-11-02): reproduced.
 - The test's postings formats EqA and EqB are looked up by name through the SPI file org.apache.lucene.codecs.PostingsFormat in this folder, so the recipe first copies it to resources/META-INF/services/ and puts resources/ on the class path; without it the index cannot be read back and the test fails for another reason.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

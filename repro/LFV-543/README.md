@@ -1,4 +1,4 @@
-# On main and branch_11x, CheckIndex's HNSW graph test reports valid segments written by Lucene 9.12.0-9.12.1 and 10.0.0-10.1.0 as broken ('has repeated neighbors'), because the check has no version gate
+# On main and branch_11x, CheckIndex's HNSW graph test (level 2 or 3) reports a 'has repeated neighbors' error for segments that Lucene 9.12.0-9.12.1 or 10.0.0-10.1.0 wrote with a repeated HNSW neighbour, because the check has no version gate
 
 Finding LFV-543 · Area: index / CheckIndex HNSW graph check · Priority: low · Impact: wrong error · Novelty: known upstream
 
@@ -6,12 +6,12 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You open, on Lucene main, an index that Lucene 9.12.0, 9.12.1, 10.0.0 or 10.1.0 wrote with the default codec, and run CheckIndex at level 2 or 3. You expect it to pass: main opens, reads, searches and merges the index correctly, and upstream calls repeated HNSW neighbours benign. Instead, when an old unmerged segment's graph lists the same neighbour twice (those releases' connectComponents step could add an existing link again, and their writers did not de-duplicate), CheckIndex reports 'has repeated neighbors': with failFast it throws CheckIndexException ('Segment ... check failed'), otherwise it prints 'test: hnsw graphs.........ERROR', because the rule applies to every segment whatever version wrote it.
+You open, on Lucene main, an index that Lucene 9.12.0, 9.12.1, 10.0.0 or 10.1.0 wrote with the default codec, and run CheckIndex at level 2 or 3. You expect it to pass: main opens the index, reads every vector, answers kNN queries and merges it, and in #14127 a Lucene committer (msokolov) called repeated HNSW neighbours benign and proposed a version gate for this check. No javadoc says whether a neighbour list may repeat a neighbour (CheckIndex, HnswGraph and Lucene99HnswVectorsFormat were read), so the expectation rests on that proposal. Instead, when the graph of an old segment that has not been merged on main lists the same neighbour twice (those releases' connectComponents step could add an existing link again, and their writers did not de-duplicate), CheckIndex reports 'has repeated neighbors': with failFast (an API setting; the command line has no option for it) it throws CheckIndexException ('Segment ... check failed'); otherwise it prints 'test: hnsw graphs.........ERROR' and still ends with 'No problems were detected with this index.' (Status.clean true, exit code 0). The rule applies to every segment whatever version wrote it.
 
 ## Expected vs actual
 
-- Expected: You expect it to pass: main opens, reads, searches and merges the index correctly, and upstream calls repeated HNSW neighbours benign.
-- Actual: When an old unmerged segment's graph lists the same neighbour twice (those releases' connectComponents step could add an existing link again, and their writers did not de-duplicate), CheckIndex reports 'has repeated neighbors': with failFast it throws CheckIndexException ('Segment ... check failed'), otherwise it prints 'test: hnsw graphs.........ERROR', because the rule applies to every segment whatever version wrote it.
+- Expected: You expect it to pass: main opens the index, reads every vector, answers kNN queries and merges it, and in #14127 a Lucene committer (msokolov) called repeated HNSW neighbours benign and proposed a version gate for this check.
+- Actual: When the graph of an old segment that has not been merged on main lists the same neighbour twice (those releases' connectComponents step could add an existing link again, and their writers did not de-duplicate), CheckIndex reports 'has repeated neighbors': with failFast (an API setting; the command line has no option for it) it throws CheckIndexException ('Segment ... check failed'); otherwise it prints 'test: hnsw graphs.........ERROR' and still ends with 'No problems were detected with this index.' (Status.clean true, exit code 0).
 
 ## Files
 
@@ -20,10 +20,10 @@ You open, on Lucene main, an index that Lucene 9.12.0, 9.12.1, 10.0.0 or 10.1.0 
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- Fixtures: the test reads repeated-neighbors.9.12.0.zip, repeated-neighbors.10.0.0.zip and repeated-neighbors.10.1.0.zip, indexes of 1,000 one-dimensional vectors written by those releases whose HNSW graphs list a neighbour twice, from its package on the class path. This site ships no binary index files, so the recipe first makes them with fixture-src/DupGen3.java and each release's lucene-core jar (Maven Central): it tries seeds 0 to 99 and keeps the first index with a repeated neighbour, and the zips go to src/, which the run puts on the class path; without them every test fails for another reason.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
+- Fixtures: the test reads repeated-neighbors.9.12.0.zip, repeated-neighbors.10.0.0.zip and repeated-neighbors.10.1.0.zip, indexes of 1,000 one-dimensional vectors written by those releases whose HNSW graphs list a neighbour twice, from its package on the class path. This site ships no binary index files, so the recipe first makes them with fixture-src/DupGen3.java and each release's lucene-core jar (Maven Central): it tries seeds 0 to 99 and keeps the first index with a repeated neighbour, and the zips go to src/, which the run puts on the class path; without them every test fails for another reason. Gradle alternative: not run for this finding. The test also needs the three fixture zips beside it and the backward-codecs module on the test class path, so use the recipe below.
+- How to read the outcome: a test that fails with 'CheckIndex rejects a valid index written by Lucene &lt;version&gt;' is the finding reproducing; a failure with 'fixture for &lt;version&gt;' or 'fixture should contain a graph with a repeated neighbour' means the fixture step did not work, and 'Format version is not supported' means the backward-codecs jar is not on the class path.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -51,8 +51,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      -cp "classes:src:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.index.TestCheckIndexOldGraphRepeatedNeighbors
 ```
-
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Feedback
 

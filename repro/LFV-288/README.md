@@ -6,6 +6,8 @@ Finding page: [../../bugs/LFV-288.html](../../bugs/LFV-288.html)
 
 AI-assisted finding, confirmed by automated checks. Upstream status: Fixed, by Christoph Büscher (PR #16983, approved by Luca Cavanna; an independent fix, later than our listing) on 2026-11-04 (https://github.com/apache/lucene/pull/16983). Fixed on main by #16983 (Christoph Büscher; approved and merged by Luca Cavanna on 2026-11-04, milestone 11.0.0) and on branch_11x (e01ea7c7829). Luca Cavanna had asked in the review of #16975 whether ignoring the flags was intended; Christoph Büscher found it already broken on main and fixed it separately in #16983. The PR does not cite this list. Not on branch_10_6 (head 5deb5791f6c, 2026-11-08), so 10.6.x keeps the bug. Novelty stays new: listed publicly on 2026-10-27, the fix came later and independently. This site files nothing upstream.
 
+Fixed upstream: [#16983](https://github.com/apache/lucene/pull/16983) (commit [b3b320e4f057](https://github.com/apache/lucene/commit/b3b320e4f0572996bb588fdb5700a72f456719e3)), merged 2026-11-04; also on the 11.0 release branch ([e01ea7c78298](https://github.com/apache/lucene/commit/e01ea7c78298)).
+
 ## What it shows
 
 You build a UnifiedHighlighter with Builder#withFlags(EnumSet.of(MULTI_TERM_QUERY)), whose javadoc says the set 'will override' the four boolean builder options, and expect it to behave like the same flags chosen through those options: for a PhraseQuery 'alpha beta' on 'alpha beta. alpha gamma.' that gives '&lt;b&gt;alpha&lt;/b&gt; &lt;b&gt;beta&lt;/b&gt;. &lt;b&gt;alpha&lt;/b&gt; gamma.'. Instead the constructor's evaluateFlags(Builder) tests the highlighter's own flags field, which is still null at that point, rather than the builder's, so the set passed to withFlags is never read: getFlags returns the defaults [PHRASES, MULTI_TERM_QUERY, PASSAGE_RELEVANCY_OVER_SPEED, WEIGHT_MATCHES] and the phrase is highlighted strictly as '&lt;b&gt;alpha beta&lt;/b&gt;. alpha gamma.'. Every set is ignored the same way, including the empty set (a PrefixQuery is still highlighted), with or without assertions.
@@ -22,8 +24,9 @@ Expected `<b>alpha</b> <b>beta</b> <b>alpha</b> gamma` for PhraseQuery `"alpha b
 
 ## Run it
 
-- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- This finding was re-run on Lucene main 1ae70c6e45b8 on 2026-11-19: it no longer reproduces there; in the commands below, V=12.0.0-SNAPSHOT on a build of main 1ae70c6e45b8.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

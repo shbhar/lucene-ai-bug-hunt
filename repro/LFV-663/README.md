@@ -4,6 +4,8 @@ Finding LFV-663 · Area: analysis-common / Brazilian Portuguese stemmer (Brazili
 
 AI-assisted finding, confirmed by automated checks. Upstream status: Fixed, by Uwe Schindler (Lucene PMC; merged PR #16972 by Simranjeet Singh, sjs004) on 2026-11-04 (https://github.com/apache/lucene/pull/16972). Simranjeet Singh (sjs004) fixed it in PR #16972 (opened 2026-11-03), which names this bug in its title; Uwe Schindler approved it, merged it into main on 2026-11-04 (milestone 11.0.0) and cherry-picked it to branch_11x the same day. Not on branch_10_6 (head 5deb5791f6c, 2026-11-08), so 10.6.x keeps the bug. This site files nothing upstream.
 
+Fixed upstream: [#16972](https://github.com/apache/lucene/pull/16972) (commit [817c30eb2b52](https://github.com/apache/lucene/commit/817c30eb2b52f77336b3667a7a0c426e24e52259)), merged 2026-11-04; also on the 11.0 release branch ([9bdd7da77e36](https://github.com/apache/lucene/commit/9bdd7da77e36)).
+
 ## What it shows
 
 You index Brazilian Portuguese text with the stock BrazilianAnalyzer (or BrazilianStemFilter), one document says 'metodologia' and a query says 'metodologias'; you expect both words to stem to 'metodolog' and match, as the stemmer's own rule table says ('logias' in R2 is replaced by 'log', exactly like the singular 'logia'). Instead step1 calls replaceSuffix(CT, "logias", "log") without assigning the result and still returns true, which also makes stem() skip step2 and step4, so the plural is indexed as the whole word 'metodologias' and the search finds 0 hits. Long -logias plurals such as metodologias, antropologias, terminologias, epistemologias, fenomenologias and odontologias are hit; shorter ones such as tecnologias, ideologias and biologias are not, because the rule does not fire for them and step2 stems them.
@@ -19,7 +21,8 @@ You index Brazilian Portuguese text with the stock BrazilianAnalyzer (or Brazili
 
 ## Run it
 
-- Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.
+- Tested on Lucene main a9779ef3c193 (a commit of 2026-10-26): reproduced.
+- This finding was re-run on Lucene main 1ae70c6e45b8 on 2026-11-19: it no longer reproduces there; in the commands below, V=12.0.0-SNAPSHOT on a build of main 1ae70c6e45b8.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

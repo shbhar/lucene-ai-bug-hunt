@@ -8,9 +8,9 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You build a ConstKnnFloat16ValueSource from a float16 query vector that contains an infinity or NaN half and score it against a KnnFloat16VectorField with a FunctionQuery over Float16VectorSimilarityFunction. You expect the constructor to throw IllegalArgumentException, as its float32 twin ConstKnnFloatValueSource does (VectorUtil.checkFinite) and as KnnFloat16VectorQuery and KnnFloat16VectorField do for the same halves (VectorUtil.checkFiniteFloat16). Instead the constructor only null-checks the array, so with -ea scoring later fails with an AssertionError inside VectorUtil (no message for EUCLIDEAN; 'not finite: ... from &lt;raw shorts&gt;' for DOT_PRODUCT and MAXIMUM_INNER_PRODUCT; COSINE silently scores 0), and with -da documents score 0 through FunctionQuery's intended NaN/negative clamp or, for DOT_PRODUCT and MAXIMUM_INNER_PRODUCT with an infinite component, +Infinity.
+You build a ConstKnnFloat16ValueSource from a float16 query vector that contains an infinity or NaN half and score it against a KnnFloat16VectorField with a FunctionQuery over Float16VectorSimilarityFunction. You expect the constructor to throw IllegalArgumentException, as its float32 twin ConstKnnFloatValueSource does (VectorUtil.checkFinite) and as KnnFloat16VectorQuery and KnnFloat16VectorField do for the same halves (VectorUtil.checkFiniteFloat16). Instead the constructor only null-checks the array, so with -ea scoring later fails with an AssertionError inside VectorUtil (no message for EUCLIDEAN; 'not finite: ... from &lt;raw shorts&gt;' for DOT_PRODUCT and MAXIMUM_INNER_PRODUCT; COSINE silently scores 0), and with -da documents score 0, either already in the similarity function (EUCLIDEAN with an infinite component; a dot product of -Infinity) or through FunctionQuery's intended NaN/negative clamp (a NaN similarity), or, for DOT_PRODUCT and MAXIMUM_INNER_PRODUCT with an infinite component, +Infinity.
 
-The test shows that `new ConstKnnFloat16ValueSource(new short[] {Float.floatToFloat16(Float.NaN)})` accepts a non-finite float16 query vector (`TestConstKnnFloat16ValueSourceNonFinite#testNaNQueryVectorIsRejected`), while its float32 twin `ConstKnnFloatValueSource` and `KnnFloat16VectorQuery`/`KnnFloat16VectorField` reject such vectors.
+The test shows that `new ConstKnnFloat16ValueSource(new short[] {Float.floatToFloat16(Float.NaN)})` accepts a non-finite float16 query vector (`TestConstKnnFloat16ValueSourceNonFinite#testNaNQueryVectorIsRejected`). Its float32 twin `ConstKnnFloatValueSource` and `KnnFloat16VectorQuery`/`KnnFloat16VectorField` reject such vectors; this test does not run them.
 
 ## Expected vs actual
 
@@ -22,8 +22,8 @@ Expected: `IllegalArgumentException` (`VectorUtil.checkFiniteFloat16`). Actual: 
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

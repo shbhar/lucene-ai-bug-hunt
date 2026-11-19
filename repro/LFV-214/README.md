@@ -1,4 +1,4 @@
-# DoubleValues.withDefault's getMaxScore returns the wrapped source's bound, which does not cover missingValue, so a FunctionScoreQuery over such a source can silently drop the true top hit under TOP_SCORES
+# DoubleValues.withDefault's getMaxScore returns the wrapped source's bound, which ignores missingValue, so a FunctionScoreQuery over such a source can silently drop the true top hit under TOP_SCORES
 
 Finding LFV-214 · Area: search / function scoring (DoubleValues.withDefault score bound for FunctionScoreQuery block-max pruning, #16431) · Priority: low · Impact: silent wrong results · Novelty: new
 
@@ -10,7 +10,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You write a DoubleValuesSource that returns DoubleValues.withDefault(DoubleValuesSource.fromLongField("price").getValues(ctx, scores), 100) over a price field indexed with a skip index (NumericDocValuesField.indexedField), and search BooleanQuery(SHOULD FunctionScoreQuery(MatchAllDocsQuery, thatSource), SHOULD TermQuery(tag:t)) for the top hit, expecting the document without a price (which scores the default 100) to win, as it does in an exhaustive search. Instead, with 12,288 documents (prices i % 10, doc 0 = 50, doc 9000 without a price), the plain IndexSearcher.search(q, 1) returns doc 0 (score 50.0018) instead of doc 9000 (score 100). The cause is that withDefault.getMaxScore returns the wrapped source's bound, the skip-index block maximum, which counts only documents that have a value (9 in doc 9000's block), although withDefault itself produces missingValue (100) for documents without one, so pruning skips the block that holds the true top hit.
 
-The test shows that `DoubleValues.withDefault(fromLongField("price") values, 100)` produces 100 for a document without a price, but its `getMaxScore` forwards the wrapped skip-index bound, which only covers documents that have a value (2 documents, one block).
+The 12,288-document search above is not part of this repro. The test shows that `DoubleValues.withDefault(fromLongField("price") values, 100)` produces 100 for a document without a price, but its `getMaxScore` forwards the wrapped skip-index bound, which only covers documents that have a value (2 documents, one block).
 
 ## Expected vs actual
 
@@ -22,8 +22,8 @@ Expected `getMaxScore(1) >= 100` (the value doc 0 produces); actual: `doc 0 valu
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

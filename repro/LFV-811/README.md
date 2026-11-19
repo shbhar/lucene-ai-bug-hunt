@@ -6,12 +6,12 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You build a vector index with HNSW maxConn 16 (the default), later open a writer whose codec sets maxConn 32 for the same field (or go the other way), and force-merge, or add the old index with addIndexes(CodecReader...); you expect the merge to succeed and kNN search to keep working, as it does on main, and as raising did on 10.3.2. Instead, on 10.5.1, 10.5.2 and 10.6.0, raising can make the merge throw IllegalStateException 'No growth is allowed' and close the IndexWriter (addIndexes throws the same exception and leaves the writer open), and lowering lets the merge succeed but a kNN query on the new segment throws ArrayIndexOutOfBoundsException (AssertionError 'too many neighbors' with -ea) when it reads a neighbour list longer than twice the new maxConn, as 1,000 of 1,000 unfiltered queries with k = 10 did in each of two data sets; a query that is answered without the graph (few documents match its filter, or k is large against the number of vectors) returns its hits. The 10.x backport of #15003 sizes the merged graph from the reused graph's maxConn, while the merge builders insert the new vectors, and the writer records the .vem metadata, with the configured maxConn.
+You build a vector index with HNSW maxConn 16 (the default), later open a writer whose codec sets maxConn 32 for the same field (or go the other way), and force-merge, or add the old index with addIndexes(CodecReader...); you expect the merge to succeed and kNN search to keep working, as it does on main, and as raising did on 10.3.2. Instead, on 10.5.1, 10.5.2 and 10.6.0, raising can make the merge throw IllegalStateException 'No growth is allowed' and close the IndexWriter (addIndexes throws the same exception and leaves the writer open), and lowering lets the merge succeed but a kNN query on the new segment throws ArrayIndexOutOfBoundsException (AssertionError 'too many neighbors' with -ea) when it reads a neighbour list longer than twice the new maxConn, as 1,000 of 1,000 unfiltered queries with k = 10 did in each of two data sets of uniformly random vectors; a query that is answered without the graph (few documents match its filter, or k is large against the number of vectors) returns its hits. The 10.x backport of #15003 sizes the merged graph from the reused graph's maxConn, while the merge builders insert the new vectors, and the writer records the .vem metadata, with the configured maxConn.
 
 ## Expected vs actual
 
 - Expected: You expect the merge to succeed and kNN search to keep working, as it does on main, and as raising did on 10.3.2.
-- Actual: On 10.5.1, 10.5.2 and 10.6.0, raising can make the merge throw IllegalStateException 'No growth is allowed' and close the IndexWriter (addIndexes throws the same exception and leaves the writer open), and lowering lets the merge succeed but a kNN query on the new segment throws ArrayIndexOutOfBoundsException (AssertionError 'too many neighbors' with -ea) when it reads a neighbour list longer than twice the new maxConn, as 1,000 of 1,000 unfiltered queries with k = 10 did in each of two data sets; a query that is answered without the graph (few documents match its filter, or k is large against the number of vectors) returns its hits.
+- Actual: On 10.5.1, 10.5.2 and 10.6.0, raising can make the merge throw IllegalStateException 'No growth is allowed' and close the IndexWriter (addIndexes throws the same exception and leaves the writer open), and lowering lets the merge succeed but a kNN query on the new segment throws ArrayIndexOutOfBoundsException (AssertionError 'too many neighbors' with -ea) when it reads a neighbour list longer than twice the new maxConn, as 1,000 of 1,000 unfiltered queries with k = 10 did in each of two data sets of uniformly random vectors; a query that is answered without the graph (few documents match its filter, or k is large against the number of vectors) returns its hits.
 
 ## Files
 
@@ -19,10 +19,10 @@ You build a vector index with HNSW maxConn 16 (the default), later open a writer
 
 ## Run it
 
-- Tested on Lucene 10.6.0 (4ae946e5a9b9) (2026-10-26): reproduced (6 of the 7 tests fail, with and without assertions; the seventh keeps maxConn unchanged and passes).
+- Tested on Lucene 10.6.0 (4ae946e5a9b9) (a commit of 2026-10-26): reproduced (6 of the 7 tests fail, with and without assertions; the seventh keeps maxConn unchanged and passes).
 - Passes on Lucene main 1cfa86310f76 (2026-11-17) and on branch_11x 89e68e0f3a50 (2026-11-17): all 7 tests pass on both, with and without assertions. Main and the 11.0 branch do not have the defect, so these runs are controls.
-- This finding was re-run on Lucene main ec3b3cca8f10 on 2026-11-18: the test passed, as recorded before (a control run); in the commands below, V=12.0.0-SNAPSHOT on a build of main ec3b3cca8f10.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- This finding was re-run on Lucene main 1ae70c6e45b8 on 2026-11-19: the test passed, as recorded before (a control run); in the commands below, V=12.0.0-SNAPSHOT on a build of main 1ae70c6e45b8.
+- How to read the outcome: on 10.5.1, 10.5.2 and 10.6.0 a failing test is the finding reproducing (the failure message states expected against actual). On 10.4.0 and 10.5.0 five of the seven tests, the control among them, fail with 'merge did not reuse a graph': that is the test's own probe, not the finding.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

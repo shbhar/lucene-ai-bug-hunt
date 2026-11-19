@@ -1,4 +1,4 @@
-# openIfChanged returns null and isCurrent() stays true after a flush when the only changes are doc-values updates
+# openIfChanged can return null, with isCurrent() true, after a flush when the only changes are doc-values updates
 
 Finding LFV-001 · Area: index / IndexWriter NRT · Priority: high · Impact: silent wrong results · Novelty: new
 
@@ -8,9 +8,9 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You open an NRT reader, update a doc-values field (or soft-delete through updateDocValues), and then call flush(), a no-op forceMerge(1), or open readers with writeAllDeletes=true. You expect DirectoryReader.openIfChanged(reader, writer) to return a reader that sees the change. Instead it returns null and reader.isCurrent() is true, so SearcherManager keeps the stale searcher, and hasUncommittedChanges() can also return false while updates are uncommitted.
+You open an NRT reader, update a doc-values field by term (or soft-delete through updateDocValues, leaving the segment a live document), and then call flush(), a no-op forceMerge(1), or open readers with writeAllDeletes=true. You expect DirectoryReader.openIfChanged(reader, writer) to return a reader that sees the change. Instead it returns null and reader.isCurrent() is true, so SearcherManager keeps the stale searcher, and, as a separate symptom, hasUncommittedChanges() can return false for an update that the writer has applied but not yet written.
 
-The test shows that after an NRT reader is opened, `IndexWriter#updateNumericDocValue` followed by `flush()` leaves `DirectoryReader.openIfChanged(reader, writer)` returning null, so the reader never sees the update.
+The test shows that after an NRT reader is opened, `IndexWriter#updateNumericDocValue` followed by `flush()` leaves `DirectoryReader.openIfChanged(reader, writer)` returning null, so the reopen does not return a reader that sees the update.
 
 ## Expected vs actual
 
@@ -22,8 +22,8 @@ Expected a new reader (the writer has an update the reader does not see); actual
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

@@ -1,4 +1,4 @@
-# Doc-values range queries with a skip index return wrong hits when a segment's values span more than Long.MAX_VALUE
+# Doc-values range queries with a skip index can return wrong hits when a segment's values span more than Long.MAX_VALUE
 
 Finding LFV-044 · Area: codecs / doc values · Priority: high · Impact: silent wrong results · Novelty: known upstream
 
@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You index numeric doc values with a skip index (NumericDocValuesField.indexedField) where one segment's values span more than Long.MAX_VALUE, and run a doc-values range query. You expect the same hits as 10.5.2. Instead the encoded-domain bound transform wraps: 100k random latitudes queried for [45, 90] gave 0 hits instead of 25,157, 64-bit hashes gave 2 instead of 49,931, and some cases add wrong hits.
+You index numeric doc values with a skip index (NumericDocValuesField.indexedField) where one segment's values span more than Long.MAX_VALUE, and run a doc-values range query. You expect the same hits as 10.5.2. Instead the bulk range check compares the stored values, some of which have wrapped to negative longs, with the shifted query bounds: 100k random latitudes queried for [45, 90] gave 0 hits instead of 25,157, 64-bit hashes gave 2 instead of 49,931, and some cases add wrong hits.
 
 ## Expected vs actual
 
@@ -22,8 +22,8 @@ You index numeric doc values with a skip index (NumericDocValuesField.indexedFie
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces (the repro adapted to an API change on this commit). The change: #16962 made the no-argument MatchAllDocsQuery constructor private on main (24d9e7d1a0d) and on the 11.0 branch (branch_11x, a6a26f9b251), so replace new MatchAllDocsQuery() with MatchAllDocsQuery.INSTANCE before you compile the test there.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces (the repro adapted to an API change on this commit). The change: #16962 made the no-argument MatchAllDocsQuery constructor private on main (24d9e7d1a0d) and on the 11.0 branch (branch_11x, a6a26f9b251), so replace new MatchAllDocsQuery() with MatchAllDocsQuery.INSTANCE before you compile the test there.
+- Tested on Lucene main b83101cdd2 (a commit of 2026-10-23): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

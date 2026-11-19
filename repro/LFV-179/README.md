@@ -1,4 +1,4 @@
-# FilterMergePolicy.getSizeUnit() returns BYTES instead of the wrapped policy's unit, so a wrapped LogDocMergePolicy makes compound-file decisions against the byte threshold and forceMerge(1) can rewrite an already merged segment every time
+# FilterMergePolicy.getSizeUnit() returns BYTES instead of the wrapped policy's unit, so with a wrapped LogDocMergePolicy IndexWriter decides compound files for merged segments against the byte threshold and forceMerge(1) can rewrite an already merged segment every time
 
 Finding LFV-179 · Area: index / merge policies (FilterMergePolicy size unit, compound-file threshold) · Priority: low · Impact: minor · Novelty: new
 
@@ -22,8 +22,8 @@ You wrap a LogDocMergePolicy in a FilterMergePolicy (or in SoftDeletesRetentionM
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
 - Runs 1 and 2 use the two original tests under src/: on main 5adff78bb168 TestFilterMergePolicySizeUnit fails 2 of 2 (the wrapper reports BYTES where DOCS is expected) and TestWrappedLogDocMergePolicyCompoundFile fails 1 of 1 (the plain and the wrapped policy make different compound-file decisions for the same merge), with assertions on and off. The expected and actual lines above are those of the finding page's one-test copy at the top of this folder, TestFilterMergePolicyForceMergeNoOp.java; copy it into src/org/apache/lucene/index/ and select org.apache.lucene.index.TestFilterMergePolicyForceMergeNoOp in run 1 to run it. On the 11.0 branch (branch_11x daa54f2e0cd3, V=11.0.0-SNAPSHOT) and on main 781025d6fe32, where #16962 (2026-11-03) made the no-argument MatchAllDocsQuery constructor private, the javac line stops at line 43 of TestFilterMergePolicySizeUnit.java: change MatchAllDocsQuery::new there to a lambda that returns MatchAllDocsQuery.INSTANCE, () -&gt; MatchAllDocsQuery.INSTANCE, and the two tests fail 2 of 2 and 1 of 1 as described, with assertions on and off (or leave that file out: the one-test copy and TestWrappedLogDocMergePolicyCompoundFile then compile unchanged and fail 1 of 1 each, and the one-test copy alone passes on the 10.6.0 release jars).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

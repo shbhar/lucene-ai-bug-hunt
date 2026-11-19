@@ -6,6 +6,8 @@ Finding page: [../../bugs/LFV-1321.html](../../bugs/LFV-1321.html)
 
 AI-assisted finding, confirmed by automated checks. Upstream status: Fixed, by Chris Parrinello (chrisparrinello; PR #17000, approved and merged by Alan Woodward; an independent fix, later than our listing) on 2026-11-12 (https://github.com/apache/lucene/pull/17000). Chris Parrinello fixed it in PR #17000 (opened 2026-11-06): sizeOfValues() now sizes value.value instead of the cursor in IntObjectHashMap, LongObjectHashMap and CharObjectHashMap, and each map gets two new tests. On the PR they noted that the HPPC project the code was forked from does not have this bug. Alan Woodward approved the PR on 2026-11-11, merged it into main on 2026-11-12 (milestone 11.0.0) and cherry-picked it to branch_11x the same day. The PR does not cite this list. Not on branch_10_6 (head 890b9f70c23, read 2026-11-14), so 10.6.x keeps the bug. Our minimal repro passes on main 781025d6fe32 and fails on f794ff5a505c, with and without assertions; with the three pre-fix map files put back on 781025d6fe32 it fails again. This site files nothing upstream.
 
+Fixed upstream: [#17000](https://github.com/apache/lucene/pull/17000) (commit [2aec368e588f](https://github.com/apache/lucene/commit/2aec368e588f7908689edacd07631a568597385e)), merged 2026-11-12; also on the 11.0 release branch ([a3533d25f8ca](https://github.com/apache/lucene/commit/a3533d25f8ca)).
+
 ## What it shows
 
 You put a value into an IntObjectHashMap (or a LongObjectHashMap or CharObjectHashMap) and call ramBytesUsed(). You expect the estimate to include that value, which is what the method's own sizeOfValues() loop is for: it walks values() and calls RamUsageEstimator.sizeOfObject once per entry. Instead the loop passes the iterator's reused ObjectCursor rather than cursor.value, sizeOfObject does not know that type and returns its 256-byte default, so every entry adds exactly 256 bytes: a map holding an 8 MiB long[] reports 416 bytes, and putting a null value into an empty map raises the estimate from 160 to 416 bytes.
@@ -21,7 +23,8 @@ You put a value into an IntObjectHashMap (or a LongObjectHashMap or CharObjectHa
 
 ## Run it
 
-- Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced.
+- Tested on Lucene main 5adff78bb168 (a commit of 2026-11-02): reproduced.
+- This finding was re-run on Lucene main 1ae70c6e45b8 on 2026-11-19: it no longer reproduces there.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

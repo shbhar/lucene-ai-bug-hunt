@@ -53,7 +53,7 @@ import org.apache.lucene.util.InfoStream;
  * New vectors are added and {@code forceMerge(1)} runs. The merge reuses the old segment's graph
  * (the largest segment, no deletions).
  *
- * <p>Expected (any Lucene version): the merge succeeds, the IndexWriter stays open, and the merged
+ * <p>Expected: the merge succeeds, the IndexWriter stays open, and the merged
  * segment can be searched with kNN queries. The format documents {@code maxConn} as a writer
  * setting ("the maximum number of connections to a node in the HNSW graph") and nothing documents
  * that it must stay the same for the life of an index; the .vem file records, per segment, "the
@@ -94,7 +94,7 @@ public class TestHnswMergeReuseChangedMaxConn extends LuceneTestCase {
     changeMaxConnMergeAndSearch(32, DEFAULT_M, true);
   }
 
-  /** Control: the same pipeline with an unchanged maxConn passes on every version. */
+  /** Control: the same pipeline with an unchanged maxConn (passes on 10.5.1, 10.5.2, 10.6.0 and main). */
   public void testControlUnchangedMaxConn() throws Exception {
     changeMaxConnMergeAndSearch(DEFAULT_M, DEFAULT_M, false);
     changeMaxConnMergeAndSearch(32, 32, false);

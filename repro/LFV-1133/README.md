@@ -6,6 +6,8 @@ Finding page: [../../bugs/LFV-1133.html](../../bugs/LFV-1133.html)
 
 AI-assisted finding, confirmed by automated checks. Upstream status: Fixed, by Jim Ferenczi (jimczi; author of PR #16571, merged it and cherry-picked it to branch_11x; the MultiSorter change in it is by Michael Marshall; an independent fix that does not cite this list) on 2026-11-12 (https://github.com/apache/lucene/pull/16571). Fixed on main by #16571 (jimczi, 'Let a merge write more than one segment'; approved by iverase; merged 2026-11-12; milestone 11.0.0) and on branch_11x (3774f34d1b9). The fix is a side effect. For merges that write several segments, the PR changed MultiSorter so that deleted documents stay out of its queue (a commit by michaeljmarshall dated 2026-09-30, before this bug was found). A reader now enters the queue only when it has a live document, so an empty reader no longer takes a merged doc id. The PR does not mention empty readers, does not cite this list and adds no test for this case. Not on branch_10_6 (head 890b9f70c23, 2026-11-11), so 10.6.x keeps the bug: the minimal repro still fails on 10.6.0 and on that head. This site files nothing upstream.
 
+Fixed upstream: [#16571](https://github.com/apache/lucene/pull/16571) (commit [354165bd7d91](https://github.com/apache/lucene/commit/354165bd7d91ede58555d9c5903279d89ae2a61e)), merged 2026-11-12; also on the 11.0 release branch ([3774f34d1b95](https://github.com/apache/lucene/commit/3774f34d1b95)).
+
 ## What it shows
 
 You sort an IndexWriter by a long field k and call addIndexes(CodecReader...) with the single segment of a sorted 2-document index {a k=1, c k=2} followed by an empty reader that advertises the same sort (SortingCodecReader.wrap(SlowCodecReaderWrapper.wrap(new ParallelLeafReader()), sort)), and you expect a 2-document segment in which a TermQuery on id:a returns the document that stores a, as it does without an index sort or with the empty reader listed first. Instead MultiSorter.sort also queues a cursor at doc 0 for the empty reader, whose nonexistent doc 0 (missing sort value 0) is popped first and takes merged doc id 0, so a and c are mapped to 1 and 2 while the new segment has maxDoc 2. With assertions disabled addIndexes and commit succeed, but id:a returns the document that stores c and the posting of id:c points at doc 2 (&gt;= maxDoc 2), which only CheckIndex at level 2 or higher reports.
@@ -21,7 +23,8 @@ You sort an IndexWriter by a long field k and call addIndexes(CodecReader...) wi
 
 ## Run it
 
-- Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced.
+- Tested on Lucene main 5adff78bb168 (a commit of 2026-11-02): reproduced.
+- This finding was re-run on Lucene main 1ae70c6e45b8 on 2026-11-19: it no longer reproduces there.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

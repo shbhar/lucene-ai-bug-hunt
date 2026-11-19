@@ -1,4 +1,4 @@
-# deleteDocuments(Query) on a doc-values field is evaluated against stale values when doc-values updates are pending
+# deleteDocuments(Query) on a doc-values field is evaluated against stale values when earlier updates of that field are still pending
 
 Finding LFV-016 · Area: index / doc-values updates · Priority: high · Impact: data corruption · Novelty: known upstream
 
@@ -6,12 +6,12 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You update a doc-values field and then delete documents with a query on that field before the updates are written. You expect the delete to see the updated values. Instead delete-by-query is resolved against the written values, and inside a packet deletes run before doc-values updates, so the wrong documents are deleted or kept.
+You update a doc-values field and then delete documents with a query on that field before the updates are written. You expect the delete to see the updated values. Instead delete-by-query is resolved against the written values, which do not include updates still held in memory, so a document whose match depends on such an update is wrongly deleted or kept.
 
 ## Expected vs actual
 
 - Expected: You expect the delete to see the updated values.
-- Actual: Delete-by-query is resolved against the written values, and inside a packet deletes run before doc-values updates, so the wrong documents are deleted or kept.
+- Actual: Delete-by-query is resolved against the written values, which do not include updates still held in memory, so a document whose match depends on such an update is wrongly deleted or kept.
 
 ## Files
 
@@ -19,10 +19,10 @@ You update a doc-values field and then delete documents with a query on that fie
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main b83101cdd2 (2026-10-23): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main b83101cdd2 (a commit of 2026-10-23): reproduced.
 - Recorded outcome of run 1 on Lucene main a9779ef3c193: 9 test(s) run, 6 failed (testA1_deleteNewValueAfterUpdate_flushedSegment, testA2_deleteOldValueAfterUpdate_flushedSegment, testA3_deleteNewValueAfterUpdate_inRamDoc, testB1_crossPacket_resolvedButUnwrittenUpdate, testB2_tryUpdateDocValueThenDelete, testS1_softDeleteThenPurgeByExistsQuery).
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: the six tests named above fail when the finding reproduces; the three control tests C1, C2 and C3 pass.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

@@ -21,8 +21,8 @@ You enable an InfoStream on an IndexWriter, and the logging sink throws a Runtim
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main e1faeba08bde (2026-11-02): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main e1faeba08bde (a commit of 2026-11-02): reproduced.
 - Recorded outcome of run 1 on Lucene main e1faeba08bde: 1 test(s) run, 1 failed (testFlushesAfterCommitFailedOnLogMessage).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

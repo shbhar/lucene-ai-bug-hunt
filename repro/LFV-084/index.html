@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FLOAT16 vectors read back from a quantized index whose raw vectors were dropped can contain +-Infinity, so full-precision rescoring ranks an exact match last (LFV-084)</title><style>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FLOAT16 vectors read back from a quantized index whose raw vectors were dropped can contain +-Infinity, and EUCLIDEAN full-precision rescoring can then rank an exact match last (LFV-084)</title><style>
 :root{--fg:#1d2329;--dim:#5a6570;--line:#d8dee4;--bg:#fff;--soft:#f5f7f9;--link:#0b5cad}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
 font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
@@ -17,20 +17,20 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 .scroll{overflow-x:auto}
 @media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
-</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>FLOAT16 vectors read back from a quantized index whose raw vectors were dropped can contain +-Infinity, so full-precision rescoring ranks an exact match last</h1>
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>FLOAT16 vectors read back from a quantized index whose raw vectors were dropped can contain +-Infinity, and EUCLIDEAN full-precision rescoring can then rank an exact match last</h1>
 <p class="facts small"><span>Finding LFV-084</span><span>Area: codecs / vectors</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
 <p><a href="../../bugs/LFV-084.html">Finding page for LFV-084</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
-<p>You index finite FLOAT16 vectors with large components (for example 60000) in the Lucene104 scalar-quantized format, then drop the raw vectors the way the format&#x27;s own tests do (simulateEmptyRawVectors), so reads go through the dequantized fp16 view. You expect getFloat16VectorValues().vectorValue() to return an approximation of each stored vector, and full-precision rescoring with a document&#x27;s own vector to rank that document first. Instead OptimizedScalarQuantizer.deQuantize(byte[], short[], ...) narrows a slightly out-of-range float reconstruction to fp16 without saturating, so 60000 comes back as Infinity, and rescoring gives the exact match the score 0.0 and ranks it last (with -ea, an AssertionError in VectorUtil.squareDistance).</p>
-<p>The test shows that two finite FLOAT16 vectors, <code>(65504, -65504, 0)</code> and <code>(0, 0, 0)</code>, indexed with the default <code>Lucene104ScalarQuantizedVectorsFormat</code> and then read back through the dequantized view after the raw vectors are dropped (<code>simulateEmptyRawVectors</code>, as upstream&#x27;s format test does) come back with a non-finite component.</p>
+<p>You index finite FLOAT16 vectors with large components (for example 65504 with the default 8-bit encoding, or 60000 with the 1-bit encoding) in the Lucene104 scalar-quantized format, then drop the raw vectors the way the format&#x27;s own tests do (simulateEmptyRawVectors), so reads go through the dequantized fp16 view. You expect getFloat16VectorValues().vectorValue() to return an approximation of each stored vector, and EUCLIDEAN full-precision rescoring with a document&#x27;s own vector to rank that document first, as it does in these examples while the raw vectors are kept. Instead OptimizedScalarQuantizer.deQuantize(byte[], short[], ...) narrows an out-of-range float reconstruction to fp16 without saturating: in the repro (default 8-bit encoding) -65504 is rebuilt as -65546.8 and comes back as -Infinity, and in a 1-bit example 60000 is rebuilt as 73820.7 and comes back as Infinity. In both examples EUCLIDEAN rescoring then gives the exact match the score 0.0 and ranks it last (with -ea, an AssertionError in VectorUtil.squareDistance).</p>
+<p>The test shows that of two finite FLOAT16 vectors, <code>(65504, -65504, 0)</code> and <code>(0, 0, 0)</code>, indexed with the default <code>Lucene104ScalarQuantizedVectorsFormat</code> and then read back through the dequantized view after the raw vectors are dropped (<code>simulateEmptyRawVectors</code>, as upstream&#x27;s format test does), the first comes back with a non-finite component.</p>
 <h2>Expected vs actual</h2>
 <p>Expected <code>Float16VectorValues#vectorValue(0)</code> to return a finite approximation of <code>-65504</code>; actual: <code>-Infinity</code> (<code>OptimizedScalarQuantizer.deQuantize</code> narrows an out-of-range reconstruction to fp16 without saturating), with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/codecs/lucene104/TestFloat16DequantizedViewOverflow.java"><code>src/org/apache/lucene/codecs/lucene104/TestFloat16DequantizedViewOverflow.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.</li>
-<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.</li>
+<li>Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.</li>
 <li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>

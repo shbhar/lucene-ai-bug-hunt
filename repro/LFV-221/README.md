@@ -1,4 +1,4 @@
-# DoubleValuesSource rounds the skip-index block bound to the nearest float, so with a boost FunctionScoreQuery's max score can be one ulp below a real score and top-k search returns the wrong top hit
+# DoubleValuesSource rounds the skip-index block bound to the nearest float, so with a boost FunctionScoreQuery's max score can be one ulp below a real score and top-k search can return the wrong top hit
 
 Finding LFV-221 · Area: search / function scoring (DoubleValuesSource skip-index score bounds for FunctionScoreQuery block-max pruning) · Priority: low · Impact: silent wrong results · Novelty: new
 
@@ -8,9 +8,9 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You index a long counter with the doc-values skip index (NumericDocValuesField.indexedField('count', v)) and search BooleanQuery(SHOULD BoostQuery(FunctionScoreQuery(MatchAllDocsQuery, DoubleValuesSource.fromLongField('count')), 1.5f), SHOULD TermQuery(body:b)), expecting the same top hit as an exhaustive search. Instead, with 5,000 docs where doc 0 holds 2^24 and doc 4999 holds 2^24 + 1, the pruned search (TOP_SCORES, which plain IndexSearcher.search(q, 1) also uses) returns doc 0 (score 25165824) instead of doc 4999 (score 25165826). The cause is that the block bound is the decoded block maximum cast to the nearest float (2^24 + 1 becomes 2^24) and FunctionScoreQuery multiplies that rounded float by the boost, so the block's bound (25165824) is one float step below the score it must cover and the block is skipped; ordinary doubles do the same (0.065 with boost 1.1 scores 0.0715 under a bound of 0.071499996).
+You index a long counter with the doc-values skip index (NumericDocValuesField.indexedField('count', v)) and search BooleanQuery(SHOULD BoostQuery(FunctionScoreQuery(MatchAllDocsQuery, DoubleValuesSource.fromLongField('count')), 1.5f), SHOULD TermQuery(body:b)), expecting the same top hit as an exhaustive search. Instead, with 5,000 docs where doc 0 holds 2^24 and doc 4999 holds 2^24 + 1, the pruned search (TOP_SCORES, which plain IndexSearcher.search(q, 1) also uses) returns doc 0 (score 25165824) instead of doc 4999 (score 25165826). The cause is that the block bound is the decoded block maximum cast to the nearest float (2^24 + 1 becomes 2^24) and FunctionScoreQuery multiplies that rounded float by the boost, so the block's bound (25165824) is one float step below the score it must cover and the block is skipped; ordinary doubles can do the same (0.065 with boost 1.1 scores 0.0715 under a bound of 0.071499996).
 
-The test shows that with a boost of 1.5, `FunctionScoreQuery` over `DoubleValuesSource.fromLongField` on a skip-indexed field reports a block max score one float ulp below a real score, because the skip-index bound 2^24 + 1 is rounded to the nearest float (2^24).
+The published test does not run that search. It shows that with a boost of 1.5, `FunctionScoreQuery` over `DoubleValuesSource.fromLongField` on a skip-indexed field reports a block max score one float ulp below a real score, because the skip-index bound 2^24 + 1 is rounded to the nearest float (2^24).
 
 ## Expected vs actual
 
@@ -22,8 +22,8 @@ Expected: `scorer.score() <= scorer.getMaxScore(upTo)`; actual: `score 2.5165826
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

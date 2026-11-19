@@ -4,7 +4,7 @@ Finding LFV-002 · Area: index / IndexWriter merge · Priority: medium · Impact
 
 Finding page: [../../bugs/LFV-002.html](../../bugs/LFV-002.html)
 
-AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by Jim Ferenczi (Lucene PMC; open PR #16988) on 2026-11-06 (https://github.com/apache/lucene/pull/16988). Open PR #16988 (jimczi, opened 2026-11-06; head 50e62f0aa526 of 2026-11-09; milestone 10.6.1; CI passed; as of 2026-11-14 no comment or review, jimczi asked ChrisHegarty for one on 2026-11-13) says it was found via this list and names LFV-002. It clamps the delGen of the carried-over on-disk doc-values value in IndexWriter's merge to min(minResidual - 1, completedDelGen) and adds our minimal repro as TestMergeDocValuesCarryOverRace with one added setting (setMaxDocValuesOverlays(16)). On a build of the head our minimal repro passes, with and without assertions; it fails on main 781025d6fe32 and passes there with the PR's change applied. Novelty stays new: the PR cites the list. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by Jim Ferenczi (Lucene PMC; open PR #16988) on 2026-11-06 (https://github.com/apache/lucene/pull/16988). Open PR #16988 (jimczi, opened 2026-11-06; milestone 10.6.1; open as read on 2026-11-19) says it was found via this list and names LFV-002. It clamps the delGen of the carried-over on-disk doc-values value in IndexWriter's merge to min(minResidual - 1, completedDelGen) and adds our minimal repro as TestMergeDocValuesCarryOverRace with one added setting (setMaxDocValuesOverlays(16)). Our minimal repro fails on main 781025d6fe32 and passes there with the PR's change applied, with and without assertions (runs of 2026-11-14). With the same change of one expression applied to IndexWriter of branch_11x 5d7ca54ba503 it passes with the overlays setting at its default, at 0, at 1 and at 8, with and without assertions (runs of 2026-11-19). This site files nothing upstream.
 
 ## What it shows
 
@@ -22,9 +22,12 @@ Expected the k0 document's last update `n=2` after the merge, commit and reopen;
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Tested on Lucene main 2cf3f5776d9e (a commit of 2026-11-19): reproduced, with assertions on and off.
+- Tested on Lucene branch_11x 75eea467ac52 (a commit of 2026-11-19): reproduced, with assertions on and off (set V=11.0.0-SNAPSHOT).
+- Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- The test leaves maxDocValuesOverlays at its default: 8 on main and on branch_11x, 0 (off) in 10.6.0. Runs of 2026-11-19: with the 10.6.0 release (the three 10.6.0 jars from Maven Central, org.apache.lucene: lucene-core, lucene-codecs and lucene-test-framework, in place of the three $LUCENE jars; V=10.6.0) the test as shipped passes, with assertions on and off; with one line added after new IndexWriterConfig(), .setMaxDocValuesOverlays(1), it fails there with the same message; on main and on branch_11x it also fails with .setMaxDocValuesOverlays(0). The test pins the race with latches: a failing run shows the outcome of that schedule, not how often a workload meets it.
+- This finding was re-run on Lucene main 1ae70c6e45b8 on 2026-11-19: still reproduces.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

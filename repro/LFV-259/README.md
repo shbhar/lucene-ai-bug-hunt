@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You configure BM25Similarity with its opt-in k3 parameter (new BM25Similarity(1.2f, 0.75f, true, 7f)), whose javadoc promises that a term repeated in a query is weighted ((k3 + 1) * qtf) / (k3 + qtf) instead of linearly, and you install it through a PerFieldSimilarityWrapper, the documented way to use per-field similarities, even one whose get() returns that same instance for every field. You expect the query 'apple apple' to score as it does with the bare BM25Similarity, where BooleanQuery's duplicate-clause rewrite gives (body:apple)^1.7777778. Instead the rewrite asks the wrapper, which does not forward Similarity#computeQueryTermWeight and inherits its linear default, so the query becomes (body:apple)^2.0 and the document scores 0.63013375 instead of 0.5601189; StableTflSimilarity's k3 is ignored the same way.
+You configure BM25Similarity with its opt-in k3 parameter (new BM25Similarity(1.2f, 0.75f, true, 7f)), whose javadoc says that when duplicate terms appear in a query their boost is ((k3 + 1) * qtf) / (k3 + qtf) instead of the linear sum, and you install it through a PerFieldSimilarityWrapper, the documented way to use per-field similarities, even one whose get() returns that same instance for every field. You expect the query 'apple apple' to score as it does with the bare BM25Similarity, where BooleanQuery's duplicate-clause rewrite gives (body:apple)^1.7777778. Instead the rewrite asks the wrapper, which does not forward Similarity#computeQueryTermWeight and inherits its linear default, so the query becomes (body:apple)^2.0 and the document scores 0.26152915 instead of 0.23247036; StableTflSimilarity's k3 is ignored the same way.
 
 The test shows that `BM25Similarity(1.2, 0.75, true, 7)` behind a `PerFieldSimilarityWrapper` that returns it for every field scores the query "apple apple" differently from the bare similarity, because the wrapper does not forward `computeQueryTermWeight` (k3 is ignored).
 
@@ -22,8 +22,8 @@ Expected: the bare BM25 score 0.23247036 (duplicate-clause boost 1.7777778); act
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

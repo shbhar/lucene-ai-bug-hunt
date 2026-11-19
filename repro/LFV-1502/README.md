@@ -21,8 +21,8 @@ You index vectors with FaissKnnVectorsFormat (a sandbox, experimental vector for
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene branch_11x daa54f2e0cd3 (2026-11-13): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene branch_11x daa54f2e0cd3 (a commit of 2026-11-13): reproduced.
 - What the test does: with FaissKnnVectorsFormat as the vector format it indexes three documents a, b and c with the EUCLIDEAN vectors (3, 0), (4, 0) and (5, 0), commits, deletes a and calls forceMerge(1). It then asks for the 2 nearest neighbours of (1, 0) and expects the two live documents with the scores of their own vectors, 'b=0.1000 c=0.0588'. The test fails with 'expected:&lt;b=0.[1000 c=0.0588] &gt; but was:&lt;b=0.[5000 b=0.1000] &gt;': b comes back twice, once with the score of an all-zero vector, the same with and without assertions. It uses no randomness. The test needs the Faiss C library that the format itself needs (libfaiss_c, version 1.11.0, with its dependencies; the package documentation of org.apache.lucene.sandbox.codecs.faiss says how to install it). Before the java command, put the directory that holds the library on the library path, with export LD_LIBRARY_PATH=/path/to/faiss/lib, or add -Djava.library.path=/path/to/faiss/lib to the java command. Without the library the test is skipped by the guard it shares with Lucene's own Faiss tests: the launcher then reports 1 test found, 1 skipped and 0 failed, and exits 0. A skip is not a pass and says nothing about the finding. With -Dtests.faiss.run=true added to the java command a missing library is an error (UnsatisfiedLinkError) instead of a skip.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

@@ -21,6 +21,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p class="facts small"><span>Finding LFV-1321</span><span>Area: core / util (internal hppc object maps: ramBytesUsed())</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: new</span></p>
 <p><a href="../../bugs/LFV-1321.html">Finding page for LFV-1321</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks. <b>Upstream status:</b> Fixed, by Chris Parrinello (chrisparrinello; PR #17000, approved and merged by Alan Woodward; an independent fix, later than our listing) on 2026-11-12. Chris Parrinello fixed it in PR #17000 (opened 2026-11-06): sizeOfValues() now sizes value.value instead of the cursor in IntObjectHashMap, LongObjectHashMap and CharObjectHashMap, and each map gets two new tests. On the PR they noted that the HPPC project the code was forked from does not have this bug. Alan Woodward approved the PR on 2026-11-11, merged it into main on 2026-11-12 (milestone 11.0.0) and cherry-picked it to branch_11x the same day. The PR does not cite this list. Not on branch_10_6 (head 890b9f70c23, read 2026-11-14), so 10.6.x keeps the bug. Our minimal repro passes on main 781025d6fe32 and fails on f794ff5a505c, with and without assertions; with the three pre-fix map files put back on 781025d6fe32 it fails again. <a href="https://github.com/apache/lucene/pull/17000">Source</a>. This site files nothing upstream.</p>
+<p class="note small"><b>Fixed upstream:</b> <a href="https://github.com/apache/lucene/pull/17000">#17000</a> (commit <a href="https://github.com/apache/lucene/commit/2aec368e588f7908689edacd07631a568597385e">2aec368e588f</a>), merged 2026-11-12; also on the 11.0 release branch (<a href="https://github.com/apache/lucene/commit/a3533d25f8ca">a3533d25f8ca</a>).</p>
 <h2>What it shows</h2>
 <p>You put a value into an IntObjectHashMap (or a LongObjectHashMap or CharObjectHashMap) and call ramBytesUsed(). You expect the estimate to include that value, which is what the method&#x27;s own sizeOfValues() loop is for: it walks values() and calls RamUsageEstimator.sizeOfObject once per entry. Instead the loop passes the iterator&#x27;s reused ObjectCursor rather than cursor.value, sizeOfObject does not know that type and returns its 256-byte default, so every entry adds exactly 256 bytes: a map holding an 8 MiB long[] reports 416 bytes, and putting a null value into an empty map raises the estimate from 160 to 416 bytes.</p>
 <h2>Expected vs actual</h2>
@@ -28,7 +29,8 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/internal/hppc/TestIntObjectHashMapRamBytesUsed.java"><code>src/org/apache/lucene/internal/hppc/TestIntObjectHashMapRamBytesUsed.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced.</li>
+<li>Tested on Lucene main 5adff78bb168 (a commit of 2026-11-02): reproduced.</li>
+<li>This finding was re-run on Lucene main 1ae70c6e45b8 on 2026-11-19: it no longer reproduces there.</li>
 <li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)

@@ -19,11 +19,11 @@ You run a grouped search whose hits all score 0, for example a BooleanQuery with
 
 ## Run it
 
-- Tested on Lucene main 9965d34e3c77 (2026-11-16): still fails 3 of 3, with and without assertions (run with the test adapted as the next line says).
-- Tested on Lucene main 781025d6fe32 (2026-11-13): still fails 3 of 3, with and without assertions (run with the test adapted to #16805, e0a3a951e7e, which removed IndexSearcher.search(Query, Collector) on main: the two searcher.search calls on lines 102 and 107 pass their collector through a CollectorManager whose newCollector() returns it and whose reduce() returns null; with the stock TopGroupsCollectorManager instead, the no-scores case reports NaN and that one test passes).
-- Tested on Lucene main f794ff5a505c (2026-11-06): still reproduces, with the test as shipped.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- This finding was re-run on Lucene main ec3b3cca8f10 on 2026-11-18: still reproduces (the repro adapted to an API change on this commit).
+- Tested on Lucene main 9965d34e3c77 (a commit of 2026-11-16): still fails 3 of 3, with and without assertions (run with the test adapted as the next line says).
+- Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): still fails 3 of 3, with and without assertions (run with the test adapted to #16805, e0a3a951e7e, which removed IndexSearcher.search(Query, Collector) on main: the two searcher.search calls on lines 102 and 107 pass their collector through a CollectorManager whose newCollector() returns it and whose reduce() returns null; with the stock TopGroupsCollectorManager instead, the no-scores case reports NaN and that one test passes).
+- Tested on Lucene main f794ff5a505c (a commit of 2026-11-06): still reproduces, with the test as shipped.
+- Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
+- This finding was re-run on Lucene main 1ae70c6e45b8 on 2026-11-19: still reproduces (the repro adapted to an API change on this commit).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

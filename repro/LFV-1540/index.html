@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BlendedInfixSuggester.lookup with contexts that have a positive clause scores a fetched suggestion that has no term matching the key and does not start with the raw key as if the match were at position Integer.MAX_VALUE: for a non-empty key that the query analyzer turns into no token (run: the stop word &#x27;the&#x27; under EnglishAnalyzer; a space, &#x27;?&#x27; or &#x27;-&#x27; under StandardAnalyzer without stop words) and allTermsRequired = true (the default), the default blender returns the lowest of the fetched weights first with large negative values (run with the weights 30, 20, 10), and the lookup throws NullPointerException when such a suggestion&#x27;s own text has no token (the wrong order in 4.10.4 and 5.0.0 to 10.6.0, the exception from 4.8.0, branch_11x and main) (LFV-1540)</title><style>
+:root{--fg:#1d2329;--dim:#5a6570;--line:#d8dee4;--bg:#fff;--soft:#f5f7f9;--link:#0b5cad}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
+font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+main{max-width:980px;margin:0 auto;padding:24px 18px 64px}a{color:var(--link)}
+h1{font-size:1.55rem;line-height:1.25;margin:.4em 0 .3em}h2{font-size:1.2rem;margin:1.6em 0 .5em}
+.dim{color:var(--dim)}.small{font-size:.9rem}.facts{display:flex;flex-wrap:wrap;gap:6px 16px;margin:.4em 0 1em}
+.note{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:10px 14px}
+pre{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:12px;overflow:auto;font-size:.85rem}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+table{border-collapse:collapse;width:100%;font-size:.92rem}th,td{border-bottom:1px solid var(--line);
+padding:6px 8px;text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:var(--soft)}
+h1,h2,p,li,dd{overflow-wrap:break-word}
+.facts>span{min-width:0;overflow-wrap:anywhere}
+th,td.nw{white-space:nowrap;overflow-wrap:normal}
+.scroll{overflow-x:auto}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
+nav.crumbs{font-size:.9rem;margin-bottom:8px}
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>BlendedInfixSuggester.lookup with contexts that have a positive clause scores a fetched suggestion that has no term matching the key and does not start with the raw key as if the match were at position Integer.MAX_VALUE: for a non-empty key that the query analyzer turns into no token (run: the stop word &#x27;the&#x27; under EnglishAnalyzer; a space, &#x27;?&#x27; or &#x27;-&#x27; under StandardAnalyzer without stop words) and allTermsRequired = true (the default), the default blender returns the lowest of the fetched weights first with large negative values (run with the weights 30, 20, 10), and the lookup throws NullPointerException when such a suggestion&#x27;s own text has no token (the wrong order in 4.10.4 and 5.0.0 to 10.6.0, the exception from 4.8.0, branch_11x and main)</h1>
+<p class="facts small"><span>Finding LFV-1540</span><span>Area: suggest / analyzing: BlendedInfixSuggester blended score (createCoefficient, calculateCoefficient) under AnalyzingInfixSuggester&#x27;s lookup with contexts</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: new</span></p>
+<p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
+<h2>What it shows</h2>
+<p>You build a BlendedInfixSuggester with its two-argument constructor over the stock EnglishAnalyzer, add three suggestions to one context (dune 30, emma 20, ulysses 10) and call lookup(&quot;the&quot;, contexts, false, 1). &#x27;the&#x27; is a stop word, so the key has no token and the lookup matches every suggestion of the context; AnalyzingInfixSuggester returns dune, the highest weight, for the same call, and BlendedInfixSuggester returns dune for the empty key, so you expect dune. Instead you get ulysses, the lowest weight, with the value -2147483637 (with num 3: ulysses, emma, dune with -2147483637, -4294967274, -6442450911), and no error: createCoefficient starts its search for the closest matching term with position = Integer.MAX_VALUE, no term of a hit matches a key without tokens, and the start value goes into the linear formula 1 - 0.10 * position. If a suggestion of the context is among the fetched hits and its text has no token and does not start with the raw key (&#x27;To Be or Not to Be&#x27; under EnglishAnalyzer), the same lookup throws NullPointerException, because the method reads the hit&#x27;s term vector without a null check.</p>
+<h2>Expected vs actual</h2>
+<ul><li><b>Expected:</b> <code>lookup(&quot;the&quot;, books, false, 1)</code> returns <code>dune/30</code>, the highest weight of the context (by comparison with the parent class), and <code>to be/10</code> in the second method.</li><li><b>Actual:</b> It returns <code>ulysses/-2147483637</code> (<code>ComparisonFailure: expected:&lt;[dune/30]&gt; but was:&lt;[ulysses/-2147483637]&gt;</code>); the second method throws <code>NullPointerException</code> (<code>&quot;tv&quot; is null</code>) in <code>createCoefficient</code>.</li></ul>
+<h2>Files</h2><ul>
+<li><a href="src/org/apache/lucene/search/suggest/analyzing/TestBlendedInfixSuggesterNoTokenKey.java"><code>src/org/apache/lucene/search/suggest/analyzing/TestBlendedInfixSuggesterNoTokenKey.java</code></a> <span class="dim">(JUnit test)</span></li>
+</ul><h2>Run it</h2><ul>
+<li>Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.</li>
+<li>Tested on Lucene branch_11x 89e68e0f3a50 (a commit of 2026-11-17): reproduced.</li>
+<li>A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there.</li>
+<li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
+<li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
+</ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
+LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
+CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
+CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
+CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
+CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
+CP=$CP:$LUCENE/lucene/suggest/build/libs/lucene-suggest-$V.jar
+CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
+CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
+
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
+
+# run 1: assertions off (production-like), seed DEADBEEF
+java -da -dsa -Dtests.asserts=false -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.search.suggest.analyzing.TestBlendedInfixSuggesterNoTokenKey</code></pre>
+<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on the 11.0 branch the build takes the default from the seed).</p>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-19. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

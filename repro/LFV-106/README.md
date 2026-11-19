@@ -1,4 +1,4 @@
-# Vector similarity queries report isCacheable() == true although their per-segment result depends on live docs, the search timeout and the filter, so a shared query cache serves one reader's or one search's result to another
+# Vector similarity queries report isCacheable() == true although their per-segment result depends on live docs, the filter and, on the approximate (graph-search) path, the search timeout, so a shared query cache can serve one reader's or one search's result to another
 
 Finding LFV-106 · Area: search / vector similarity queries and the query cache · Priority: high · Impact: silent wrong results · Novelty: new
 
@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You search with a vector similarity (threshold) query, for example FloatVectorSimilarityQuery, in a non-scoring context such as IndexSearcher#count or ConstantScoreQuery, with a query cache that several readers or searchers share (the IndexSearcher default in 9.10.0-10.6.0, 10.6.0 by reading). You expect every reader and every search to get the hits it gets without the cache. Instead the cache hands one reader's or one search's per-segment result to another: an older point-in-time reader misses a document that only a newer reader has deleted (99 hits instead of 100), a search without a timeout gets the empty result of an earlier timed-out search (0 instead of 100), and with a filter on an updated doc-values field a newer reader gets a document that no longer matches the filter (100 instead of 99).
+You search with a vector similarity (threshold) query, for example FloatVectorSimilarityQuery, in a non-scoring context such as IndexSearcher#count or ConstantScoreQuery, with a query cache that several readers or searchers share (the IndexSearcher default in 9.10.0-10.6.0; on the 11.0 branch and main only a cache the application installs). You expect every reader and every search to get the hits it gets without the cache. Instead, once the cache has stored the query's result for a segment (the default cache does that only from the query's 5th use and only on segments of at least 10,000 documents), it hands one reader's or one search's per-segment result to another. In 100-document probes with a cache set to store every query: an older point-in-time reader misses a document that only a newer reader has deleted (99 hits instead of 100), a search without a timeout gets the empty result of an earlier search whose timeout had already fired (0 instead of 100; 10.0.0 and later, approximate path only), and with a filter on an updated doc-values field a newer reader gets a document that no longer matches the filter (100 instead of 99). The published test shows the first case on two documents (1 instead of 2).
 
 The test shows that `FloatVectorSimilarityQuery` says its per-segment result is cacheable, but the result depends on live docs, so a shared query cache gives an older reader the result of a newer reader that deleted a document (same segment core).
 
@@ -22,8 +22,8 @@ Expected `count` 2 on the older reader, where doc 0 is still live; actual 1 (`ex
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

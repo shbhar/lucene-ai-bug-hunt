@@ -7,6 +7,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | Unit | Tools | Findings |
 |---|---|---|
 | [analysis-benchmark-backward-codecs-javadoc-examples-compile-on-main](analysis-benchmark-backward-codecs-javadoc-examples-compile-on-main/) | Python | LFV-1041, LFV-1040 |
+| [analysis-factories-unread-parameters](analysis-factories-unread-parameters/) | Python | LFV-1546 |
 | [analysis-factory-javadoc-examples-and-resource-files-build-as-documented](analysis-factory-javadoc-examples-and-resource-files-build-as-documented/) | Python | LFV-931 |
 | [analysis-loaders-release-streams-and-temp-files-on-failure](analysis-loaders-release-streams-and-temp-files-on-failure/) | TLA+/TLC | LFV-1006, LFV-1010 |
 | [analysis-rule-tables-second-batch](analysis-rule-tables-second-batch/) | Python | LFV-688 |
@@ -87,6 +88,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [indexrearranger-and-pkindexsplitter-failed-run-cleanup](indexrearranger-and-pkindexsplitter-failed-run-cleanup/) | Python | LFV-1011 |
 | [indexsorted-leaf-delegate-points-work-after-mixed-leaf](indexsorted-leaf-delegate-points-work-after-mixed-leaf/) | TLA+/TLC | LFV-1088 |
 | [indexwriter-adds-after-failed-deleteall](indexwriter-adds-after-failed-deleteall/) | Python | LFV-1531 |
+| [indexwriter-rollback-throwing-infostream](indexwriter-rollback-throwing-infostream/) | Python | LFV-1543 |
 | [indri-query-family-composite-score-boost-visitor-explain-laws](indri-query-family-composite-score-boost-visitor-explain-laws/) | Python | LFV-874, LFV-872, LFV-871, LFV-875 |
 | [iw-addindexes-merge-source-tla](iw-addindexes-merge-source-tla/) | TLA+/TLC | LFV-1074, LFV-629, LFV-632 |
 | [iw-blocking-calls-watchdog-failure-visibility](iw-blocking-calls-watchdog-failure-visibility/) | TLA+/TLC | LFV-648 |
@@ -139,6 +141,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [sandbox-histogramcollectormanager-leafbulkcollected-map-never-cleared-reused-manager-on-same-reader-returns-empty-histogram-match-all-and-point-range-since-10-3-0-verify-collector-manager-reuse-siblings](sandbox-histogramcollectormanager-leafbulkcollected-map-never-cleared-reused-manager-on-same-reader-returns-empty-histogram-match-all-and-point-range-since-10-3-0-verify-collector-manager-reuse-siblings/) | TLA+/TLC | LFV-1467 |
 | [sandbox-multirange-point-builders-and-phrasewildcardquery-builder-hand-their-own-list-to-built-queries-builder-reuse-rewrites-earlier-query-and-its-cache-key-since-8-3-0-verify-low](sandbox-multirange-point-builders-and-phrasewildcardquery-builder-hand-their-own-list-to-built-queries-builder-reuse-rewrites-earlier-query-and-its-cache-key-since-8-3-0-verify-low/) | Python | LFV-1469 |
 | [sandbox-sortednumeric-multirange-query-long-subtraction-overflow-drops-half-open-clauses-as-reversed-silent-missing-hits-all-dropped-nosuchelement-since-10-3-0-verify](sandbox-sortednumeric-multirange-query-long-subtraction-overflow-drops-half-open-clauses-as-reversed-silent-missing-hits-all-dropped-nosuchelement-since-10-3-0-verify/) | Python | LFV-1463 |
+| [scoring-term-join-unknown-term-count](scoring-term-join-unknown-term-count/) | Python | LFV-1539 |
 | [searcherlifetime-prune-order](searcherlifetime-prune-order/) | TLA+/TLC | LFV-1066 |
 | [signed-zero-equals-hashcode-remaining-query-valuesource-sort-sites](signed-zero-equals-hashcode-remaining-query-valuesource-sort-sites/) | Python | LFV-1341, LFV-1335, LFV-1337 |
 | [sloppymath-and-geo-distance-documented-error-bounds](sloppymath-and-geo-distance-documented-error-bounds/) | Python | LFV-771 |

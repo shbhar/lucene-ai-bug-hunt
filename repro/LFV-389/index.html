@@ -22,15 +22,15 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <p><a href="../../bugs/LFV-389.html">Finding page for LFV-389</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
-<p>You run Lucene&#x27;s test suite on main or branch_11x and expect TestRuntimeDependenciesSane, TestCandidateMatcherVisibility, TestClassloadingDeadlock, TestModularLayer and TestScripts to run their 17 test methods, and TestHunspellRepositoryTestCases to check Hunspell&#x27;s test data when -Phunspell.repo.path is set. Instead the build passes without running any of those methods: #16028 removed their @Test annotations, which is harmless in LuceneTestCase subclasses (LuceneTestCase finds test* methods by name), but these six classes do not extend LuceneTestCase, so JUnit 4 finds only @Test methods and there are none. Two classes report zero tests, three report one green placeholder named after the class, and the Hunspell runner fails with &#x27;No runnable methods&#x27;.</p>
-<p>The test shows that main&#x27;s TestCandidateMatcherVisibility (not a LuceneTestCase subclass) lost its @Test annotations in #16028, so JUnit 4 finds none of its three test* methods.</p>
+<p>You run Lucene&#x27;s test suite on main or branch_11x and expect TestRuntimeDependenciesSane, TestCandidateMatcherVisibility, TestClassloadingDeadlock, TestModularLayer and TestScripts to run their 17 test methods (16 of them in a default run; TestScripts&#x27; GUI test is skipped by default), and TestHunspellRepositoryTestCases to check Hunspell&#x27;s test data when -Phunspell.repo.path is set. Instead none of those methods runs, and a default build still passes: #16028 removed their @Test annotations, which is harmless in LuceneTestCase subclasses (LuceneTestCase finds test* methods by name), but these six classes do not extend LuceneTestCase, so JUnit 4 finds only @Test methods and there are none. Two classes report zero tests, three report one green placeholder named after the class, and the Hunspell runner, when its option is set, fails with &#x27;No runnable methods&#x27;.</p>
+<p>The test shows that JUnit 4 finds none of the three test* methods of main&#x27;s TestCandidateMatcherVisibility (not a LuceneTestCase subclass), which lost its @Test annotations in #16028.</p>
 <h2>Expected vs actual</h2>
 <p>Expected <code>JUnitCore.runClasses(TestCandidateMatcherVisibility.class)</code> to run 3 tests with no failure; actual: run=1, <code>initializationError ... No runnable methods</code>, with <code>-ea</code> and <code>-da</code>.</p>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/monitor/outsidepackage/TestCandidateMatcherVisibilityRuns.java"><code>src/org/apache/lucene/monitor/outsidepackage/TestCandidateMatcherVisibilityRuns.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.</li>
-<li>Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.</li>
+<li>Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.</li>
+<li>Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.</li>
 <li>Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.</li>
 <li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
@@ -45,7 +45,7 @@ CP=$CP:$LUCENE/lucene/monitor/build/libs/lucene-monitor-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
-javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;) $LUCENE/lucene/monitor/src/test/org/apache/lucene/monitor/outsidepackage/TestCandidateMatcherVisibility.java   # the class under test is a Lucene test source and is in no jar
 
 # run 1: assertions on, seed DEADBEEF
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \

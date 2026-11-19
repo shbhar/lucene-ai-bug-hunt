@@ -1,4 +1,4 @@
-# The example native int8 dot product (lucene/misc/src/c/dotProduct.c, opt-in via -Dlucene.useNativeDotProduct=true) keeps its SVE loop index in int32, so VectorUtil.dotProduct(byte[], byte[]) on two arrays of at least 2^31 - 4*VL elements (2,147,483,520 at 256-bit SVE, 2,147,483,584 at 128-bit SVE) overflows the loop bound, reads past the end of both arrays and kills the JVM with SIGSEGV in vdot8s_sve
+# The example native int8 dot product (lucene/misc/src/c/dotProduct.c, opt-in via -Dlucene.useNativeDotProduct=true) keeps its SVE loop index in int32, so VectorUtil.dotProduct(byte[], byte[]) on two arrays of at least 2^31 - 4*VL elements (2,147,483,520 at 256-bit SVE, 2,147,483,584 at 128-bit SVE) overflows the loop bound; in the GCC-built libraries that were run the kernel then reads past the end of both arrays and the JVM dies with SIGSEGV in vdot8s_sve
 
 Finding LFV-390 · Area: core vectorization + misc native C / opt-in native int8 dot product (NativeVectorUtilSupport, lucene/misc/src/c/dotProduct.c vdot8s_sve) · Priority: low · Impact: crash · Novelty: new
 
@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You enable Lucene's opt-in native dot product (-Dlucene.useNativeDotProduct=true plus a library built from the example lucene/misc/src/c/dotProduct.c) on an SVE machine and call VectorUtil.dotProduct(byte[], byte[]) on two legal arrays of 2,147,483,645 bytes whose exact dot product is 3, expecting 3 as the Panama and default providers return. Instead the SVE kernel vdot8s_sve keeps its loop index and vector length in int32_t, so its loop test 'i + 4 * vec_length &lt;= limit' (dotProduct.c:66) overflows once i reaches 2^31 - 4\*VL (VL = SVE vector length in bytes); in the compiled code the bound wraps negative while the load offset is a 64-bit register, so the loop keeps loading past the end of both arrays until it hits an unmapped page and the JVM dies with SIGSEGV in vdot8s_sve. Every length from 2^31 - 4\*VL up to the JVM maximum crashes (2,147,483,520 at 256-bit SVE, 2,147,483,584 at 128-bit SVE), while one element less returns the exact result; a 64-bit loop index with svwhilelt_b8_s64 fixes it.
+You enable Lucene's opt-in native dot product (-Dlucene.useNativeDotProduct=true with --add-modules jdk.incubator.vector, plus a library built with SVE enabled from the example lucene/misc/src/c/dotProduct.c) on an SVE machine and call VectorUtil.dotProduct(byte[], byte[]) on two legal arrays of 2,147,483,645 bytes whose exact dot product is 3, expecting 3 as the Panama and default providers return. Instead the SVE kernel vdot8s_sve keeps its loop index and vector length in int32_t, so its loop test 'i + 4 * vec_length &lt;= limit' (dotProduct.c:66) overflows once i reaches 2^31 - 4\*VL (VL = SVE vector length in bytes, a power of two); in the GCC builds that were disassembled (10.5.0 and 11.5.0 at -O3) the bound is a 32-bit register that wraps negative while the load offset is a 64-bit register, so the loop keeps loading past the end of both arrays until it hits an unmapped page and the JVM dies with SIGSEGV in vdot8s_sve. With the GCC-built libraries every length that was run from 2^31 - 4\*VL up to the JVM maximum crashed (128-bit SVE: all 62 lengths from 2,147,483,584 to 2,147,483,645 with the kernel called directly from C, and 2,147,483,584 through the JVM; 256-bit SVE: 2,147,483,520, 2,147,483,584, 2,147,483,631 and 2,147,483,645 through the JVM), while one element less (2,147,483,583 and 2,147,483,519) returned the exact result; a 64-bit loop index with svwhilelt_b8_s64 fixes it.
 
 ## Expected vs actual
 
@@ -21,11 +21,11 @@ You enable Lucene's opt-in native dot product (-Dlucene.useNativeDotProduct=true
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
-- How to read the outcome: a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
+- Not runnable from this site as is: it also needs the native library, which is not exported here; the command below builds it from lucene/misc/src/c/dotProduct.c of the checkout, on a Linux aarch64 CPU with SVE. The java line names the folder of the library with -Djava.library.path=lib. The commands run NativeSveDotProductOverflow.java (a main() class; the program the finding page shows; one all-zero array passed twice; expects 0). src/NativeDotProductNearMaxLength.java is a second main() class: two arrays, the length as an argument; expects 3; at the default length its two arrays of 2,147,483,645 bytes take about 4 GiB of heap (the recorded runs used -Xmx6g).
+- How to read the outcome: the finding reproducing is the JVM dying with SIGSEGV in vdot8s_sve (a fatal error report, exit status 134). An exception is not it: "Native library dotProduct missing!" means that the library was not found on java.library.path.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
-- Not runnable from this site as is: this repro also needs extra JVM setup (a system property or an instrumentation hook, for example) that is not exported here; see the comments at the top of the source.
 
 ```bash
 # Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
@@ -36,14 +36,14 @@ CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
 CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
 CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
 
-javac -d classes -cp "$CP" $(find src -name '*.java')
+mkdir -p lib classes
+gcc -shared -fPIC -O3 -march=native -funroll-loops -o lib/libdotProduct.so $LUCENE/lucene/misc/src/c/dotProduct.c   # on a Linux aarch64 CPU with SVE; GCC 10.5.0 and 11.5.0 were run
+javac -d classes -cp "$CP" NativeSveDotProductOverflow.java
 
-# run 1: assertions on, seed DEADBEEF
-java -ea -esa -Xmx6g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dlucene.useNativeDotProduct=true -Dtests.seed=DEADBEEF \
-     -cp "classes:$CP" NativeDotProductNearMaxLength
+# run 1: assertions on
+java -ea -esa -Xmx3g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dlucene.useNativeDotProduct=true -Djava.library.path=lib \
+     -cp "classes:$CP" NativeSveDotProductOverflow
 ```
-
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 
 ## Files shown on the finding page
 

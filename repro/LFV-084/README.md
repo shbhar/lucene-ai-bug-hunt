@@ -1,4 +1,4 @@
-# FLOAT16 vectors read back from a quantized index whose raw vectors were dropped can contain +-Infinity, so full-precision rescoring ranks an exact match last
+# FLOAT16 vectors read back from a quantized index whose raw vectors were dropped can contain +-Infinity, and EUCLIDEAN full-precision rescoring can then rank an exact match last
 
 Finding LFV-084 · Area: codecs / vectors · Priority: low · Impact: silent wrong results · Novelty: new
 
@@ -8,9 +8,9 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You index finite FLOAT16 vectors with large components (for example 60000) in the Lucene104 scalar-quantized format, then drop the raw vectors the way the format's own tests do (simulateEmptyRawVectors), so reads go through the dequantized fp16 view. You expect getFloat16VectorValues().vectorValue() to return an approximation of each stored vector, and full-precision rescoring with a document's own vector to rank that document first. Instead OptimizedScalarQuantizer.deQuantize(byte[], short[], ...) narrows a slightly out-of-range float reconstruction to fp16 without saturating, so 60000 comes back as Infinity, and rescoring gives the exact match the score 0.0 and ranks it last (with -ea, an AssertionError in VectorUtil.squareDistance).
+You index finite FLOAT16 vectors with large components (for example 65504 with the default 8-bit encoding, or 60000 with the 1-bit encoding) in the Lucene104 scalar-quantized format, then drop the raw vectors the way the format's own tests do (simulateEmptyRawVectors), so reads go through the dequantized fp16 view. You expect getFloat16VectorValues().vectorValue() to return an approximation of each stored vector, and EUCLIDEAN full-precision rescoring with a document's own vector to rank that document first, as it does in these examples while the raw vectors are kept. Instead OptimizedScalarQuantizer.deQuantize(byte[], short[], ...) narrows an out-of-range float reconstruction to fp16 without saturating: in the repro (default 8-bit encoding) -65504 is rebuilt as -65546.8 and comes back as -Infinity, and in a 1-bit example 60000 is rebuilt as 73820.7 and comes back as Infinity. In both examples EUCLIDEAN rescoring then gives the exact match the score 0.0 and ranks it last (with -ea, an AssertionError in VectorUtil.squareDistance).
 
-The test shows that two finite FLOAT16 vectors, `(65504, -65504, 0)` and `(0, 0, 0)`, indexed with the default `Lucene104ScalarQuantizedVectorsFormat` and then read back through the dequantized view after the raw vectors are dropped (`simulateEmptyRawVectors`, as upstream's format test does) come back with a non-finite component.
+The test shows that of two finite FLOAT16 vectors, `(65504, -65504, 0)` and `(0, 0, 0)`, indexed with the default `Lucene104ScalarQuantizedVectorsFormat` and then read back through the dequantized view after the raw vectors are dropped (`simulateEmptyRawVectors`, as upstream's format test does), the first comes back with a non-finite component.
 
 ## Expected vs actual
 
@@ -22,8 +22,8 @@ Expected `Float16VectorValues#vectorValue(0)` to return a finite approximation o
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

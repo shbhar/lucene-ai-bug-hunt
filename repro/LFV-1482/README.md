@@ -21,8 +21,8 @@ You make SharedTermsUniformSplit the postings format of your codec (a FilterCode
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main 781025d6fe32 (2026-11-13): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: it makes STUniformSplitPostingsFormat the postings format of an anonymous FilterCodec, so it needs no META-INF/services entry, flushes one document with an indexed field and one with only a doc-values field, and calls forceMerge(1) under the serial merge scheduler; the NullPointerException from the merge reaches the test thread. The per-field wiring paths named in the title are not part of this test.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

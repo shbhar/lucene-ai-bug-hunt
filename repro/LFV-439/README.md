@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You build DictionaryCompoundWordTokenFilterFactory on main without the onlyLongestMatch key, for example with only onlyLongestMatchIgnoreSubwords, and expect no message about a key you never used; instead every construction logs the WARNING 'onlyLongestMatch has been removed and replaced by onlyLongestMatchIgnoreSubwords'. A configuration that does pass onlyLongestMatch="false" gets no warning, because the factory reads the removed key with default true and warns when the value is true (getBoolean(args, "onlyLongestMatch", true); if (onlyLongestMatch) LOG.warning(...)), not when the key is present. Within one build, only the log is wrong: the tokens are the same with or without the warning. Update 2026-11-16: from 10.6.0 to branch_11x and main the tokens do change for two configurations (onlyLongestMatchIgnoreSubwords="false" with onlyLongestMatch absent or "true"): the change that added the warning (#14356) removed the old option on purpose, and these two now emit every dictionary match instead of the longest match per start position.
+You build DictionaryCompoundWordTokenFilterFactory on main without the onlyLongestMatch key, for example with only onlyLongestMatchIgnoreSubwords, and expect no message about a key you never used; instead every construction logs the WARNING 'onlyLongestMatch has been removed and replaced by onlyLongestMatchIgnoreSubwords'. A configuration that does pass onlyLongestMatch="false" gets no warning, because the factory reads the removed key with default true and warns when the value is true (getBoolean(args, "onlyLongestMatch", true); if (onlyLongestMatch) LOG.warning(...)), not when the key is present. Within one build, only the log is affected: the old key's value does not reach the filter, so the tokens are the same with or without the warning. Update 2026-11-16: from 10.6.0 to branch_11x and main the tokens can change for two configurations (onlyLongestMatchIgnoreSubwords="false" with onlyLongestMatch absent or "true"): the change that added the warning (#14356) removed the old option on purpose, and these two now emit every dictionary match instead of the longest match per start position.
 
 The test shows that `DictionaryCompoundWordTokenFilterFactory` on main logs "onlyLongestMatch has been removed" for a configuration that never passes `onlyLongestMatch` (only `dictionary`).
 
@@ -22,8 +22,8 @@ Expected no WARNING; actual `expected:<[]> but was:<[onlyLongestMatch has been r
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

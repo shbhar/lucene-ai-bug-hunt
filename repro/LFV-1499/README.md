@@ -19,8 +19,8 @@ You read the vectors of a field through LeafReader.getFloatVectorValues (or getB
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main 781025d6fe32 (2026-11-13): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: with the default codec it indexes two documents, the first with a float vector field and the second without it, so that the field is sparse. It takes the field's FloatVectorValues from the only leaf reader, advances a first values.iterator() to document 0, then takes a second values.iterator() from the same object and asserts that this one has not been advanced (docID() is -1). The test fails at that assertion (expected -1, was 0), the same with and without assertions; it uses no randomness.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

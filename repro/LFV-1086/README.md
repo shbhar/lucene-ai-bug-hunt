@@ -21,8 +21,8 @@ You open the documentation front page of Lucene 10.6.0 (docs/index.html) and rea
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main e1faeba08bde (2026-11-02): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main e1faeba08bde (a commit of 2026-11-02): reproduced.
 - The test reads index.html from the documentation tree named by the system property docs.dir, which the java command below leaves out. Build the page first with ./gradlew :lucene:documentation:createDocumentationIndex and add -Ddocs.dir=$LUCENE/lucene/documentation/build/site to the java command (with gradle: "-Ptests.jvmargs=-Ddocs.dir=$LUCENE/lucene/documentation/build/site"), or point docs.dir at the docs/ folder of an unpacked lucene-10.6.0 binary release. Without docs.dir the test fails with a NullPointerException, which is not the finding. The Lucene jars play no part: the page text decides the result.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

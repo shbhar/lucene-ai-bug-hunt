@@ -14,7 +14,7 @@ The test shows that `new CharacterRunAutomaton(new Automaton.Builder().finish())
 
 ## Expected vs actual
 
-Expected: a run automaton that accepts nothing. Actual: `ArrayIndexOutOfBoundsException: Index 0 out of bounds for length 0` (RunAutomaton.java:80 reads state 0 of the source), with -ea and -da.
+Expected: a run automaton that accepts nothing. Actual: `ArrayIndexOutOfBoundsException: Index 0 out of bounds for length 0` (the read of state 0 of the source: RunAutomaton.java:80 on main 645d4fe14a20 and on branch_11x b98f116b3179, :97 on main f6e694652c3d), with -ea and -da.
 
 ## Files
 
@@ -22,8 +22,8 @@ Expected: a run automaton that accepts nothing. Actual: `ArrayIndexOutOfBoundsEx
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main 645d4fe14a20 (2026-10-28): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

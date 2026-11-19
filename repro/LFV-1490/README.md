@@ -21,8 +21,8 @@ On main or branch_11x you turn the query cache on the way MIGRATE.md shows (new 
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main 781025d6fe32 (2026-11-13): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: it writes 10,000 documents into one segment, installs new LRUQueryCache(1_000, 50 MB) with UsageTrackingQueryCachingPolicy and searches 100 different IntPoint.newExactQuery filters, each wrapped in ConstantScoreQuery, three times each. It asserts that LRUQueryCache.getHitCount() is 100 and gets 0: the default policy caches a point query on its second use, so only the third use of each filter can be a hit. The expected 100 is what the same test counts on the 10.6.0 release, not a documented number. The test checks cache hits only; it compares no search result, and none is wrong. Ranges of one width, which the finding also covers, are not part of this test, nor is the earlier form with 20 filters over 10 segments that the table's record reports.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

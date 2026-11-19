@@ -13,7 +13,7 @@ You build the automaton ([0, Integer.MAX_VALUE] | [5, 10])* with Automata.makeCh
 ## Expected vs actual
 
 - Expected: `new CharacterRunAutomaton(d)` accepts `"abc"`.
-- Actual: `IllegalArgumentException: Automaton must be deterministic` at `RunAutomaton.java:64`, assertions on and off.
+- Actual: `IllegalArgumentException: Automaton must be deterministic` at `RunAutomaton.java:64` on main `5adff78bb168` (at `:77`, called from `:64`, on main `f6e694652c3d` of 2026-11-19), assertions on and off.
 
 ## Files
 
@@ -21,8 +21,8 @@ You build the automaton ([0, Integer.MAX_VALUE] | [5, 10])* with Automata.makeCh
 
 ## Run it
 
-- Tested on Lucene main ec3b3cca8f10 (2026-11-18): still reproduces.
-- Tested on Lucene main 5adff78bb168 (2026-11-02): reproduced.
+- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 5adff78bb168 (a commit of 2026-11-02): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
