@@ -13,7 +13,7 @@ You make SharedTermsUniformSplit the postings format of your codec (a FilterCode
 ## Expected vs actual
 
 - Expected: `forceMerge(1)` returns: 1 segment, `docFreq(id:a)` = 1.
-- Actual: `forceMerge(1)` throws `NullPointerException` (`"fieldsProducer" is null`) at `STUniformSplitTermsWriter.merge(STUniformSplitTermsWriter.java:297)`.
+- Actual: `forceMerge(1)` throws `NullPointerException` (`"fieldsProducer" is null`) at `STUniformSplitTermsWriter.merge(STUniformSplitTermsWriter.java:297)` on main `781025d6fe32` (line 296 on main `f2b061406c4b`).
 
 ## Files
 
@@ -21,7 +21,7 @@ You make SharedTermsUniformSplit the postings format of your codec (a FilterCode
 
 ## Run it
 
-- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: it makes STUniformSplitPostingsFormat the postings format of an anonymous FilterCodec, so it needs no META-INF/services entry, flushes one document with an indexed field and one with only a doc-values field, and calls forceMerge(1) under the serial merge scheduler; the NullPointerException from the merge reaches the test thread. The per-field wiring paths named in the title are not part of this test.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

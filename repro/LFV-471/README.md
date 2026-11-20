@@ -22,7 +22,7 @@ Expected, per the `commit()` javadoc ("All sequence numbers &lt;= this value wil
 
 ## Run it
 
-- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - What this folder covers: the test shows the first part of the title: tryDeleteDocument, called while commit() flushes, returns a sequence number above the commit's and its delete is in that commit. The second part of the title, a commit that holds no version of a document replaced during that flush, has no test in this folder. Run on 2026-11-18 on Lucene main 1cfa86310f76, with and without assertions: 1 test found, 1 test failed (tryDeleteDocument 7, the commit 6, the delete in the commit).

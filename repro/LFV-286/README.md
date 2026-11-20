@@ -22,7 +22,7 @@ Expected intervals [0,0] and [1,1] (what or(a, b) returns); actual only [0,0], w
 
 ## Run it
 
-- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

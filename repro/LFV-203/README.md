@@ -4,7 +4,7 @@ Finding LFV-203 · Area: queries / FunctionScoreQuery block-max pruning (#16431)
 
 Finding page: [../../bugs/LFV-203.html](../../bugs/LFV-203.html)
 
-AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by harshvardhanrp (open PR #17051) on 2026-11-19 (https://github.com/apache/lucene/pull/17051). Issue #17050 (harshvardhanrp, opened 2026-11-19: 'FunctionScoreQuery block-max bound drops top hits when the value field has a doc values skip index') is open; the open PR #17051 (same author, opened 2026-11-19; its description says 'Fixes #17050'; base main; no milestone and no review as of 2026-11-20) changes FunctionScoreQuery.java, DoubleValues.java and DoubleValuesSource.java. The pull request's change of FunctionScoreQuery's max score also clamps a negative bound: this defect. On a build of the pull request as of 2026-11-19 our repro passes, with and without assertions; it fails on main f2b061406c4b and on branch_11x 75eea467ac52. Neither item cites this list. They are not an earlier report of it: this row has been in the site's repository since its first commit of 2026-10-27, and both were opened on 2026-11-19. This site files nothing upstream.
 
 ## What it shows
 
@@ -22,7 +22,7 @@ Expected `IndexSearcher.search(q, 1)` to return the document (term score + 0); a
 
 ## Run it
 
-- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - This folder holds the registered repro, which shows the missing hit (one document with delta = -1000). The tests of the second consequence in the title, a search that does not return, are not shipped here: one document with delta = -1 and the term clause boosted by 10 (update of 2026-11-15); 6,000 or 1,002 documents with two SHOULD function clauses, where the minimum competitive score is already positive and the search does not return with assertions on either (update of 2026-11-16; in the runs that did not return, the size of the negative bound was between about 1 billion and about 10^15 times that score); and 4,097 documents with two MUST function clauses, the clause over the negative field written second, where the search does not return with assertions on or off (second part of that update). The finding page quotes the 1,002-document and the 4,097-document test in full, with their commands and output, in its collapsed block "Mechanism, terms and numbers" ("Shape 2" and "Shape 3"), and describes the one-document and the 6,000-document test there ("Shape 1" and "Shape 2"); the Affected versions text of its finding record gives the shape of each.

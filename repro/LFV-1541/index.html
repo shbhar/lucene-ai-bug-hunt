@@ -19,6 +19,7 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>Sandbox DrillSidewaysFacetOrchestrator#collect(query, drillSideways, mainCollector) returns the internal MultiCollectorManager&#x27;s Object[] instead of the main collector manager&#x27;s result: with a TopScoreDocCollectorManager, assigning the result to TopDocs throws ClassCastException (run also with a hit-count and a sorted top-docs manager; an experimental class; 10.2.0 to 10.6.0, branch_11x and main)</h1>
 <p class="facts small"><span>Finding LFV-1541</span><span>Area: sandbox / facets (the facet builder utilities: DrillSidewaysFacetOrchestrator#collect with a main collector manager, over the facet module&#x27;s DrillSideways)</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-1541.html">Finding page for LFV-1541</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You ask the sandbox drill-sideways helper for hits and facets in one call: TopDocs hits = new DrillSidewaysFacetOrchestrator().addDrillSidewaysBuilder(&quot;price&quot;, builder).collect(query, drillSideways, new TopScoreDocCollectorManager(1, 1)). You expect the top hits, because the method is declared to return the result of the collector manager you pass and the sibling FacetOrchestrator#collect does so. Instead the method returns the Object[] of its internal MultiCollectorManager (the hits are its element 0, in this call its only element), so the assignment throws ClassCastException: Object[] cannot be cast to TopDocs; the facet counts collected by the same call are right.</p>
@@ -27,10 +28,10 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/sandbox/facet/utils/TestDrillSidewaysOrchestratorMainResult.java"><code>src/org/apache/lucene/sandbox/facet/utils/TestDrillSidewaysOrchestratorMainResult.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.</li>
+<li>Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.</li>
 <li>Tested on Lucene branch_11x 89e68e0f3a50 (a commit of 2026-11-17): reproduced.</li>
 <li>A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there.</li>
-<li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
+<li>How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with a java.lang.ClassCastException whose message begins &#x27;class [Ljava.lang.Object; cannot be cast to class org.apache.lucene.search.TopDocs&#x27;, thrown at line 52 of the test, the collect call, before the test&#x27;s assertion is reached.</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
@@ -50,4 +51,5 @@ java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=A
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.sandbox.facet.utils.TestDrillSidewaysOrchestratorMainResult</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on the 11.0 branch the build takes the default from the seed).</p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-19. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<h2>Files shown on the finding page</h2><ul><li><a href="TestDrillSidewaysOrchestratorMainResult.java"><code>TestDrillSidewaysOrchestratorMainResult.java</code></a></li></ul>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-20. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

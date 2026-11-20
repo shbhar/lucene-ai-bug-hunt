@@ -1,0 +1,24 @@
+import os
+import subprocess
+import sys
+import tempfile
+import unittest
+
+CHANGES_TXT = "======================= Lucene 9.9.1 =======================\n{}\n======================= Lucene 9.9.0 =======================\n"
+
+
+class TestDiffLuceneChanges(unittest.TestCase):
+  def test_shows_the_entry_that_differs(self):
+    with tempfile.TemporaryDirectory() as tmp:
+      for clone, entry in (("stable", "* Fix one."), ("main", "* Fix two.")):
+        os.makedirs(os.path.join(tmp, clone, "lucene"))
+        with open(os.path.join(tmp, clone, "lucene", "CHANGES.txt"), "w") as f:
+          f.write(CHANGES_TXT.format(entry))
+      command = [sys.executable, "-u", "dev-tools/scripts/diff_lucene_changes.py", os.path.join(tmp, "stable"), os.path.join(tmp, "main"), "9.9.1"]
+      output = subprocess.run(command, check=True, capture_output=True, text=True).stdout
+    # expected: the tool shows the one line that differs; actual: it shows no diff line
+    self.assertIn("< * Fix one.\n---\n> * Fix two.\n", output)
+
+
+if __name__ == "__main__":
+  unittest.main()

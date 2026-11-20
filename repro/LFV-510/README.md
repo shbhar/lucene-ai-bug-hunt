@@ -24,7 +24,7 @@ Expected the token `ab😀😀cd` to become `ab😀` (4 UTF-16 chars, the 10.4.0
 
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- This finding was re-run on Lucene main 1ae70c6e45b8 on 2026-11-19: behaviour changed; still counted as a finding; in the commands below, V=12.0.0-SNAPSHOT on a build of main 1ae70c6e45b8.
+- This finding was re-run on Lucene main f2b061406c4b on 2026-11-19: behaviour changed; still counted as a finding; in the commands below, V=12.0.0-SNAPSHOT on a build of main f2b061406c4b.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

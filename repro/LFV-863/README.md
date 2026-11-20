@@ -6,7 +6,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You search with a BooleanQuery such as '+body:quick -(spanNear([body:brown, body:fox], 0, true) body:dog)', which ComplexPhraseQueryParser builds from 'quick AND NOT ("brown fox" OR dog)', and call IndexSearcher.explain to see why a document matched or not; you expect an Explanation. Instead explain throws NullPointerException (AssertionError with -ea): Lucene builds the weight of a FILTER or MUST_NOT clause, or of the query inside a FunctionScoreQuery whose source does not read scores, without scores, but BooleanWeight.explain still asks that weight's scorers for score(), and a span scorer built without scores has no similarity scorer. Search results are correct and only explain fails, but Monitor's ExplainingMatch reports such a query as an error and loses its match.
+You search with a BooleanQuery such as '+body:quick -(spanNear([body:brown, body:fox], 0, true) body:dog)', which ComplexPhraseQueryParser builds from 'quick AND NOT ("brown fox" OR dog)', and call IndexSearcher.explain to see why a document matched or not; you expect an Explanation. Instead explain throws NullPointerException (AssertionError with -ea): Lucene builds the weight of a FILTER or MUST_NOT clause, or of the query inside a FunctionScoreQuery whose source does not read scores, without scores, but BooleanWeight.explain still asks that weight's scorers for score(), and a span scorer built without scores has no similarity scorer. Search results are correct and only explain fails, but Monitor's ExplainingMatch reports such a query as an error and loses its match. With the default IndexSearcher the example throws on main and branch_11x; on 8.7.0 to 10.6.0 it throws only on a searcher without a query cache (setQueryCache(null)).
 
 ## Expected vs actual
 
@@ -22,7 +22,7 @@ You search with a BooleanQuery such as '+body:quick -(spanNear([body:brown, body
 
 ## Run it
 
-- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
 - Tested on Lucene main a9779ef3c193 (a commit of 2026-10-26): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

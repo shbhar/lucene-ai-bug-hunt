@@ -1,0 +1,36 @@
+The command of this finding and what Gradle prints at its end.
+
+Run in a clean Lucene checkout of main or of branch_11x, with JDK 25 on the PATH:
+
+  ./gradlew --configuration-cache :lucene:core:compileJava
+
+Expected. Printed on main 1ae70c6e45b8, the commit before #17035 (branch_11x b98f116b3179, the commit before it on
+that branch, and a checkout of the tag releases/lucene/10.6.0 also end with BUILD SUCCESSFUL and 'Configuration cache
+entry stored.'):
+
+  BUILD SUCCESSFUL in 22s
+  5 actionable tasks: 5 executed
+  Configuration cache entry stored.
+
+Observed. Printed on main f2b061406c4b (branch_11x 75eea467ac52 prints the same lines about the problems):
+
+  FAILURE: Build failed with an exception.
+
+  * What went wrong:
+  Configuration cache problems found in this build.
+
+  7 problems were found storing the configuration cache, 3 of which seem unique.
+  - Task `:lucene:core:compileJava` of type `org.gradle.api.tasks.compile.JavaCompile`: cannot serialize object of type 'org.apache.lucene.gradle.plugins.misc.QuietExec', a subtype of 'org.gradle.api.Task', as these are not supported with the configuration cache.
+  - Task `:lucene:core:compileJava` of type `org.gradle.api.tasks.compile.JavaCompile`: cannot serialize object of type 'org.apache.lucene.gradle.plugins.regenerate.JFlexTask', a subtype of 'org.gradle.api.Task', as these are not supported with the configuration cache.
+  - Task `:lucene:core:compileJava` of type `org.gradle.api.tasks.compile.JavaCompile`: cannot serialize object of type 'org.gradle.api.DefaultTask', a subtype of 'org.gradle.api.Task', as these are not supported with the configuration cache.
+
+  (under each of the three problems Gradle also prints a line that begins with 'See' and gives the address of a
+  page of its user guide; those three lines are left out here. A line with the path of Gradle's report and
+  Gradle's general hints follow here)
+
+  BUILD FAILED in 20s
+  5 actionable tasks: 5 executed
+  Configuration cache entry discarded with 7 problems.
+
+Runs of 2026-11-20 with JDK 25.0.3 on Linux aarch64, each in a fresh checkout of the commit, with the checkout's own
+Gradle (9.9.1; 9.8.0 at the 10.6.0 tag).

@@ -2,6 +2,8 @@
 
 Finding LFV-1550 · Area: suggest / spell: SpellChecker.swapSearcher (the reader swap at the end of indexDictionary, clearIndex and setSpellIndex) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-1550.html](../../bugs/LFV-1550.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -19,9 +21,9 @@ You add a word to a spell index with SpellChecker.indexDictionary; the word is c
 
 ## Run it
 
-- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
 - Tested on Lucene main ec3b3cca8f10 (a commit of 2026-11-18): reproduced.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with org.apache.lucene.store.AlreadyClosedException: this IndexReader is closed and, as a suppressed exception under it, MockDirectoryWrapper: cannot close: there are still 2 open files.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -44,6 +46,10 @@ java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=A
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+
+## Files shown on the finding page
+
+- [TestSpellCheckerFailedReaderClose.java](TestSpellCheckerFailedReaderClose.java)
 
 ## Feedback
 

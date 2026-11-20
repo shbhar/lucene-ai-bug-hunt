@@ -2,6 +2,8 @@
 
 Finding LFV-1541 · Area: sandbox / facets (the facet builder utilities: DrillSidewaysFacetOrchestrator#collect with a main collector manager, over the facet module's DrillSideways) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-1541.html](../../bugs/LFV-1541.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -19,10 +21,10 @@ You ask the sandbox drill-sideways helper for hits and facets in one call: TopDo
 
 ## Run it
 
-- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
 - Tested on Lucene branch_11x 89e68e0f3a50 (a commit of 2026-11-17): reproduced.
 - A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with a java.lang.ClassCastException whose message begins 'class [Ljava.lang.Object; cannot be cast to class org.apache.lucene.search.TopDocs', thrown at line 52 of the test, the collect call, before the test's assertion is reached.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -46,6 +48,10 @@ java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=A
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+
+## Files shown on the finding page
+
+- [TestDrillSidewaysOrchestratorMainResult.java](TestDrillSidewaysOrchestratorMainResult.java)
 
 ## Feedback
 

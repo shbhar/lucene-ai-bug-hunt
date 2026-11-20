@@ -36,6 +36,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [count-totalhits](count-totalhits/) | Alloy | LFV-086 |
 | [datainput-impls-strings](datainput-impls-strings/) | Python | LFV-107 |
 | [deleteall-during-addindexes-keeps-imported-field-schema](deleteall-during-addindexes-keeps-imported-field-schema/) | TLA+/TLC | LFV-1074 |
+| [diff-lucene-changes-unflushed-temp-files](diff-lucene-changes-unflushed-temp-files/) | Python | LFV-1557 |
 | [directio-nrtcaching-dirs](directio-nrtcaching-dirs/) | Python | LFV-226 |
 | [dismax-synonym-combined](dismax-synonym-combined/) | Python | LFV-272 |
 | [distance-feature-pruning](distance-feature-pruning/) | SMT-LIB (Z3/cvc5), Python | LFV-379 |
@@ -81,6 +82,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [hunspell-set-encoding-names-vs-c-hunspell-reference](hunspell-set-encoding-names-vs-c-hunspell-reference/) | Python | LFV-933, LFV-928 |
 | [hunspell-synthetic-dictionary-differential](hunspell-synthetic-dictionary-differential/) | Python | LFV-731 |
 | [hunspell-wordform-generator-munch-differential](hunspell-wordform-generator-munch-differential/) | Python | LFV-641, LFV-634 |
+| [icutokenizer-japanese-word-segmentation](icutokenizer-japanese-word-segmentation/) | Python | LFV-1566 |
 | [index-sorting](index-sorting/) | Alloy | LFV-1050, LFV-095 |
 | [indexeddisi-dv-bulk](indexeddisi-dv-bulk/) | Python | LFV-169, LFV-165 |
 | [indexfiledeleter-refcount-tla](indexfiledeleter-refcount-tla/) | TLA+/TLC | LFV-472 |
@@ -107,7 +109,9 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [locks-pending-deletes](locks-pending-deletes/) | TLA+/TLC | LFV-343 |
 | [lruquerycache-partitioned-clear-and-callback-serialization](lruquerycache-partitioned-clear-and-callback-serialization/) | TLA+/TLC | LFV-991, LFV-1001, LFV-1000 |
 | [memory-bitset-collector-manager](memory-bitset-collector-manager/) | TLA+/TLC | LFV-348 |
+| [merge-commit-source-release-doc-values-updates](merge-commit-source-release-doc-values-updates/) | Python | LFV-1563 |
 | [merge-on-commit-refresh-tla](merge-on-commit-refresh-tla/) | TLA+/TLC | LFV-502 |
+| [merge-readers-left-open-after-writer-close](merge-readers-left-open-after-writer-close/) | Python | LFV-1564 |
 | [migrate-upgrade-example-forcemerge-keeps-old-format](migrate-upgrade-example-forcemerge-keeps-old-format/) | Python | LFV-1030 |
 | [misc-reorder-split](misc-reorder-split/) | Python | LFV-531 |
 | [monitor-lifecycle-persistence-mbt](monitor-lifecycle-persistence-mbt/) | TLA+/TLC | LFV-499, LFV-501 |
@@ -184,6 +188,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [twin-family-static-diff](twin-family-static-diff/) | Python | LFV-427 |
 | [uax29-word-boundaries-reference](uax29-word-boundaries-reference/) | Python | LFV-734 |
 | [unicode-conversions](unicode-conversions/) | Python | LFV-385 |
+| [unified-highlighter-cross-value-phrase-passage-end](unified-highlighter-cross-value-phrase-passage-end/) | Python | LFV-1561 |
 | [upstream-delta-columnar-dense-vector-batch](upstream-delta-columnar-dense-vector-batch/) | Python | LFV-579 |
 | [vectorutil-providers](vectorutil-providers/) | Python | LFV-138 |
 | [wand-blockmax-bounds](wand-blockmax-bounds/) | Python | LFV-104, LFV-113 |

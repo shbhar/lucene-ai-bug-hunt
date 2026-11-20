@@ -2,6 +2,8 @@
 
 Finding LFV-1543 · Area: index / IndexWriter close() and rollback() (rollbackInternalNoCommit: the first log statement, in front of the try; shouldClose and the closing flag; the write lock) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-1543.html](../../bugs/LFV-1543.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -19,10 +21,10 @@ You turn on IndexWriter's InfoStream (its diagnostic log, off by default), add a
 
 ## Run it
 
-- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
 - Tested on Lucene branch_11x 89e68e0f3a50 (a commit of 2026-11-17): reproduced.
 - The test of this folder adds no document: it is a smaller form of the scenario above and checks two things, that close() throws a RuntimeException and that the write lock can then be obtained. A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with an org.apache.lucene.store.LockObtainFailedException whose message begins 'lock instance already obtained' and names the lock write.lock, thrown at line 48 of the test, where the test asks the directory for the write lock after close() has thrown.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -43,6 +45,10 @@ java -da -dsa -Dtests.asserts=false -Xmx1g --add-modules jdk.incubator.vector --
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+
+## Files shown on the finding page
+
+- [TestCloseThrowsOnRollbackLogLine.java](TestCloseThrowsOnRollbackLogLine.java)
 
 Formal models and scripts this finding's part of the hunt used: [../../models/indexwriter-rollback-throwing-infostream/](../../models/indexwriter-rollback-throwing-infostream/)
 

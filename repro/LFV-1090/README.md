@@ -21,7 +21,7 @@ You add a document to an IndexWriter, then send a long run of doc-values updates
 
 ## Run it
 
-- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
 - Tested on Lucene main e1faeba08bde (a commit of 2026-11-02): reproduced.
 - The test is marked @Monster (about 2.2 GB of buffered doc-values updates, 3 GB heap), so the recipe enables the monster test group with -Dtests.monster=true through JAVA_TOOL_OPTIONS; without it the console launcher aborts the test instead of running it.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

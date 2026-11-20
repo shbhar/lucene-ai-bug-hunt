@@ -2,6 +2,8 @@
 
 Finding LFV-1548 · Area: misc / index tools (IndexMergeTool.main: the writer configuration of the merged index and the tool's option list); IndexWriter.addIndexes field-role checks · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-1548.html](../../bugs/LFV-1548.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -19,7 +21,7 @@ You run the command-line tool IndexMergeTool on two indexes that your applicatio
 
 ## Run it
 
-- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
 - Tested on Lucene main ec3b3cca8f10 (a commit of 2026-11-18): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
@@ -43,6 +45,10 @@ java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=A
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+
+## Files shown on the finding page
+
+- [TestIndexMergeToolSoftDeletes.java](TestIndexMergeToolSoftDeletes.java)
 
 ## Feedback
 

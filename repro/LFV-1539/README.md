@@ -2,6 +2,8 @@
 
 Finding LFV-1539 · Area: join / JoinUtil scoring term join (TermsIncludingScoreQuery: the cost its scorer supplier computes from Terms#size(); BitSetIterator's constructor check) · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-1539.html](../../bugs/LFV-1539.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -19,10 +21,10 @@ You put an index reader behind a view whose Terms#size() returns -1, the value t
 
 ## Run it
 
-- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
 - Tested on Lucene branch_11x 89e68e0f3a50 (a commit of 2026-11-17): reproduced.
-- A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there. Against the 10.6.0 release jars the test as shipped does not compile, because LeafReader#terms declares IOException there: on line 38 write 'public Terms terms(String field) throws java.io.IOException'. With that change it fails 1 of 1 on those jars, with and without assertions, with the same message.
+- How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with java.lang.IllegalArgumentException: cost must be &gt;= 0, got -2 (thrown by the constructor of BitSetIterator inside the search call of the test's line 64, so the test's own comparison is never made).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -45,6 +47,10 @@ java -da -dsa -Dtests.asserts=false -Xmx1g --add-modules jdk.incubator.vector --
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+
+## Files shown on the finding page
+
+- [TestScoringJoinUnknownTermCount.java](TestScoringJoinUnknownTermCount.java)
 
 Formal models and scripts this finding's part of the hunt used: [../../models/scoring-term-join-unknown-term-count/](../../models/scoring-term-join-unknown-term-count/)
 

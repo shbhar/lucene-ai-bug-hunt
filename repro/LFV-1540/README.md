@@ -2,6 +2,8 @@
 
 Finding LFV-1540 · Area: suggest / analyzing: BlendedInfixSuggester blended score (createCoefficient, calculateCoefficient) under AnalyzingInfixSuggester's lookup with contexts · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-1540.html](../../bugs/LFV-1540.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -19,9 +21,9 @@ You build a BlendedInfixSuggester with its two-argument constructor over the sto
 
 ## Run it
 
-- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
 - Tested on Lucene branch_11x 89e68e0f3a50 (a commit of 2026-11-17): reproduced.
-- A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there.
+- A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there. With the jars of a release the test as shipped also fails 2 of 2 on 9.1.0, 9.12.3, 10.5.2 and 10.6.0. For a release from 5.0.0 to 9.0.0 change one line first: the import of LuceneTestCase becomes 'import org.apache.lucene.util.LuceneTestCase;' (with that change it fails 2 of 2 on 5.0.0, 5.5.5, 6.6.6, 7.7.3, 8.11.4 and 9.0.0, run with JDK 25 and the test dependencies of each release; with a JDK before 9 the two Set.of calls have to be replaced as well, javac --release 8 rejects them). A 4.x release needs more changes, and the shipped file was not run there.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -45,6 +47,10 @@ java -da -dsa -Dtests.asserts=false -Xmx1g --add-modules jdk.incubator.vector --
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+
+## Files shown on the finding page
+
+- [TestBlendedInfixSuggesterNoTokenKey.java](TestBlendedInfixSuggesterNoTokenKey.java)
 
 ## Feedback
 

@@ -21,7 +21,7 @@ You compare MutableValues of different classes, for example a MutableValueBool, 
 
 ## Run it
 
-- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
 - Tested on Lucene main f794ff5a505c (a commit of 2026-11-06): reproduced.
 - Run the java command below with the java of an OpenJ9 JDK or JRE 25 (default settings), whose identity hash codes can be negative; the classes may be compiled with any JDK 25. On HotSpot the test passes. Each run gets new class hash codes, so one OpenJ9 run fails about 9 times in 10.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

@@ -21,8 +21,9 @@ You create new UsageTrackingQueryCachingPolicy(715_827_883) (the same int overfl
 
 ## Run it
 
-- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
 - Tested on Lucene main a9779ef3c193 (a commit of 2026-10-26): reproduced.
+- The Actual line quotes the JUnit form of the test, which the finding page shows. The main() class that the recipe runs reports the same hang as 'HANG: onUse call #2 of 3 did not return within 120 s' and exits with code 1.
 - How to read the outcome: a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

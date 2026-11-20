@@ -19,6 +19,7 @@ th,td.nw{white-space:nowrap;overflow-wrap:normal}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>BooleanPerceptronClassifier&#x27;s constructor (in the 5.x releases its train() method) can throw IOException &#x27;term vectors must be stored for field &lt;text field&gt;&#x27; although the field stores term vectors: a training document whose text has no token has no term vector, and when that document is misclassified at its turn the class reads this as a missing field configuration (run: an empty text labelled true under StandardAnalyzer with the automatic bias; the same document labelled false trains; an experimental class; 5.0.0 to 10.6.0, branch_11x and main)</h1>
 <p class="facts small"><span>Finding LFV-1538</span><span>Area: classification / BooleanPerceptronClassifier (training loop of the constructor: updateWeights)</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-1538.html">Finding page for LFV-1538</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You train a BooleanPerceptronClassifier with the automatic bias on an index whose text field is stored with term vectors, as the class needs, and one training document labelled true has an empty text (also run: only punctuation under StandardAnalyzer, only a stop word under EnglishAnalyzer). You expect a trained classifier, since the same document labelled false is accepted and nothing in the class&#x27;s documentation requires a token in every training document, or at least an error that names that document. Instead the constructor throws IOException &#x27;term vectors must be stored for field text&#x27;: Lucene stores no term vector for a document whose field has no token, and when the training loop finds that document misclassified, the classifier takes its missing term vector for a field that stores none.</p>
@@ -27,10 +28,10 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/classification/TestBooleanPerceptronClassifierEmptyText.java"><code>src/org/apache/lucene/classification/TestBooleanPerceptronClassifierEmptyText.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.</li>
+<li>Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.</li>
 <li>Tested on Lucene branch_11x 89e68e0f3a50 (a commit of 2026-11-17): reproduced.</li>
 <li>A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there.</li>
-<li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).</li>
+<li>How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with java.io.IOException: term vectors must be stored for field text (the test has no assertion of its own and fails by that exception).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
 </ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
 LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
@@ -51,4 +52,5 @@ java -da -dsa -Dtests.asserts=false -Xmx1g --add-modules jdk.incubator.vector --
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.classification.TestBooleanPerceptronClassifierEmptyText</code></pre>
 <p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on the 11.0 branch the build takes the default from the seed).</p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-19. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<h2>Files shown on the finding page</h2><ul><li><a href="TestBooleanPerceptronClassifierEmptyText.java"><code>TestBooleanPerceptronClassifierEmptyText.java</code></a></li></ul>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-20. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

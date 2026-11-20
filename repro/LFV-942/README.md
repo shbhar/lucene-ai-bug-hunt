@@ -1,4 +1,4 @@
-# The file-format javadoc of the default field infos format (Lucene94FieldInfosFormat) gives a wrong .fnm grammar: the per-field sequence leaves out IndexOptions, the doc-values skip-index byte, PointIndexDimensionCount and the three vector elements, and the value tables miss written values (doc-values codes 4 and 5, FieldBits 0x8 and 0x10, IndexOptions 5 since 10.5.0, VectorEncoding 2 on main) (documentation defect; the writer and reader agree)
+# The file-format javadoc of the default field infos format (Lucene94FieldInfosFormat) gives a wrong .fnm grammar: the per-field sequence leaves out IndexOptions, the doc-values skip-index byte, PointIndexDimensionCount and the three vector elements, and the value tables miss written values (doc-values codes 4 and 5, FieldBits 0x8 and 0x10, IndexOptions 5 since 10.5.0, VectorEncoding 2 on main and branch_11x) (documentation defect; the writer and reader agree)
 
 Finding LFV-942 · Area: codecs / field infos (Lucene94FieldInfosFormat .fnm file-format javadoc vs its writer and reader) · Priority: low · Impact: minor · Novelty: new
 
@@ -22,7 +22,7 @@ DocValuesBits doc-values nibble 0 (the field has no doc values); actual 3 (Index
 
 ## Run it
 
-- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

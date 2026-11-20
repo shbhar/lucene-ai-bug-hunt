@@ -21,7 +21,7 @@ You merge an index through DirectIODirectory (an opt-in, experimental directory 
 
 ## Run it
 
-- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: it opens a DirectIODirectory (default constructor) over an FSDirectory on a wrapped file system that lets no file grow past one block: the positional write that crosses that limit stores the bytes up to it and returns that count, and a write that starts at or past the limit throws 'File too large', as FileChannel.write does under a process file-size limit. It creates an output with a merge context, writes one block plus one byte and expects close() to throw an IOException, because the last byte cannot be stored. close() returns normally, so the test fails with 'Expected exception IOException but no exception was thrown', the same with and without assertions. Only that message is the finding. The limit is simulated by the test's file system; the forced merge under a real ulimit -f limit that the summary describes is not part of this test. The test opens its file with direct I/O under the JVM's temporary directory, so that directory must be on a disk-backed file system that supports direct I/O (ext4 or xfs, for example). Where it does not (a tmpfs /tmp on Linux 6.1, for example) the test fails earlier and for another reason, with 'FileSystemException: ... Invalid argument', which is not the finding: add -Djava.io.tmpdir=/path/on/such/a/file/system to the java command.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

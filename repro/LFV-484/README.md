@@ -19,7 +19,7 @@ You build a BlendedTermQuery for "lucene" on the fields title and keywords, as i
 
 ## Run it
 
-- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
 - What this folder covers: the test class holds the negative score of a match through the sparse field on one segment, the same match missing from search(q, 10) on three segments, and the NullPointerException for a blended field with no indexed terms. The search that does not return, named in the title, has no test in this folder. Run on 2026-11-18 on Lucene main 1cfa86310f76, with and without assertions: 3 tests found, 3 tests failed (the document that matches only through the sparse field scores -0.10 with BOOLEAN_REWRITE and -0.001 with DISJUNCTION_MAX_REWRITE; on three segments search(q, 10) returns 2 of the 3 matching documents; NullPointerException).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

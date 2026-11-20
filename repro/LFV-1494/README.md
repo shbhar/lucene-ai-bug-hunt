@@ -21,7 +21,7 @@ You open an index that was written with SimpleTextCodec (Lucene's plain-text cod
 
 ## Run it
 
-- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: it writes one empty document with SimpleTextCodec (compound files off) into a MockDirectoryWrapper over a ByteBuffersDirectory and then replaces the stored-fields file _0.fld with an empty file. MockDirectoryWrapper is the test framework's wrapping Directory that keeps count of open files; it is part of the test and is what reports the open file. The test expects DirectoryReader.open to throw CorruptIndexException, which it does, and then closes the directory. It fails there with 'MockDirectoryWrapper: cannot close: there are still 1 open files: {_0.fld=1}', the same with and without assertions. The fault in this test is a damaged (emptied) file, not the read I/O error that the description above starts from; an earlier form of the test injected that read error through its own wrapping Directory and found the same file open. The term-vectors, doc-values and norms files are not part of this test. It needs the core, codecs and test-framework jars only and no extra heap.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

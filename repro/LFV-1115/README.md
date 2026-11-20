@@ -20,7 +20,7 @@ You register the query f:alpha OR f:beta in a persistent Monitor on 10.2.2, upgr
 
 ## Run it
 
-- Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
 - Tested on Lucene main e1faeba08bde (a commit of 2026-11-02): reproduced.
 - Fixture (required): the test reads monitor-index-10.2.2.zip, a persistent Monitor query index with one registered query, written by Lucene 10.2.2, from its package on the class path. This site ships no binary index files, so the recipe first makes it with fixture-src/WriteMonitorIndex.java on the 10.2.2 release jars (Maven Central) and puts it in src/, which the run puts on the class path. The writer JVM's tests.seed fixes the order in which 10.2.2 stores the query's two disjuncts; CAFEBABE stores them reversed, the case that loses matches.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
