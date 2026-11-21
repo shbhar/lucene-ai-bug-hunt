@@ -23,7 +23,7 @@ You merge an index and its taxonomy into another index/taxonomy pair with Taxono
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): still fails 1 of 1, with and without assertions (run with the test adapted to two API removals: #16962 made the no-argument MatchAllDocsQuery constructor private on main (24d9e7d1a0d) and on the 11.0 branch (branch_11x, a6a26f9b251), and #16805, e0a3a951e7e, removed IndexSearcher.search(Query, Collector) on main, not on the 11.0 branch as of daa54f2e0cd3; lines 95 and 96 become FacetsCollector fc = searcher.search(MatchAllDocsQuery.INSTANCE, new FacetsCollectorManager()), with an import of org.apache.lucene.facet.FacetsCollectorManager, and this form compiles on both branches).
 - Tested on Lucene main 5adff78bb168 (a commit of 2026-11-02): reproduced, with the test as shipped.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
-- This finding was re-run on Lucene main f2b061406c4b on 2026-11-19: still reproduces (the repro adapted to an API change on this commit).
+- This finding was re-run on Lucene main 7b8418faa2ff on 2026-11-20: still reproduces (the repro adapted to an API change on this commit).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

@@ -20,7 +20,7 @@ You delete or update documents and then count all values of a long field with ne
 
 ## Run it
 
-- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): still reproduces.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

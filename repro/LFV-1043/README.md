@@ -21,7 +21,7 @@ Several threads add and delete documents on one IndexWriter; afterwards you comm
 
 ## Run it
 
-- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main e1faeba08bde: 1 test(s) run, 1 failed (testNullTicketDoesNotLeaveTicketCount).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

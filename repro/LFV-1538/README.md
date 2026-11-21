@@ -21,7 +21,7 @@ You train a BooleanPerceptronClassifier with the automatic bias on an index whos
 
 ## Run it
 
-- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): still reproduces.
 - Tested on Lucene branch_11x 89e68e0f3a50 (a commit of 2026-11-17): reproduced.
 - A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there.
 - How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with java.io.IOException: term vectors must be stored for field text (the test has no assertion of its own and fails by that exception).

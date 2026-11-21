@@ -21,7 +21,7 @@ You join parent documents to their children with JoinUtil.createJoinQuery(joinFi
 
 ## Run it
 
-- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: it runs a ScoreMode.Total join over a one-segment index of one parent and two children that score 1 each, with a searcher that allows segment partitions; it asserts a parent score of 2.0 and gets 1.0. It forces the schedule that shows the finding: the score() of its child query waits, for at most 5 seconds, until both children are being scored at once, so two threads have each read the parent's stored score before either adds to it. Lost hits, infinite scores and the min/max filter named in the title are not part of this test.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

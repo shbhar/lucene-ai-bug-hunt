@@ -21,7 +21,7 @@ In no release: 10.6.0 does not have it and 11.0.0 would be the first release wit
 
 ## Run it
 
-- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - In no release: the test fails on Lucene main and on the 11.0 release branch (branch_11x daa54f2e0cd3), with and without assertions, and passes on the 10.6.0 release jars, so 11.0.0 would be the first release with it. What the test does: it calls SegmentInfos.commit on an empty in-memory directory whose sync throws an OutOfMemoryError, expects that Error, and then expects the directory to be empty, as it is on 10.6.0. On main and branch_11x the new commit file stays, so the test fails with 'array lengths differed, expected.length=0 actual.length=1; arrays first differed at element [0]; expected:&lt;end of array&gt; but was:&lt;pending_segments_1&gt;'. What the leftover means: readers ignore it and the next IndexWriter deletes it when it opens; only a commit made without an IndexWriter from a freshly read SegmentInfos before that (CheckIndex with exorcise, IndexSplitter's remove option) fails once with FileAlreadyExistsException, removes the leftover while failing, and works on the attempt after; no committed data is touched. 10.6.0 and 9.12.3 fail the same way once when such a stale file is already in the directory (the runs put it there by hand; by the code, a JVM that dies in the middle of a commit leaves one). The test uses no randomness.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

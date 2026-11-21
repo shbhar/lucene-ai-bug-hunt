@@ -21,7 +21,7 @@ You build a global-ordinals join with JoinUtil.createJoinQuery and ScoreMode.Non
 
 ## Run it
 
-- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: it indexes one "to" document and two "from" documents that share one join value and compares the score of the ScoreMode.None join with min = 2 with the score of the same join without a min/max filter. It fails because the filtered join scores 0.0 where the unfiltered join scores 1.0. The effects on a boost, on explain() and on ranking named above follow from that score and are not part of this test. Only main has the change: on a build of the 11.0 branch (run on branch_11x 9d2b5a15427a, 2026-11-17) and on the 10.6.0 release the test passes, with assertions on and off; on main 9965d34e3c77 it fails as described.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

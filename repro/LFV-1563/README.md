@@ -2,7 +2,7 @@
 
 Finding LFV-1563 · Area: index / IndexWriter merge commit (the release of a finished merge's source segments with reader pooling off; doc-values updates and their overlays) · Priority: low · Impact: crash · Novelty: known upstream
 
-AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by kkewwei (open PR #17053) on 2026-11-20 (https://github.com/apache/lucene/pull/17053). Open PR #17053 (kkewwei, 'Avoid flushing pending DocValues updates to disk for merging segments', opened 2026-11-20, base main, 'Resolved #17048'; no review, no comment and no milestone when read on 2026-11-20) changes IndexWriter.closeMergeReaders, adds a test to TestMergeCarryOverFromDisk and a CHANGES.txt line. It does not cite this list. On a build of the pull request this row's test passes with and without assertions; it fails on main f2b061406c4b and on branch_11x 75eea467ac52, and passes on branch_11x with the pull request's diff applied (run on 2026-11-20). This site files nothing upstream.
 
 ## What it shows
 
@@ -19,7 +19,7 @@ You open an IndexWriter with setReaderPooling(false) and otherwise default index
 
 ## Run it
 
-- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): still reproduces.
 - Tested on Lucene main 2cf3f5776d9e (a commit of 2026-11-19): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

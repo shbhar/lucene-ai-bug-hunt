@@ -19,7 +19,8 @@ You analyze the same Japanese text twice with the default ICUTokenizer. You expe
 
 ## Run it
 
-- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): still reproduces.
+- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): reproduced.
 - The commands need the ICU4J jar that the checkout names: put icu4j-79.1.jar (Maven Central, com.ibm.icu:icu4j; 79.1 is the version of main f2b061406c4b) beside the test jars and add the line CP=$CP:icu4j-79.1.jar before the javac line. Without it the run reports 1 test failed with java.lang.NoClassDefFoundError: com/ibm/icu/util/ULocale, which is not the finding. With it the test fails with java.lang.AssertionError: expected:&lt;[コン, ーング゠]&gt; but was:&lt;[コン, ーン, グ゠]&gt;, with assertions on and off.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

@@ -22,7 +22,7 @@ Since #16571 (main 354165bd7d9, 2026-11-12; also on branch_11x) only the missing
 - Tested on Lucene main 9965d34e3c77 (a commit of 2026-11-16): still fails 2 of 3, with and without assertions, in the narrower form the next line describes (run with the test adapted as that line says).
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): still fails 2 of 3, with and without assertions, but narrower than on the releases: since 354165bd7d9 (#16571) the forced merge is reordered again, and only the bp.reordered diagnostic and the setMergeInfo, mergeInit and mergeFinished calls on the wrapped merge are still missing (run with the test adapted to #16962, which made the no-argument MatchAllDocsQuery constructor private on main (24d9e7d1a0d) and on the 11.0 branch (branch_11x, a6a26f9b251): three lines pass a lambda returning MatchAllDocsQuery.INSTANCE instead of MatchAllDocsQuery::new).
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
-- This finding was re-run on Lucene main f2b061406c4b on 2026-11-19: still reproduces (the repro adapted to an API change on this commit).
+- This finding was re-run on Lucene main 7b8418faa2ff on 2026-11-20: still reproduces (the repro adapted to an API change on this commit).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

@@ -22,7 +22,7 @@ Expected: delete seqNo 2 &lt; addIndexes seqNo 3, so the added document stays li
 
 ## Run it
 
-- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - Known upstream for the delete case, which is the case this test shows: on the Lucene dev@ list on 2022-02-01, in the thread "AddIndexes(CodecReader...) API Question" (https://lists.apache.org/thread/9vso3pkmv6r941hg60r7dp0xh91dnwf4), Vigya Sharma wrote that a delete by term that arrives before addIndexes completes is applied to the incoming documents and read it as "likely a best effort scenario"; Michael Sokolov replied on 2022-02-04: "I think your analysis is correct, but I wasn't around for that so I am just reading the historical record". The thread says nothing about sequence numbers, about updateDocument or a doc-values update reaching an added document, or about commit. What this folder covers: the test adds the sequence numbers (the delete returns the smaller number and still removes the added document); the update cases and the commit case of the summary have no test in this folder and are on the finding page. Run on 2026-11-18 on Lucene main 1cfa86310f76, with and without assertions: 1 test found, 1 test failed (live docs after delete seqNo 2, addIndexes seqNo 3: expected 1, was 0).

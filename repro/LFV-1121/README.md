@@ -23,7 +23,7 @@ You open a Lucene99 scalar-quantized vector field of dimension 8 (EUCLIDEAN, 7 b
 
 - Tested on Lucene main 5adff78bb168 (a commit of 2026-11-02): reproduced, with assertions on and off (the Panama vector code on).
 - Helpers: the test uses three unchanged classes of Lucene's own backward-codecs test sources that the release jars do not contain (Lucene99RWV1HnswScalarQuantizationVectorsFormat, Lucene99RWScalarQuantizedVectorsFormat and Lucene99ScalarQuantizedVectorsWriter), so the recipe first copies them from lucene/backward-codecs/src/test/org/apache/lucene/backward_codecs/lucene99/ of the checkout into src/ here, where they compile with the test.
-- This finding was re-run on Lucene main f2b061406c4b on 2026-11-19: still reproduces.
+- This finding was re-run on Lucene main 7b8418faa2ff on 2026-11-20: still reproduces.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

@@ -178,6 +178,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [success-flag-refactors-cleanup-behaviour](success-flag-refactors-cleanup-behaviour/) | Python | LFV-1506 |
 | [suggester-lookup-num-overflow-and-presize](suggester-lookup-num-overflow-and-presize/) | Python | LFV-999, LFV-998, LFV-1003 |
 | [suggesters](suggesters/) | TLA+/TLC | LFV-263 |
+| [synonymmap-builder-key-order-unpaired-surrogate](synonymmap-builder-key-order-unpaired-surrogate/) | Python | LFV-1571 |
 | [taxonomy-index-pair-tla](taxonomy-index-pair-tla/) | TLA+/TLC | LFV-481, LFV-489 |
 | [taxonomy-writer-concurrent-add](taxonomy-writer-concurrent-add/) | TLA+/TLC | LFV-521, LFV-520, LFV-512 |
 | [termautomatonquery-non-scoring-use](termautomatonquery-non-scoring-use/) | Python | LFV-1514 |

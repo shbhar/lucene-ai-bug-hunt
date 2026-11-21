@@ -21,7 +21,7 @@ In no release: 10.6.0 does not have it and 11.0.0 would be the first release wit
 
 ## Run it
 
-- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - In no release: the test fails on Lucene main and on the 11.0 release branch (branch_11x daa54f2e0cd3, with and without assertions) and passes on the 10.6.0 release jars, so 11.0.0 would be the first release with it. What the test does: with reader pooling off (IndexWriterConfig.setReaderPooling(false)), no near-real-time reader opened from the writer and a directory that refuses to create a live-docs (.liv) file, it indexes one document, commits, buffers a delete by term and a delete by a PhraseQuery on a field indexed without positions, and expects commit() to throw the IllegalStateException of that query. Both failures fall into the one commit() call: the query fails when the buffered deletes are resolved, and the clean-up after it cannot write the segment's live docs. On main and branch_11x commit() throws only the IOException of the clean-up, so the test fails with 'Unexpected exception type, expected IllegalStateException but got java.io.IOException: cannot create _0_1.liv'. It uses no randomness.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

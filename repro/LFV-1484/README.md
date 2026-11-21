@@ -21,7 +21,7 @@ You register a TermQuery on a binary term (for example the one-byte id {C8}, bui
 
 ## Run it
 
-- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: it registers a TermQuery on the one-byte term {C8} in a Monitor with the default presearcher and matches one document that holds that term in a StringField plus a second field; it asserts 1 match and gets 0. The ArrayIndexOutOfBoundsException for terms that end in F1..F7 and the collation-key case of the summary (the Russian word день under ICUCollationKeyAnalyzer at PRIMARY strength) are not part of this test.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

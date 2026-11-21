@@ -21,7 +21,7 @@ You highlight the text 'the quick brown fox' with the default UnifiedHighlighter
 
 ## Run it
 
-- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: it builds a BooleanQuery of two SHOULD clauses, PrefixQuery body:qu* and SpanTermQuery body:quick, and calls highlightWithoutSearcher on the text 'the quick brown fox' with a UnifiedHighlighter built with its default flags over a StandardAnalyzer. It asserts the snippet 'the &lt;b&gt;quick&lt;/b&gt; brown fox'. With assertions on, as in the recipe (-ea -esa), the highlight call throws java.lang.AssertionError, without a message, from Lucene's own assert statement in OffsetsEnum.OfMatchesIteratorWithSubs.nextWhenMatchesIterator (OffsetsEnum.java:216 on main) before the test's own check runs; 'miOE should follow cached entries' is the comment on that source line, not a message in the output. With assertions off (-da -dsa -Dtests.asserts=false) the test passes: the highlighter returns the expected snippet. For this finding a passing run without assertions is the expected outcome and does not mean that the finding is gone. The test uses no index and no fault injection; it needs the highlighter, memory and queries jars beside core, as the recipe lists them.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

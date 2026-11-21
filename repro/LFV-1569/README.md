@@ -1,0 +1,62 @@
+# On Lucene 9.10.0 to 10.6.0, a search sorted by the index sort (or a prefix of it) on a segment with document blocks can miss a hit that sorts before one it returns, when the query matches child documents (on the released 9.x and 10.x lines only since #16947 fixed it on main and branch_11x, both unreleased; known upstream as #16887)
+
+Finding LFV-1569 · Area: search / sorted top-n collection: index-sort early termination (TopFieldCollector) on segments with document blocks (IndexWriterConfig#setParentField) · Priority: low · Impact: silent wrong results · Novelty: known upstream
+
+AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
+
+Fixed upstream: [#16947](https://github.com/apache/lucene/pull/16947) (commit [f6e64aa0db37](https://github.com/apache/lucene/commit/f6e64aa0db37d386d434d2dd3aac68665478407f)), merged 2026-10-30; also on the 11.0 release branch ([e5c8f72f00f5](https://github.com/apache/lucene/commit/e5c8f72f00f5)). On released lines only (9.10.0 to 10.6.0): main already had the fix when the finding was listed.
+
+## What it shows
+
+You set an index sort on a field together with a parent field (IndexWriterConfig#setIndexSort and #setParentField), add two blocks of one child and one parent, the parents with the values 1 and 2 in the sort field and the children without a value, and ask for the top 2 of all four documents sorted by that field with missing values last. You expect the two parents, 1 and 2. Instead, on the 10.6.0 release the search returns the parent with 1 and a child without a value, with no error and with all 4 documents counted as hits (each of the 20 releases from 9.10.0 to 10.6.0 fails this case, the releases before 10.4.0 with the test in the API spelling of their line). In such a segment the blocks are ordered by their parent's value and the documents inside a block need not be in sort order, but once the collector's queue holds n hits it takes the first match of a segment that does not beat the weakest of them as the end of that segment's competitive documents and admits no later match of that segment. branch_11x and main (both unreleased; fixed there by #16947) return 1 and 2.
+
+## Expected vs actual
+
+- Expected: You expect the two parents, 1 and 2.
+- Actual: On the 10.6.0 release the search returns the parent with 1 and a child without a value, with no error and with all 4 documents counted as hits (each of the 20 releases from 9.10.0 to 10.6.0 fails this case, the releases before 10.4.0 with the test in the API spelling of their line).
+
+## Files
+
+- [src/TestSortedTopHitsOnDocumentBlocks.java](src/TestSortedTopHitsOnDocumentBlocks.java) (JUnit test)
+
+## Run it
+
+- Tested on Lucene 10.6.0 (4ae946e5a9b9) (a commit of 2026-10-26): reproduced, with assertions on and off, on the 10.6.0 release jars, which are built from this commit (the tag releases/lucene/10.6.0).
+- Tested on Lucene branch_11x 3221dd4cf3a1 (a commit of 2026-11-20): the test passes, with assertions on and off (11.0.0-SNAPSHOT): the 11.0 branch has the fix of #16947.
+- This finding is in the released lines only, and it is known upstream: another person reported the defect as apache/lucene#16887 (https://github.com/apache/lucene/issues/16887), and #16947 (https://github.com/apache/lucene/pull/16947) fixed it on main and on the 11.0 release branch (branch_11x). The test fails with the jars of every release from 9.10.0 to 10.6.0 (the releases before 10.4.0 with the test in the API spelling of their line: this file compiles from 10.4.0 on) and passes on main and on branch_11x. The commands below run the test first on the 10.6.0 release jars, where it fails, and then, as the control, on a build of main or of branch_11x, where it passes. For the first run put lucene-core-10.6.0.jar, lucene-codecs-10.6.0.jar and lucene-test-framework-10.6.0.jar (Maven Central, org.apache.lucene) into your copy of this folder, next to the four test jars that the commands name; for another release from 10.4.0 on set V. For a run with assertions put -ea -esa in place of -da -dsa -Dtests.asserts=false: the outcomes are the same. What the test does: with an index sort on the field ts and a parent field it adds two blocks of one child and one parent (the parents with ts 1 and 2, the children without a value) and asks for the top 2 of all four documents sorted by ts with missing values last; it expects the second hit to be the parent with ts 2. Its input has no randomness. The Gradle alternative at the end of this page was not run for this finding; a checkout of main or of branch_11x has the fix, so to see the failure that way the checkout has to be of a release tag from 10.4.0 to 10.6.0.
+- This finding was re-run on Lucene main 7b8418faa2ff on 2026-11-20: the test passed, as recorded before (a control run).
+- How to read the outcome: on the jars of a release from 10.4.0 to 10.6.0 a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with java.lang.AssertionError: second smallest ts (Long.MAX_VALUE = a child without a value) expected:&lt;2&gt; but was:&lt;9223372036854775807&gt;; on a build of main or of branch_11x the same test passes (1 test successful), which is what the finding states for the unreleased lines.
+
+```bash
+# needs JDK 25 on the PATH; run in a copy of this folder that also holds the jars named below (Maven Central)
+V=10.6.0   # the release under test: any release from 10.4.0 to 10.6.0
+T=randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies
+T=$T:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher
+CP=lucene-core-$V.jar:lucene-codecs-$V.jar:lucene-test-framework-$V.jar:$T   # org.apache.lucene, release $V
+
+javac -d classes -cp "$CP" $(find src -name '*.java')
+
+# the finding: on the release jars the test fails (1 test failed)
+java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
+     execute --select-class TestSortedTopHitsOnDocumentBlocks
+
+# the control: a Lucene checkout of main or of branch_11x, built with: ./gradlew --no-daemon assemble
+LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT   # on branch_11x: V=11.0.0-SNAPSHOT
+CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
+CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
+CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar:$T
+
+javac -d classes-unreleased -cp "$CP" $(find src -name '*.java')
+
+# there the same test passes (1 test successful)
+java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp "classes-unreleased:$CP" org.junit.platform.console.ConsoleLauncher \
+     execute --select-class TestSortedTopHitsOnDocumentBlocks
+```
+
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+
+## Feedback
+
+Open an issue in [lucene-ai-bug-hunt](https://github.com/shbhar/lucene-ai-bug-hunt/issues). Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.

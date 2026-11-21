@@ -4,7 +4,7 @@ Finding LFV-1055 · Area: core / HNSW merge-time graph reuse (util/hnsw Initiali
 
 Finding page: [../../bugs/LFV-1055.html](../../bugs/LFV-1055.html)
 
-AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by qidaye (open PR #17054) on 2026-11-20 (https://github.com/apache/lucene/pull/17054). Open PR #17054 (qidaye, opened 2026-11-20: 'Fix HNSW rebalanceGraph never terminating when maxConn is 1'; base main; no milestone, no review and no comment as of 2026-11-20) changes InitializedHnswGraphBuilder.java and HnswGraphTestCase.java: for maxConn = 1, rebalanceGraph takes 1/e as the ratio between one graph level and the next. On a build of the pull request as of 2026-11-20 our repro passes, with and without assertions; it fails on main f2b061406c4b, on branch_11x 75eea467ac52 and on the 10.6.0 release. With the pull request's change applied to branch_11x 75eea467ac52 our repro passes there too. The pull request links no issue and does not cite this list. It is not an earlier report of it: this row has been in the site's repository since its commit of 2026-10-30, and the pull request was opened on 2026-11-20. This site files nothing upstream.
 
 ## What it shows
 
@@ -21,7 +21,7 @@ You index vectors with an HNSW format configured with maxConn = 1, a value the f
 
 ## Run it
 
-- Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): still reproduces.
+- Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
