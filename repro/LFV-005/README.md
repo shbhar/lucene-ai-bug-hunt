@@ -1,6 +1,6 @@
 # HNSW merge-time graph reuse can leave the entry node with no neighbours, dropping kNN recall to zero
 
-Finding LFV-005 · Area: search / HNSW · Priority: high · Impact: silent wrong results · Novelty: new
+Finding LFV-005 · Area: search / HNSW · Priority: medium · Impact: silent wrong results · Novelty: new
 
 Finding page: [../../bugs/LFV-005.html](../../bugs/LFV-005.html)
 

@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-During merge-time HNSW graph repair and rebalancing, addConnections descends through the upper levels to find entry points. You expect it to descend from the best candidate, as its javadoc says. Instead it pops from a min-heap and descends from the worst; the naive fixes cut distance computations by 10-30% but lowered recall in 8 of 8 region-delete configurations.
+During merge-time HNSW graph repair and rebalancing, addConnections descends through the upper levels to find entry points. You expect it to descend from the best candidate, as its javadoc says. Instead it pops from a min-heap and descends from the worst; the naive fixes cut distance computations by 10-30% but lowered recall in 8 of 8 region-delete configurations. Under MAXIMUM_INNER_PRODUCT the walk can end at the node being repaired and leave it without a level-0 neighbour, so that a kNN query with k = 10 can return one document (a built index, and 2 of 31,800 synthetic indexes drawn from a 2-dimension arc family like it).
 
 The test shows that when merge-time repair (`InitializedHnswGraphBuilder.initGraph`) re-links a node from scratch, `addConnections` descends from the worst upper-level candidate (the min-heap `popNode()`), not the best.
 

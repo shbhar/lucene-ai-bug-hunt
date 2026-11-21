@@ -25,6 +25,7 @@ Expected hits `[2, 1]` and `IndexSearcher#count` 2; actual `[2]` while count sti
 - Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- The test sets NoMergePolicy, which only keeps the deleted document in its segment: with that one setting removed, the delete of 1 of 4 documents was merged away by the time the reader was opened from the writer, and the test passed. With nothing set on the IndexWriterConfig and 5 documents (the loop bound 5, the document with id 4 deleted, [3, 2] count=2 expected) the test failed: the hits were [3] and the count was 2. Runs of 2026-11-20 on the 10.6.0 release, branch_11x 3221dd4cf3a1 and main 7b8418faa2ff, with assertions on and off.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

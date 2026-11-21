@@ -1,6 +1,6 @@
 # Global-ordinals join explain() ignores toQuery, so documents that are not hits (from-side documents, or to-side documents a narrower toQuery excludes) are explained as matches
 
-Finding LFV-168 · Area: join / JoinUtil global-ordinals join explain (GlobalOrdinalsQuery, GlobalOrdinalsWithScoreQuery) · Priority: low · Impact: minor · Novelty: known upstream
+Finding LFV-168 · Area: join / JoinUtil global-ordinals join explain (GlobalOrdinalsQuery, GlobalOrdinalsWithScoreQuery) · Priority: low · Impact: crash · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

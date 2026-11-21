@@ -98,6 +98,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [iw-from-reader-commit-leaf-sorted-reader-pairs-wrong-segments](iw-from-reader-commit-leaf-sorted-reader-pairs-wrong-segments/) | Python | LFV-1062 |
 | [iw-hasuncommittedchanges-read-order-race](iw-hasuncommittedchanges-read-order-race/) | TLA+/TLC | LFV-1060 |
 | [japanese-completion-fifo](japanese-completion-fifo/) | Python | LFV-346 |
+| [javadoc-examples-matchalldocsquery-constructor](javadoc-examples-matchalldocsquery-constructor/) | Python | LFV-1576 |
 | [javadoc-package-and-overview-examples-call-removed-apis-siblings-of-16904](javadoc-package-and-overview-examples-call-removed-apis-siblings-of-16904/) | Python | LFV-989, LFV-980, LFV-992, LFV-987, LFV-984, LFV-988 |
 | [knn-query-layer](knn-query-layer/) | TLA+/TLC | LFV-106, LFV-114, LFV-117, LFV-125, LFV-123 |
 | [kuromoji-completion-romaji-map-vs-hepburn-kunrei-wapuro-tables](kuromoji-completion-romaji-map-vs-hepburn-kunrei-wapuro-tables/) | Python | LFV-849, LFV-850, LFV-848, LFV-854 |

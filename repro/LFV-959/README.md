@@ -13,7 +13,7 @@ You upgrade from Lucene 10.6 to 11.0 and use doc-values updates (for example Ind
 ## Expected vs actual
 
 - Expected: At least one 11.0 note on the new default: a line in the 11.0.0 section of CHANGES.txt or in MIGRATE.md, as the query-cache flip has in both.
-- Actual: `DEFAULT_MAX_DOC_VALUES_OVERLAYS = 8`; the only GITHUB#16418 entry is the 10.6.0 "Opt-in" one (lines 501-504); 0 lines in the 11.0.0 section, 0 in MIGRATE.md; exit status 1.
+- Actual: `DEFAULT_MAX_DOC_VALUES_OVERLAYS = 8`; the only GITHUB#16418 entry is the 10.6.0 "Opt-in" one; 0 lines in the 11.0.0 section, 0 in MIGRATE.md; exit status 1.
 
 ## Files
 

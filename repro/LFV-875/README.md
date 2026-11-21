@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You search with an IndriAndQuery of SHOULD clauses, for example IndriAndQuery(SHOULD f:a), and call IndexSearcher.explain for a document that contains none of the clause terms and is not a hit. You expect a no-match explanation (isMatch false), as TermQuery and a BooleanQuery over the same clauses give. Instead IndriAndWeight.explain advances its scorer to the document, checks the result only with 'assert advanced == doc', and returns Explanation.match(scorer.score(), ...) for wherever the scorer landed: a match carrying the next hit's score, or, past the last match, an EOFException or IndexOutOfBoundsException from a norms read (AssertionError with -ea).
+You search with an IndriAndQuery of SHOULD clauses, for example IndriAndQuery(SHOULD f:a), and call IndexSearcher.explain for a document that contains none of the clause terms and is not a hit. You expect a no-match explanation (isMatch false), as TermQuery and a BooleanQuery over the same clauses give. Instead IndriAndWeight.explain advances its scorer to the document, checks the result only with 'assert advanced == doc', and returns Explanation.match(scorer.score(), ...) for wherever the scorer landed: a match carrying the next hit's score, or, past the last match of the only clause that has a scorer in the segment, where the field's norms differ between documents, an EOFException or IndexOutOfBoundsException from a norms read (AssertionError with -ea).
 
 The test shows that IndriAndWeight.explain does not check where its scorer landed, so a document that matches no clause of `IndriAndQuery(SHOULD f:a)` is explained as a match with the next hit's score.
 
