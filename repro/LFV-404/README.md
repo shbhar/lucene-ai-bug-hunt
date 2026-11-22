@@ -10,11 +10,11 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 You pass a SortingCodecReader, for example the reader that BPIndexReorderer.reorder returns or SortingCodecReader.wrap(reader, docMap, null), to IndexWriter#addIndexes on a writer whose merge policy is BPReorderingMergePolicy with a BpVectorReorderer, and expect the documents to be added and reordered, as they are for plain segment readers and as the same policy does with the postings BPIndexReorderer. Instead addIndexes throws UnsupportedOperationException and adds nothing: the policy reorders addIndexes as a forced merge, BpVectorReorderer's per-thread state calls copy() on the input's float vector values, and SortingCodecReader's vector views throw from copy() (with several such readers in one call the throw comes through SlowCompositeCodecReaderWrapper's merged copy()). Making copy() work is not enough on its own: BpVectorReorderer then treats the sorting view's ordinals as doc order, so the reordering is silently applied in the wrong doc space.
 
-The test shows that addIndexes of a SortingCodecReader (64 FLOAT32 vectors, reversed DocMap) into a writer with BPReorderingMergePolicy(BpVectorReorderer) fails, because BpVectorReorderer copies the input's vector values and SortingCodecReader's copy() is unsupported.
+The test shows that addIndexes of a SortingCodecReader (64 FLOAT32 vectors, reversed DocMap) into a writer with BPReorderingMergePolicy(BpVectorReorderer) fails, because BpVectorReorderer copies the input's vector values and SortingCodecReader's copy() is unsupported. A second test in the same class, testDocMapOfSortingCodecReader, asks BpVectorReorderer for the doc map of a SortingCodecReader that hands out the same 64 vectors in a shuffled order and checks the doc space: the doc map has to send every document to the place of its own vector's ordinal. Where copy() is unsupported it fails with the same exception, before that check is reached.
 
 ## Expected vs actual
 
-Expected: addIndexes adds (and reorders) the 64 documents, as it does for a plain segment reader; actual: UnsupportedOperationException from SortingFloatVectorValues.copy() via BpVectorReorderer$PerThreadState (-ea and -da).
+Expected: addIndexes adds (and reorders) the 64 documents, as it does for a plain segment reader, and BpVectorReorderer returns a doc map in the reader's doc space; actual: UnsupportedOperationException from SortingFloatVectorValues.copy() via BpVectorReorderer$PerThreadState, in both tests (-ea and -da).
 
 ## Files
 
@@ -22,9 +22,8 @@ Expected: addIndexes adds (and reorders) the 64 documents, as it does for a plai
 
 ## Run it
 
-- Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): still reproduces.
-- Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
-- Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): reproduced.
+- Recorded outcome of run 1 on Lucene main 1a59f96fc6de: 2 test(s) run, 2 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

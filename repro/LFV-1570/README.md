@@ -19,7 +19,7 @@ Graph quality only: nothing is lost, corrupt or thrown, and approximate kNN sear
 
 ## Run it
 
-- Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): still reproduces.
+- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): still reproduces.
 - This finding is listed as new together with credits to the earlier public items around it: apache/lucene#15003 (the change that introduced the merge-time reuse of a graph with deleted vectors and its repair step; its thread names the step and the disconnectedness it was added against), #12533 (the original idea, 2023), the connectivity history #12627, #13566, #14436 and #14214, #16529 with three maintainer comments of August 2026, #15427, #16552 with #16559 (the flag rule of the same repair pass, fixed as a bug) and #16817; the finding's record in the table links each of them and says what it states. None of them says that the repair step as merged can still leave a group of live documents cut off, or names where the repair search starts as the cause. Of the tests that came with the parallel repair (#16627), one asserts that the graph is a single rooted component after the repair, on one fixed set of random vectors with every third vector deleted; the end-to-end merge test, whose javadoc says the merged graph must be rooted, asserts that no node is left without a level-0 neighbour and that a search returns k results. Both pass.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

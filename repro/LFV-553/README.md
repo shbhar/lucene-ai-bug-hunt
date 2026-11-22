@@ -20,7 +20,7 @@ You set MoreLikeThis.setMaxQueryTerms(0), whose javadoc says only 'the maximum n
 
 ## Run it
 
-- Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): still reproduces.
+- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): still reproduces.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

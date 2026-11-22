@@ -21,9 +21,10 @@ You upgrade from Lucene 10.6 to 11.0 and use doc-values updates (for example Ind
 
 ## Run it
 
-- Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): still reproduces.
+- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): still reproduces.
 - Tested on Lucene main a9779ef3c193 (a commit of 2026-10-26): reproduced.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- The folder holds a JUnit test and a shell script. The JUnit test reads the code on the class path and not the notes: it asserts that a default IndexWriterConfig has 0 overlays, as the 10.6.0 entry of CHANGES.txt ('Opt-in') says, and that an update of one document with the default config writes as many bytes of update files as with setMaxDocValuesOverlays(0); it fails for as long as the default is not 0, with or without a note. The script check_11_0_notes.sh reads the notes of the checkout and compiles nothing: it prints the default in IndexWriterConfig.java, the CHANGES.txt lines that name GITHUB#16418, 'Opt-in;' or MaxDocValuesOverlays with their release section, and the number of lines with one of its search terms in the 11.0.0 section of CHANGES.txt (16418, MaxDocValuesOverlays, overlay) and in MIGRATE.md (MaxDocValuesOverlays, overlay). It is a search for terms: a line it counts still has to be read. Run on 2026-11-21 on builds of main 1a59f96fc6de and of branch_11x 3221dd4cf3a1 (on a checkout of branch_11x set V=11.0.0-SNAPSHOT in the commands below): on both the two tests fail and the script prints the default 8, the three lines of the 10.6.0 entry, 0 lines for the 11.0.0 section and 0 for MIGRATE.md, and 'MISSING: no 11.0 note says the default changed'.
+- How to read the outcome: the finding reproduces when both parts show it: the JUnit run reports 2 tests found and 2 tests failed, with java.lang.AssertionError messages that end 'expected:&lt;0&gt; but was:&lt;8&gt;' (the default) and 'expected:&lt;2892&gt; but was:&lt;402&gt;' (the bytes one update writes), and the script then ends with exit status 1 after the line 'MISSING: no 11.0 note says the default changed'. Exit status 0 of the script, with 'OK: the 11.0 notes record the feature', means that a line of the 11.0.0 section of CHANGES.txt or of MIGRATE.md has one of the script's search terms: read that line to see whether it records the new default.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -41,6 +42,9 @@ javac -d classes -cp "$CP" $(find src -name '*.java')
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.index.TestDocValuesOverlaysDefaultAsReleaseNotes
+
+# the script of this folder, on the same checkout: exit status 1 when no line of the 11.0.0 section of CHANGES.txt or of MIGRATE.md has one of its search terms
+sh check_11_0_notes.sh "$LUCENE"
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).

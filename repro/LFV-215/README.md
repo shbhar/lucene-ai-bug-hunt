@@ -20,7 +20,7 @@ You index a polygon with LatLonShape or XYShape and search with a polygon or lin
 
 ## Run it
 
-- Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): still reproduces.
+- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): still reproduces.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
 - What this folder covers: the two files test the INTERSECTS cases (a polygon query and a line query that match a disjoint shape). The CONTAINS cases named above have no test in this folder. Run on 2026-11-17 on Lucene main 9965d34e3c77 and on the 11.0 release branch (branch_11x 9d2b5a15427a), with and without assertions: TestIntersectsCollinearDisjointEdge reports 5 tests found and 4 tests failed, and IntersectsCollinearMain exits non-zero.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.

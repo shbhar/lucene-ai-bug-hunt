@@ -19,7 +19,7 @@ You analyze Albanian text with the new AlbanianAnalyzer or AlbanianNormalization
 
 ## Run it
 
-- Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): still reproduces.
+- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): still reproduces.
 - Tested on Lucene branch_11x 3221dd4cf3a1 (a commit of 2026-11-20): reproduced.
 - A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

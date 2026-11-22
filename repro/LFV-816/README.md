@@ -21,7 +21,7 @@ You group with GroupingSearch and set a group sort or within-group sort that dep
 
 ## Run it
 
-- Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): still reproduces (the repro adapted to an API change on this commit). The change: #16962 made the no-argument MatchAllDocsQuery constructor private on main (24d9e7d1a0d) and on the 11.0 branch (branch_11x, a6a26f9b251), so replace new MatchAllDocsQuery() with MatchAllDocsQuery.INSTANCE before you compile the test there.
+- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): still reproduces (the repro adapted to an API change on this commit). The change: #16962 made the no-argument MatchAllDocsQuery constructor private on main (24d9e7d1a0d) and on the 11.0 branch (branch_11x, a6a26f9b251), so replace new MatchAllDocsQuery() with MatchAllDocsQuery.INSTANCE before you compile the test there.
 - Tested on Lucene main a9779ef3c193 (a commit of 2026-10-26): reproduced.
 - On 9.1 to 9.12, GroupDocs has public fields: write scoreDocs and groupSortValues instead of scoreDocs() and groupSortValues() (two lines).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

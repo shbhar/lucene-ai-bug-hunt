@@ -21,7 +21,7 @@ You use LogDocMergePolicy and tell Lucene not to pack large merged segments into
 
 ## Run it
 
-- Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): still reproduces.
+- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: it sets setMaxCFSSegmentSizeMB(1) on the default codec's compound format, uses LogDocMergePolicy with the serial merge scheduler on a ByteBuffersDirectory, flushes two segments of one document each, each document with one 1 MiB binary doc-values field, and calls forceMerge(1). It then reads the commit, checks that the one merged segment is larger than 1 MiB and asserts that it is not a compound file. The test fails with 'a merged segment of 2098992 bytes is a compound file', the same with and without assertions; it uses no randomness. It needs the CompoundFormat API of branch_11x and main, so it does not compile against a release. The file that is not exported is the earlier form of this test; it differs in the wording of one comment line only.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

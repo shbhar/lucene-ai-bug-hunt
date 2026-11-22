@@ -22,7 +22,7 @@ Expected the 4th `addDocument` to throw the Error and the writer to close itself
 
 ## Run it
 
-- Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): still reproduces.
+- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 2 failed.
 - How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with java.lang.AssertionError: expected addDocument to throw the Error, still blocked after 10 s, and 1 container failed, the test framework's ThreadLeakError for the thread that is still blocked (the recorded outcome counts it as the second failure).

@@ -21,7 +21,7 @@ You build one SegmentOrder with SegmentOrder.fromSort(new Sort(new SortField("f"
 
 ## Run it
 
-- Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): still reproduces.
+- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): still reproduces.
 - Tested on Lucene main 5adff78bb168 (a commit of 2026-11-02): reproduced.
 - How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with java.util.concurrent.ExecutionException caused by the NullPointerException at SegmentOrder.java:141; the test is one round of a race between two threads, so one run can pass with the finding present (on main f2b061406c4b the command as printed failed in 6 of 10 runs on 2026-11-20): add -Dtests.iters=20 to the java command to run 20 rounds in one JVM (there 18 of the 20 failed with assertions on and 17 of the 20 with assertions off).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

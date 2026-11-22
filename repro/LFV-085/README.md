@@ -20,7 +20,7 @@ You drop the raw float vectors from a Lucene104 scalar-quantized field (the read
 
 ## Run it
 
-- Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): still reproduces.
+- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): still reproduces.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
 - The folder holds the same test twice. src/ is for Lucene 10.5.0 and later (10.5.x, 10.6.0, the 11.0 release branch, main); src2/ is for 10.4.0, where the enum ScalarEncoding is a nested class of Lucene104ScalarQuantizedVectorsFormat. Each compiles only on its own versions: on 10.5.0 and later leave out the two src2 lines (javac and java), on 10.4.0 the two src lines. On its own versions the test fails 1 of 3: testRescorerBulkMatchesScoreAfterDroppingRawVectors fails (expected 0.8403607 but was 8.920945E-16) and the two controls pass (run on 2026-11-17 with and without assertions: src/ on main 9965d34e3c77, branch_11x 9d2b5a15427a and 10.6.0, src2/ on 10.4.0). The test covers the wrong bulk scores; the exceptions named above have no test in this folder.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

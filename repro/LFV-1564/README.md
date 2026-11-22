@@ -19,7 +19,7 @@ You run an IndexWriter with SerialMergeScheduler, so a merge runs inside the cal
 
 ## Run it
 
-- Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): still reproduces.
+- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): still reproduces.
 - Tested on Lucene branch_11x 75eea467ac52 (a commit of 2026-11-19): reproduced.
 - A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

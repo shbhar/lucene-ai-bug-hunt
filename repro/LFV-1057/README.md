@@ -24,7 +24,7 @@ You run searcher.search(new TermQuery(new Term("brand", "lux")), 10, new Sort(ne
 - Tested on Lucene main 716d6f216f52 (a commit of 2026-10-29): reproduced, with assertions on and off.
 - Tested on Lucene branch_11x 603af8703753 (a commit of 2026-10-29): reproduced, with assertions on and off (the core sources that differ from main 645d4fe14a20, taken from this commit and compiled over the 645d4fe14a20 jars).
 - Main 645d4fe14a20 passes: #16857 came after it. A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there.
-- This finding was re-run on Lucene main 7b8418faa2ff on 2026-11-20: still reproduces.
+- This finding was re-run on Lucene main 1a59f96fc6de on 2026-11-21: still reproduces.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

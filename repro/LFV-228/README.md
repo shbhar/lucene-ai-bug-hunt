@@ -19,7 +19,7 @@ You enable soft deletes with SoftDeletesRetentionMergePolicy and a retention que
 
 ## Run it
 
-- Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): still reproduces (the repro adapted to an API change on this commit). The change: #16962 made the no-argument MatchAllDocsQuery constructor private on main (24d9e7d1a0d) and on the 11.0 branch (branch_11x, a6a26f9b251), so replace MatchAllDocsQuery::new with () -&gt; MatchAllDocsQuery.INSTANCE before you compile the test there.
+- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): still reproduces (the repro adapted to an API change on this commit). The change: #16962 made the no-argument MatchAllDocsQuery constructor private on main (24d9e7d1a0d) and on the 11.0 branch (branch_11x, a6a26f9b251), so replace MatchAllDocsQuery::new with () -&gt; MatchAllDocsQuery.INSTANCE before you compile the test there.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
