@@ -6,12 +6,12 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You read the vectors of a field through LeafReader.getFloatVectorValues (or getByteVectorValues) and go over the same values object twice, each time with a new values.iterator(), for example once to gather statistics and once to read the vectors. Going by the javadoc ('Create an iterator for this instance.') and by what happens when every document has a vector, you expect the second iterator to start before the first document again. Instead, when at least one document of the segment has no vector, the default codec's values hand out iterators that share one position: the second one stands where the first one stopped, so the second pass finds no vectors (or throws AssertionError with assertions enabled); nothing in the public javadoc says so, and you need copy(), or the values from the reader again, for an independent pass.
+You read the vectors of a field through LeafReader.getFloatVectorValues (or getByteVectorValues) and go over the same values object twice, each time with a new values.iterator(), for example once to gather statistics and once to read the vectors. Going by the javadoc ('Create an iterator for this instance.') and by what happens when every document has a vector, you expect the second iterator to start before the first document again. Instead, when at least one document of the segment has no vector, the default codec's values hand out iterators that share one position: the second one stands where the first one stopped, so the second pass finds no vectors (or throws AssertionError with assertions enabled); nothing in the public javadoc says so, and for these values you need copy(), or the values from the reader again, for an independent pass.
 
 ## Expected vs actual
 
 - Expected: You expect the second iterator to start before the first document again.
-- Actual: When at least one document of the segment has no vector, the default codec's values hand out iterators that share one position: the second one stands where the first one stopped, so the second pass finds no vectors (or throws AssertionError with assertions enabled); nothing in the public javadoc says so, and you need copy(), or the values from the reader again, for an independent pass.
+- Actual: When at least one document of the segment has no vector, the default codec's values hand out iterators that share one position: the second one stands where the first one stopped, so the second pass finds no vectors (or throws AssertionError with assertions enabled); nothing in the public javadoc says so, and for these values you need copy(), or the values from the reader again, for an independent pass.
 
 ## Files
 
@@ -19,9 +19,9 @@ You read the vectors of a field through LeafReader.getFloatVectorValues (or getB
 
 ## Run it
 
-- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): still reproduces.
+- Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
-- What the test does: with the default codec it indexes two documents, the first with a float vector field and the second without it, so that the field is sparse. It takes the field's FloatVectorValues from the only leaf reader, advances a first values.iterator() to document 0, then takes a second values.iterator() from the same object and asserts that this one has not been advanced (docID() is -1). The test fails at that assertion (expected -1, was 0), the same with and without assertions; it uses no randomness.
+- What the test does: with the default codec it indexes two documents, the first with a float vector field and the second without it, so that the field is sparse. It takes the field's FloatVectorValues from the only leaf reader, advances a first values.iterator() to document 0, then takes a second values.iterator() from the same object and asserts that this one has not been advanced (docID() is -1). The test fails at that assertion (expected -1, was 0), the same with and without assertions; it uses no randomness. The assertion is the expectation this finding starts from (the javadoc's 'Create an iterator for this instance.' and what a field that every document has does), not a statement of what Lucene should do: on the issue apache/lucene#17049 the author of the API answered on 2026-11-21 that the sharing should be documented.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

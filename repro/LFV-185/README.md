@@ -21,7 +21,7 @@ You index documents that each stay within Lucene's per-document limits but repea
 
 ## Run it
 
-- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): still reproduces.
+- Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
 - How to read the outcome: a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

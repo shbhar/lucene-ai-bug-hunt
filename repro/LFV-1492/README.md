@@ -19,7 +19,7 @@ You analyze the Polish word 'Pije' with a final e-ogonek ('I drink'), written wi
 
 ## Run it
 
-- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): still reproduces.
+- Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: it analyzes the five UTF-16 units U+D835 U+DCDF 'i' 'j' U+0119 (the letter U+1D4DF, then 'ij' and e-ogonek) with a stock PolishAnalyzer and reads the first term. It asserts that the term is valid UTF-16 (UnicodeUtil.validUTF16String) and fails with 'term has an unpaired surrogate'; the same happens with and without assertions. It checks the term text only: the U+FFFD in the indexed term bytes, which the description above mentions, is not part of this test, and nothing is indexed. No fault injection and no extra heap are needed; beside core the recipe needs the analysis-common and analysis-stempel jars, which it lists.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

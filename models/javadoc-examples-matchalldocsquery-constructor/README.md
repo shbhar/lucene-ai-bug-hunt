@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- The 'Example usage' blocks in the class javadoc of AllGroupHeadsCollectorManager, DocValuesStatsCollectorManager and LargeNumHitsTopDocsCollectorManager call new MatchAllDocsQuery(), whose constructor #16962 made private on branch_11x and main: with the elided searcher supplied the examples compile and run on 10.6.0 and are rejected by javac on branch_11x 3221dd4cf3a1 and main 7b8418faa2ff (documentation defect; the private constructor is deliberate) (finding LFV-1576; [repro](../../repro/LFV-1576/))
+- The 'Example usage' blocks in the class javadoc of AllGroupHeadsCollectorManager, DocValuesStatsCollectorManager and LargeNumHitsTopDocsCollectorManager call new MatchAllDocsQuery(), whose constructor #16962 made private on branch_11x and main: with the elided searcher supplied the examples compile and run on 10.6.0 and are rejected by javac on branch_11x 3221dd4cf3a1 and main 7b8418faa2ff (documentation defect; the private constructor is deliberate) (finding LFV-1576; [repro](../../repro/LFV-1576/), [finding page](../../bugs/LFV-1576.html))
 
 ## Files
 

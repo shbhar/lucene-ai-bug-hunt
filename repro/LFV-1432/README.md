@@ -21,7 +21,7 @@ You open, on current Lucene, an index whose segment was written by Lucene 9.0.0 
 
 ## Run it
 
-- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): still reproduces.
+- Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene main f794ff5a505c (a commit of 2026-11-06): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

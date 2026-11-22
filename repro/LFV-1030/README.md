@@ -21,7 +21,7 @@ MIGRATE.md on Lucene main and branch_11x tells users who open a Lucene 9.x or 10
 
 ## Run it
 
-- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): still reproduces.
+- Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main e1faeba08bde: 1 test(s) run, 1 failed (testForceMergeUpgradesSingleSegmentIndex).
 - Fixture: the test reads moreterms.9.0.0.zip, a test resource of Lucene's backward-codecs module (lucene/backward-codecs/src/test/org/apache/lucene/backward_index/ in the checkout), so the run puts $LUCENE/lucene/backward-codecs/src/test on the class path; without it the test fails for another reason.

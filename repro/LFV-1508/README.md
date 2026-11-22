@@ -21,7 +21,7 @@ In no release: 10.6.0 does not have it and 11.0.0 would be the first release wit
 
 ## Run it
 
-- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): still reproduces.
+- Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - In no release: the test fails on Lucene main and on the 11.0 release branch (branch_11x daa54f2e0cd3), with and without assertions, and passes on the 10.6.0 release jars, so 11.0.0 would be the first release with it. It is a generated data table that fell behind on main, not a logic error: main and branch_11x carry the top-level-domain table of 2026-06-19, the 10.6.0 release carries the table of 2026-09-03, and the two differ in one entry, 'web'. What the test does: it gives 'user@example.web' to new UAX29URLEmailTokenizer() and expects what 10.6.0 returns, the one token user@example.web of type &lt;EMAIL&gt;. On main and branch_11x the tokenizer returns the two tokens user and example.web, so the test fails with 'term 0 expected:&lt;user[@example.web]&gt; but was:&lt;user[]&gt;'. The releases before 10.6.0 fail it too (run on 10.5.2 and 9.12.3): their tables are older than the domain, which IANA delegated on 2026-07-23; that is the ordinary age of a snapshot and not this finding. The test uses no randomness and no index.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

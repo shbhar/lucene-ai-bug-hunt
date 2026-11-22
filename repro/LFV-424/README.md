@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You run a search, take its top hits and call new SortRescorer(sort).rescore(searcher, hits, topN), or Expression#getRescorer(bindings).rescore, with topN smaller than the number of hits, for example to re-sort the best 1,000 hits by popularity and keep the top 100 as the search package docs suggest. You expect the top N hits in sort order, each with its own first-pass score, which is what every release up to 7.7.3 returned and what you still get when topN is at least the number of hits. Instead the documents and their order are right, but the k-th smallest doc id among the returned hits gets the score of the k-th smallest doc id among all first-pass hits, so nearly every returned hit carries another hit's score (with 2 hits and topN=1, doc 1 comes back with doc 0's score), and with assertions enabled rescore throws AssertionError at SortRescorer.java:86.
+You run a search, take its top hits and call new SortRescorer(sort).rescore(searcher, hits, topN), or Expression#getRescorer(bindings).rescore, with topN smaller than the number of hits, for example to re-sort the best 1,000 hits by popularity and keep the top 100 as the search package docs suggest. You expect the top N hits in sort order, each with its own first-pass score, which is what every release up to 7.7.3 returned and what you still get when topN is at least the number of hits. Instead the documents and their order are right, but the k-th smallest doc id among the returned hits gets the score of the k-th smallest doc id among all first-pass hits, so returned hits typically carry another hit's score (with 2 hits and topN=1, doc 1 comes back with doc 0's score), and with assertions enabled rescore throws AssertionError at SortRescorer.java:86.
 
 `SortRescorer.rescore(searcher, hits, topN)` with topN (1) smaller than the number of hits (2) gives the returned hit another hit's first-pass score.
 
@@ -22,7 +22,7 @@ Expected: doc 1 keeps its own score 1.0. Actual: doc 0's score 2.0 with `-da`; w
 
 ## Run it
 
-- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): still reproduces.
+- Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

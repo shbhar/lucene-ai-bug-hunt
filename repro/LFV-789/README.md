@@ -22,8 +22,9 @@ You run a sequential DrillSideways search (no executor) with a filter-style base
 
 ## Run it
 
-- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): still reproduces.
+- Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene main a9779ef3c193 (a commit of 2026-10-26): reproduced.
+- Runs 1 and 2 use the two test classes under src/. Run as printed on 2026-11-22 on a build of main b5a4546a5964, with assertions on and off: run 1 (TestDrillSidewaysTopScoresCollector) reports 2 tests found and 2 failed, with java.lang.AssertionError: sequential, TOP_SCORES hit collector expected:&lt;100&gt; but was:&lt;22&gt; and the same message ending but was:&lt;11&gt;; run 2 (TestDrillSidewaysTopScoresTwoArgSearch) reports 2 tests found and 1 failed, with java.lang.AssertionError: expected:&lt;100&gt; but was:&lt;11&gt;. The expected and actual lines above are those of the finding page's one-test copy at the top of this folder, TestDrillSidewaysTopScoresHitCollector.java; copy it into src/org/apache/lucene/facet/ and select org.apache.lucene.facet.TestDrillSidewaysTopScoresHitCollector in run 1 to run it: it then fails 1 of 1 with org.junit.ComparisonFailure: sideways color counts red/blue expected:&lt;[75/75]&gt; but was:&lt;[11/10]&gt; (run the same day on the same build, with assertions on and off).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

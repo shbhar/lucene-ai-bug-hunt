@@ -21,7 +21,7 @@ You build an FSTCompletionLookup suggester and the build fails because the disk 
 
 ## Run it
 
-- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): still reproduces.
+- Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: it takes the test framework's MockDirectoryWrapper as the temp directory and sets its size limit to one byte (setMaxSizeInBytes(1)), so that writes fail as on a full disk. This injected fault is part of the test; the same wrapper keeps count of open files. The test constructs FSTCompletionLookup(tempDir, "suggest"), expects build(InputIterator.EMPTY) to throw an IOException, which it does, and then closes the directory. It fails there with 'MockDirectoryWrapper: cannot close: there are still 1 open files: {suggest_RefSorterRaw_0.tmp=1}': the failed build left the sorter's temp output open. The outcome is the same with and without assertions. The test does not measure file descriptors or garbage collection on a real file system. No extra heap is needed; beside core the recipe needs the suggest and analysis-common jars, which it lists. The file to compile is the test under src/, as the commands below do; the copy at the top of this folder, the one the finding page shows, is the same file. It carries the Apache license header, and the tempDir.close() call that fails is at its line 34, the line the finding page quotes. The one other file of the recorded repro, which is not exported, is an earlier copy of this same test without the license header (20 lines; nothing else differs).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

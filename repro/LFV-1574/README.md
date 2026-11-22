@@ -2,6 +2,8 @@
 
 Finding LFV-1574 · Area: analysis-common / Albanian normalizer (AlbanianNormalizer.normalize and keepsC; AlbanianNormalizationFilter, the 'albanianNormalization' factory and AlbanianAnalyzer); new on main and branch_11x, both unreleased · Priority: low · Impact: silent wrong results · Novelty: new
 
+Finding page: [../../bugs/LFV-1574.html](../../bugs/LFV-1574.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You analyze Albanian text with the new AlbanianAnalyzer or AlbanianNormalization
 
 ## Expected vs actual
 
-- Expected: You expect a listed word such as këpucë (entry kepuc*) to get one term however its ë is encoded.
-- Actual: The normalizer decides whether the token keeps its c before it handles the combining marks, so këpucë written with e + U+0308 becomes 'kepuqe' while the precomposed spelling and the spelling typed without marks become 'kepuce' (through the analyzer 'kepuk' against 'kepuc'), and in the runs a term query in one spelling found no document indexed in the other, with no error.
+- Expected: The term `kepuce`, the term of the precomposed spelling of the same word (entry `kepuc*` of `cwords.txt`).
+- Actual: `org.junit.ComparisonFailure: term 0 expected:<kepu[c]e> but was:<kepu[q]e>`: the term is `kepuqe`, assertions on and off.
 
 ## Files
 
@@ -19,7 +21,7 @@ You analyze Albanian text with the new AlbanianAnalyzer or AlbanianNormalization
 
 ## Run it
 
-- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): still reproduces.
+- Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene branch_11x 3221dd4cf3a1 (a commit of 2026-11-20): reproduced.
 - A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
@@ -44,6 +46,10 @@ java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=A
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+
+## Files shown on the finding page
+
+- [TestAlbanianDecomposedKeepC.java](TestAlbanianDecomposedKeepC.java)
 
 ## Feedback
 

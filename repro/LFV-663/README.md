@@ -22,7 +22,7 @@ You index Brazilian Portuguese text with the stock BrazilianAnalyzer (or Brazili
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (a commit of 2026-10-26): reproduced.
-- This finding was re-run on Lucene main 1a59f96fc6de on 2026-11-21: it no longer reproduces there; in the commands below, V=12.0.0-SNAPSHOT on a build of main 1a59f96fc6de.
+- This finding was re-run on Lucene main b5a4546a5964 on 2026-11-22: it no longer reproduces there; in the commands below, V=12.0.0-SNAPSHOT on a build of main b5a4546a5964.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

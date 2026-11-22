@@ -21,7 +21,7 @@ You turn on IndexWriter's InfoStream (its diagnostic log, off by default), add a
 
 ## Run it
 
-- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): still reproduces.
+- Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene branch_11x 89e68e0f3a50 (a commit of 2026-11-17): reproduced.
 - The test of this folder adds no document: it is a smaller form of the scenario above and checks two things, that close() throws a RuntimeException and that the write lock can then be obtained. A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there.
 - How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with an org.apache.lucene.store.LockObtainFailedException whose message begins 'lock instance already obtained' and names the lock write.lock, thrown at line 48 of the test, where the test asks the directory for the write lock after close() has thrown.

@@ -21,7 +21,7 @@ You put an index reader behind a view whose Terms#size() returns -1, the value t
 
 ## Run it
 
-- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): still reproduces.
+- Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene branch_11x 89e68e0f3a50 (a commit of 2026-11-17): reproduced.
 - A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there. Against the 10.6.0 release jars the test as shipped does not compile, because LeafReader#terms declares IOException there: on line 38 write 'public Terms terms(String field) throws java.io.IOException'. With that change it fails 1 of 1 on those jars, with and without assertions, with the same message.
 - How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with java.lang.IllegalArgumentException: cost must be &gt;= 0, got -2 (thrown by the constructor of BitSetIterator inside the search call of the test's line 64, so the test's own comparison is never made).

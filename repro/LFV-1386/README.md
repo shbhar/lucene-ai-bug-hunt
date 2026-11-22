@@ -22,7 +22,7 @@ Expected: the analyzer builds. Actual, with the JDK's built-in XML parser (asser
 
 ## Run it
 
-- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): still reproduces.
+- Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene main 5adff78bb168 (a commit of 2026-11-02): reproduced.
 - Recorded outcome of run 1 on Lucene main 5adff78bb168: 1 test(s) run, 1 failed.
 - The bug shows only on the JDK's built-in XML parser, which JAXP uses when no other SAX parser, such as Apache Xerces, is configured or on the class path: with Apache Xerces 2.12.2 on the class path this test passes.

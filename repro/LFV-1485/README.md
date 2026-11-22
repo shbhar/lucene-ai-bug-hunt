@@ -23,7 +23,7 @@ You index one parent and three children and join them with JoinUtil.createJoinQu
 
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: it indexes one parent and three children that each score 1.7 and joins them with ScoreMode.Avg through a plain IndexSearcher without an executor; it asserts a parent score of 1.7 and gets 1.7000002. The dependence of Total and Avg scores on the slices of a concurrent from-searcher is not part of this test. Fixed on main since 1cfa86310f76 (#17030, merged 2026-11-17): the test passes on that commit, with and without assertions. It fails on 781025d6fe32, the tested commit above, and on 596ef11ddf96, the last commit before the fix; to see it fail, build 781025d6fe32 or 596ef11ddf96.
-- This finding was re-run on Lucene main 1a59f96fc6de on 2026-11-21: it no longer reproduces there.
+- This finding was re-run on Lucene main b5a4546a5964 on 2026-11-22: it no longer reproduces there.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

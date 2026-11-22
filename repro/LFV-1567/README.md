@@ -19,7 +19,7 @@ You subclass UnifiedHighlighter and override its protected loadFieldValues, whic
 
 ## Run it
 
-- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): still reproduces.
+- Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): reproduced.
 - A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).

@@ -2,6 +2,8 @@
 
 Finding LFV-1573 · Area: analysis-common / Albanian (org.apache.lucene.analysis.sq, new on main and branch_11x): the class javadocs of AlbanianNormalizationFilter and AlbanianLightStemmer against AlbanianNormalizer · Priority: low · Impact: minor · Novelty: new
 
+Finding page: [../../bugs/LFV-1573.html](../../bugs/LFV-1573.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You read the class javadoc of the new AlbanianNormalizationFilter, which says th
 
 ## Expected vs actual
 
-- Expected: You expect the word çfarë to come out of the filter as 'cfare'.
-- Actual: It comes out as 'qfare': AlbanianNormalizer, the class both sentences point to, writes q for ç on purpose, as its own javadoc and the package's tests say (run with the precomposed letter on branch_11x 3221dd4cf3a1 and main 7b8418faa2ff, with and without assertions).
+- Expected: The term `cfare`, as the class javadoc of `AlbanianNormalizationFilter` says ("ë/ç are folded to e/c").
+- Actual: The term `qfare`: `term 0 expected:<[c]fare> but was:<[q]fare>`, with assertions on and off.
 
 ## Files
 
@@ -19,7 +21,7 @@ You read the class javadoc of the new AlbanianNormalizationFilter, which says th
 
 ## Run it
 
-- Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): still reproduces.
+- Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene branch_11x 3221dd4cf3a1 (a commit of 2026-11-20): reproduced.
 - A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there. The test asserts what the filter's class javadoc says ('cfare') to show the mismatch; it is not a regression test: the package's own test TestAlbanianNormalizer expects 'qfare' for the same word, and the q folding is intended.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
@@ -44,6 +46,10 @@ java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=A
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+
+## Files shown on the finding page
+
+- [TestAlbanianFilterJavadocCedilla.java](TestAlbanianFilterJavadocCedilla.java)
 
 ## Feedback
 
