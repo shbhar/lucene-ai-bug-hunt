@@ -21,7 +21,7 @@ You build your own FieldType and call setDocValuesType(null) to switch doc value
 
 ## Run it
 
-- Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
+- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: it makes the one call new FieldType().setDocValuesType(null), which the setter's javadoc offers for 'no DocValues should be stored'. The test fails because the call throws NullPointerException 'DocValuesType must not be null', the same with and without assertions; it uses no randomness. The finding is about the javadoc: refusing null is intended, and DocValuesType.NONE is the value to pass. The test does not exercise the getter's sentence ('The default is null'); the field's initial value in the source is DocValuesType.NONE.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).

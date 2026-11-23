@@ -19,7 +19,7 @@ You build ICUTokenizer with new DefaultICUTokenizerConfig(false, true), whose co
 
 ## Run it
 
-- Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
+- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
 - Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): reproduced.
 - The test needs ICU4J, the third-party runtime jar of the analysis-icu module, which the block does not list: add the line CP=$CP:icu4j-79.1.jar (Maven Central, com.ibm.icu) before the javac line. Without that jar the one test still fails, with java.lang.NoClassDefFoundError: com/ibm/icu/util/ULocale, which is not the finding. Run on 2026-11-20 with the jar, with assertions on and off, on a build of main f2b061406c4b and of the 11.0 branch (branch_11x 75eea467ac52): 1 test found, 1 failed, with org.junit.ComparisonFailure: term 0 expected:&lt;デジタル[カメラ]&gt; but was:&lt;デジタル[]&gt;. A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there.
 - How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with org.junit.ComparisonFailure: term 0 expected:&lt;デジタル[カメラ]&gt; but was:&lt;デジタル[]&gt; (the first token is デジタル, where the test expects the whole word as one token).

@@ -22,7 +22,7 @@ You index a line or polygon whose corner points lie exactly on the boundary of a
 
 ## Run it
 
-- Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
+- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

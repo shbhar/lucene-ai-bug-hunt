@@ -22,7 +22,7 @@ Expected: addIndexes adds (and reorders) the 64 documents, as it does for a plai
 
 ## Run it
 
-- Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
+- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
 - Tested on Lucene main 1a59f96fc6de (a commit of 2026-11-21): reproduced.
 - Recorded outcome of run 1 on Lucene main 1a59f96fc6de: 2 test(s) run, 2 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).

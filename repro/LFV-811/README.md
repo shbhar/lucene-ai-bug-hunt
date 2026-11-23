@@ -1,6 +1,6 @@
 # On 10.5.1, 10.5.2 and 10.6.0, an HNSW merge that reuses a graph written with a different maxConn can either fail and close the IndexWriter (maxConn raised) or commit a segment on which a kNN query throws when it reads a neighbour list longer than twice the new maxConn (maxConn lowered)
 
-Finding LFV-811 · Area: codecs / HNSW vectors on the 10.x line (merge-time graph reuse: InitializedHnswGraphBuilder, MergingHnswGraphBuilder, ConcurrentHnswMerger; Lucene99HnswVectorsWriter .vem metadata) · Priority: high · Impact: index unusable · Novelty: known upstream
+Finding LFV-811 · Area: codecs / HNSW vectors on the 10.x line (merge-time graph reuse: InitializedHnswGraphBuilder, MergingHnswGraphBuilder, ConcurrentHnswMerger; Lucene99HnswVectorsWriter .vem metadata) · Priority: medium · Impact: index unusable · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You build a vector index with HNSW maxConn 16 (the default), later open a writer
 
 - Tested on Lucene 10.6.0 (4ae946e5a9b9) (a commit of 2026-10-26): reproduced (6 of the 7 tests fail, with and without assertions; the seventh keeps maxConn unchanged and passes).
 - Passes on Lucene main 1cfa86310f76 (2026-11-17) and on branch_11x 89e68e0f3a50 (2026-11-17): all 7 tests pass on both, with and without assertions. Main and the 11.0 branch do not have the defect, so these runs are controls.
-- This finding was re-run on Lucene main b5a4546a5964 on 2026-11-22: the test passed, as recorded before (a control run); in the commands below, V=12.0.0-SNAPSHOT on a build of main b5a4546a5964.
+- This finding was re-run on Lucene main 11c8b6ea99ae on 2026-11-23: the test passed, as recorded before (a control run); in the commands below, V=12.0.0-SNAPSHOT on a build of main 11c8b6ea99ae.
 - How to read the outcome: on 10.5.1, 10.5.2 and 10.6.0 a failing test is the finding reproducing (the failure message states expected against actual). On 10.4.0 and 10.5.0 five of the seven tests, the control among them, fail with 'merge did not reuse a graph': that is the test's own probe, not the finding.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

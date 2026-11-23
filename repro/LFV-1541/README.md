@@ -21,7 +21,7 @@ You ask the sandbox drill-sideways helper for hits and facets in one call: TopDo
 
 ## Run it
 
-- Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
+- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
 - Tested on Lucene branch_11x 89e68e0f3a50 (a commit of 2026-11-17): reproduced.
 - A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there.
 - How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with a java.lang.ClassCastException whose message begins 'class [Ljava.lang.Object; cannot be cast to class org.apache.lucene.search.TopDocs', thrown at line 52 of the test, the collect call, before the test's assertion is reached.

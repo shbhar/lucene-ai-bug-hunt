@@ -8,7 +8,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You build a FreeTextSuggester (default bigram model) from text in which 'foo' occurs 9 times (once followed by 'bar'), 'barn' 8 times and 'bar' 10 times, and call lookup("foo bar", 1). With stupid backoff 'foo bar' scores 1/9 = 0.111 and 'barn' 0.4 x 8/27 = 0.119, and 'bar' does not count at the unigram level because the bigram model already predicted it, so you expect [barn], which is also what upstream TestFreeTextSuggester's own reference model gives. You get [foo bar]: 'bar' is itself a word, so Util.TopNSearcher returns it from its 'Empty string!' branch without calling the acceptResult filter that rejects already-predicted words; it takes the unigram level's only slot, is then thrown away as a duplicate, and 'barn' is never considered.
+You build a FreeTextSuggester (default bigram model) from text in which 'foo' occurs 9 times (once followed by 'bar'), 'bar' 8 times and 'barn' 7 times, and call lookup("foo bar", 1). With stupid backoff 'foo bar' scores 1/9 = 0.111 and 'barn' 0.4 x 7/24 = 0.117, and 'bar' does not count at the unigram level because the bigram model already predicted it, so you expect [barn], which is also what upstream TestFreeTextSuggester's own reference model gives. You get [foo bar]: 'bar' is itself a word, so Util.TopNSearcher returns it from its 'Empty string!' branch without calling the acceptResult filter that rejects already-predicted words; it takes the unigram level's only slot, is then thrown away as a duplicate, and 'barn' is never considered.
 
 ## Expected vs actual
 
@@ -21,7 +21,7 @@ You build a FreeTextSuggester (default bigram model) from text in which 'foo' oc
 
 ## Run it
 
-- Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
+- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

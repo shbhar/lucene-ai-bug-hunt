@@ -22,7 +22,7 @@ You lower the clause limit to 2 (IndexSearcher.setMaxClauseCount(2)), add terms 
 ## Run it
 
 - Tested on Lucene main 5adff78bb168 (a commit of 2026-11-02): fails with assertions on and off (the rejected term f:c is still in the built query).
-- This finding was re-run on Lucene main b5a4546a5964 on 2026-11-22: still reproduces.
+- This finding was re-run on Lucene main 11c8b6ea99ae on 2026-11-23: still reproduces.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

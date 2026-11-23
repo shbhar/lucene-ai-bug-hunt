@@ -1,6 +1,6 @@
 # Doc-values-rewritten multi-term queries report no leaf to a QueryVisitor, so the nested clause limit does not count them and, on main and the 11.0 branch, the query cache does not count the bytes of the wrapped query
 
-Finding LFV-038 · Area: search / multi-term queries · Priority: high · Impact: silent wrong results · Novelty: known upstream
+Finding LFV-038 · Area: search / multi-term queries · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -19,7 +19,7 @@ You run a query tree whose leaves are multi-term queries rewritten with MultiTer
 
 ## Run it
 
-- Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
+- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
 - Tested on Lucene main b83101cdd2 (a commit of 2026-10-23): reproduced.
 - How to read the outcome: the finding reproduces when the four testBug* tests fail and the four testControl* tests pass (each failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

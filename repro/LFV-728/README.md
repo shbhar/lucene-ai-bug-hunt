@@ -21,7 +21,7 @@ You index text with the stock SmartChineseAnalyzer, whose segmenter has a charac
 
 ## Run it
 
-- Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
+- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
 - Tested on Lucene main a9779ef3c193 (a commit of 2026-10-26): reproduced.
 - Both tests also treat U+00A0 NO-BREAK SPACE as a space: smartcn removes it like punctuation, with a position gap, which is tested design and not part of this finding (the finding page's TestSmartChineseThinSpace.java is the minimal test).
 - Class path: analysis-smartcn depends on the analysis-common module (SegmentingTokenizerBase), so the recipe adds lucene-analysis-common to the class path before compiling.

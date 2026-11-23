@@ -20,7 +20,7 @@ You write a GroupReducer whose per-group collector needs only the first document
 
 ## Run it
 
-- Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
+- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
 - Tested on Lucene main a9779ef3c193 (a commit of 2026-10-26): reproduced.
 - This folder holds two copies of the test. The copy under src2/ is the form that compiles with the jars of 9.1.0 and 9.12.3: it calls TopFieldCollector.create(Sort, int, int) (line 95), which the 10.6.0 release, the 11.0 branch and main do not have, and new MatchAllDocsQuery() (line 48), whose constructor #16962 (merged 2026-11-03) made private on main (24d9e7d1a0d) and on the 11.0 branch (branch_11x, a6a26f9b251). So on a build of main or of the 11.0 branch and with the jars of the 10.6.0 release the second javac line stops (at both lines on the two builds, at line 95 with the 10.6.0 jars) and the second java command finds no test: leave these two commands out there. The first javac line and the first java command are the repro: run on 2026-11-22 with assertions on and off, the src/ copy fails 1 of 1 with 'first document of group b expected:&lt;1&gt; but was:&lt;0&gt;' on a build of main b5a4546a5964, on a build of the 11.0 branch (branch_11x 262e019500ec; there V=11.0.0-SNAPSHOT) and with the 10.6.0 jars (Maven Central, org.apache.lucene, in place of the five $LUCENE jars; V=10.6.0). The src2/ copy fails the same way with the jars of 9.12.3 and 9.1.0 (run the same day with assertions on), where the src/ copy does not compile.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).

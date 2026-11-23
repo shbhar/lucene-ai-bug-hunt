@@ -20,7 +20,7 @@ You add a document with two field names that differ only in an unpaired surrogat
 
 ## Run it
 
-- Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
+- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
 - This folder holds the finding's registered tests. TestUnpairedSurrogateNameCollision has four tests: testFieldNames (the field-name variant), testIndexSortFieldName, and testCommitUserDataKeys and testFieldAttributeKeys (the two map-key variants). Run on 2026-11-16 with assertions on and off: on the 10.6.0 release jars 2 of 4 fail (testFieldNames and testIndexSortFieldName; the two map-key tests pass there), and on branch_11x daa54f2e0cd3 (11.0.0-SNAPSHOT) and on main 781025d6fe32 and 01deb8e63e0b 4 of 4 fail. TestUnpairedSurrogateNameCollisionWriter (two tests of the field-name variant, in the writing session and through CheckIndex) fails 2 of 2 on the 10.6.0 release jars, branch_11x daa54f2e0cd3 and main 01deb8e63e0b. The one-test repro of the commit user-data keys that the finding's record cites (one empty document, the keys '\uD800' and '\uD801', then DirectoryReader.open) is not in this folder; run the same day with assertions on and off, it fails 1 of 1 on branch_11x daa54f2e0cd3 and on main 781025d6fe32 and 01deb8e63e0b and passes on the 10.6.0 release jars. testCommitUserDataKeys here is the same kind of check with the keys 'k\uD800' and 'k\uFFFD'.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).

@@ -24,7 +24,7 @@ Expected: the open after A1 closed shares the open arena A2 (63 permits left). A
 
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- This finding was re-run on Lucene main b5a4546a5964 on 2026-11-22: it no longer reproduces there; in the commands below, V=12.0.0-SNAPSHOT on a build of main b5a4546a5964.
+- This finding was re-run on Lucene main 11c8b6ea99ae on 2026-11-23: it no longer reproduces there; in the commands below, V=12.0.0-SNAPSHOT on a build of main 11c8b6ea99ae.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 

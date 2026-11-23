@@ -21,7 +21,7 @@ You add a word to a spell index with SpellChecker.indexDictionary; the word is c
 
 ## Run it
 
-- Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
+- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
 - Tested on Lucene main ec3b3cca8f10 (a commit of 2026-11-18): reproduced.
 - How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with org.apache.lucene.store.AlreadyClosedException: this IndexReader is closed and, as a suppressed exception under it, MockDirectoryWrapper: cannot close: there are still 2 open files.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.

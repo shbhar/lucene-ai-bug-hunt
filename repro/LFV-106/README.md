@@ -1,6 +1,6 @@
 # Vector similarity queries report isCacheable() == true although their per-segment result depends on live docs, the filter and, on the approximate (graph-search) path, the search timeout, so a shared query cache can serve one reader's or one search's result to another
 
-Finding LFV-106 · Area: search / vector similarity queries and the query cache · Priority: high · Impact: silent wrong results · Novelty: new
+Finding LFV-106 · Area: search / vector similarity queries and the query cache · Priority: medium · Impact: silent wrong results · Novelty: new
 
 Finding page: [../../bugs/LFV-106.html](../../bugs/LFV-106.html)
 
@@ -22,7 +22,7 @@ Expected `count` 2 on the older reader, where doc 0 is still live; actual 1 (`ex
 
 ## Run it
 
-- Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
+- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
