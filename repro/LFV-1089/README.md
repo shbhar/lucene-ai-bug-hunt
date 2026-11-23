@@ -23,7 +23,7 @@ You build two FSTCompletion instances from different inputs ('apple' and 'zebra'
 
 - Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene main e1faeba08bde (a commit of 2026-11-02): reproduced.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

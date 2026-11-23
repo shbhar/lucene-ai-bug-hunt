@@ -24,7 +24,7 @@ You index a field with the Lucene99 HNSW scalar-quantized format (int7, EUCLIDEA
 - Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene main a9779ef3c193 (a commit of 2026-10-26): reproduced.
 - The tests embed their indexes as base64 zips, so nothing has to be generated to run them: the src/ test holds an index written through the public API of the 10.3.2 release jars and the same index written by 9.12.3, and the test shown on the finding page holds the 10.3.2 one. The generator that wrote them (GenUniformSqIndex, named in the src/ test's comments) is not included: it needs those release jars and does not compile against Lucene main, which can no longer write this format.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

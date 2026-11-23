@@ -23,7 +23,7 @@ You run a query once through a CachingCollector or CachingCollectorManager that 
 - Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
 - On Lucene main 781025d6fe32 (2026-11-13) the second test, TestCachingCollectorIncompleteCacheLegacy, needs a small adaptation, because #16805 (e0a3a951e7e) removed IndexSearcher.search(Query, Collector) on main: on line 49, pass cc through a CollectorManager whose newCollector() returns cc and whose reduce() returns null. With that change it still fails 4 of 5 there, with and without assertions. The first test, TestCachingCollectorManagerIncompleteCache, needs no change.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

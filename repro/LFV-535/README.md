@@ -22,7 +22,7 @@ You put CapitalizationFilter with onlyFirstWord=false after a KeywordTokenizer a
 
 - Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

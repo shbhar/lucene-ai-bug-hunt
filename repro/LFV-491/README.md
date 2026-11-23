@@ -24,7 +24,7 @@ You merge an index and its taxonomy into another index/taxonomy pair with Taxono
 - Tested on Lucene main 5adff78bb168 (a commit of 2026-11-02): reproduced, with the test as shipped.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
 - This finding was re-run on Lucene main b5a4546a5964 on 2026-11-22: still reproduces (the repro adapted to an API change on this commit).
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

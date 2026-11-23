@@ -22,7 +22,7 @@ One thread opens an NRT reader from the IndexWriter (or commits) while other thr
 - Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
 - What this folder covers: the test class holds the three routes with an injected failure (an I/O error while the near-real-time reader opens, an IOException from a merge policy's findFullFlushMerges during a reopen, and an IOException from a merge policy's keepFullyDeletedSegment during a commit) and a control with a successful reopen. The route named in the title, a close() on another thread during a reopen, has no test in this folder. Run on 2026-11-17 on Lucene main 9965d34e3c77 and on 2026-11-18 on Lucene main 1cfa86310f76, with and without assertions: 4 tests found, 3 tests failed (the three routes: the commit after the failure holds 1 of the 3 expected documents) and the control passed.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

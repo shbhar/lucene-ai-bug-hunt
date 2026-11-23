@@ -25,7 +25,7 @@ MIGRATE.md on Lucene main and branch_11x tells users who open a Lucene 9.x or 10
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main e1faeba08bde: 1 test(s) run, 1 failed (testForceMergeUpgradesSingleSegmentIndex).
 - Fixture: the test reads moreterms.9.0.0.zip, a test resource of Lucene's backward-codecs module (lucene/backward-codecs/src/test/org/apache/lucene/backward_index/ in the checkout), so the run puts $LUCENE/lucene/backward-codecs/src/test on the class path; without it the test fails for another reason.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

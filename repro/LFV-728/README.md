@@ -25,7 +25,7 @@ You index text with the stock SmartChineseAnalyzer, whose segmenter has a charac
 - Tested on Lucene main a9779ef3c193 (a commit of 2026-10-26): reproduced.
 - Both tests also treat U+00A0 NO-BREAK SPACE as a space: smartcn removes it like punctuation, with a position gap, which is tested design and not part of this finding (the finding page's TestSmartChineseThinSpace.java is the minimal test).
 - Class path: analysis-smartcn depends on the analysis-common module (SegmentingTokenizerBase), so the recipe adds lucene-analysis-common to the class path before compiling.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

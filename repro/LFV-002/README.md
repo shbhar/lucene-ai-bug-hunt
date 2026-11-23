@@ -28,7 +28,7 @@ Expected the k0 document's last update `n=2` after the merge, commit and reopen;
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - The test leaves maxDocValuesOverlays at its default: 8 on main and on branch_11x, 0 (off) in 10.6.0. Runs of 2026-11-19: with the 10.6.0 release (the three 10.6.0 jars from Maven Central, org.apache.lucene: lucene-core, lucene-codecs and lucene-test-framework, in place of the three $LUCENE jars; V=10.6.0) the test as shipped passes, with assertions on and off; with one line added after new IndexWriterConfig(), .setMaxDocValuesOverlays(1), it fails there with the same message; on main and on branch_11x it also fails with .setMaxDocValuesOverlays(0). The test pins the race with latches: a failing run shows the outcome of that schedule, not how often a workload meets it.
 - This finding was re-run on Lucene main b5a4546a5964 on 2026-11-22: still reproduces.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

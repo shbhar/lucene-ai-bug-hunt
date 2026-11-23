@@ -24,7 +24,7 @@ You analyze text containing 픽토그램 ('pictogram') with the default KoreanAn
 - Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene main a9779ef3c193 (a commit of 2026-10-26): reproduced.
 - The test under src/ is the finder's two-test version: run 1 fails both of its tests, with assertions on and off alike, with java.lang.AssertionError: DISCARD: token offsets do not match the token text: [세종 [1,3) slices '종시'] and 픽토그램: token offsets do not match the token text: [픽토 [1,3) slices '토그', 그 [3,4) slices '램']. The expected and actual lines above are those of the finding page's one-test copy at the top of this folder, TestCompoundPartOffsets.java: put it in src/org/apache/lucene/analysis/ko/ instead and select org.apache.lucene.analysis.ko.TestCompoundPartOffsets to see them.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

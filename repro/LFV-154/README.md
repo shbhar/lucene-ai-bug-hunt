@@ -27,7 +27,7 @@ Expected: replay ends that leaf and returns, as `IndexSearcher.search` does. Act
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - On Lucene main since #16805 (e0a3a951e7e, merged 2026-11-09) the test needs a small adaptation, because #16805 removed IndexSearcher.search(Query, Collector); the change is on main only, and the 11.0 branch (branch_11x 9d2b5a15427a) still has the method. The adaptation: on line 37, pass cache through a CollectorManager whose newCollector() returns cache and whose reduce() returns null. So adapted, the test fails 1 of 1, with and without assertions, on main 781025d6fe32 (2026-11-13) and on main 9965d34e3c77 (2026-11-16).
 - This finding was re-run on Lucene main b5a4546a5964 on 2026-11-22: still reproduces (the repro adapted to an API change on this commit).
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

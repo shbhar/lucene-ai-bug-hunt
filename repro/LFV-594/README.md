@@ -23,7 +23,8 @@ You wrap a stock analyzer such as StandardAnalyzer in QueryAutoStopWordAnalyzer,
 
 - Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene main a9779ef3c193 (a commit of 2026-10-26): reproduced.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
+- The javac line below compiles the three files under src/ together. src/qaswa/QaswaReuseMain4x.java, the main() class of the last command, is QaswaReuseMain written for 4.x releases (it calls constructors that take a Version); it does not compile on a build of Lucene main or of branch_11x or with the jars of the 10.6.0 release, so as printed the javac line stops there, run 1 finds no test and the two main() commands cannot load their classes. Name the two other files in the javac line, in place of $(find src -name '*.java'): src/org/apache/lucene/analysis/query/TestQueryAutoStopWordReuse.java src/qaswa/QaswaReuseMain.java, and leave out the last java command. Then, run on 2026-11-22 on a build of main b5a4546a5964, on a build of branch_11x 262e019500ec (there V=11.0.0-SNAPSHOT) and with the 10.6.0 jars (Maven Central, org.apache.lucene, in place of the eight $LUCENE jars; V=10.6.0), with assertions on and off: run 1 reports 4 tests found and 4 failed (testMultiFieldQueryParser with 'expected:&lt;[variedField:boring]&gt; but was:&lt;[]&gt;'), and qaswa.QaswaReuseMain prints 'BUG: stop words of repetitiveField were applied to variedField' and exits with status 1. QaswaReuseMain4x.java, compiled alone and run with lucene-core and lucene-analyzers-common of 4.5.0 and of 4.9.1 on the class path, prints the same BUG line and exits with status 1 (run the same day with assertions on); with those of 4.10.4 it does not compile.
+- How to read the outcome: a failing test is the finding reproducing: with the javac line and the commands as the note above says, run 1 reports 4 tests found and 4 tests failed (among them testMultiFieldQueryParser with expected:&lt;[variedField:boring]&gt; but was:&lt;[]&gt;), and the main() class qaswa.QaswaReuseMain ends its output with the line BUG: stop words of repetitiveField were applied to variedField and exits with status 1, without an exception.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
@@ -53,8 +54,6 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp "classes:$CP" qaswa.QaswaReuseMain4x
 ```
-
-The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
 

@@ -24,7 +24,7 @@ You read the class javadoc of the new AlbanianNormalizationFilter, which says th
 - Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene branch_11x 3221dd4cf3a1 (a commit of 2026-11-20): reproduced.
 - A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there. The test asserts what the filter's class javadoc says ('cfare') to show the mismatch; it is not a regression test: the package's own test TestAlbanianNormalizer expects 'qfare' for the same word, and the q folding is intended.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

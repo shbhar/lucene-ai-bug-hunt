@@ -22,7 +22,7 @@ You build a Geo3DPoint polygon query for a small rectangle with a hole (about 22
 - Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: it builds the rectangle with its hole and calls Geo3DPoint.newPolygonQuery, nothing else. It indexes no document and runs no search, and it fails with the IllegalArgumentException thrown by that call. The outside-polygon sort and the two controls named above (the same rectangle without the hole, and newLargePolygonQuery) are not part of this test.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

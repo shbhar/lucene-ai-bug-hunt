@@ -24,7 +24,7 @@ You build Geo3DPoint.newDistanceQuery("g", PlanetModel.WGS84, 0.0, 10.0, 1000.0)
 - Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene main 5adff78bb168 (a commit of 2026-11-02): reproduced.
 - The test under src/ checks the same pair with a single assertFalse, so run 1 fails with a bare java.lang.AssertionError, with assertions on and off alike. The expected and actual lines above are those of the finding page's copy at the top of this folder, TestSignedZeroEqualsHashCode.java, which prints the two hash codes, 209447998 and -1938035650; copy it over src/org/apache/lucene/spatial3d/TestSignedZeroEqualsHashCode.java to see them.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

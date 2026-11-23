@@ -26,7 +26,7 @@ Expected, per the `commit()` javadoc ("All sequence numbers &lt;= this value wil
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - What this folder covers: the test shows the first part of the title: tryDeleteDocument, called while commit() flushes, returns a sequence number above the commit's and its delete is in that commit. The second part of the title, a commit that holds no version of a document replaced during that flush, has no test in this folder. Run on 2026-11-18 on Lucene main 1cfa86310f76, with and without assertions: 1 test found, 1 test failed (tryDeleteDocument 7, the commit 6, the delete in the commit).
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

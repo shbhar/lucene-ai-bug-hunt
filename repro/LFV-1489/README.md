@@ -24,7 +24,7 @@ You index 'a b c d' and search for the phrase a, then either "b c" or b, then d,
 - Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: it indexes one document with the text 'a b c d' (default IndexWriterConfig) and counts the hits of an IntervalQuery for Intervals.phrase(a, Intervals.nonOverlapping(Intervals.or(phrase(b, c), b), z), d). It asserts 1 hit and gets 0; the failure message starts with the built query, f:BLOCK(a,NON_OVERLAPPING(or(BLOCK(b,c),b),z),d). The same phrase without the filter, Intervals.notWithin and a maxgaps parent, which the title names, are not part of this test.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

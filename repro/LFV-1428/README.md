@@ -24,7 +24,7 @@ You compare MutableValues of different classes, for example a MutableValueBool, 
 - Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene main f794ff5a505c (a commit of 2026-11-06): reproduced.
 - Run the java command below with the java of an OpenJ9 JDK or JRE 25 (default settings), whose identity hash codes can be negative; the classes may be compiled with any JDK 25. On HotSpot the test passes. Each run gets new class hash codes, so one OpenJ9 run fails about 9 times in 10.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

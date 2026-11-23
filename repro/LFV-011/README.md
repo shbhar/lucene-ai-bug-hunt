@@ -26,7 +26,7 @@ Expected: the second merge succeeds; actual (-ea and -da): IndexOutOfBoundsExcep
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - The line numbers under 'Expected vs actual' (MultiSorter.java:166-168) are those of main 645d4fe14a20, where this test was recorded. The merged #16571 (2026-11-12) moved the code: on main 1cfa86310f76 the lookup is at MultiSorter.java:176 and the failing frame is MultiSorter.setComparableValues at MultiSorter.java:178.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

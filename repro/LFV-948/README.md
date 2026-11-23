@@ -27,7 +27,7 @@ The test shows that the Lucene 10.6.0 CHANGES entry for GITHUB#16243 (RC1 CHANGE
 - Passes on Lucene main 645d4fe14a20 (a commit of 2026-10-28).
 - Also passes on Lucene main 781025d6fe32 (2026-11-13), with and without assertions: main's class has the k3 constructor, so on main only the text of the 10.6.0 section is wrong.
 - This finding was re-run on Lucene main b5a4546a5964 on 2026-11-22: the test passed, as recorded before (a control run); in the commands below, V=12.0.0-SNAPSHOT on a build of main b5a4546a5964.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

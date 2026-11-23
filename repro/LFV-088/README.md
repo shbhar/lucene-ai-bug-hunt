@@ -26,7 +26,7 @@ Expected, with 3 documents and 1 deleted: exactly 2 hits (or a lower bound &lt;=
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - The test sets NoMergePolicy only to keep the deleted document in its segment: with that setting removed it passed, because with the default merge policy the writer merged the deleted document away while the reader was opened (1 deleted document of 3 is more than the policy's default allowance of 20%). With 5 documents, one of them deleted, and nothing set on the IndexWriterConfig the total was too high as well (5 for 4 live documents). Both were run on the 10.6.0 release, on branch_11x 3221dd4cf3a1 and on main 7b8418faa2ff, with assertions on and off.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

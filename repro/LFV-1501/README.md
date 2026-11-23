@@ -24,7 +24,7 @@ Your Lucene 10.x code builds a regular-expression query with new RegexpQuery(ter
 - Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: with the default codec it indexes three documents whose StringField f holds ab, AB and aB, and counts the hits of new RegexpQuery(new Term("f", "ab"), RegExp.NONE, 20_000), the call as Lucene 10.x code makes it, with 20,000 as the determinize work limit. It expects 1 hit. On 11.0 the constructor reads 20,000 as match flags, which switches on case-insensitive matching, so the query matches all three terms and the test fails with 'expected:&lt;1&gt; but was:&lt;3&gt;', the same with and without assertions. On the 10.6.0 release the same test passes. The test is a witness for the gap in the release and migration notes, not a regression test for RegexpQuery: the 11.0 javadoc names the third parameter matchFlags, and the constructor treats it as that. It uses no randomness.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

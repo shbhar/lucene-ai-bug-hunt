@@ -6,6 +6,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 
 | Unit | Tools | Findings |
 |---|---|---|
+| [addbatch-row-column-arrays-grown-apart](addbatch-row-column-arrays-grown-apart/) | Python | LFV-1579 |
 | [analysis-benchmark-backward-codecs-javadoc-examples-compile-on-main](analysis-benchmark-backward-codecs-javadoc-examples-compile-on-main/) | Python | LFV-1041, LFV-1040 |
 | [analysis-factories-unread-parameters](analysis-factories-unread-parameters/) | Python | LFV-1546 |
 | [analysis-factory-javadoc-examples-and-resource-files-build-as-documented](analysis-factory-javadoc-examples-and-resource-files-build-as-documented/) | Python | LFV-931 |

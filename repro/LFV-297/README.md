@@ -23,7 +23,7 @@ You wrap a query in RescoreTopNQuery, for example full-precision rescoring of a 
 
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
 - This finding was re-run on Lucene main b5a4546a5964 on 2026-11-22: it no longer reproduces there; in the commands below, V=12.0.0-SNAPSHOT on a build of main b5a4546a5964.
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash

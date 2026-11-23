@@ -22,7 +22,7 @@ You bulk-load standing queries into a Monitor with the documented pattern, loade
 - Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): still reproduces.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
 - What this folder covers: the test shows the first part of the title: add() is still blocked 30 s after the loader's only worker stopped at an IOException from Monitor.register (one worker, a queue of 4). The second part of the title, an unchecked exception from register that is not recorded, so that close() returns normally with that worker's queries unregistered (the outcome behind the impact class shown above), has no test in this folder. Run on 2026-11-18 on Lucene main 1cfa86310f76, with and without assertions: 1 test found, 1 test failed (add() still blocked 30 s after the loader's only worker stopped).
-- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual).
+- How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
 ```bash
