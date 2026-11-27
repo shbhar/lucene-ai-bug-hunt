@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- FLOAT16 vectors read back from a quantized index whose raw vectors were dropped can contain +-Infinity, and EUCLIDEAN full-precision rescoring can then rank an exact match last (finding LFV-084; [repro](../../repro/LFV-084/), [finding page](../../bugs/LFV-084.html))
+- FLOAT16 vectors read back from a quantized index whose raw vectors were dropped can contain +-Infinity, and EUCLIDEAN full-precision rescoring can then rank an exact match last (finding LFV-084; [repro](../../repro/LFV-084/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-084.html))
 
 ## Files
 

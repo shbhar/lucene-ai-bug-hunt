@@ -2,7 +2,7 @@
 
 Finding LFV-1543 · Area: index / IndexWriter close() and rollback() (rollbackInternalNoCommit: the first log statement, in front of the try; shouldClose and the closing flag; the write lock) · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1543.html](../../bugs/LFV-1543.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1543.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1543.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You turn on IndexWriter's InfoStream (its diagnostic log, off by default), add a
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene branch_11x 89e68e0f3a50 (a commit of 2026-11-17): reproduced.
 - The test of this folder adds no document: it is a smaller form of the scenario above and checks two things, that close() throws a RuntimeException and that the write lock can then be obtained. A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there.
 - How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with an org.apache.lucene.store.LockObtainFailedException whose message begins 'lock instance already obtained' and names the lock write.lock, thrown at line 48 of the test, where the test asks the directory for the write lock after close() has thrown.
@@ -44,7 +44,7 @@ java -da -dsa -Dtests.asserts=false -Xmx1g --add-modules jdk.incubator.vector --
      execute --select-class org.apache.lucene.index.TestCloseThrowsOnRollbackLogLine
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

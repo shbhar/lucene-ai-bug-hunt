@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- Merge-on-refresh never releases the file references of a merged segment that is dropped because all its documents were deleted during the merge, so IndexWriter leaves that segment's files on disk until the next writer opens the index (finding LFV-472; [repro](../../repro/LFV-472/), [finding page](../../bugs/LFV-472.html))
+- Merge-on-refresh never releases the file references of a merged segment that is dropped because all its documents were deleted during the merge, so IndexWriter leaves that segment's files on disk until the next writer opens the index (finding LFV-472; [repro](../../repro/LFV-472/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-472.html))
 
 ## Files
 

@@ -19,7 +19,7 @@ One thread opens an NRT reader from the IndexWriter (or commits) while other thr
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
 - What this folder covers: the test class holds the three routes with an injected failure (an I/O error while the near-real-time reader opens, an IOException from a merge policy's findFullFlushMerges during a reopen, and an IOException from a merge policy's keepFullyDeletedSegment during a commit) and a control with a successful reopen. The route named in the title, a close() on another thread during a reopen, has no test in this folder. Run on 2026-11-17 on Lucene main 9965d34e3c77 and on 2026-11-18 on Lucene main 1cfa86310f76, with and without assertions: 4 tests found, 3 tests failed (the three routes: the commit after the failure holds 1 of the 3 expected documents) and the control passed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -42,7 +42,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.index.TestGetReaderFailureDropsConcurrentDocs
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 Formal models and scripts this finding's part of the hunt used: [../../models/dw-flush-control-deletequeue-tla/](../../models/dw-flush-control-deletequeue-tla/)
 

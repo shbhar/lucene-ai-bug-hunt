@@ -2,7 +2,7 @@
 
 Finding LFV-1578 · Area: facet / sorted-set doc-values facet counts (the choice of the ordinal map in count() of SortedSetDocValuesFacetCounts and ConcurrentSortedSetDocValuesFacetCounts) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Finding page: [../../bugs/LFV-1578.html](../../bugs/LFV-1578.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1578.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1578.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You search a six-segment index (one document a segment: a=x in the first five, a
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main b5a4546a5964 (a commit of 2026-11-22): reproduced.
 - Not new in 11.0: the test fails the same way with the 10.6.0 release jars, on a build of branch_11x (262e019500ec) and on Lucene main (b5a4546a5964), with and without assertions. What the test does: it indexes six documents with a commit after each and NoMergePolicy, which gives six one-document segments (the facet label a=x in the first five, a=z in the sixth), and searches them with a query that matches every document through IndexSearcher.search(Query, CollectorManager), on a searcher whose executor runs each slice on the calling thread; default slicing makes two slices here, the first five segments and the sixth. Its own CollectorManager gives each slice a stock FacetsCollector, counts each collector by itself with SortedSetDocValuesFacetCounts and adds the counts; the test expects x=5 z=1. The run reports 1 test found and 1 test failed, with org.junit.ComparisonFailure: expected:&lt;x=[5 z=1]&gt; but was:&lt;x=[6 z=0]&gt;; Lucene itself throws no exception. The commands below print one run, with assertions off; with -ea -esa in place of -da -dsa -Dtests.asserts=false the outcome is the same. The test has no random() call of its own; the test framework draws its environment (the codec and the directory among other things) from the seed, and the outcome was the same under each seed that was run. On a branch_11x checkout set V=11.0.0-SNAPSHOT; for the release, set V=10.6.0 and use the four 10.6.0 jars from Maven Central (org.apache.lucene: lucene-core, lucene-codecs, lucene-test-framework, lucene-facet) in place of the four $LUCENE jars. For the Gradle alternative at the end of this page the module is lucene/facet: with the test copied to lucene/facet/src/test/org/apache/lucene/facet/sortedset/ it reports 1 test completed, 1 failed, with the same message, on branch_11x 262e019500ec and on main b5a4546a5964, with -Ptests.asserts=true and with -Ptests.asserts=false.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -45,7 +45,7 @@ java -da -dsa -Dtests.asserts=false -Xmx2g --add-modules jdk.incubator.vector --
      execute --select-class org.apache.lucene.facet.sortedset.TestSortedSetFacetCountsPerSliceCollector
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

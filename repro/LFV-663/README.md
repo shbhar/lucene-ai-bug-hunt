@@ -4,7 +4,7 @@ Finding LFV-663 · Area: analysis-common / Brazilian Portuguese stemmer (Brazili
 
 AI-assisted finding, confirmed by automated checks. Upstream status: Fixed, by Uwe Schindler (Lucene PMC; merged PR #16972 by Simranjeet Singh, sjs004) on 2026-11-04 (https://github.com/apache/lucene/pull/16972). Simranjeet Singh (sjs004) fixed it in PR #16972 (opened 2026-11-03), which names this bug in its title; Uwe Schindler approved it, merged it into main on 2026-11-04 (milestone 11.0.0) and cherry-picked it to branch_11x the same day. Not on branch_10_6 (head 5deb5791f6c, 2026-11-08), so 10.6.x keeps the bug. This site files nothing upstream.
 
-Fixed upstream: [#16972](https://github.com/apache/lucene/pull/16972) (commit [817c30eb2b52](https://github.com/apache/lucene/commit/817c30eb2b52f77336b3667a7a0c426e24e52259)), merged 2026-11-04; also on the 11.0 release branch ([9bdd7da77e36](https://github.com/apache/lucene/commit/9bdd7da77e36)).
+Fixed upstream: [#16972](https://github.com/apache/lucene/pull/16972) (commit [817c30eb2b52](https://github.com/apache/lucene/commit/817c30eb2b52f77336b3667a7a0c426e24e52259)), merged 2026-11-04; also on branch_11x ([9bdd7da77e36](https://github.com/apache/lucene/commit/9bdd7da77e36)).
 
 ## What it shows
 
@@ -22,7 +22,7 @@ You index Brazilian Portuguese text with the stock BrazilianAnalyzer (or Brazili
 ## Run it
 
 - Tested on Lucene main a9779ef3c193 (a commit of 2026-10-26): reproduced.
-- This finding was re-run on Lucene main 11c8b6ea99ae on 2026-11-23: it no longer reproduces there; in the commands below, V=12.0.0-SNAPSHOT on a build of main 11c8b6ea99ae.
+- This finding was re-run on Lucene main 82cf7465bb8f on 2026-11-26: it no longer reproduces there; in the commands below, V=12.0.0-SNAPSHOT on a build of main 82cf7465bb8f.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -44,7 +44,7 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
      execute --select-class org.apache.lucene.analysis.br.TestBrazilianLogiasPlural
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Feedback
 

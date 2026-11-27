@@ -2,7 +2,7 @@
 
 Finding LFV-071 · Area: codecs / vectors · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-071.html](../../bugs/LFV-071.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-071.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-071.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -26,7 +26,7 @@ Expected: dest[0] == 0; actual (-ea and -da, preferredBitSize=256): `expected:<0
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - This test needs a CPU with 256-bit or wider vectors: on a CPU with 128-bit vectors it passes, because Lucene's vectorized loop does not run there. The re-runs on Lucene main 781025d6fe32 (2026-11-13) and 9965d34e3c77 (2026-11-16) and on the 11.0 branch (branch_11x 9d2b5a15427a) were made on a CPU with 128-bit vectors, where the test as shipped passes, with and without assertions, and so with a small adaptation: the package line changed to org.apache.lucene.internal.vectorization, the ScalarQuantizer line deleted, the quantizer.quantize(...) call replaced by VectorizationProvider.lookup(true).getVectorUtilSupport().minMaxScalarQuantize(vector, dest, 255f, 1f / 255f, 0f, 1f), and -Dtests.vectorsize=256 added to the java command (which then selects the class in its new package). The adapted test calls Lucene's internal vectorized method directly, with the arguments the public method passes, and Lucene's test switch tests.vectorsize makes the JVM run it with 256-bit vectors; so adapted, the test fails 1 of 1 with the same message (expected:&lt;0&gt; but was:&lt;1&gt;), with and without assertions, on each of these builds and with the 10.6.0 release jars, and without the switch it passes.
-- This finding was re-run on Lucene main 11c8b6ea99ae on 2026-11-23: still reproduces (with an adapted copy of the repro).
+- This finding was re-run on Lucene main 82cf7465bb8f on 2026-11-26: still reproduces (with an adapted copy of the repro).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -47,7 +47,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.util.quantization.TestScalarQuantizerNearestByte
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 Formal models and scripts this finding's part of the hunt used: [../../models/study-simd-equivalence/](../../models/study-simd-equivalence/)
 

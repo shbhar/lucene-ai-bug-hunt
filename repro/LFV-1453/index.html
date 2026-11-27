@@ -15,10 +15,13 @@ h1,h2,p,li,dd{overflow-wrap:break-word}
 .facts>span{min-width:0;overflow-wrap:anywhere}
 th,td.nw{white-space:nowrap;overflow-wrap:normal}
 .scroll{overflow-x:auto}
-@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
+.narrow-only{display:none}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}
+.narrow-only{display:block;font-size:.85rem;color:var(--dim)}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
-</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>Intervals.atLeast Matches report offsets and sub-matches from a source the minimisation loop already dropped, so highlighting marks tokens outside the match</h1>
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a> › <a href="../index.html">Repro tests</a> › LFV-1453</nav><h1>Intervals.atLeast Matches report offsets and sub-matches from a source the minimisation loop already dropped, so highlighting marks tokens outside the match</h1>
 <p class="facts small"><span>Finding LFV-1453</span><span>Area: queries / intervals (Intervals.atLeast Matches path: MinimumShouldMatchIntervalsSource)</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: known upstream</span></p>
+<p><a href="../../index.html#bug-LFV-1453">This finding in the table</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index &#x27;the quick&#x27; with &#x27;fast&#x27; stacked on &#x27;quick&#x27; as an index-time synonym (position increment 0, offsets [4,9)) and ask Weight#matches for Intervals.atLeast(2, the, quick, fast); you expect its only minimal interval, positions [1,1] (quick and fast), with offsets [4,9), and for the text &#x27;the quick fox&#x27; the default UnifiedHighlighter snippet &#x27;the &lt;b&gt;quick&lt;/b&gt; fox&#x27;. Instead the match keeps positions [1,1] but reports startOffset 0 (offsets [0,9)) and a sub-match for &#x27;the&#x27; at position 2147483647 (NO_MORE_INTERVALS), so the highlighter returns &#x27;&lt;b&gt;the&lt;/b&gt; &lt;b&gt;quick&lt;/b&gt; fox&#x27;. The minimisation loop in nextInterval() popped &#x27;the&#x27; as its lead in an earlier round and then returned through its in-loop exit without clearing it, and getCurrentIterators() still adds that lead to the offsets and sub-matches.</p>
@@ -27,7 +30,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/queries/intervals/TestAtLeastMatchOffsets.java"><code>src/org/apache/lucene/queries/intervals/TestAtLeastMatchOffsets.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.</li>
+<li>Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.</li>
 <li>Tested on Lucene main f794ff5a505c (a commit of 2026-11-06): reproduced.</li>
 <li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
@@ -46,5 +49,5 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.queries.intervals.TestAtLeastMatchOffsets</code></pre>
-<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on the 11.0 branch the build takes the default from the seed).</p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-23. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on branch_11x the build takes the default from the seed).</p>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-27. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

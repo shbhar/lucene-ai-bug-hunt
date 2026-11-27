@@ -6,8 +6,8 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- DirectoryTaxonomyWriter gives an existing category a second ordinal after an addCategory call fails with an IOException while the writer opens its near-real-time reader, because the cache stays marked complete or the reader stays stale (finding LFV-521; [repro](../../repro/LFV-521/), [finding page](../../bugs/LFV-521.html))
-- DirectoryTaxonomyWriter gives every later category a wrong ordinal after IndexWriter rejects one enriched ordinal document: the rejected document keeps its docID but the writer's ordinal counter does not advance (finding LFV-520; [repro](../../repro/LFV-520/), [finding page](../../bugs/LFV-520.html))
+- DirectoryTaxonomyWriter gives an existing category a second ordinal after an addCategory call fails with an IOException while the writer opens its near-real-time reader, because the cache stays marked complete or the reader stays stale (finding LFV-521; [repro](../../repro/LFV-521/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-521.html))
+- DirectoryTaxonomyWriter gives every later category a wrong ordinal after IndexWriter rejects one enriched ordinal document: the rejected document keeps its docID but the writer's ordinal counter does not advance (finding LFV-520; [repro](../../repro/LFV-520/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-520.html))
 - DirectoryTaxonomyWriter counts a new ordinal in getSize() before it stores that ordinal's parent, so a concurrent getParent(getSize() - 1) returns 0 (the root) instead of the real parent, or throws ArrayIndexOutOfBoundsException (finding LFV-512; [repro](../../repro/LFV-512/))
 
 ## Files

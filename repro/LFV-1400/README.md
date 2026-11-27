@@ -2,7 +2,7 @@
 
 Finding LFV-1400 · Area: index / IndexWriter.addIndexes validation vs. IndexWriterConfig#setParentField (document blocks, parent field) and the merge-time parent-field check (FieldInfos.getAndValidateParentField through SlowCompositeCodecReaderWrapper in IndexWriter.mergeMiddle) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Finding page: [../../bugs/LFV-1400.html](../../bugs/LFV-1400.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1400.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1400.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You write a small index with a default IndexWriterConfig, open a second writer c
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 5adff78bb168 (a commit of 2026-11-02): reproduced.
 - What this folder covers: the test shows the first outcome of the title: without an index sort, addIndexes accepts the source and the next merge throws IllegalStateException and closes the writer. The outcome under an index sort that the title and the impact class name (a segment whose top-level documents are out of the declared index sort, and wrong top hits of a search sorted by that sort on the releases that were run) has no test in this folder; the finding page gives those runs. Run on 2026-11-18 on Lucene main 1cfa86310f76, with and without assertions: 1 test found, 1 test failed (IllegalStateException 'expected parent doc field to be "_parent " across all segments but found a segment with different field "null"').
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -44,7 +44,7 @@ java -da -dsa -Dtests.asserts=false -Xmx512m --add-modules jdk.incubator.vector 
      execute --select-class org.apache.lucene.index.TestAddIndexesWithoutParentField
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

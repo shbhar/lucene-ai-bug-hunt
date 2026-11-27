@@ -2,7 +2,7 @@
 
 Finding LFV-1577 · Area: queries / intervals (Matches of ordered, unordered and atLeast sources: CachingMatchesIterator); highlighting · Priority: medium · Impact: crash · Novelty: new
 
-Finding page: [../../bugs/LFV-1577.html](../../bugs/LFV-1577.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1577.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1577.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -26,7 +26,7 @@ You index the 14-word text 'a b c d e f g h i j k l m n' and ask Weight#matches 
 - Tested on Lucene branch_11x 3221dd4cf3a1 (a commit of 2026-11-20): reproduced, with assertions on and off (11.0.0-SNAPSHOT).
 - Tested on Lucene 10.6.0 (4ae946e5a9b9) (a commit of 2026-10-26): reproduced, with assertions on and off, on the 10.6.0 release jars, which are built from this commit (the tag releases/lucene/10.6.0).
 - Not new in 11.0: the test fails the same way with the 10.6.0 release jars, on a build of branch_11x (3221dd4cf3a1) and on Lucene main, with and without assertions. What the test does: it indexes one document with the 14-word text 'a b c d e f g h i j k l m n', builds the interval query ordered(phrase(a ... m), term(n)), a 13-term phrase followed by a term, and asks Weight#matches for the document; it expects one match at positions 0 to 13. The matches call throws java.lang.ArrayIndexOutOfBoundsException: Index 50 out of bounds for length 50 at CachingMatchesIterator.cache(CachingMatchesIterator.java:54), so the test's own assertions are not reached. The test's input has no randomness; the test framework draws its environment (the default codec among other things) from the seed, and the outcome was the same under each seed that was run. On a branch_11x checkout set V=11.0.0-SNAPSHOT; for the release, set V=10.6.0 and use the four 10.6.0 jars from Maven Central (org.apache.lucene: lucene-core, lucene-codecs, lucene-test-framework, lucene-queries) in place of the four $LUCENE jars. For the Gradle alternative at the end of this page the module is lucene/queries: with the test copied to lucene/queries/src/test/org/apache/lucene/queries/intervals/ it reports 1 test completed, 1 failed, with the same exception, on branch_11x 3221dd4cf3a1 and on main 1a59f96fc6de, with -Ptests.asserts=true and with -Ptests.asserts=false.
-- This finding was re-run on Lucene main 11c8b6ea99ae on 2026-11-23: still reproduces.
+- This finding was re-run on Lucene main 82cf7465bb8f on 2026-11-26: still reproduces.
 - How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with java.lang.ArrayIndexOutOfBoundsException: Index 50 out of bounds for length 50, thrown in CachingMatchesIterator.cache under the test's Weight#matches call.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -48,7 +48,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.queries.intervals.TestIntervalMatchesThirteenSubMatches
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

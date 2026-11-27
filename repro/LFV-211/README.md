@@ -2,7 +2,7 @@
 
 Finding LFV-211 · Area: queries / FunctionScoreQuery block-max pruning (#16431) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Finding page: [../../bugs/LFV-211.html](../../bugs/LFV-211.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-211.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-211.html)
 
 AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by harshvardhanrp (issue #17050 and open PR #17051) on 2026-11-19 (https://github.com/apache/lucene/pull/17051). Issue #17050 (harshvardhanrp, opened 2026-11-19: 'FunctionScoreQuery block-max bound drops top hits when the value field has a doc values skip index') is open; the open PR #17051 (same author, opened 2026-11-19; its description says 'Fixes #17050'; base main; no milestone and no review as of 2026-11-20) changes FunctionScoreQuery.java, DoubleValues.java and DoubleValuesSource.java. The issue describes this defect: the block-max bound multiplies by the wrapped query's max score, which is 0 for a TermQuery created without scores. On a build of the pull request as of 2026-11-19 our repro passes, with and without assertions; it fails on main f2b061406c4b and on branch_11x 75eea467ac52. Neither item cites this list. They are not an earlier report of it: this row has been in the site's repository since its first commit of 2026-10-27, and both were opened on 2026-11-19. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ Expected: doc 4096 (popularity 100, score 100). Actual on main with -ea and with
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -46,7 +46,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.queries.function.TestFunctionScoreQueryBooleanTopHit
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 Formal models and scripts this finding's part of the hunt used: [../../models/function-queries-bmw/](../../models/function-queries-bmw/)
 

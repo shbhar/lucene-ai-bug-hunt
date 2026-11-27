@@ -2,7 +2,7 @@
 
 Finding LFV-185 · Area: codecs / postings reader (Lucene104 BlockPostingsEnum position bookkeeping; also the Lucene101, Lucene103, Lucene99 and Lucene90 readers in backward-codecs) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Finding page: [../../bugs/LFV-185.html](../../bugs/LFV-185.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-185.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-185.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You index documents that each stay within Lucene's per-document limits but repea
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
 - How to read the outcome: a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
@@ -42,7 +42,7 @@ java -ea -esa -Xmx4g --add-modules jdk.incubator.vector --enable-native-access=A
      -cp "classes:$CP" org.apache.lucene.index.PendingPositionsIntOverflow
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

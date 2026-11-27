@@ -8,7 +8,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 - A non-tragic exception during an NRT reopen or commit full flush aborts the DWPTs other threads filled during that flush, silently losing acknowledged documents and updates: the writer stays open without them, or, when the exception is the AlreadyClosedException that close() on another thread gives a reopen in flight, that close() returns normally without the documents (finding LFV-473; [repro](../../repro/LFV-473/))
 - IndexWriter.deleteAll misses a segment flush that another thread is already running, so documents added before deleteAll survive it and are committed (finding LFV-474; [repro](../../repro/LFV-474/))
-- tryDeleteDocument / tryUpdateDocValue running while commit() flushes returns a sequence number above the commit's, yet its change is in that commit; when a thread adds a new version of a document and then deletes the old one with tryDeleteDocument, both during that flush, the commit holds the delete without the add and so no version of the document (finding LFV-471; [repro](../../repro/LFV-471/), [finding page](../../bugs/LFV-471.html))
+- tryDeleteDocument / tryUpdateDocValue running while commit() flushes returns a sequence number above the commit's, yet its change is in that commit; when a thread adds a new version of a document and then deletes the old one with tryDeleteDocument, both during that flush, the commit holds the delete without the add and so no version of the document (finding LFV-471; [repro](../../repro/LFV-471/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-471.html))
 
 ## Files
 

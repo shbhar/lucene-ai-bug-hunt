@@ -2,7 +2,7 @@
 
 Finding LFV-1516 · Area: sandbox / search: TermAutomatonQuery (experimental), TermAutomatonScorer.countMatches · Priority: low · Impact: silent wrong results · Novelty: new
 
-Finding page: [../../bugs/LFV-1516.html](../../bugs/LFV-1516.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1516.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1516.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -26,8 +26,8 @@ You build a TermAutomatonQuery for '"comes", any one token, "sun"' or '"comes mo
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced, with assertions on and off.
 - Tested on Lucene branch_11x daa54f2e0cd3 (a commit of 2026-11-13): reproduced, with assertions on and off.
 - Tested on Lucene 10.6.0 (4ae946e5a9b9) (a commit of 2026-10-26): reproduced, with assertions on and off, on the 10.6.0 release jars, which are built from this commit (the tag releases/lucene/10.6.0).
-- What each build does: the test fails the same way on Lucene main, on the 11.0 release branch (branch_11x daa54f2e0cd3) and with the 10.6.0 release jars, with and without assertions; the same file, unchanged, also fails with the 10.5.2, 10.0.0 and 9.12.3 release jars, and the finding's record lists every release from 4.10.0 on. What the test does: it indexes two documents of three tokens, 'comes the sun' and 'comes sun sun', builds a TermAutomatonQuery for comes, any one token, sun, or comes moon (an automaton that rewrite() keeps), searches and expects equal scores, because each document holds the match once. It fails with 'expected:&lt;0.22790195&gt; but was:&lt;0.16574687&gt;', the scores of 'comes sun sun' and 'comes the sun': the one match of 'comes sun sun' is counted twice. The heap exhaustion that the finding also describes is not in this test. The test's input has no randomness; the test framework draws the default codec from the seed, and a plain program with the default codec gives the same two scores. On a checkout of the 11.0 branch set V=11.0.0-SNAPSHOT; for the release, put the six 10.6.0 jars from Maven Central (org.apache.lucene: lucene-core, lucene-codecs, lucene-test-framework, lucene-facet, lucene-queries, lucene-sandbox) in place of the six $LUCENE jars. For the Gradle alternative at the end of this page the module is lucene/sandbox.
-- This finding was re-run on Lucene main 11c8b6ea99ae on 2026-11-23: still reproduces.
+- What each build does: the test fails the same way on Lucene main, on branch_11x daa54f2e0cd3 and with the 10.6.0 release jars, with and without assertions; the same file, unchanged, also fails with the 10.5.2, 10.0.0 and 9.12.3 release jars, and the finding's record lists every release from 4.10.0 on. What the test does: it indexes two documents of three tokens, 'comes the sun' and 'comes sun sun', builds a TermAutomatonQuery for comes, any one token, sun, or comes moon (an automaton that rewrite() keeps), searches and expects equal scores, because each document holds the match once. It fails with 'expected:&lt;0.22790195&gt; but was:&lt;0.16574687&gt;', the scores of 'comes sun sun' and 'comes the sun': the one match of 'comes sun sun' is counted twice. The heap exhaustion that the finding also describes is not in this test. The test's input has no randomness; the test framework draws the default codec from the seed, and a plain program with the default codec gives the same two scores. On a checkout of the 11.0 branch set V=11.0.0-SNAPSHOT; for the release, put the six 10.6.0 jars from Maven Central (org.apache.lucene: lucene-core, lucene-codecs, lucene-test-framework, lucene-facet, lucene-queries, lucene-sandbox) in place of the six $LUCENE jars. For the Gradle alternative at the end of this page the module is lucene/sandbox.
+- This finding was re-run on Lucene main 82cf7465bb8f on 2026-11-26: still reproduces.
 - How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with java.lang.AssertionError: expected:&lt;0.22790195&gt; but was:&lt;0.16574687&gt;.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -51,7 +51,7 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
      execute --select-class org.apache.lucene.sandbox.search.TestTermAutomatonQueryAnyMatchCount
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

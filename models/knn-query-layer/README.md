@@ -6,11 +6,11 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- Vector similarity queries report isCacheable() == true although their per-segment result depends on live docs, the filter and, on the approximate (graph-search) path, the search timeout, so a shared query cache can serve one reader's or one search's result to another (finding LFV-106; [repro](../../repro/LFV-106/), [finding page](../../bugs/LFV-106.html))
+- Vector similarity queries report isCacheable() == true although their per-segment result depends on live docs, the filter and, on the approximate (graph-search) path, the search timeout, so a shared query cache can serve one reader's or one search's result to another (finding LFV-106; [repro](../../repro/LFV-106/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-106.html))
 - A kNN query built with a null KnnSearchStrategy, documented as 'the default strategy will be used', throws NullPointerException when a seeded HNSW search runs (SeededKnnVectorQuery, or the optimistic re-entry pass when a segment is re-entered) (finding LFV-114; [repro](../../repro/LFV-114/))
 - A multi-segment kNN query's optimistic second pass, when cut short by the IndexSearcher timeout, replaces the hits a complete first pass already found, so a later timeout can return fewer or farther hits than an earlier one, down to 0 hits (finding LFV-117; [repro](../../repro/LFV-117/))
-- PatienceKnnVectorQuery over a SeededKnnVectorQuery stores a searcher-specific seed Weight in its own field during rewrite, so every search changes the query's equals/hashCode, and searching one query object concurrently on two different readers fails (finding LFV-125; [repro](../../repro/LFV-125/), [finding page](../../bugs/LFV-125.html))
-- AbstractKnnVectorQuery#mergeLeafResults is documented to return hits in any order, but rewrite() reads the k-th score from the last entry and DocAndScoreQuery the max score from the first, so an override that only reorders the hits changes the results (finding LFV-123; [repro](../../repro/LFV-123/), [finding page](../../bugs/LFV-123.html))
+- PatienceKnnVectorQuery over a SeededKnnVectorQuery stores a searcher-specific seed Weight in its own field during rewrite, so every search changes the query's equals/hashCode, and searching one query object concurrently on two different readers fails (finding LFV-125; [repro](../../repro/LFV-125/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-125.html))
+- AbstractKnnVectorQuery#mergeLeafResults is documented to return hits in any order, but rewrite() reads the k-th score from the last entry and DocAndScoreQuery the max score from the first, so an override that only reorders the hits changes the results (finding LFV-123; [repro](../../repro/LFV-123/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-123.html))
 
 ## Files
 

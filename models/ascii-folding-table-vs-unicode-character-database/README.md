@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- ASCIIFoldingFilter folds six letters to the ASCII letter of the opposite case (ǥ U+01E5 and ǧ U+01E7 to 'G', insular ꞅ U+A785 to 'S' and Ꞅ U+A784 to 's', Ɐ U+2C6F to 'a', Ꜿ U+A73E to 'c'; stretched ʗ U+0297 to 'C' is contested), so a LowerCaseFilter-then-ASCIIFoldingFilter chain indexes 'naǧib' as 'naGib' and the ASCII query 'nagib' finds nothing (finding LFV-818; [repro](../../repro/LFV-818/), [finding page](../../bugs/LFV-818.html))
+- ASCIIFoldingFilter folds six letters to the ASCII letter of the opposite case (ǥ U+01E5 and ǧ U+01E7 to 'G', insular ꞅ U+A785 to 'S' and Ꞅ U+A784 to 's', Ɐ U+2C6F to 'a', Ꜿ U+A73E to 'c'; stretched ʗ U+0297 to 'C' is contested), so a LowerCaseFilter-then-ASCIIFoldingFilter chain indexes 'naǧib' as 'naGib' and the ASCII query 'nagib' finds nothing (finding LFV-818; [repro](../../repro/LFV-818/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-818.html))
 
 ## Files
 

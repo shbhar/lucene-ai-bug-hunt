@@ -15,10 +15,13 @@ h1,h2,p,li,dd{overflow-wrap:break-word}
 .facts>span{min-width:0;overflow-wrap:anywhere}
 th,td.nw{white-space:nowrap;overflow-wrap:normal}
 .scroll{overflow-x:auto}
-@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
+.narrow-only{display:none}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}
+.narrow-only{display:block;font-size:.85rem;color:var(--dim)}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
-</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>ConcurrentQueryLoader workers exit at the first exception from Monitor.register and are never replaced, so once every worker is gone and the queue is full add() blocks forever and close() does not get to report the IOException, and an unchecked exception from register is not recorded, so close() can return normally with that worker&#x27;s queries unregistered</h1>
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a> › <a href="../index.html">Repro tests</a> › LFV-513</nav><h1>ConcurrentQueryLoader workers exit at the first exception from Monitor.register and are never replaced, so once every worker is gone and the queue is full add() blocks forever and close() does not get to report the IOException, and an unchecked exception from register is not recorded, so close() can return normally with that worker&#x27;s queries unregistered</h1>
 <p class="facts small"><span>Finding LFV-513</span><span>Area: monitor / bulk query loading (ConcurrentQueryLoader worker error handling)</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: known upstream</span></p>
+<p><a href="../../index.html#bug-LFV-513">This finding in the table</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You bulk-load standing queries into a Monitor with the documented pattern, loader.add(q) in a loop inside try-with-resources, and Monitor.register fails inside the loader&#x27;s worker threads, for example because the query index cannot fsync or create a file. You expect the load to stop and close() to throw the IOException, which the loader records for exactly that purpose. Instead each worker leaves its loop at its first failure and is never replaced, so once every worker is gone nothing drains the bounded queue: the next add() calls block in LinkedBlockingQueue.put forever, close() is never reached and the error is never reported (repro: 1 worker, queue size 4, one simulated fsync failure; add() is still blocked 30 s later).</p>
@@ -27,7 +30,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/monitor/TestConcurrentQueryLoaderAfterIOException.java"><code>src/org/apache/lucene/monitor/TestConcurrentQueryLoaderAfterIOException.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.</li>
+<li>Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.</li>
 <li>Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.</li>
 <li>What this folder covers: the test shows the first part of the title: add() is still blocked 30 s after the loader&#x27;s only worker stopped at an IOException from Monitor.register (one worker, a queue of 4). The second part of the title, an unchecked exception from register that is not recorded, so that close() returns normally with that worker&#x27;s queries unregistered (the outcome behind the impact class shown above), has no test in this folder. Run on 2026-11-18 on Lucene main 1cfa86310f76, with and without assertions: 1 test found, 1 test failed (add() still blocked 30 s after the loader&#x27;s only worker stopped).</li>
 <li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).</li>
@@ -49,5 +52,5 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.monitor.TestConcurrentQueryLoaderAfterIOException</code></pre>
-<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on the 11.0 branch the build takes the default from the seed).</p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-23. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on branch_11x the build takes the default from the seed).</p>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-27. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

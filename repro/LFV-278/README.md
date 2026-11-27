@@ -1,14 +1,14 @@
-# SlowCompositeCodecReaderWrapper's merged vector iterator numbers ordinals by position and ignores each input's own index(), so addIndexes of two or more SortingCodecReader inputs through a reordering merge policy writes vectors onto the wrong documents
+# SlowCompositeCodecReaderWrapper's merged vector iterator numbers ordinals by position and ignores each input's own index(), so addIndexes of two or more readers, at least one of them a SortingCodecReader that changes the relative order of documents with a vector in the same field, on a writer without an index sort and in a merge whose OneMerge#reorder returns a DocMap, writes vectors onto the wrong documents
 
 Finding LFV-278 · Area: index / addIndexes reorder path: SlowCompositeCodecReaderWrapper merged vector values (MergedDocIterator) over SortingCodecReader inputs · Priority: medium · Impact: data corruption · Novelty: new
 
-Finding page: [../../bugs/LFV-278.html](../../bugs/LFV-278.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-278.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-278.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You re-sort two or more segments with SortingCodecReader and pass them to one IndexWriter.addIndexes(CodecReader...) call on a writer that has no index sort but uses a merge policy that reorders addIndexes merges, such as BPReorderingMergePolicy (an identity OneMerge#reorder is enough), and you expect every document to keep the vector it was indexed with, as it does without the reorder. Instead the merged view that IndexWriter builds for the reorder (SlowCompositeCodecReaderWrapper) numbers vectors by iteration position, while each SortingCodecReader input reports and reads vectors by its original ordinal, so in each input the k-th document in sorted order is written with the vector at original ordinal k. Nothing throws, with or without assertions, CheckIndex reports the new index clean, and kNN search then scores documents by other documents' vectors, in an executed probe including the vector of a document deleted before the call.
+You re-sort a segment with SortingCodecReader, so that documents with a vector in the same field change their relative order, and pass it, together with at least one other reader (another re-sorted segment or a plain segment reader), to one IndexWriter.addIndexes(CodecReader...) call on a writer that has no index sort but uses a merge policy that reorders addIndexes merges, such as BPReorderingMergePolicy (an identity OneMerge#reorder is enough), and you expect every document to keep the vector it was indexed with, as it does without the reorder. Instead the merged view that IndexWriter builds for the reorder (SlowCompositeCodecReaderWrapper) numbers vectors by iteration position, while each SortingCodecReader input reports and reads vectors by its original ordinal, so in each SortingCodecReader input the k-th document with a vector in that field, in sorted order, is written with the vector at original ordinal k. Nothing throws, with or without assertions, CheckIndex reports the new index clean, and kNN search then scores documents by other documents' vectors, in an executed probe including the vector of a document deleted before the call.
 
 The test shows that addIndexes of two SortingCodecReader-wrapped segments through a merge policy whose addIndexes merge returns an identity OneMerge#reorder writes vectors onto the wrong documents.
 
@@ -22,7 +22,7 @@ Expected every document to keep its own vector ({id}); actual: the document with
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -45,7 +45,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.index.TestReorderedAddIndexesOfSortedReaders
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 Formal models and scripts this finding's part of the hunt used: [../../models/codecreader-wrappers/](../../models/codecreader-wrappers/)
 

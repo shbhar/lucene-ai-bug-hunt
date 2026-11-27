@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- A merge that renumbers documents through SortingCodecReader (BPReorderingMergePolicy, or the re-sort recipe via addIndexes) throws ArithmeticException once one BINARY doc-values field of the merged segment holds 2 GiB, whatever the heap, because the sorted view copies the field into one int-addressed buffer; under the merge policy the failed merge closes IndexWriter (finding LFV-1486; [repro](../../repro/LFV-1486/), [finding page](../../bugs/LFV-1486.html))
+- A merge that renumbers documents through SortingCodecReader (BPReorderingMergePolicy, or the re-sort recipe via addIndexes) throws ArithmeticException once one BINARY doc-values field of the merged segment holds 2 GiB, whatever the heap, because the sorted view copies the field into one int-addressed buffer; under the merge policy the failed merge closes IndexWriter (finding LFV-1486; [repro](../../repro/LFV-1486/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1486.html))
 
 ## Files
 

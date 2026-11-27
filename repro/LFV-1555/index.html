@@ -15,10 +15,13 @@ h1,h2,p,li,dd{overflow-wrap:break-word}
 .facts>span{min-width:0;overflow-wrap:anywhere}
 th,td.nw{white-space:nowrap;overflow-wrap:normal}
 .scroll{overflow-x:auto}
-@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
+.narrow-only{display:none}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}
+.narrow-only{display:block;font-size:.85rem;color:var(--dim)}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
-</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>Latent: the doc-values cursor that BlockJoinSelector.wrap returns can pass over a child&#x27;s value when advance(target &gt; 0) is the first call on it, so the parent can get a wrong minimum or maximum (run: one block [child 0: 1, child 1: 5, parent 2], MIN: advance(1) stops at parent 2 with the value 5, nextDoc() with 1); block-join sorting reads the cursor with advanceExact() and was not affected in what was run</h1>
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a> › <a href="../index.html">Repro tests</a> › LFV-1555</nav><h1>Latent: the doc-values cursor that BlockJoinSelector.wrap returns can pass over a child&#x27;s value when advance(target &gt; 0) is the first call on it, so the parent can get a wrong minimum or maximum (run: one block [child 0: 1, child 1: 5, parent 2], MIN: advance(1) stops at parent 2 with the value 5, nextDoc() with 1); block-join sorting reads the cursor with advanceExact() and was not affected in what was run</h1>
 <p class="facts small"><span>Finding LFV-1555</span><span>Area: join / block-join value selection (BlockJoinSelector.wrap and its cursor ToParentDocValues)</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: known outside Lucene</span></p>
+<p><a href="../../index.html#bug-LFV-1555">This finding in the table</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You wrap a child field&#x27;s doc values with BlockJoinSelector.wrap(values, MIN, parents, children) for one block [child 0: price 1, child 1: price 5, parent 2] and make advance(1) the first call on the returned NumericDocValues; you expect it to stop at parent 2 with longValue() 1, which is what nextDoc(), advance(0) and advanceExact(2) give, each on a fresh cursor over the same block. Instead it stops at parent 2 with the value 5, silently, with assertions on and off: advance() has already put the child iterator on child 0, and the nextDoc() it then calls steps the child iterator once more because the parent cursor is still at -1, so child 0 never reaches the selection. It is latent: BlockJoinSelector is a public class tagged @lucene.internal, and block-join sorting through ToParentBlockJoinSortField, its one caller in Lucene&#x27;s main sources, reads the cursor with advanceExact() (0 advance() and 0 nextDoc() calls on the cursor in 206,928 sorted searches on branch_11x f1b0f8e7c687 with assertions off), so sorting was not affected in what was run; it is not new in 11.0 (the same call fails the same way on the 10.6.0 and the 7.0.0 release jars).</p>
@@ -27,7 +30,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/search/join/TestBlockJoinSelectorFirstAdvance.java"><code>src/org/apache/lucene/search/join/TestBlockJoinSelectorFirstAdvance.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.</li>
+<li>Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.</li>
 <li>A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there.</li>
 <li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
@@ -47,5 +50,5 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=C0FFEE884 \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.search.join.TestBlockJoinSelectorFirstAdvance</code></pre>
-<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on the 11.0 branch the build takes the default from the seed).</p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-23. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on branch_11x the build takes the default from the seed).</p>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-27. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

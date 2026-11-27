@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>The packed int4 Lucene99 scalar-quantized supplier scorer overwrites the score correction cached for its scoring ordinal on a cache miss, so score(i) depends on earlier score() calls; on the released 10.2.x/10.3.x a forceMerge of such a field builds a different HNSW graph, and on main and 10.4+ only internal callers reach it (known: open PR #16830) (LFV-1105)</title><style>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>The packed int4 Lucene99 scalar-quantized supplier scorer overwrites the score correction cached for its scoring ordinal on a cache miss, so score(i) depends on earlier score() calls; on the released 10.2.x/10.3.x a forceMerge of such a field can build a different HNSW graph, and on main and 10.4+ only internal callers reach it (known: open PR #16830) (LFV-1105)</title><style>
 :root{--fg:#1d2329;--dim:#5a6570;--line:#d8dee4;--bg:#fff;--soft:#f5f7f9;--link:#0b5cad}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
 font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
@@ -15,19 +15,22 @@ h1,h2,p,li,dd{overflow-wrap:break-word}
 .facts>span{min-width:0;overflow-wrap:anywhere}
 th,td.nw{white-space:nowrap;overflow-wrap:normal}
 .scroll{overflow-x:auto}
-@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
+.narrow-only{display:none}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}
+.narrow-only{display:block;font-size:.85rem;color:var(--dim)}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
-</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>The packed int4 Lucene99 scalar-quantized supplier scorer overwrites the score correction cached for its scoring ordinal on a cache miss, so score(i) depends on earlier score() calls; on the released 10.2.x/10.3.x a forceMerge of such a field builds a different HNSW graph, and on main and 10.4+ only internal callers reach it (known: open PR #16830)</h1>
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a> › <a href="../index.html">Repro tests</a> › LFV-1105</nav><h1>The packed int4 Lucene99 scalar-quantized supplier scorer overwrites the score correction cached for its scoring ordinal on a cache miss, so score(i) depends on earlier score() calls; on the released 10.2.x/10.3.x a forceMerge of such a field can build a different HNSW graph, and on main and 10.4+ only internal callers reach it (known: open PR #16830)</h1>
 <p class="facts small"><span>Finding LFV-1105</span><span>Area: codecs / backward-codecs Lucene99 scalar-quantized vectors (OffHeapQuantizedByteVectorValues)</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: known upstream</span></p>
+<p><a href="../../index.html#bug-LFV-1105">This finding in the table</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
-<p>With the packed int4 Lucene99 supplier scorer and scoring ordinal 1, score(1) should be the same before and after score(0); it is 0.99679184 before and 0.91709924 after, because getScoreCorrectionConstant(0) on a cache miss overwrites the correction cached for lastOrd. In 10.2.x/10.3.x graph building goes through this scorer, so a forceMerge of a compress=true 4-bit field builds a different graph; searches are not affected.</p>
+<p>With the packed int4 Lucene99 supplier scorer and scoring ordinal 1, score(1) should be the same before and after score(0); it is 0.99679184 before and 0.91709924 after, because getScoreCorrectionConstant(0) on a cache miss overwrites the correction cached for lastOrd. In 10.2.x/10.3.x graph building goes through this scorer, so a forceMerge of a compress=true 4-bit field can build a different graph; scoring at search time is not affected.</p>
 <h2>Expected vs actual</h2>
 <ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> While the reported behaviour is present the test fails; the failure message states expected against actual.</li></ul>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/backward_codecs/lucene99/TestPackedInt4SupplierStaleCorrection.java"><code>src/org/apache/lucene/backward_codecs/lucene99/TestPackedInt4SupplierStaleCorrection.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.</li>
+<li>Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.</li>
 <li>Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.</li>
 <li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
@@ -46,5 +49,5 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -XX:ActiveProcessorCount=2 -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.backward_codecs.lucene99.TestPackedInt4SupplierStaleCorrection</code></pre>
-<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on the 11.0 branch the build takes the default from the seed).</p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-23. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on branch_11x the build takes the default from the seed).</p>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-27. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

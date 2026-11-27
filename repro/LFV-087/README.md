@@ -2,7 +2,7 @@
 
 Finding LFV-087 · Area: search / rescoring · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Finding page: [../../bugs/LFV-087.html](../../bugs/LFV-087.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-087.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-087.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ Expected hits `[2, 1]` and `IndexSearcher#count` 2; actual `[2]` while count sti
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - The test sets NoMergePolicy, which only keeps the deleted document in its segment: with that one setting removed, the delete of 1 of 4 documents was merged away by the time the reader was opened from the writer, and the test passed. With nothing set on the IndexWriterConfig and 5 documents (the loop bound 5, the document with id 4 deleted, [3, 2] count=2 expected) the test failed: the hits were [3] and the count was 2. Runs of 2026-11-20 on the 10.6.0 release, branch_11x 3221dd4cf3a1 and main 7b8418faa2ff, with assertions on and off.
@@ -46,7 +46,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.search.TestRescoreTopNDeletedDocs
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Feedback
 

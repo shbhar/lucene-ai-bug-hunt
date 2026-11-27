@@ -3,32 +3,33 @@
 > [!NOTE]
 > This site is maintained by an always-on AI agent that hunts, verifies and keeps it updated; the agent posts only to this repository. Every interaction with the Lucene project (issues, pull requests, comments, mailing list) is done by a person, per Lucene's AI policy.
 
-A dated snapshot (2026-11-23) of AI-assisted work: findings in [Apache Lucene](https://github.com/apache/lucene). The findings the hunt made and confirmed went through AI-run checks. This is an independent list.
+A dated snapshot (2026-11-27) of AI-assisted work: findings in [Apache Lucene](https://github.com/apache/lucene). The findings the hunt made and confirmed went through AI-run checks. This is an independent list.
 
 **Want to run a hunt like this in your own open-source project?** Start with the [how-to](https://shbhar.github.io/lucene-ai-bug-hunt/howto.html) (principles, methods and pipeline), and give your AI agent [HOWTO.md](HOWTO.md), the same method written as instructions.
 
-Browse the table: open `index.html` (published with GitHub Pages).
+Browse the table: [the findings table](https://shbhar.github.io/lucene-ai-bug-hunt/) (published with GitHub Pages).
 
 ## What is in this snapshot
 
-- 1487 registered findings: 1176 new, for which the automated prior-report search found no earlier report (a keyword search; private reports are not visible), and 311 already known (219 upstream, 92 outside Lucene), where others reported or discussed the same behaviour (tracked, but not counted as new).
+- 1494 registered findings: 1181 new, for which the automated prior-report search found no earlier report (a keyword search; private reports are not visible), and 313 already known (220 upstream, 93 outside Lucene), where others reported or discussed the same behaviour (tracked, but not counted as new).
 - 2 of them are withheld pending security review: they appear in the table and in every count, but only with their id, module, priority tier, novelty (new, known upstream or known outside Lucene) and the line "Details withheld pending security review".
-- Fixed upstream: 6 new findings whose fix was merged in Lucene (apache/lucene main) since they were listed; 5 are also on the 11.0 release branch and 1 on the 10.6 branch; 4 already known findings were fixed in that time too.
-- Priority tiers: 4 high, 276 medium, 1207 low, 0 not yet ranked.
-- 1189 public finding pages (`bugs/`), 1485 repro directories (`repro/`) and 190 units of formal models and scripts (`models/`).
+- Fixed upstream: 6 new findings whose fix was merged in Lucene (apache/lucene main) since they were listed; 5 are also on branch_11x and 1 on branch_10_6; 6 already known findings were fixed in that time too.
+- Filed upstream: 22 new findings that an issue or pull request in apache/lucene reports or fixes (filed by hand from this list, or opened by others); includes the 6 fixed upstream; not counted: 2 fixed on main before they were listed; reports from this list are tracked in [apache/lucene#16937](https://github.com/apache/lucene/issues/16937).
+- Priority tiers of all 1494 findings: 4 high, 276 medium, 1214 low, 0 not yet ranked (of the 1181 new ones: 1 high, 171 medium, 1009 low).
+- 1193 public finding pages (`bugs/`), 1492 repro directories (`repro/`) and 191 units of formal models and scripts (`models/`).
 - The full table as data: `data/bugs.csv` and `data/bugs.json`.
 
 ## Share a filtered view
 
-The table keeps its filters, search and sort in the page address, so a link opens the same view; "Link to this view" and "Copy link", beside Reset, give the link to the current view. For example: [the findings new in 10.6](https://shbhar.github.io/lucene-ai-bug-hunt/?new106=1#bugs), [the findings new in 11.0](https://shbhar.github.io/lucene-ai-bug-hunt/?new11=1#bugs), [Medium priority only](https://shbhar.github.io/lucene-ai-bug-hunt/?priority=medium#bugs), or [a search for mmap](https://shbhar.github.io/lucene-ai-bug-hunt/?q=mmap#bugs).
+The table keeps its filters, search and sort in the page address, so a link opens the same view; "Link to this view" and "Copy link", beside Reset, give the link to the current view. For example: [the findings new in 10.6](https://shbhar.github.io/lucene-ai-bug-hunt/?new106=1#bugs), [the findings new in 11.0](https://shbhar.github.io/lucene-ai-bug-hunt/?new11=1#bugs), [Medium priority only](https://shbhar.github.io/lucene-ai-bug-hunt/?priority=medium#bugs), [a search for mmap](https://shbhar.github.io/lucene-ai-bug-hunt/?q=mmap#bugs), [the findings filed upstream](https://shbhar.github.io/lucene-ai-bug-hunt/?status=filed-upstream#bugs), or [the findings fixed upstream](https://shbhar.github.io/lucene-ai-bug-hunt/?status=fixed-upstream#bugs).
 
 ## How the findings were found
 
-The hunt used AI models (Anthropic Claude Opus and Fable, and OpenAI GPT models including Astra) with formal methods (TLA+/TLC model checking, Alloy, Z3/cvc5 SMT solving, Dafny proofs and bounded model checking) alongside fuzzing, model-based, property-based and differential testing, and static analysis. Of the 1175 new findings the hunt made that are shown in full, a formal tool's own output gave the first signal for 44; a semi-formal check (a check of the real jar against exact semantics over a bounded input space, exhaustive or for some harnesses randomly sampled, or a hypothesis formed while modelling that a tool then witnessed) for 767; code reading or other testing for 342; and a testing baseline for 22. Every finding ends in a minimal executable test that fails while the reported behaviour is present (on Lucene main, or on the release branch for a finding only a release branch has); for a finding that needs another kind of run, such as a build, the repro is the commands its repro page gives, whose output shows it.
+The hunt used Claude and GPT models with formal methods (TLA+/TLC model checking, Alloy, Z3/cvc5 SMT solving, Dafny proofs and bounded model checking) alongside fuzzing, model-based, property-based and differential testing, and static analysis. Of the 1180 new findings the hunt made that are shown in full, a formal tool's own output gave the first signal for 44; a semi-formal check (a check of the real jar against exact semantics over a bounded input space, exhaustive or for some harnesses randomly sampled, or a hypothesis formed while modelling that a tool then witnessed) for 770; code reading or other testing for 344; and a testing baseline for 22. Every finding ends in a minimal executable test that fails while the reported behaviour is present (on Lucene main, or on the release branch for a finding only a release branch has); for a finding that needs another kind of run, such as a build, the repro is the commands its repro page gives, whose output shows it.
 
 ## Lucene version
 
-The hunt began on Lucene main ea57360912ed (2026-10-24); the newest rerun of the list as a whole was on main 11c8b6ea99ae (2026-11-23). On 2026-11-23, the repros of 1487 of the findings listed here were set up for a rerun on main 11c8b6ea99ae. 1486 ran: 1466 still reproduced (1404 unchanged, 62 with changed behaviour: LFV-1016, LFV-241, LFV-491, LFV-722, LFV-563, LFV-234, LFV-524, LFV-723, LFV-547, LFV-1116, LFV-247, LFV-1132, LFV-150, LFV-815, LFV-816, LFV-217, LFV-1111, LFV-1106, LFV-617, LFV-1354, LFV-727, LFV-1104, LFV-900, LFV-1365, LFV-777, LFV-595, LFV-969, LFV-997, LFV-550, LFV-510, LFV-180, LFV-880, LFV-881, LFV-511, LFV-825, LFV-820, LFV-893, LFV-964, LFV-994, LFV-983, LFV-995, LFV-546, LFV-655, LFV-154, LFV-1068, LFV-1144, LFV-053, LFV-402, LFV-910, LFV-238, LFV-273, LFV-202, LFV-1222, LFV-198, LFV-228, LFV-509, LFV-174, LFV-1035, LFV-1036, LFV-626, LFV-071, LFV-1270, 61 of them with an adapted repro) and 11 no longer failed because upstream fixed them; 1 (LFV-467) was not run on that commit (its repro page says why and where it last ran); 9 (LFV-811, LFV-1565, LFV-1569, LFV-1505, LFV-1507, LFV-1575, LFV-1527, LFV-1571, LFV-948) passed, as before: the run on main is a control there (the finding is on a release branch only, or needs another Java runtime or processor; their pages say which). 731 of the findings shown in full ship a smaller repro, one minimal test, which replaces their earlier repro files. The repros published now were last run on these commits: 1484 on 11c8b6ea99ae, 1 on 5adff78bb168; each repro page says where its repro was run, or that no run is on file.
+The hunt began on Lucene main ea57360912ed (2026-10-24); the newest rerun of the list as a whole was on main 82cf7465bb8f (2026-11-26). On 2026-11-26, the repros of 1494 of the findings listed here were set up for a rerun on main 82cf7465bb8f. 1493 ran: 1471 still reproduced (1409 unchanged, 62 with changed behaviour: LFV-1016, LFV-241, LFV-491, LFV-722, LFV-563, LFV-234, LFV-524, LFV-723, LFV-547, LFV-1116, LFV-247, LFV-1132, LFV-150, LFV-815, LFV-816, LFV-217, LFV-1111, LFV-1106, LFV-617, LFV-1354, LFV-727, LFV-1104, LFV-900, LFV-1365, LFV-777, LFV-595, LFV-969, LFV-997, LFV-550, LFV-510, LFV-180, LFV-880, LFV-881, LFV-511, LFV-825, LFV-820, LFV-893, LFV-964, LFV-994, LFV-983, LFV-995, LFV-546, LFV-655, LFV-154, LFV-1068, LFV-1144, LFV-053, LFV-402, LFV-910, LFV-238, LFV-273, LFV-202, LFV-1222, LFV-198, LFV-228, LFV-509, LFV-174, LFV-1035, LFV-1036, LFV-626, LFV-071, LFV-1270, 61 of them with an adapted repro) and 13 no longer failed because upstream fixed them; 1 (LFV-467) was not run on that commit (its repro page says why and where it last ran); 9 (LFV-811, LFV-1565, LFV-1569, LFV-1505, LFV-1507, LFV-1575, LFV-1527, LFV-1571, LFV-948) passed, as before: the run on main is a control there (the finding is on a release branch only, or needs another Java runtime or processor; their pages say which). 731 of the findings shown in full ship a smaller repro, one minimal test, which replaces their earlier repro files. The repros published now were last run on these commits: 1491 on 82cf7465bb8f, 1 on 5adff78bb168; each repro page says where its repro was run, or that no run is on file.
 
 ## Reproduce a finding
 
@@ -46,8 +47,11 @@ Each `repro/<id>/` directory holds the minimal test sources, what they show, exp
 | Path | Content |
 |---|---|
 | `index.html` | the findings table and the method notes |
+| `explore.html` | where the findings cluster, by feature, defect aspect or module |
 | `bugs/<id>.html`, `assets/<id>/` | public finding pages and their diagrams |
+| `repro/index.html` | the list of the repro folders |
 | `repro/<id>/` | minimal repro sources, README and run recipe |
+| `models/index.html` | the list of the formal models and scripts |
 | `models/<unit>/` | formal models and scripts of the hunt units that worked on a public finding |
 | `data/bugs.csv`, `data/bugs.json` | the table as data (public fields only) |
 | `HOWTO.md`, `howto.html` | how to run a similar hunt in your project |

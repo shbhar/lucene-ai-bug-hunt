@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- GroupingSearch.setCaching / setCachingInMB limit is applied per slice since #16247 (10.6.0 regression): with an IndexSearcher that has an executor, a query matching more documents than the limit is replayed from per-slice caches holding up to slices x limit instead of being purged and re-run (results unchanged) (finding LFV-910; [repro](../../repro/LFV-910/), [finding page](../../bugs/LFV-910.html))
+- GroupingSearch.setCaching / setCachingInMB limit is applied per slice since #16247 (10.6.0 regression): with an IndexSearcher that has an executor, a query matching more documents than the limit is replayed from per-slice caches holding up to slices x limit instead of being purged and re-run (results unchanged) (finding LFV-910; [repro](../../repro/LFV-910/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-910.html))
 
 ## Files
 

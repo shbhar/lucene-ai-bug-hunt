@@ -6,9 +6,9 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- Grouping LongRangeFactory and DoubleRangeFactory give the last range below max the full width, so its reported group bounds run past max and overlap the range for values &gt;= max (finding LFV-407; [repro](../../repro/LFV-407/), [finding page](../../bugs/LFV-407.html))
-- Grouping DoubleRangeFactory picks a value's bucket and computes that bucket's bounds with separately rounded arithmetic, so with a decimal width such as 0.1 the returned range can exclude the value and adjacent ranges leave gaps or overlap (DoubleRangeFactory(0, 0.1, 10).getRange(0.6) = DoubleRange(0.5, 0.6)) (finding LFV-412; [repro](../../repro/LFV-412/), [finding page](../../bugs/LFV-412.html))
-- Grouping DoubleRangeFactory gives the below-min group the lower bound Double.MIN_VALUE (4.9E-324, the smallest positive double) instead of the most negative value, so that group's DoubleRange label does not contain its own members (finding LFV-411; [repro](../../repro/LFV-411/), [finding page](../../bugs/LFV-411.html))
+- Grouping LongRangeFactory and DoubleRangeFactory give the last range below max the full width, so its reported group bounds run past max and overlap the range for values &gt;= max (finding LFV-407; [repro](../../repro/LFV-407/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-407.html))
+- Grouping DoubleRangeFactory picks a value's bucket and computes that bucket's bounds with separately rounded arithmetic, so with a decimal width such as 0.1 the returned range can exclude the value and adjacent ranges leave gaps or overlap (DoubleRangeFactory(0, 0.1, 10).getRange(0.6) = DoubleRange(0.5, 0.6)) (finding LFV-412; [repro](../../repro/LFV-412/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-412.html))
+- Grouping DoubleRangeFactory gives the below-min group the lower bound Double.MIN_VALUE (4.9E-324, the smallest positive double) instead of the most negative value, so that group's DoubleRange label does not contain its own members (finding LFV-411; [repro](../../repro/LFV-411/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-411.html))
 
 ## Files
 

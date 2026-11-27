@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- Multi-dimensional PointInSetQuery skips segments that contain matching points, because its segment early exit uses the lexicographically first and last set points as per-dimension bounds (finding LFV-475; [repro](../../repro/LFV-475/), [finding page](../../bugs/LFV-475.html))
+- Multi-dimensional PointInSetQuery skips segments that contain matching points, because its segment early exit uses the lexicographically first and last set points as per-dimension bounds (finding LFV-475; [repro](../../repro/LFV-475/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-475.html))
 
 ## Files
 

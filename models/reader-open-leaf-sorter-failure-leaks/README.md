@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- A failed NRT reader open (DirectoryReader.open(IndexWriter), openIfChanged over the writer, or a SearcherManager/ReaderManager refresh) whose IndexWriterConfig leaf sorter throws never releases the IndexFileDeleter reference it took, so the still-open writer keeps every segment file of that point in time on disk for the rest of its life (finding LFV-1067; [repro](../../repro/LFV-1067/), [finding page](../../bugs/LFV-1067.html))
+- A failed NRT reader open (DirectoryReader.open(IndexWriter), openIfChanged over the writer, or a SearcherManager/ReaderManager refresh) whose IndexWriterConfig leaf sorter throws never releases the IndexFileDeleter reference it took, so the still-open writer keeps every segment file of that point in time on disk for the rest of its life (finding LFV-1067; [repro](../../repro/LFV-1067/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1067.html))
 
 ## Files
 

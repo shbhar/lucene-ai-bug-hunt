@@ -2,7 +2,7 @@
 
 Finding LFV-1530 · Area: queryparser / flexible StandardQueryParser (term range bounds: TermRangeQueryNodeProcessor after OpenRangeQueryNodeProcessor) · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1530.html](../../bugs/LFV-1530.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1530.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1530.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -27,7 +27,7 @@ You parse the one-sided range "[abc TO *]" with the flexible StandardQueryParser
 - Tested on Lucene branch_11x 9d2b5a15427a (a commit of 2026-11-16): reproduced, with assertions on and off (11.0.0-SNAPSHOT).
 - Tested on Lucene 10.6.0 (4ae946e5a9b9) (a commit of 2026-10-26): reproduced, with assertions on and off, on the 10.6.0 release jars, which are built from this commit (the tag releases/lucene/10.6.0).
 - What each build does: the test fails the same way on Lucene main, on the 11.0 release branch (branch_11x) and with the 10.6.0 release jars, with and without assertions; the finding's record lists every release from 7.0.0 on. What the test does: it defines an analyzer that keeps the default term attribute and writes "collated" + term, at index time and in normalize, parses [abc TO *] with new StandardQueryParser(analyzer), and expects the query with an open upper bound that TermRangeQuery.newStringRange("field", "collatedabc", null, true, true) gives and that the classic QueryParser builds from the same text. It fails with java.lang.AssertionError: expected:&lt;field:[collatedabc TO *]&gt; but was:&lt;field:[collatedabc TO collated]&gt;: the upper bound is the analyzer's term for the empty string. It needs an analyzer of this kind: with one that normalizes the empty string to the empty string the bound stays open (the finding page has those runs). The test builds no index and draws no random value, and it failed the same way with every seed that was run. On a checkout of the 11.0 branch set V=11.0.0-SNAPSHOT; for the release, put the seven 10.6.0 jars from Maven Central (org.apache.lucene: lucene-core, lucene-codecs, lucene-test-framework, lucene-facet, lucene-queries, lucene-queryparser, lucene-sandbox) in place of the seven $LUCENE jars. For the Gradle alternative at the end of this page the module is lucene/queryparser; without -Ptests.asserts the build of main and of branch_11x draws the assertion setting from its seed, and the build of the 10.6.0 sources runs with assertions on; the test fails with either setting.
-- This finding was re-run on Lucene main 11c8b6ea99ae on 2026-11-23: still reproduces.
+- This finding was re-run on Lucene main 82cf7465bb8f on 2026-11-26: still reproduces.
 - How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with java.lang.AssertionError: expected:&lt;field:[collatedabc TO *]&gt; but was:&lt;field:[collatedabc TO collated]&gt;.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -52,7 +52,7 @@ java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=A
      execute --select-class org.apache.lucene.queryparser.flexible.standard.TestOpenRangeBoundWithNormalizingAnalyzer
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

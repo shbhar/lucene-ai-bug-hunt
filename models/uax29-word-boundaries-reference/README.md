@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- StandardTokenizer (StandardAnalyzer's tokenizer) and UAX29URLEmailTokenizer misapply the UAX #29 Hebrew quote rules WB7a-WB7c next to other word characters: a Hebrew letter + ASCII apostrophe swallows a following digit or underscore (BET'2 is one term), an ASCII apostrophe after a Hebrew letter that ends a mid-word chain is dropped (HE.SHIN' -&gt; HE.SHIN), and a word with an ASCII quotation mark between Hebrew letters is split when it also contains a mid-word '.', ':' or quote (ALEF.TSADI"LAMED, TAV"ALEF.BET) (finding LFV-734; [repro](../../repro/LFV-734/), [finding page](../../bugs/LFV-734.html))
+- StandardTokenizer (StandardAnalyzer's tokenizer) and UAX29URLEmailTokenizer misapply the UAX #29 Hebrew quote rules WB7a-WB7c next to other word characters: a Hebrew letter + ASCII apostrophe swallows a following digit or underscore (BET'2 is one term), an ASCII apostrophe after a Hebrew letter that ends a mid-word chain is dropped (HE.SHIN' -&gt; HE.SHIN), and a word with an ASCII quotation mark between Hebrew letters is split when it also contains a mid-word '.', ':' or quote (ALEF.TSADI"LAMED, TAV"ALEF.BET) (finding LFV-734; [repro](../../repro/LFV-734/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-734.html))
 
 ## Files
 

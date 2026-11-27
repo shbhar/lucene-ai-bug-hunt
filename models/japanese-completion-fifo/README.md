@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- JapaneseCompletionFilter expands a reading into every combination of romaji spellings with no bound, so 24-32 kana (for example 32 x "ン", or 32 x "し" in QUERY mode) throw OutOfMemoryError inside one incrementToken() call (finding LFV-346; [repro](../../repro/LFV-346/), [finding page](../../bugs/LFV-346.html))
+- JapaneseCompletionFilter expands a reading into every combination of romaji spellings with no bound, so 24-32 kana (for example 32 x "ン", or 32 x "し" in QUERY mode) throw OutOfMemoryError inside one incrementToken() call (finding LFV-346; [repro](../../repro/LFV-346/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-346.html))
 
 ## Files
 

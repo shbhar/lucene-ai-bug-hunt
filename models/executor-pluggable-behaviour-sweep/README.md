@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- Monitor's ParallelMatcher starts blocking worker tasks in its constructor that only finish() releases: a Monitor#match that fails before finish() (an exception such as TooManyClauses from the presearcher, or a rejected submit) leaves its workers parked on the executor forever, and an executor that runs a worker on the calling thread (CallerRunsPolicy on a saturated pool) makes Monitor#match hang (finding LFV-637; [repro](../../repro/LFV-637/), [finding page](../../bugs/LFV-637.html))
+- Monitor's ParallelMatcher starts blocking worker tasks in its constructor that only finish() releases: a Monitor#match that fails before finish() (an exception such as TooManyClauses from the presearcher, or a rejected submit) leaves its workers parked on the executor forever, and an executor that runs a worker on the calling thread (CallerRunsPolicy on a saturated pool) makes Monitor#match hang (finding LFV-637; [repro](../../repro/LFV-637/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-637.html))
 
 ## Files
 

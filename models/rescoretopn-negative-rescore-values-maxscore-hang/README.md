@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- RescoreTopNQuery passes negative DoubleValuesSource values through as negative scores, so a top-k BooleanQuery that ORs it with another clause can silently return no hits (finding LFV-1015; [repro](../../repro/LFV-1015/), [finding page](../../bugs/LFV-1015.html))
+- RescoreTopNQuery passes negative DoubleValuesSource values through as negative scores, so a top-k BooleanQuery that ORs it with another clause can silently return no hits (finding LFV-1015; [repro](../../repro/LFV-1015/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1015.html))
 - ScorerUtil.minRequiredScore (new in 10.3.0, #14827) can loop forever when the remaining clauses' max score is negative at a minimum competitive score of 0, so with assertions disabled a top-k BooleanQuery with a negative-scoring SHOULD clause can spin forever in MaxScoreBulkScorer, the infinite loop that LUCENE-10428 had turned into an exception (finding LFV-1016; [repro](../../repro/LFV-1016/))
 
 ## Files

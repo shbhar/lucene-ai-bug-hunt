@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- MultiPassIndexSplitter's round-robin split loses or duplicates the last few documents of an index at about IndexWriter.MAX_DOCS for most part counts of 145 or more, because its int test (j + numParts - i) % numParts overflows (finding LFV-531; [repro](../../repro/LFV-531/), [finding page](../../bugs/LFV-531.html))
+- MultiPassIndexSplitter's round-robin split loses or duplicates the last few documents of an index at about IndexWriter.MAX_DOCS for most part counts of 145 or more, because its int test (j + numParts - i) % numParts overflows (finding LFV-531; [repro](../../repro/LFV-531/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-531.html))
 
 ## Files
 

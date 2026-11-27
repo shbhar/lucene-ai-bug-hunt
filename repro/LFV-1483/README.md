@@ -2,7 +2,7 @@
 
 Finding LFV-1483 · Area: queries / intervals (the multi-term source factories Intervals.range and Intervals.prefix; the description string of MultiTermIntervalsSource) · Priority: low · Impact: crash · Novelty: new
 
-Finding page: [../../bugs/LFV-1483.html](../../bugs/LFV-1483.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1483.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1483.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You build an interval source over a range or a prefix of terms with Intervals.ra
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: it calls Intervals.range with the two-byte bound {01 F4} and asserts that a source comes back; it indexes nothing and runs no search, and it fails with the ArrayIndexOutOfBoundsException thrown by that call. Intervals.prefix, the other bounds and the comparison with TermRangeQuery named above are not part of this test.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -45,7 +45,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.queries.intervals.TestIntervalsRangeBinaryBound
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

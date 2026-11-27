@@ -23,7 +23,7 @@ On branch_11x and main (both unreleased) you write a LeafCollector that fills a 
 - Tested on Lucene branch_11x 5d7ca54ba503 (a commit of 2026-11-19): reproduced, with assertions on and off (set V=11.0.0-SNAPSHOT).
 - Tested on Lucene main 1ae70c6e45b8 (a commit of 2026-11-19): reproduced, with assertions on and off; this is the commit that added the method.
 - Where the test compiles: DocIdStream.intoBitSet exists on main from 1ae70c6e45b8 on and on branch_11x from 6474fbe3e80e on (both commits are of 2026-11-19). On a build without the method the test does not compile ('cannot find symbol: method intoBitSet(int,FixedBitSet,int)') and nothing runs: so on main f6e694652c3d, the commit before, and with the 10.6.0 release jars (runs of 2026-11-19; for the release, the three 10.6.0 jars from Maven Central, org.apache.lucene: lucene-core, lucene-codecs and lucene-test-framework, stand in place of the three $LUCENE jars). On a checkout of branch_11x set V=11.0.0-SNAPSHOT in the commands below.
-- This finding was re-run on Lucene main 11c8b6ea99ae on 2026-11-23: still reproduces.
+- This finding was re-run on Lucene main 82cf7465bb8f on 2026-11-26: still reproduces.
 - How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with java.lang.IndexOutOfBoundsException: Range [-1, -1 + 3) out of bounds for length 2; a compile error (cannot find symbol: method intoBitSet) means that the build does not have the method.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -44,7 +44,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.search.TestBitSetDocIdStreamIntoBitSetOffset
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Feedback
 

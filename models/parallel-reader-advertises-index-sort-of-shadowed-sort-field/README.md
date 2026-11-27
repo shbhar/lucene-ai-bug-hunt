@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- ParallelLeafReader and ParallelCompositeReader advertise a sub-reader's index sort even when an earlier, unsorted sub-reader serves the sort field, so sorted searches and index-sort range shortcuts return wrong hits and IndexWriter.addIndexes writes a segment that breaks its declared index sort (finding LFV-981; [repro](../../repro/LFV-981/), [finding page](../../bugs/LFV-981.html))
+- ParallelLeafReader and ParallelCompositeReader advertise a sub-reader's index sort even when an earlier, unsorted sub-reader serves the sort field, so sorted searches and index-sort range shortcuts return wrong hits and IndexWriter.addIndexes writes a segment that breaks its declared index sort (finding LFV-981; [repro](../../repro/LFV-981/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-981.html))
 
 ## Files
 

@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- HTMLStripCharFilter drops an unclosed '&lt;name' or '&lt;/name' when the input ends right after the name, but outputs the same text when any character follows it, so 'a &lt; b' indexes only 'a' (finding LFV-878; [repro](../../repro/LFV-878/), [finding page](../../bugs/LFV-878.html))
+- HTMLStripCharFilter drops an unclosed '&lt;name' or '&lt;/name' when the input ends right after the name, but outputs the same text when any character follows it, so 'a &lt; b' indexes only 'a' (finding LFV-878; [repro](../../repro/LFV-878/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-878.html))
 
 ## Files
 

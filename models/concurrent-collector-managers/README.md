@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- IndexSearcher throws IllegalArgumentException for any reader that contains a leaf with maxDoc() == 0 (for example a ParallelLeafReader with no sub-readers): the whole-segment LeafReaderContextPartition of that leaf fails a bounds check added for partition ranges (regression in 10.0.0) (finding LFV-202; [repro](../../repro/LFV-202/), [finding page](../../bugs/LFV-202.html))
+- IndexSearcher throws IllegalArgumentException for any reader that contains a leaf with maxDoc() == 0 (for example a ParallelLeafReader with no sub-readers): the whole-segment LeafReaderContextPartition of that leaf fails a bounds check added for partition ranges (regression in 10.0.0) (finding LFV-202; [repro](../../repro/LFV-202/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-202.html))
 
 ## Files
 

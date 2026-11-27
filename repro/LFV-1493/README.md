@@ -2,7 +2,7 @@
 
 Finding LFV-1493 · Area: suggest / FSTCompletionLookup build (temp outputs of its offline sort) · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1493.html](../../bugs/LFV-1493.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1493.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1493.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You build an FSTCompletionLookup suggester with a temp Directory, and the direct
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: it wraps a ByteBuffersDirectory in a FilterDirectory whose second createTempOutput call throws IOException('Too many open files'). This injected fault is part of the test: it stands for a temp directory that can create one more file and then no further one. The test constructs FSTCompletionLookup(tempDir, "suggest"), expects build(InputIterator.EMPTY) to throw the IOException, which it does, and then asserts that the temp directory lists no file. It fails because suggest_RefSorterRaw_0.tmp is still listed ('array lengths differed, expected.length=0 actual.length=1'), the same with and without assertions. The test checks the file that is left behind; it does not check that the file's output is still open, and it uses no real file-descriptor limit. No extra heap is needed; beside core the recipe needs the suggest and analysis-common jars, which it lists. The file to compile is the test under src/, as the commands below do; the copy at the top of this folder, the one the finding page shows, is the same file. It carries the Apache license header, and the assertion that fails is at its line 49, the line the finding page quotes. The one other file of the recorded repro, which is not exported, is an earlier copy of this same test without the license header (36 lines; nothing else differs).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -46,7 +46,7 @@ java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=A
      execute --select-class org.apache.lucene.search.suggest.fst.TestFSTCompletionLookupFailedBuildTempFile
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

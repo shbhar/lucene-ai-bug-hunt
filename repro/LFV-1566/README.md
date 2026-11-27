@@ -19,7 +19,7 @@ You analyze the same Japanese text twice with the default ICUTokenizer. You expe
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main f2b061406c4b (a commit of 2026-11-19): reproduced.
 - The commands need the ICU4J jar that the checkout names: put icu4j-79.1.jar (Maven Central, com.ibm.icu:icu4j; 79.1 is the version of main f2b061406c4b) beside the test jars and add the line CP=$CP:icu4j-79.1.jar before the javac line. Without it the run reports 1 test failed with java.lang.NoClassDefFoundError: com/ibm/icu/util/ULocale, which is not the finding. With it the test fails with java.lang.AssertionError: expected:&lt;[コン, ーング゠]&gt; but was:&lt;[コン, ーン, グ゠]&gt;, with assertions on and off.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -46,7 +46,7 @@ java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=A
 
 The module(s) analysis-icu also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 Formal models and scripts this finding's part of the hunt used: [../../models/icutokenizer-japanese-word-segmentation/](../../models/icutokenizer-japanese-word-segmentation/)
 

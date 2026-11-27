@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- LatLonPoint.newDistanceFeatureQuery can skip a competitive document under top-k pruning: computeMaxDistance returns the lower end of its 1 m binary search, and the pruning box built from that radius adds only a 7 cm pad (finding LFV-379; [repro](../../repro/LFV-379/), [finding page](../../bugs/LFV-379.html))
+- LatLonPoint.newDistanceFeatureQuery can skip a competitive document under top-k pruning: computeMaxDistance returns the lower end of its 1 m binary search, and the pruning box built from that radius adds only a 7 cm pad (finding LFV-379; [repro](../../repro/LFV-379/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-379.html))
 
 ## Files
 

@@ -23,7 +23,7 @@ You run a grouped search whose hits all score 0, for example a BooleanQuery with
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): still fails 3 of 3, with and without assertions (run with the test adapted to #16805, e0a3a951e7e, which removed IndexSearcher.search(Query, Collector) on main: the two searcher.search calls on lines 102 and 107 pass their collector through a CollectorManager whose newCollector() returns it and whose reduce() returns null; with the stock TopGroupsCollectorManager instead, the no-scores case reports NaN and that one test passes).
 - Tested on Lucene main f794ff5a505c (a commit of 2026-11-06): still reproduces, with the test as shipped.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
-- This finding was re-run on Lucene main 11c8b6ea99ae on 2026-11-23: still reproduces (the repro adapted to an API change on this commit).
+- This finding was re-run on Lucene main 82cf7465bb8f on 2026-11-26: still reproduces (the repro adapted to an API change on this commit).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -46,7 +46,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.search.grouping.TestGroupingMaxScoreSentinel
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Feedback
 

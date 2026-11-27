@@ -6,8 +6,8 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- Hunspell Dictionary can fail to load with 'Too many collisions' when its entry count is a multiple of 961, because WordStorage takes the raw String.hashCode() modulo the table size (for example the en_US dictionary plus a 300-word custom list) (finding LFV-933; [repro](../../repro/LFV-933/), [finding page](../../bugs/LFV-933.html))
-- Hunspell Dictionary cannot load SET ISO8859-10, or ISO8859-14 spelled any way except exactly "ISO8859-14" (UnsupportedCharsetException at load) (finding LFV-928; [repro](../../repro/LFV-928/), [finding page](../../bugs/LFV-928.html))
+- Hunspell Dictionary can fail to load with 'Too many collisions' when its entry count is a multiple of 961, because WordStorage takes the raw String.hashCode() modulo the table size (for example the en_US dictionary plus a 300-word custom list) (finding LFV-933; [repro](../../repro/LFV-933/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-933.html))
+- Hunspell Dictionary cannot load SET ISO8859-10, or ISO8859-14 spelled any way except exactly "ISO8859-14" (UnsupportedCharsetException at load) (finding LFV-928; [repro](../../repro/LFV-928/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-928.html))
 
 ## Files
 

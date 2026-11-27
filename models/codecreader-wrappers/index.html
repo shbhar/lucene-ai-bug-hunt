@@ -15,13 +15,15 @@ h1,h2,p,li,dd{overflow-wrap:break-word}
 .facts>span{min-width:0;overflow-wrap:anywhere}
 th,td.nw{white-space:nowrap;overflow-wrap:normal}
 .scroll{overflow-x:auto}
-@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
+.narrow-only{display:none}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}
+.narrow-only{display:block;font-size:.85rem;color:var(--dim)}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
-</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>Formal models and scripts: codecreader-wrappers</h1>
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a> › <a href="../index.html">Formal models and scripts</a> › codecreader-wrappers</nav><h1>Formal models and scripts: codecreader-wrappers</h1>
 <p class="facts small">Tools: Python</p>
 <p>These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as <code>$LUCENE</code> (a Lucene checkout) and <code>$WORK</code>.</p>
 <h2>Findings</h2><ul>
-<li>SlowCompositeCodecReaderWrapper&#x27;s merged vector iterator numbers ordinals by position and ignores each input&#x27;s own index(), so addIndexes of two or more SortingCodecReader inputs through a reordering merge policy writes vectors onto the wrong documents (finding LFV-278; <a href="../../repro/LFV-278/index.html">repro</a> · <a href="../../bugs/LFV-278.html">finding page</a>)</li>
+<li>SlowCompositeCodecReaderWrapper&#x27;s merged vector iterator numbers ordinals by position and ignores each input&#x27;s own index(), so addIndexes of two or more readers, at least one of them a SortingCodecReader that changes the relative order of documents with a vector in the same field, on a writer without an index sort and in a merge whose OneMerge#reorder returns a DocMap, writes vectors onto the wrong documents (finding LFV-278; <a href="../../repro/LFV-278/index.html">repro</a> · <a href="../../bugs/LFV-278.html">finding page</a>)</li>
 <li>A reordered addIndexes(CodecReader...) silently drops the stored fields and term vectors of the first document after an empty (maxDoc 0) input reader: SlowCompositeCodecReaderWrapper.docIdToReaderId keeps an Arrays.binarySearch hit on a repeated doc start and reads that document from the empty reader (finding LFV-318; <a href="../../repro/LFV-318/index.html">repro</a> · <a href="../../bugs/LFV-318.html">finding page</a>)</li>
 <li>addIndexes(CodecReader...) with the default config rejects inputs whose maxDoc() sum, deleted documents included, exceeds MAX_DOCS although only their live documents are added, because it always builds a merged view of the inputs for OneMerge#reorder (regression since 9.9.0) (finding LFV-285; <a href="../../repro/LFV-285/index.html">repro</a> · <a href="../../bugs/LFV-285.html">finding page</a>)</li>
 </ul><h2>Files</h2><ul>
@@ -31,4 +33,4 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 </ul>
 <h2>How to run</h2><ul>
 <li>Python: <code>python3 &lt;file&gt;.py</code>; scripts that import <code>z3</code> need the <code>z3-solver</code> package.</li>
-</ul><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-23. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+</ul><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-27. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

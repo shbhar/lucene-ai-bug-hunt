@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- IndexWriter.hasUncommittedChanges() can return false for an acknowledged, uncommitted delete while another thread flushes or refreshes an NRT reader, because it reads changeCount before the in-RAM state (every release since 4.5.1) (finding LFV-1060; [repro](../../repro/LFV-1060/), [finding page](../../bugs/LFV-1060.html))
+- IndexWriter.hasUncommittedChanges() can return false for an acknowledged, uncommitted delete while another thread flushes or refreshes an NRT reader, because it reads changeCount before the in-RAM state (every release since 4.5.1) (finding LFV-1060; [repro](../../repro/LFV-1060/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1060.html))
 
 ## Files
 

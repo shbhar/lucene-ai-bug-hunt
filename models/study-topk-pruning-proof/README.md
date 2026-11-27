@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- MaxScoreBulkScorer can skip a document whose score equals the minimum competitive score (1-ulp rank inversion) (finding LFV-060; [repro](../../repro/LFV-060/), [finding page](../../bugs/LFV-060.html))
+- MaxScoreBulkScorer can skip a document whose score equals the minimum competitive score (1-ulp rank inversion) (finding LFV-060; [repro](../../repro/LFV-060/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-060.html))
 
 ## Files
 

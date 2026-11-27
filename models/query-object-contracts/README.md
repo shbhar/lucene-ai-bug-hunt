@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- DisjunctionMaxQuery and LatLonPoint.newDistanceFeatureQuery accept a NaN tie-breaker or pivot distance (the pivot also +Infinity) because their range checks are false for NaN, so hits score NaN and a NaN query is not equal to itself (finding LFV-304; [repro](../../repro/LFV-304/), [finding page](../../bugs/LFV-304.html))
+- DisjunctionMaxQuery and LatLonPoint.newDistanceFeatureQuery accept a NaN tie-breaker or pivot distance (the pivot also +Infinity) because their range checks are false for NaN, so hits score NaN and a NaN query is not equal to itself (finding LFV-304; [repro](../../repro/LFV-304/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-304.html))
 
 ## Files
 

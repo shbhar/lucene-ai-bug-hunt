@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- SortedDoubleDocValuesStats (lucene/misc) reads core DoubleField values as raw IEEE bits, so negative values give a silently wrong min, sum and mean (DoubleField -5.0 and 3.0 give min -0.8749999999999999) (finding LFV-1129; [repro](../../repro/LFV-1129/), [finding page](../../bugs/LFV-1129.html))
+- SortedDoubleDocValuesStats (lucene/misc) reads core DoubleField values as raw IEEE bits, so negative values give a silently wrong min, sum and mean (DoubleField -5.0 and 3.0 give min -0.8749999999999999) (finding LFV-1129; [repro](../../repro/LFV-1129/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1129.html))
 
 ## Files
 

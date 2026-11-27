@@ -6,8 +6,8 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- Flexible query parser: QueryNode#toQueryString prints field names without escaping, so nodes for escaped field names such as 'my field' or 'a:b' print strings that parse to a different query or do not parse (finding LFV-356; [repro](../../repro/LFV-356/), [finding page](../../bugs/LFV-356.html))
-- Flexible query parser: EscapeQuerySyntaxImpl does not escape '@' after the first character of a term or a term that is exactly &amp;&amp; or ||, so QueryNode#toQueryString output for such terms does not parse (finding LFV-398; [repro](../../repro/LFV-398/), [finding page](../../bugs/LFV-398.html))
+- Flexible query parser: QueryNode#toQueryString prints field names without escaping, so nodes for escaped field names such as 'my field' or 'a:b' print strings that parse to a different query or do not parse (finding LFV-356; [repro](../../repro/LFV-356/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-356.html))
+- Flexible query parser: EscapeQuerySyntaxImpl does not escape '@' after the first character of a term or a term that is exactly &amp;&amp; or ||, so QueryNode#toQueryString output for such terms does not parse (finding LFV-398; [repro](../../repro/LFV-398/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-398.html))
 
 ## Files
 

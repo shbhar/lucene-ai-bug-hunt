@@ -2,7 +2,7 @@
 
 Finding LFV-110 · Area: index / IndexWriter doc-values update write path (ReadersAndUpdates.writeFieldUpdates, the checkpoint after writeReaderPool, IndexFileDeleter reference counts) · Priority: medium · Impact: data corruption · Novelty: new
 
-Finding page: [../../bugs/LFV-110.html](../../bugs/LFV-110.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-110.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-110.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ You update a doc-values field (updateNumericDocValue, updateBinaryDocValue, or a
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
 - Runs 1 and 2 use the two test classes under src/. Run as printed on 2026-11-22 on a build of main b5a4546a5964: run 1 (TestDocValuesUpdateReopenFailure; also run with assertions off) reports 2 tests found and 2 failed, testDefaultConfig with java.nio.file.NoSuchFileException: _0_1_Lucene90_0.dvm and testFailureInAnotherSegmentsWrite with java.nio.file.NoSuchFileException: _0_1.fnm; run 2 (TestDocValuesUpdateReopenFailureFullRewrite) reports 1 test found and 1 failed, with org.junit.ComparisonFailure: NRT reader after the failed getReader expected:&lt;[10]0 200 2 3&gt; but was:&lt;[]0 200 2 3&gt;. The expected and actual lines above are those of the finding page's one-method copy at the top of this folder, which has the same class name as the two-test file under src/: name the one-method copy alone in the javac line, in place of $(find src -name '*.java'), and run the first java command; it then fails 1 of 1 with java.io.FileNotFoundException: _0_1_Lucene90_0.dvm (run the same day on the same build, with assertions on and off). The test framework's MockDirectoryWrapper throws FileNotFoundException or NoSuchFileException for a missing file at random, so the class can differ between two tests under one seed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -50,7 +50,7 @@ java -da -dsa -Dtests.asserts=false -Xmx2g --add-modules jdk.incubator.vector --
      execute --select-class org.apache.lucene.index.TestDocValuesUpdateReopenFailureFullRewrite
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

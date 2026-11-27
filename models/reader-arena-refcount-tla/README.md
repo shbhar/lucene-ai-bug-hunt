@@ -6,9 +6,9 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- When DirectoryReader.openIfChanged on a FilterDirectoryReader (for example SoftDeletesDirectoryReaderWrapper) fails while wrapping the reopened reader, the newly opened inner reader is never closed, so the segment readers it shares with the old reader, and its files, leak (finding LFV-495; [repro](../../repro/LFV-495/), [finding page](../../bugs/LFV-495.html))
-- DirectoryReader.open and openIfChanged with an ExecutorService never close the segment readers of tasks the executor already accepted when a later submit is rejected (or when the opening thread is interrupted while it waits), so those segments' files stay open (finding LFV-1061; [repro](../../repro/LFV-1061/), [finding page](../../bugs/LFV-1061.html))
-- DirectoryReader.openIfChanged on a reader opened with a leaf sorter leaks segment reader references when the sorter throws while the new reader is built, so closing the old reader no longer closes the shared segments and the new segment's reader is never closed (finding LFV-1059; [repro](../../repro/LFV-1059/), [finding page](../../bugs/LFV-1059.html))
+- When DirectoryReader.openIfChanged on a FilterDirectoryReader (for example SoftDeletesDirectoryReaderWrapper) fails while wrapping the reopened reader, the newly opened inner reader is never closed, so the segment readers it shares with the old reader, and its files, leak (finding LFV-495; [repro](../../repro/LFV-495/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-495.html))
+- DirectoryReader.open and openIfChanged with an ExecutorService never close the segment readers of tasks the executor already accepted when a later submit is rejected (or when the opening thread is interrupted while it waits), so those segments' files stay open (finding LFV-1061; [repro](../../repro/LFV-1061/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1061.html))
+- DirectoryReader.openIfChanged on a reader opened with a leaf sorter leaks segment reader references when the sorter throws while the new reader is built, so closing the old reader no longer closes the shared segments and the new segment's reader is never closed (finding LFV-1059; [repro](../../repro/LFV-1059/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1059.html))
 
 ## Files
 

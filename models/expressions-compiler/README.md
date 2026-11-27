@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- Expressions: !, &amp;&amp;, || and ?: keep only the low 32 bits of a bitwise/shift result or hex/octal literal, so a non-zero value such as 1 &lt;&lt; 32 or 0x100000000 counts as false (finding LFV-181; [repro](../../repro/LFV-181/), [finding page](../../bugs/LFV-181.html))
+- Expressions: !, &amp;&amp;, || and ?: keep only the low 32 bits of a bitwise/shift result or hex/octal literal, so a non-zero value such as 1 &lt;&lt; 32 or 0x100000000 counts as false (finding LFV-181; [repro](../../repro/LFV-181/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-181.html))
 
 ## Files
 

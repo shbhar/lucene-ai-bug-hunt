@@ -20,7 +20,7 @@ You delete or update documents and then count all values of a long field with ne
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
 - This folder holds two copies of the test: the copy under src/ passes MatchAllDocsQuery.INSTANCE and the copy under src2/ calls new MatchAllDocsQuery() (line 67), the form that also compiles with the jars of 9.12.3, 10.0.0 and 10.3.2, which do not have the constant (it exists from Lucene 10.4.0 on). On Lucene main (since 24d9e7d1a0d) and on branch_11x (since a6a26f9b251) that constructor is private (#16962, merged 2026-11-03), so on a build of either the second javac line stops at that line and the second java command finds no test: leave these two commands out there. The first javac line and the first java command are the repro on such a build. With the jars of the 10.6.0 release (Maven Central, org.apache.lucene, in place of the four $LUCENE jars; V=10.6.0) both copies compile and both commands fail the same way. Run on 2026-11-22 with assertions on and off: the src/ copy fails 3 of 3 on a build of main b5a4546a5964, on a build of branch_11x 262e019500ec (there V=11.0.0-SNAPSHOT) and with the 10.6.0 jars, and the src2/ copy fails 3 of 3 with the 10.6.0 jars.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -50,7 +50,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Feedback
 

@@ -2,7 +2,7 @@
 
 Finding LFV-1497 · Area: codecs / compound-file decision for merged segments (CompoundFormat.useCompoundFile: the maximum segment size under LogDocMergePolicy; MergePolicy.useCompoundFile up to 10.x) · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1497.html](../../bugs/LFV-1497.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1497.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1497.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You use LogDocMergePolicy and tell Lucene not to pack large merged segments into
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: it sets setMaxCFSSegmentSizeMB(1) on the default codec's compound format, uses LogDocMergePolicy with the serial merge scheduler on a ByteBuffersDirectory, flushes two segments of one document each, each document with one 1 MiB binary doc-values field, and calls forceMerge(1). It then reads the commit, checks that the one merged segment is larger than 1 MiB and asserts that it is not a compound file. The test fails with 'a merged segment of 2098992 bytes is a compound file', the same with and without assertions; it uses no randomness. It needs the CompoundFormat API of branch_11x and main, so it does not compile against a release. The file that is not exported is the earlier form of this test; it differs in the wording of one comment line only.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -44,7 +44,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.index.TestMaxCFSSegmentSizeWithLogDocMergePolicy
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

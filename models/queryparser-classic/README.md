@@ -6,8 +6,8 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- MultiFieldQueryParser under AND treats clause i of every field's analyzed BooleanQuery as term position i and requires each group, so fields whose analyzers tokenize the same text differently lose (and sometimes gain wrong) matches (released since 6.2.0, default settings since 7.0.0), and since #16446 (10.6.0) graph-phrase alternatives such as a multi-word synonym are required together (finding LFV-319; [repro](../../repro/LFV-319/), [finding page](../../bugs/LFV-319.html))
-- Classic QueryParser with the default splitOnWhitespace=false: since #16446 an AND/OR that directly follows a token the analyzer drops (such as a stopword) binds to the whole preceding run of plain terms instead of the last term, so typing the stopword changes which documents match (regression new in 10.6.0, also on main and branch_10_6) (finding LFV-284; [repro](../../repro/LFV-284/), [finding page](../../bugs/LFV-284.html))
+- MultiFieldQueryParser under AND treats clause i of every field's analyzed BooleanQuery as term position i and requires each group, so fields whose analyzers tokenize the same text differently lose (and sometimes gain wrong) matches (released since 6.2.0, default settings since 7.0.0), and since #16446 (10.6.0) graph-phrase alternatives such as a multi-word synonym are required together (finding LFV-319; [repro](../../repro/LFV-319/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-319.html))
+- Classic QueryParser with the default splitOnWhitespace=false: since #16446 an AND/OR that directly follows a token the analyzer drops (such as a stopword) binds to the whole preceding run of plain terms instead of the last term, so typing the stopword changes which documents match (regression new in 10.6.0, also on main and branch_10_6) (finding LFV-284; [repro](../../repro/LFV-284/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-284.html))
 
 ## Files
 

@@ -15,9 +15,11 @@ h1,h2,p,li,dd{overflow-wrap:break-word}
 .facts>span{min-width:0;overflow-wrap:anywhere}
 th,td.nw{white-space:nowrap;overflow-wrap:normal}
 .scroll{overflow-x:auto}
-@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
+.narrow-only{display:none}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}
+.narrow-only{display:block;font-size:.85rem;color:var(--dim)}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
-</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>FSTCompletionLookup.build leaves an open, empty temp file behind when its second temp file cannot be created: it creates its ExternalRefSorter, whose constructor opens a temp output, before the try block that holds its only cleanup (every release since 6.0.0)</h1>
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a> › <a href="../index.html">Repro tests</a> › LFV-1493</nav><h1>FSTCompletionLookup.build leaves an open, empty temp file behind when its second temp file cannot be created: it creates its ExternalRefSorter, whose constructor opens a temp output, before the try block that holds its only cleanup (every release since 6.0.0)</h1>
 <p class="facts small"><span>Finding LFV-1493</span><span>Area: suggest / FSTCompletionLookup build (temp outputs of its offline sort)</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: new</span></p>
 <p><a href="../../bugs/LFV-1493.html">Finding page for LFV-1493</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
@@ -28,7 +30,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/search/suggest/fst/TestFSTCompletionLookupFailedBuildTempFile.java"><code>src/org/apache/lucene/search/suggest/fst/TestFSTCompletionLookupFailedBuildTempFile.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.</li>
+<li>Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.</li>
 <li>Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.</li>
 <li>What the test does: it wraps a ByteBuffersDirectory in a FilterDirectory whose second createTempOutput call throws IOException(&#x27;Too many open files&#x27;). This injected fault is part of the test: it stands for a temp directory that can create one more file and then no further one. The test constructs FSTCompletionLookup(tempDir, &quot;suggest&quot;), expects build(InputIterator.EMPTY) to throw the IOException, which it does, and then asserts that the temp directory lists no file. It fails because suggest_RefSorterRaw_0.tmp is still listed (&#x27;array lengths differed, expected.length=0 actual.length=1&#x27;), the same with and without assertions. The test checks the file that is left behind; it does not check that the file&#x27;s output is still open, and it uses no real file-descriptor limit. No extra heap is needed; beside core the recipe needs the suggest and analysis-common jars, which it lists. The file to compile is the test under src/, as the commands below do; the copy at the top of this folder, the one the finding page shows, is the same file. It carries the Apache license header, and the assertion that fails is at its line 49, the line the finding page quotes. The one other file of the recorded repro, which is not exported, is an earlier copy of this same test without the license header (36 lines; nothing else differs).</li>
 <li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).</li>
@@ -49,7 +51,7 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -XX:ActiveProcessorCount=2 -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.search.suggest.fst.TestFSTCompletionLookupFailedBuildTempFile</code></pre>
-<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on the 11.0 branch the build takes the default from the seed).</p>
+<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on branch_11x the build takes the default from the seed).</p>
 <h2>Files shown on the finding page</h2><ul><li><a href="TestFSTCompletionLookupFailedBuildTempFile.java"><code>TestFSTCompletionLookupFailedBuildTempFile.java</code></a></li></ul>
 <p class="small dim">1 other file(s) of the recorded repro are not exported.</p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-23. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-27. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

@@ -2,7 +2,7 @@
 
 Finding LFV-1125 · Area: codecs / per-field postings format (PerFieldPostingsFormat field-to-group mapping) · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1125.html](../../bugs/LFV-1125.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1125.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1125.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You give a per-field postings codec two SPI-registered postings formats with dif
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 5adff78bb168 (a commit of 2026-11-02): reproduced.
 - The test's postings formats EqA and EqB are looked up by name through the SPI file org.apache.lucene.codecs.PostingsFormat in this folder, so the recipe first copies it to resources/META-INF/services/ and puts resources/ on the class path; without it the index cannot be read back and the test fails for another reason.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -47,7 +47,7 @@ java -ea -esa -Xmx512m --add-modules jdk.incubator.vector --enable-native-access
      execute --select-class org.apache.lucene.codecs.perfield.TestPerFieldEqualFormatNames
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

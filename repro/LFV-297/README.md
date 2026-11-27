@@ -4,7 +4,7 @@ Finding LFV-297 · Area: search / rescoring · Priority: medium · Impact: crash
 
 AI-assisted finding, confirmed by automated checks. Upstream status: Fixed, by Greg Miller (Lucene PMC; PR #16926) on 2026-10-28 (https://github.com/apache/lucene/pull/16926). Greg Miller fixed it on main and branch_11x (11.0) by returning MatchNoDocsQuery when the inner query leaves nothing to rescore, the same guard as our fix. They left it out of 10.6 because they were not sure it is severe enough, so the 10.x line keeps the bug. This site files nothing upstream.
 
-Fixed upstream: [#16926](https://github.com/apache/lucene/pull/16926) (commit [645d4fe14a20](https://github.com/apache/lucene/commit/645d4fe14a203471fd120709c8bcbacbf3d9d256)), merged 2026-10-28; also on the 11.0 release branch ([f85446cb1af1](https://github.com/apache/lucene/commit/f85446cb1af1)).
+Fixed upstream: [#16926](https://github.com/apache/lucene/pull/16926) (commit [645d4fe14a20](https://github.com/apache/lucene/commit/645d4fe14a203471fd120709c8bcbacbf3d9d256)), merged 2026-10-28; also on branch_11x ([f85446cb1af1](https://github.com/apache/lucene/commit/f85446cb1af1)).
 
 ## What it shows
 
@@ -22,7 +22,7 @@ You wrap a query in RescoreTopNQuery, for example full-precision rescoring of a 
 ## Run it
 
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
-- This finding was re-run on Lucene main 11c8b6ea99ae on 2026-11-23: it no longer reproduces there; in the commands below, V=12.0.0-SNAPSHOT on a build of main 11c8b6ea99ae.
+- This finding was re-run on Lucene main 82cf7465bb8f on 2026-11-26: it no longer reproduces there; in the commands below, V=12.0.0-SNAPSHOT on a build of main 82cf7465bb8f.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -43,7 +43,7 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
      execute --select-class org.apache.lucene.search.TestRescoreTopNQueryNoCandidates
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Feedback
 

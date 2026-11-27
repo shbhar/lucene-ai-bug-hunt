@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- An IndexWriter opened from a leaf-sorted reader's IndexCommit pairs each segment with the segment reader at the same leaf position, so deleteDocuments(term) deletes another segment's documents and the commit persists that silently (finding LFV-1062; [repro](../../repro/LFV-1062/), [finding page](../../bugs/LFV-1062.html))
+- An IndexWriter opened from a leaf-sorted reader's IndexCommit pairs each segment with the segment reader at the same leaf position, so deleteDocuments(term) deletes another segment's documents and the commit persists that silently (finding LFV-1062; [repro](../../repro/LFV-1062/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1062.html))
 
 ## Files
 

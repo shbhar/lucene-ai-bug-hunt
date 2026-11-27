@@ -21,7 +21,7 @@ You build new SpanMultiTermQueryWrapper(new PrefixQuery(f:aa)) twice and call se
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main a9779ef3c193 (a commit of 2026-10-26): reproduced.
 - The javac line below compiles the three files under src/ together. src/SpanWrapperEqualsOldApi.java, the main() class of the last command, uses the span queries from org.apache.lucene.search.spans in lucene-core, their package in the releases up to 8.11.4 (from 9.0.0 on it is org.apache.lucene.queries.spans in lucene-queries); it does not compile on a build of Lucene main or of branch_11x or with the jars of the 10.6.0 release, so as printed the javac line stops there, the two JUnit commands find no test and the last command cannot load its class. Write find src/org in place of find src in the javac line and leave out the last java command. Then, run on 2026-11-22 on a build of main b5a4546a5964, on a build of branch_11x 262e019500ec (there V=11.0.0-SNAPSHOT) and with the 10.6.0 jars (Maven Central, org.apache.lucene, in place of the five $LUCENE jars; V=10.6.0), with assertions on and off: run 1 reports 4 tests found and 4 failed, and the JUnit command of run 2 reports 3 tests found and 3 failed. Its class, TestSpanFrequentTermsWrapperDeleteAliasing, uses FrequentTermsSpanBooleanQueryRewrite, which no release before 10.6.0 has: with the jars of 9.12.3 name only src/org/apache/lucene/queries/spans/TestSpanMultiTermQueryWrapperEqualsRewriteMethod.java in the javac line and run only run 1 (4 tests found and 4 failed, run the same day with assertions on). SpanWrapperEqualsOldApi.java, compiled alone and run with lucene-core and lucene-analyzers-common of 8.11.4 and of 5.5.0 on the class path, prints 'PROBE violations=2' and exits with status 1 (run the same day with assertions on).
 - How to read the outcome: a failing test is the finding reproducing: with the javac line and the commands as the note above says, run 1 reports 4 tests found and 4 tests failed and the JUnit command of run 2 reports 3 tests found and 3 tests failed; the main() class SpanWrapperEqualsOldApi, compiled and run alone with the jars of 8.11.4 or of 5.5.0, ends its output with the line PROBE violations=2 and exits with status 1, without an exception.
@@ -53,7 +53,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      -cp "classes:$CP" SpanWrapperEqualsOldApi
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Feedback
 

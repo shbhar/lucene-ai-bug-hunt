@@ -21,7 +21,7 @@ You have an index first created by Lucene 8 that Lucene 9 later rewrote complete
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
 - Fixtures: the test reads legacy8-exists.zip and legacy8-exists-merged.zip, an index created by Lucene 8.11.4 whose segments 9.12.3 rewrote (the second one force-merged), from its package on the class path. This site ships no binary index files, so the recipe first makes them with fixture-src/CreateWith8x.java, fixture-src/ReindexWith9x.java and the 8.11.4 and 9.12.3 release jars (Maven Central) and puts them in src/, which the run puts on the class path; without them every test fails for another reason.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -56,7 +56,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.backward_index.TestPre9CreatedIndexSchemaConsistency
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Feedback
 

@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- FieldType's javadoc still describes null as 'no doc values': setDocValuesType documents '@param type DocValues type, or null if no DocValues should be stored' but null throws NullPointerException, and docValuesType() documents 'The default is null' but returns DocValuesType.NONE (documentation defect, stale since 5.0.0; the code is intended and must not change) (finding LFV-1498; [repro](../../repro/LFV-1498/), [finding page](../../bugs/LFV-1498.html))
+- FieldType's javadoc still describes null as 'no doc values': setDocValuesType documents '@param type DocValues type, or null if no DocValues should be stored' but null throws NullPointerException, and docValuesType() documents 'The default is null' but returns DocValuesType.NONE (documentation defect, stale since 5.0.0; the code is intended and must not change) (finding LFV-1498; [repro](../../repro/LFV-1498/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1498.html))
 
 ## Files
 

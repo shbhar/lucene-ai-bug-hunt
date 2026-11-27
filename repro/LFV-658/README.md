@@ -2,9 +2,9 @@
 
 Finding LFV-658 · Area: analysis / nori KoreanTokenizer user dictionary (UserDictionary right ids, UserMorphData left id vs the bundled mecab-ko-dic-2.1.1 connection costs) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Finding page: [../../bugs/LFV-658.html](../../bugs/LFV-658.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-658.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-658.html)
 
-AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by mars2cbh (open PR #17070) on 2026-11-24 (https://github.com/apache/lucene/pull/17070). Open PR #17070 (mars2cbh, opened 2026-11-24: 'Fix Nori user dictionary connection context ids'; base main; open when read on 2026-11-26) changes the four context id constants of user dictionary nouns in UserDictionary.java and UserMorphData.java, adds a test method to TestUserDictionary and one to TestKoreanTokenizer and has a CHANGES.txt entry. Our repro fails, with and without assertions, on main 77d56fefb355 and on branch_11x 4e8fd3dc3bc4 (runs of 2026-11-26) and on the 10.6.0 and 10.0.0 release jars, and passes on the 9.12.3 release jars (runs of 2026-11-24). The pull request does not cite this list (its description, its two commit messages and its CHANGES.txt entry as read on 2026-11-26). This site files nothing upstream.
 
 ## What it shows
 
@@ -22,7 +22,7 @@ Expected `[학교]`, the terms without the user entry; actual: `[학교, 가]` (
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -49,7 +49,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 The module(s) analysis-nori also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Feedback
 

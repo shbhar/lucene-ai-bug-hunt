@@ -2,7 +2,7 @@
 
 Finding LFV-1481 · Area: join / JoinUtil global-ordinals join: the score of a ScoreMode.None join that has a min/max filter (GlobalOrdinalsWithScoreQuery, GlobalOrdinalsWithScoreCollectorManager) · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1481.html](../../bugs/LFV-1481.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1481.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1481.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -12,7 +12,7 @@ You build a global-ordinals join with JoinUtil.createJoinQuery and ScoreMode.Non
 
 ## Expected vs actual
 
-- Expected: Both joins score their one hit the same: 1.0 with and without `min = 2`, as on 10.6.0 and on the 11.0 branch.
+- Expected: Both joins score their one hit the same: 1.0 with and without `min = 2`, as on 10.6.0 and on branch_11x.
 - Actual: The join with `min = 2` scores the hit 0.0: `expected:<1.0> but was:<0.0>` at line 56, with assertions on and off.
 
 ## Files
@@ -21,9 +21,9 @@ You build a global-ordinals join with JoinUtil.createJoinQuery and ScoreMode.Non
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
-- What the test does: it indexes one "to" document and two "from" documents that share one join value and compares the score of the ScoreMode.None join with min = 2 with the score of the same join without a min/max filter. It fails because the filtered join scores 0.0 where the unfiltered join scores 1.0. The effects on a boost, on explain() and on ranking named above follow from that score and are not part of this test. Only main has the change: on a build of the 11.0 branch (run on branch_11x 9d2b5a15427a, 2026-11-17) and on the 10.6.0 release the test passes, with assertions on and off; on main 9965d34e3c77 it fails as described.
+- What the test does: it indexes one "to" document and two "from" documents that share one join value and compares the score of the ScoreMode.None join with min = 2 with the score of the same join without a min/max filter. It fails because the filtered join scores 0.0 where the unfiltered join scores 1.0. The effects on a boost, on explain() and on ranking named above follow from that score and are not part of this test. Only main has the change: on a build of branch_11x (run on 9d2b5a15427a, 2026-11-17) and on the 10.6.0 release the test passes, with assertions on and off; on main 9965d34e3c77 it fails as described.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -46,7 +46,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.search.join.TestGlobalOrdinalsJoinNoneScoreWithMin
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

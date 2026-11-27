@@ -19,7 +19,7 @@ You analyze the Polish word 'Pije' with a final e-ogonek ('I drink'), written wi
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: it analyzes the five UTF-16 units U+D835 U+DCDF 'i' 'j' U+0119 (the letter U+1D4DF, then 'ij' and e-ogonek) with a stock PolishAnalyzer and reads the first term. It asserts that the term is valid UTF-16 (UnicodeUtil.validUTF16String) and fails with 'term has an unpaired surrogate'; the same happens with and without assertions. It checks the term text only: the U+FFFD in the indexed term bytes, which the description above mentions, is not part of this test, and nothing is indexed. No fault injection and no extra heap are needed; beside core the recipe needs the analysis-common and analysis-stempel jars, which it lists.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -44,7 +44,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.analysis.pl.TestPolishAnalyzerSurrogatePair
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Feedback
 

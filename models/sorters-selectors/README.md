@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- Sorter.heapChild overflows int, so IntroSorter's heap-sort fallback compares a negative slot outside [from, to) when 2*to - from &gt; 2^31 (ArrayIndexOutOfBoundsException from ArrayUtil.introSort on a legal array slice) (finding LFV-372; [repro](../../repro/LFV-372/), [finding page](../../bugs/LFV-372.html))
+- Sorter.heapChild overflows int, so IntroSorter's heap-sort fallback compares a negative slot outside [from, to) when 2*to - from &gt; 2^31 (ArrayIndexOutOfBoundsException from ArrayUtil.introSort on a legal array slice) (finding LFV-372; [repro](../../repro/LFV-372/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-372.html))
 
 ## Files
 

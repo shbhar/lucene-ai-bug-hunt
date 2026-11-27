@@ -15,10 +15,13 @@ h1,h2,p,li,dd{overflow-wrap:break-word}
 .facts>span{min-width:0;overflow-wrap:anywhere}
 th,td.nw{white-space:nowrap;overflow-wrap:normal}
 .scroll{overflow-x:auto}
-@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
+.narrow-only{display:none}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}
+.narrow-only{display:block;font-size:.85rem;color:var(--dim)}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
-</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>SimplePatternSplitTokenizerFactory and SimplePatternTokenizerFactory javadoc whitespace examples (pattern=&quot;[ \t\r\n]+&quot; and &quot;[^ \t\r\n]+&quot; in an XML attribute, so the backslashes stay literal) never split on whitespace: since 9.0.0 RegExp rejects them with IllegalArgumentException (the rejection is intended, LUCENE-9370), on 6.5 to 8.x they split on the letters t, r, n; the RegExp error also prints the rejected letter as a decimal code point (&#x27;invalid character class \116&#x27; for \t)</h1>
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a> › <a href="../index.html">Repro tests</a> › LFV-930</nav><h1>SimplePatternSplitTokenizerFactory and SimplePatternTokenizerFactory javadoc whitespace examples (pattern=&quot;[ \t\r\n]+&quot; and &quot;[^ \t\r\n]+&quot; in an XML attribute, so the backslashes stay literal) never split on whitespace: since 9.0.0 RegExp rejects them with IllegalArgumentException (the rejection is intended, LUCENE-9370), on 6.5 to 8.x they split on the letters t, r, n; the RegExp error also prints the rejected letter as a decimal code point (&#x27;invalid character class \116&#x27; for \t)</h1>
 <p class="facts small"><span>Finding LFV-930</span><span>Area: analysis-common / SimplePattern(Split)TokenizerFactory javadoc examples; core / util.automaton RegExp error message</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: known upstream</span></p>
+<p><a href="../../index.html#bug-LFV-930">This finding in the table</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You copy the class javadoc example of SimplePatternSplitTokenizerFactory, pattern=&quot;[ \t\r\n]+&quot; (or SimplePatternTokenizerFactory&#x27;s &quot;[^ \t\r\n]+&quot;), which the javadoc offers &#x27;to match tokens delimited by simple whitespace characters&#x27;, and expect tokens split on spaces, tabs and newlines. In XML the backslashes stay literal, and since 9.0.0 RegExp deliberately rejects a backslash before a letter other than s, S, w, W, d, D (LUCENE-9370, MIGRATE.md), so building the factory throws IllegalArgumentException &#x27;invalid character class \116&#x27;; on 6.5 to 8.x the same pattern was accepted but split on the letters t, r and n instead. The message is a second, cosmetic defect: RegExp.java:1430 concatenates the int code point returned by next(), so \t is reported as &#x27;\116&#x27; and \q as &#x27;\113&#x27;.</p>
@@ -27,7 +30,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/analysis/pattern/TestSimplePatternJavadocExamples.java"><code>src/org/apache/lucene/analysis/pattern/TestSimplePatternJavadocExamples.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.</li>
+<li>Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.</li>
 <li>Tested on Lucene main a9779ef3c193 (a commit of 2026-10-26): reproduced.</li>
 <li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
@@ -46,5 +49,5 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.analysis.pattern.TestSimplePatternJavadocExamples</code></pre>
-<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on the 11.0 branch the build takes the default from the seed).</p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-23. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on branch_11x the build takes the default from the seed).</p>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-27. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

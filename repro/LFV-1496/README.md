@@ -2,7 +2,7 @@
 
 Finding LFV-1496 · Area: suggest / spell: PlainTextDictionary (a word-list file as a Dictionary) under SpellChecker.indexDictionary and Lookup.build(Dictionary): release of the dictionary file when the build fails · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1496.html](../../bugs/LFV-1496.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1496.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1496.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You build a spell index from a word-list file with spellChecker.indexDictionary(
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: it writes a one-word dictionary file under a LeakFS (the test framework's file system wrapper that tracks open files), opens a SpellChecker and then an IndexWriter on the same Directory, so that the writer holds the write lock, and expects spellChecker.indexDictionary(new PlainTextDictionary(dictionaryFile), ...) to throw LockObtainFailedException, which it does. No fault is injected. After the SpellChecker, the writer and the Directory are closed, it asks the LeakFS whether a file is still open. The test fails with 'file handle leaks: [InputStream(.../dict.txt)]', the same with and without assertions. Beside core the recipe needs the suggest and analysis-common jars, which it lists. The writer that holds the lock is the unnamed variable _ (Java 22 or later; the recipe uses JDK 25), so the same file also compiles in a Lucene checkout, which builds with -Xlint:try -Werror. The file that is not exported is the earlier form of this test, with the lock holder as a named variable.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -46,7 +46,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.search.spell.TestPlainTextDictionaryPathLeak
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

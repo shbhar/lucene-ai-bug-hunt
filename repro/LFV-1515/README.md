@@ -2,7 +2,7 @@
 
 Finding LFV-1515 · Area: sandbox / search: TermAutomatonQuery (experimental), TermAutomatonWeight.explain · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1515.html](../../bugs/LFV-1515.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1515.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1515.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -26,8 +26,8 @@ You index one document, 'wifi', search it with a TermAutomatonQuery that accepts
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced, with assertions on and off.
 - Tested on Lucene branch_11x daa54f2e0cd3 (a commit of 2026-11-13): reproduced, with assertions on and off.
 - Tested on Lucene 10.6.0 (4ae946e5a9b9) (a commit of 2026-10-26): reproduced, with assertions on and off, on the 10.6.0 release jars, which are built from this commit (the tag releases/lucene/10.6.0).
-- What each build does: the test fails the same way on Lucene main, on the 11.0 release branch (branch_11x daa54f2e0cd3) and with the 10.6.0 release jars, with and without assertions; the finding's record lists every release from 9.6.0 on. What the test does: it indexes one document, 'wifi', builds a TermAutomatonQuery that accepts wifi or wi fi (an automaton that rewrite() keeps), searches with a plain IndexSearcher, so with the default BM25 similarity, and expects the value of IndexSearcher.explain for the hit to equal the hit's score. It fails with 'expected:&lt;0.13076457&gt; but was:&lt;0.028268427&gt;': 0.13076457 is the hit's score and 0.028268427 the explained value. The test's input has no randomness; the test framework draws the default codec from the seed, and the two numbers were the same under every seed that was run. On a checkout of the 11.0 branch set V=11.0.0-SNAPSHOT; for the release, put the six 10.6.0 jars from Maven Central (org.apache.lucene: lucene-core, lucene-codecs, lucene-test-framework, lucene-facet, lucene-queries, lucene-sandbox) in place of the six $LUCENE jars. For the Gradle alternative at the end of this page the module is lucene/sandbox.
-- This finding was re-run on Lucene main 11c8b6ea99ae on 2026-11-23: still reproduces.
+- What each build does: the test fails the same way on Lucene main, on branch_11x daa54f2e0cd3 and with the 10.6.0 release jars, with and without assertions; the finding's record lists every release from 9.6.0 on. What the test does: it indexes one document, 'wifi', builds a TermAutomatonQuery that accepts wifi or wi fi (an automaton that rewrite() keeps), searches with a plain IndexSearcher, so with the default BM25 similarity, and expects the value of IndexSearcher.explain for the hit to equal the hit's score. It fails with 'expected:&lt;0.13076457&gt; but was:&lt;0.028268427&gt;': 0.13076457 is the hit's score and 0.028268427 the explained value. The test's input has no randomness; the test framework draws the default codec from the seed, and the two numbers were the same under every seed that was run. On a checkout of the 11.0 branch set V=11.0.0-SNAPSHOT; for the release, put the six 10.6.0 jars from Maven Central (org.apache.lucene: lucene-core, lucene-codecs, lucene-test-framework, lucene-facet, lucene-queries, lucene-sandbox) in place of the six $LUCENE jars. For the Gradle alternative at the end of this page the module is lucene/sandbox.
+- This finding was re-run on Lucene main 82cf7465bb8f on 2026-11-26: still reproduces.
 - How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with java.lang.AssertionError: expected:&lt;0.13076457&gt; but was:&lt;0.028268427&gt; (the hit's score, then the explained value).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -51,7 +51,7 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
      execute --select-class org.apache.lucene.sandbox.search.TestTermAutomatonQueryExplainValue
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

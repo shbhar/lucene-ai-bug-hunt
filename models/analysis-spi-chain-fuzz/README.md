@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- DictionaryCompoundWordTokenFilterFactory (main and branch_11x, both unreleased) warns 'onlyLongestMatch has been removed' when the key is absent and stays silent when onlyLongestMatch="false" is passed (finding LFV-439; [repro](../../repro/LFV-439/), [finding page](../../bugs/LFV-439.html))
+- DictionaryCompoundWordTokenFilterFactory (main and branch_11x, both unreleased) warns 'onlyLongestMatch has been removed' when the key is absent and stays silent when onlyLongestMatch="false" is passed (finding LFV-439; [repro](../../repro/LFV-439/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-439.html))
 
 ## Files
 

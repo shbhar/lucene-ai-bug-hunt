@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- FeatureField.newSigmoidQuery (and the IntervalQuery sigmoid) return NaN scores when pivot^exp overflows or underflows a double, for pivot and exp values the factories accept (finding LFV-258; [repro](../../repro/LFV-258/), [finding page](../../bugs/LFV-258.html))
+- FeatureField.newSigmoidQuery (and the IntervalQuery sigmoid) return NaN scores when pivot^exp overflows or underflows a double, for pivot and exp values the factories accept (finding LFV-258; [repro](../../repro/LFV-258/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-258.html))
 
 ## Files
 

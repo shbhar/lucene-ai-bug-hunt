@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- SynonymQuery adds up boosted term frequencies in float in heap order, so identical documents can score differently and explain() can differ from the hit score; with more than 2^24 occurrences in one field a score can exceed getMaxScore() (finding LFV-272; [repro](../../repro/LFV-272/), [finding page](../../bugs/LFV-272.html))
+- SynonymQuery adds up boosted term frequencies in float in heap order, so identical documents can score differently and explain() can differ from the hit score; with more than 2^24 occurrences in one field a score can exceed getMaxScore() (finding LFV-272; [repro](../../repro/LFV-272/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-272.html))
 
 ## Files
 

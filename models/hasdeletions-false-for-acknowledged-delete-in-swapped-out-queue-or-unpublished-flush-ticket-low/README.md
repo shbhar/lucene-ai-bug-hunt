@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- IndexWriter.hasDeletions() returns false for an acknowledged buffered delete while another thread's commit(), flush() or NRT reader open is writing a segment, because DocumentsWriter.anyDeletions() reads only the current delete queue and not the deletes frozen into flush tickets that are not yet published (since 4.0.0) (finding LFV-1403; [repro](../../repro/LFV-1403/), [finding page](../../bugs/LFV-1403.html))
+- IndexWriter.hasDeletions() returns false for an acknowledged buffered delete while another thread's commit(), flush() or NRT reader open is writing a segment, because DocumentsWriter.anyDeletions() reads only the current delete queue and not the deletes frozen into flush tickets that are not yet published (since 4.0.0) (finding LFV-1403; [repro](../../repro/LFV-1403/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1403.html))
 
 ## Files
 

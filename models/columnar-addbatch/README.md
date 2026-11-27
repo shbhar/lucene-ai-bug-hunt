@@ -6,9 +6,9 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- When a dense LongColumn's values cursor throws during addBatch, the NUMERIC/SORTED_NUMERIC doc values it already delivered stay buffered with no document, so later documents of that field in the same segment are stored with another document's value (finding LFV-097; [repro](../../repro/LFV-097/), [finding page](../../bugs/LFV-097.html))
-- When IndexWriter#addBatch fails part-way through a dense points column, the point bytes it already copied stay in the points buffer, so documents added later to the same in-memory segment are silently indexed with the rejected batch's point values (finding LFV-101; [repro](../../repro/LFV-101/), [finding page](../../bugs/LFV-101.html))
-- A SORTED_SET DictionaryColumn tuple that addBatch rejects (out-of-range ordinal, or ordValue() throws) leaves an empty document in the doc-values buffer, so the next flush fails and closes the IndexWriter, or with -da commits a segment whose field cannot be read (finding LFV-094; [repro](../../repro/LFV-094/), [finding page](../../bugs/LFV-094.html))
+- When a dense LongColumn's values cursor throws during addBatch, the NUMERIC/SORTED_NUMERIC doc values it already delivered stay buffered with no document, so later documents of that field in the same segment are stored with another document's value (finding LFV-097; [repro](../../repro/LFV-097/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-097.html))
+- When IndexWriter#addBatch fails part-way through a dense points column, the point bytes it already copied stay in the points buffer, so documents added later to the same in-memory segment are silently indexed with the rejected batch's point values (finding LFV-101; [repro](../../repro/LFV-101/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-101.html))
+- A SORTED_SET DictionaryColumn tuple that addBatch rejects (out-of-range ordinal, or ordValue() throws) leaves an empty document in the doc-values buffer, so the next flush fails and closes the IndexWriter, or with -da commits a segment whose field cannot be read (finding LFV-094; [repro](../../repro/LFV-094/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-094.html))
 
 ## Files
 

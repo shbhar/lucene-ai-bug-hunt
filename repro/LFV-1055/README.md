@@ -1,10 +1,10 @@
 # With maxConn = 1, a merge that reuses an HNSW graph with a deleted vector never finishes: InitializedHnswGraphBuilder.rebalanceGraph adds one full graph level per pass until OutOfMemoryError
 
-Finding LFV-1055 · Area: core / HNSW merge-time graph reuse (util/hnsw InitializedHnswGraphBuilder.rebalanceGraph, codecs/lucene99 Lucene99HnswVectorsFormat) · Priority: low · Impact: hang · Novelty: new
+Finding LFV-1055 · Area: core / util.hnsw: HNSW merge-time graph reuse (util/hnsw InitializedHnswGraphBuilder.rebalanceGraph, codecs/lucene99 Lucene99HnswVectorsFormat) · Priority: low · Impact: hang · Novelty: new
 
-Finding page: [../../bugs/LFV-1055.html](../../bugs/LFV-1055.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1055.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1055.html)
 
-AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by qidaye (open PR #17054) on 2026-11-20 (https://github.com/apache/lucene/pull/17054). Open PR #17054 (qidaye, opened 2026-11-20: 'Fix HNSW rebalanceGraph never terminating when maxConn is 1'; base main; no milestone, no review and no comment as of 2026-11-20) changes InitializedHnswGraphBuilder.java and HnswGraphTestCase.java: for maxConn = 1, rebalanceGraph takes 1/e as the ratio between one graph level and the next. On a build of the pull request as of 2026-11-20 our repro passes, with and without assertions; it fails on main f2b061406c4b, on branch_11x 75eea467ac52 and on the 10.6.0 release. With the pull request's change applied to branch_11x 75eea467ac52 our repro passes there too. The pull request links no issue and does not cite this list. It is not an earlier report of it: this row has been in the site's repository since its commit of 2026-10-30, and the pull request was opened on 2026-11-20. Update 2026-11-21: the pull request is open, with its one commit of 2026-11-20, no review and no milestone, and has one comment, by msokolov, a Lucene committer, who proposes to disallow maxConn = 1 ('Instead we should disallow Max Conn one.', 2026-11-21). This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by qidaye (open PR #17054) on 2026-11-20 (https://github.com/apache/lucene/pull/17054). Open PR #17054 (qidaye, opened 2026-11-20 as 'Fix HNSW rebalanceGraph never terminating when maxConn is 1'; base main; open when read on 2026-11-26) changes, in its form since 2026-11-24 ('Reject maxConn=1 in HNSW vector formats'), the maxConn check in the constructors of Lucene99HnswVectorsFormat, Lucene104HnswScalarQuantizedVectorsFormat, HnswBitVectorsFormat, DedupHnswVectorsFormat and DedupHnswScalarQuantizedVectorsFormat, their tests and CHANGES.txt. The author replaced the change after msokolov, a Lucene committer, proposed to disallow maxConn = 1 ('Instead we should disallow Max Conn one.', 2026-11-21). Our repro builds its format with maxConn = 1 through the Lucene99HnswVectorsFormat constructor, one of the five changed constructors; on main 77d56fefb355 it fails, with and without assertions (run on 2026-11-26). The pull request does not cite this list (its description, five comments, two reviews, two inline comments and two commit messages, as read on 2026-11-26). This site files nothing upstream.
 
 ## What it shows
 
@@ -21,7 +21,7 @@ You index vectors with an HNSW format configured with maxConn = 1, a value the f
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
@@ -43,7 +43,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.codecs.lucene99.TestHnswMaxConnOneMerge
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

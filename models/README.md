@@ -185,6 +185,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [taxonomy-writer-concurrent-add](taxonomy-writer-concurrent-add/) | TLA+/TLC | LFV-521, LFV-520, LFV-512 |
 | [termautomatonquery-non-scoring-use](termautomatonquery-non-scoring-use/) | Python | LFV-1514 |
 | [termvectors-compressing](termvectors-compressing/) | Python | LFV-244 |
+| [tessellator-hole-vertex-near-outer-edge](tessellator-hole-vertex-near-outer-edge/) | Python | LFV-1600 |
 | [tests-gui-build-option-not-passed-to-test-jvm](tests-gui-build-option-not-passed-to-test-jvm/) | Python | LFV-1522 |
 | [timeout-partial-results](timeout-partial-results/) | Python | LFV-465 |
 | [trydvupdate-bypasses-ram-buffer-unbounded-heap](trydvupdate-bypasses-ram-buffer-unbounded-heap/) | Python | LFV-1075 |

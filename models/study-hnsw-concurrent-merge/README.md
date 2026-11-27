@@ -6,9 +6,9 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- HNSW merge-time graph reuse can leave the entry node with no neighbours, dropping kNN recall to zero (finding LFV-005; [repro](../../repro/LFV-005/), [finding page](../../bugs/LFV-005.html))
-- Concurrent HNSW build retries a lost entry-node promotion with the wrong query vector (finding LFV-061; [repro](../../repro/LFV-061/), [finding page](../../bugs/LFV-061.html))
-- HNSW addConnections descends from the worst upper-level candidate instead of the best (finding LFV-068; [repro](../../repro/LFV-068/), [finding page](../../bugs/LFV-068.html))
+- HNSW merge-time graph reuse can leave the entry node with no neighbours, dropping kNN recall to zero (finding LFV-005; [repro](../../repro/LFV-005/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-005.html))
+- Concurrent HNSW build retries a lost entry-node promotion with the wrong query vector (finding LFV-061; [repro](../../repro/LFV-061/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-061.html))
+- HNSW addConnections descends from the worst upper-level candidate instead of the best (finding LFV-068; [repro](../../repro/LFV-068/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-068.html))
 
 ## Files
 

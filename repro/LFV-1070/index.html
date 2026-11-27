@@ -15,20 +15,22 @@ h1,h2,p,li,dd{overflow-wrap:break-word}
 .facts>span{min-width:0;overflow-wrap:anywhere}
 th,td.nw{white-space:nowrap;overflow-wrap:normal}
 .scroll{overflow-x:auto}
-@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
+.narrow-only{display:none}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}
+.narrow-only{display:block;font-size:.85rem;color:var(--dim)}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
-</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>BpVectorReorderer never calls the Executor it is given; any non-null executor makes it fork its work onto ForkJoinPool.commonPool()</h1>
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a> › <a href="../index.html">Repro tests</a> › LFV-1070</nav><h1>BpVectorReorderer never calls the Executor it is given; any non-null executor makes it fork its work onto ForkJoinPool.commonPool()</h1>
 <p class="facts small"><span>Finding LFV-1070</span><span>Area: misc / index: BpVectorReorderer (BP doc-id reordering over a vector field, through BPReorderingMergePolicy, computeDocMap and the command line)</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: new</span></p>
 <p><a href="../../bugs/LFV-1070.html">Finding page for LFV-1070</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
-<p>You reorder a segment with BpVectorReorderer and pass an Executor, for example the same-thread intra-merge executor that IndexWriter hands to BPReorderingMergePolicy under SerialMergeScheduler, or the pool the command line builds for --thread-count, and expect the work to run on the calling thread or on that executor, as it does for the sibling BPIndexReorderer. Instead the executor is never called: the tasks are RecursiveActions forked with ForkJoinTask.invokeAll from a thread outside any ForkJoinPool, so any non-null executor only switches forking on and the forked work runs on ForkJoinPool.commonPool(). With a run-on-caller executor and 4,096 two-dimensional vectors, vectors are read on a common-pool worker as well as on the caller; the resulting order is still correct.</p>
+<p>You reorder a segment with BpVectorReorderer and pass an Executor, for example the same-thread intra-merge executor that IndexWriter hands to BPReorderingMergePolicy under SerialMergeScheduler, or the pool the command line builds for --thread-count, and expect the work to run on the calling thread or on that executor, as it does for the sibling BPIndexReorderer. Instead the executor is never called: the tasks are RecursiveActions forked with ForkJoinTask.invokeAll from a thread outside any ForkJoinPool, so any non-null executor only switches forking on and the forked work runs on ForkJoinPool.commonPool(). With a run-on-caller executor and 4,096 two-dimensional vectors, vectors are read on a common-pool worker as well as on the caller; at that size the order is the one computed without an executor (by reading the code of branch_11x 55ef56a69344 and main 8506598d7a98 on 2026-11-25: an executor can change the order only for inputs of 16,386 vectors or more, which is the neighbouring finding of 2026-11-24 and no part of this one).</p>
 <h2>Expected vs actual</h2>
 <ul><li><b>Expected:</b> Only the test thread reads vectors: a same-thread executor keeps all the work on the caller.</li><li><b>Actual:</b> <code>AssertionError</code>: the readers are the test thread and <code>ForkJoinPool.commonPool-worker-1</code>.</li></ul>
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/misc/index/TestBpVectorReordererExecutor.java"><code>src/org/apache/lucene/misc/index/TestBpVectorReordererExecutor.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.</li>
+<li>Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.</li>
 <li>Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.</li>
 <li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
@@ -47,6 +49,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 java -da -dsa -Dtests.asserts=false -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.misc.index.TestBpVectorReordererExecutor</code></pre>
-<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on the 11.0 branch the build takes the default from the seed).</p>
+<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on branch_11x the build takes the default from the seed).</p>
 <h2>Files shown on the finding page</h2><ul><li><a href="TestBpVectorReordererExecutor.java"><code>TestBpVectorReordererExecutor.java</code></a></li></ul>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-23. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-27. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

@@ -2,7 +2,7 @@
 
 Finding LFV-900 · Area: core / search collectors (PositiveScoresOnlyCollector; FilterCollector scoreMode and setWeight forwarding; TotalHitCountCollector Weight#count shortcut) · Priority: low · Impact: silent wrong results · Novelty: new
 
-Finding page: [../../bugs/LFV-900.html](../../bugs/LFV-900.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-900.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-900.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -26,7 +26,7 @@ Expected: 1 hit for TermQuery f:x sorted by field, count 0 for (f:x)^0; actual: 
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 2 test(s) run, 2 failed.
 - On Lucene main since #16805 (e0a3a951e7e, merged 2026-11-09) the test needs a small adaptation, because #16805 removed IndexSearcher.search(Query, Collector); the change is on main only, and the 11.0 branch (branch_11x 9d2b5a15427a) still has the method. The adaptation: on line 43, pass the PositiveScoresOnlyCollector through a CollectorManager whose newCollector() returns it and whose reduce() returns null. So adapted, both tests fail (2 of 2), with and without assertions, on main 781025d6fe32 (2026-11-13) and on main 9965d34e3c77 (2026-11-16).
-- This finding was re-run on Lucene main 11c8b6ea99ae on 2026-11-23: still reproduces (the repro adapted to an API change on this commit).
+- This finding was re-run on Lucene main 82cf7465bb8f on 2026-11-26: still reproduces (the repro adapted to an API change on this commit).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -47,7 +47,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.search.TestPositiveScoresOnlyCollectorWrapsNoScoreCollector
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Feedback
 

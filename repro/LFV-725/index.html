@@ -15,10 +15,13 @@ h1,h2,p,li,dd{overflow-wrap:break-word}
 .facts>span{min-width:0;overflow-wrap:anywhere}
 th,td.nw{white-space:nowrap;overflow-wrap:normal}
 .scroll{overflow-x:auto}
-@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
+.narrow-only{display:none}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}
+.narrow-only{display:block;font-size:.85rem;color:var(--dim)}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
-</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>DrillSideways built with both a TaxonomyReader and a SortedSetDocValuesReaderState (the constructors documented for indexes that mix FacetField and SortedSetDocValuesFacetField dimensions) never counts the SortedSetDocValues dimensions, because the default buildFacetsResult ignores the state whenever taxoReader != null (every release since 4.7.0)</h1>
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a> › <a href="../index.html">Repro tests</a> › LFV-725</nav><h1>DrillSideways built with both a TaxonomyReader and a SortedSetDocValuesReaderState (the constructors documented for indexes that mix FacetField and SortedSetDocValuesFacetField dimensions) never counts the SortedSetDocValues dimensions, because the default buildFacetsResult ignores the state whenever taxoReader != null (every release since 4.7.0)</h1>
 <p class="facts small"><span>Finding LFV-725</span><span>Area: facet / DrillSideways (default buildFacetsResult for the mixed TaxonomyReader + SortedSetDocValuesReaderState constructors)</span><span>Priority: medium</span><span>Impact: wrong error</span><span>Novelty: known upstream</span></p>
+<p><a href="../../index.html#bug-LFV-725">This finding in the table</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You index a taxonomy dimension color with FacetField and a SortedSetDocValues dimension size with SortedSetDocValuesFacetField in its own index field (indexing rejects both kinds in one field), create new DrillSideways(searcher, config, taxoReader, state), whose javadoc says it is for indexes &#x27;where some dimensions were indexed with SortedSetDocValuesFacetField and others were indexed with FacetField&#x27;, and drill down on color/red; you expect result.facets.getTopChildren(10, &quot;size&quot;) to return the size counts of the matching documents (large 3, small 1), as SortedSetDocValuesFacetCounts over the result&#x27;s own drillDownFacetsCollector does. Instead it throws IllegalArgumentException &#x27;dimension &quot;size&quot; cannot be found in field &quot;$facets&quot;, since it was configured to be indexed into field &quot;ssdv_f&quot;&#x27;, because the default buildFacetsResult builds FastTaxonomyFacetCounts on the default field for the drill-down and for every sideways dimension whenever taxoReader != null and never reads the state. In the other layout (size on $facets, color in its own field) size silently returns null and is missing from getAllDims.</p>
@@ -27,7 +30,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/facet/TestDrillSidewaysMixedFacets.java"><code>src/org/apache/lucene/facet/TestDrillSidewaysMixedFacets.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.</li>
+<li>Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.</li>
 <li>Tested on Lucene main a9779ef3c193 (a commit of 2026-10-26): reproduced.</li>
 <li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).</li>
 <li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
@@ -47,5 +50,5 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.facet.TestDrillSidewaysMixedFacets</code></pre>
 <p class="small">The module(s) facet also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
-<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on the 11.0 branch the build takes the default from the seed).</p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-23. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on branch_11x the build takes the default from the seed).</p>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-27. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

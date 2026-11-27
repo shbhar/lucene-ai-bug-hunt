@@ -24,7 +24,7 @@ You index one document 'a b', build a TermAutomatonQuery that accepts the phrase
 - Tested on Lucene branch_11x daa54f2e0cd3 (a commit of 2026-11-13): reproduced, with assertions on and off.
 - Tested on Lucene 10.6.0 (4ae946e5a9b9) (a commit of 2026-10-26): reproduced, with assertions on and off, on the 10.6.0 release jars, which are built from this commit (the tag releases/lucene/10.6.0).
 - Not new in 11.0: the test fails the same way with the 10.6.0 release jars, on the 11.0 release branch (branch_11x daa54f2e0cd3) and on Lucene main, with and without assertions; the finding's record lists every release from 8.0.0 on. Known outside Lucene only: two user posts of 2022 about a downstream product show the same exception message, and that product's public source carries a workaround class; no Lucene issue, pull request or list thread was found that describes it. What the test does: it indexes one document with the text 'a b', builds a TermAutomatonQuery that accepts the phrase 'a b' or the single term 'c' (an automaton that rewrite() keeps) and expects IndexSearcher.count to return 1. The count throws java.lang.IllegalStateException: Cannot call docFreq() when needsStats=false, while the query's Weight is built; in the recorded runs a scoring search with the same query returned the document. On a checkout of the 11.0 branch set V=11.0.0-SNAPSHOT; for the release, put the six 10.6.0 jars from Maven Central (org.apache.lucene: lucene-core, lucene-codecs, lucene-test-framework, lucene-facet, lucene-queries, lucene-sandbox) in place of the six $LUCENE jars. For the Gradle alternative at the end of this page the module is lucene/sandbox.
-- This finding was re-run on Lucene main 11c8b6ea99ae on 2026-11-23: still reproduces.
+- This finding was re-run on Lucene main 82cf7465bb8f on 2026-11-26: still reproduces.
 - How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with java.lang.IllegalStateException: Cannot call docFreq() when needsStats=false, thrown out of IndexSearcher.count.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -48,7 +48,7 @@ java -da -dsa -Dtests.asserts=false -Xmx1g --add-modules jdk.incubator.vector --
      execute --select-class org.apache.lucene.sandbox.search.TestTermAutomatonQueryCount
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 Formal models and scripts this finding's part of the hunt used: [../../models/termautomatonquery-non-scoring-use/](../../models/termautomatonquery-non-scoring-use/)
 

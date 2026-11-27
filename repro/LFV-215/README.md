@@ -20,7 +20,7 @@ You index a polygon with LatLonShape or XYShape and search with a polygon or lin
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
 - What this folder covers: the two files test the INTERSECTS cases (a polygon query and a line query that match a disjoint shape). The CONTAINS cases named above have no test in this folder. Run on 2026-11-17 on Lucene main 9965d34e3c77 and on the 11.0 release branch (branch_11x 9d2b5a15427a), with and without assertions: TestIntersectsCollinearDisjointEdge reports 5 tests found and 4 tests failed, and IntersectsCollinearMain exits non-zero.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown); a main() class that exits non-zero, with an exception or AssertionError, is the finding reproducing.
@@ -47,7 +47,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      -cp "classes:$CP" IntersectsCollinearMain
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Feedback
 

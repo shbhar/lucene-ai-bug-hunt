@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- ByteBuffersDirectory.rename ends with a leftover unconditional files.remove(source), so a file that another thread creates (createOutput) or renames onto the source name while the rename runs is silently deleted, although that thread's call returned normally (finding LFV-836; [repro](../../repro/LFV-836/), [finding page](../../bugs/LFV-836.html))
+- ByteBuffersDirectory.rename ends with a leftover unconditional files.remove(source), so a file that another thread creates (createOutput) or renames onto the source name while the rename runs is silently deleted, although that thread's call returned normally (finding LFV-836; [repro](../../repro/LFV-836/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-836.html))
 
 ## Files
 

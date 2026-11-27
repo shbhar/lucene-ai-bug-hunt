@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- Hunspell spell() skips the per-entry checks on COMPOUNDRULE compound parts, so it accepts compounds that C Hunspell rejects: a KEEPCASE first part in capitalized or upper case, a FORCEUCASE last part in lower case, and a NEEDAFFIX or FORBIDDENWORD entry as a first or middle part (finding LFV-731; [repro](../../repro/LFV-731/), [finding page](../../bugs/LFV-731.html))
+- Hunspell spell() skips the per-entry checks on COMPOUNDRULE compound parts, so it accepts compounds that C Hunspell rejects: a KEEPCASE first part in capitalized or upper case, a FORCEUCASE last part in lower case, and a NEEDAFFIX or FORBIDDENWORD entry as a first or middle part (finding LFV-731; [repro](../../repro/LFV-731/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-731.html))
 
 ## Files
 

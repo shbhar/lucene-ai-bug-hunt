@@ -22,7 +22,7 @@ You group a two-segment index (prices 5, 15, 25 | 35, 45, 55) into price ranges 
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
 - The javac line below compiles the four files under src/ together, and each file is the same test in the API of another range of Lucene versions. As printed, the line stops on a build of Lucene main or of the 11.0 branch and with the jars of the 10.6.0 release, and the two runs then find no test. Name one file in the javac line, in place of $(find src -name '*.java'), and select only its class. On a build of main or of the 11.0 branch (branch_11x; there V=11.0.0-SNAPSHOT) and with the 10.6.0 jars (Maven Central, org.apache.lucene, in place of the five $LUCENE jars; V=10.6.0) that file is src/org/apache/lucene/search/grouping/TestRangeGroupSelectorWithoutScorer.java, the class of run 1: run on 2026-11-22 on a build of main b5a4546a5964, on a build of branch_11x 262e019500ec and with the 10.6.0 jars, with assertions on and off, its three tests fail 3 of 3 with java.lang.NullPointerException: Cannot invoke "org.apache.lucene.search.LongValues.advanceExact(int)" because "this.values" is null (two tests; the third names DoubleValues). The three classes of run 2 are for earlier releases, where the two grouping tests fail because the search returns wrong groups without an error and the DistinctValues test fails with the same NullPointerException: TestRangeGroupSelectorWithoutScorerReleases with the jars of 10.4.0 to 10.5.2 (and of 10.0.0 to 10.3.2 once its two MatchAllDocsQuery.INSTANCE are written new MatchAllDocsQuery(): the constant exists from 10.4.0 on), TestRangeGroupSelectorWithoutScorer9x with those of 9.1.0 to 9.12.3 and TestRangeGroupSelectorWithoutScorer8x with those of 8.6.0 to 9.0.0 (run on 2026-11-22 with the jars of each of these 49 releases, with assertions on: 3 of 3 fail on each). On the two builds and with the 10.6.0 jars none of these three files compiles; on main and on the 11.0 branch the errors of the 9x and 8x files include the no-argument MatchAllDocsQuery constructor, which #16962 (merged 2026-11-03) made private on main (24d9e7d1a0d) and on the 11.0 branch (branch_11x, a6a26f9b251).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -54,7 +54,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
        --select-class org.apache.lucene.search.grouping.TestRangeGroupSelectorWithoutScorer8x
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Feedback
 

@@ -2,7 +2,7 @@
 
 Finding LFV-1087 · Area: build-tools / documentation build (DocumentationConfigPlugin.MarkdownTemplateTask.withProjectList: the 'API Javadocs' list of the documentation front page docs/index.html) · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1087.html](../../bugs/LFV-1087.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1087.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1087.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You open the front page of the Lucene 10.6.0 documentation (docs/index.html in t
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main e1faeba08bde (a commit of 2026-11-02): reproduced.
 - The test reads index.html and the module javadoc folders of the documentation tree named by the system property docs.dir, which the java command below leaves out. Build the full documentation first with ./gradlew :lucene:documentation:documentation and add -Ddocs.dir=$LUCENE/lucene/documentation/build/site to the java command (with gradle: "-Ptests.jvmargs=-Ddocs.dir=$LUCENE/lucene/documentation/build/site"), or point docs.dir at the docs/ folder of an unpacked lucene-10.6.0 binary release. Without docs.dir the test fails with a NullPointerException, which is not the finding. The Lucene jars play no part: the documentation tree decides the result.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -45,7 +45,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.TestFrontPageJavadocLinks
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

@@ -2,7 +2,7 @@
 
 Finding LFV-957 · Area: release notes / lucene/CHANGES.txt 10.6.0 Improvements (CheckIndex / CorruptSegmentInfoException entry, GITHUB#7820) · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-957.html](../../bugs/LFV-957.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-957.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-957.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,8 +24,8 @@ Expected `GITHUB#7820` (the issue CheckIndex.java links); actual `GITHUB#17820` 
 
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced with the 10.6.0 release's lucene/CHANGES.txt as the input; main's own CHANGES.txt passes.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
-- The test reads the CHANGES.txt file named by the system property changes.txt, so add -Dchanges.txt=&lt;file&gt; to the java command. To reproduce, give it the 10.6.0 release's text: git show releases/lucene/10.6.0:lucene/CHANGES.txt &gt; CHANGES-10.6.0.txt. The Lucene jars play no part, so any recent build runs it. Main's own lucene/CHANGES.txt passes, because main cites GITHUB#7820.
-- This finding was re-run on Lucene main 11c8b6ea99ae on 2026-11-23: still reproduces; in the commands below, V=12.0.0-SNAPSHOT on a build of main 11c8b6ea99ae.
+- The test reads the CHANGES.txt file named by the system property changes.txt, so add -Dchanges.txt=&lt;file&gt; to the java command. To reproduce, give it the 10.6.0 release's text: git show releases/lucene/10.6.0:lucene/CHANGES.txt &gt; CHANGES-10.6.0.txt. The Lucene jars play no part, so any recent build runs it. Main's own lucene/CHANGES.txt passes, because main cites GITHUB#7820, and so does the text of branch_10_6 since its commit 428dac01414 of 2026-11-02 changed the number back (run on 2026-11-25 with the text of branch_10_6 451a69c1d4a6: 1 test found, 1 successful; with the 10.6.0 release's text: 1 failed; each with and without assertions). Without the property the test stops with a NullPointerException, which is not the finding.
+- This finding was re-run on Lucene main 82cf7465bb8f on 2026-11-26: still reproduces; in the commands below, V=12.0.0-SNAPSHOT on a build of main 82cf7465bb8f.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 - Not runnable from this site as is: this repro also needs extra JVM setup (a system property or an instrumentation hook, for example) that is not exported here; see the comments at the top of the source.
@@ -47,7 +47,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.index.TestChangesCheckIndexEntryIssue
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Feedback
 

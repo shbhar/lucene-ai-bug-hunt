@@ -2,7 +2,7 @@
 
 Finding LFV-284 · Area: queryparser / classic QueryParser and MultiFieldQueryParser (QueryParser.jj MultiTerm run grouping, QueryParserBase.addClause conjunction step) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Finding page: [../../bugs/LFV-284.html](../../bugs/LFV-284.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-284.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-284.html)
 
 AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by sakshichitnis27 (open PR #16987, which says it fixes #16950) on 2026-11-05 (https://github.com/apache/lucene/pull/16987). Open PR #16987 (sakshichitnis27, opened 2026-11-05, head b502dcce8be1, 'Fixes #16950', no milestone; no comment or review as of 2026-11-14) adds the clauses of a run of plain words one by one again (a new QueryParserBase#addMultiTermRunClauses that MultiTerm in QueryParser.jj calls) when they all carry the default operator's occur and cover the same fields, and restores the test expectations #16446 changed. On a build of that head our minimal repro passes; it fails on main 781025d6fe32, with and without assertions. The PR names one case it leaves grouped: MultiFieldQueryParser with per-field analyzers that drop different words. Its CHANGES entry is under 11.0.0. Novelty stays new: #16950 is the hunt's own issue and links this list. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ Expected `apple banana the AND cherry` to parse like `apple banana AND cherry` (
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -51,7 +51,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 Formal models and scripts this finding's part of the hunt used: [../../models/queryparser-classic/](../../models/queryparser-classic/)
 

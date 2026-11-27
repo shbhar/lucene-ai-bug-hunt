@@ -19,7 +19,7 @@ You build a BlendedTermQuery for "lucene" on the fields title and keywords, as i
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
 - What this folder covers: the test class holds the negative score of a match through the sparse field on one segment, the same match missing from search(q, 10) on three segments, and the NullPointerException for a blended field with no indexed terms. The search that does not return, named in the title, has no test in this folder. Run on 2026-11-18 on Lucene main 1cfa86310f76, with and without assertions: 3 tests found, 3 tests failed (the document that matches only through the sparse field scores -0.10 with BOOLEAN_REWRITE and -0.001 with DISJUNCTION_MAX_REWRITE; on three segments search(q, 10) returns 2 of the 3 matching documents; NullPointerException).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -42,7 +42,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.search.TestBlendedTermQueryCrossFieldStats
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Feedback
 

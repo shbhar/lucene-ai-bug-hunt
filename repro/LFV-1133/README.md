@@ -2,11 +2,11 @@
 
 Finding LFV-1133 · Area: index / index sorting at merge: MultiSorter doc maps, reached through IndexWriter.addIndexes(CodecReader...) · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1133.html](../../bugs/LFV-1133.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1133.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1133.html)
 
 AI-assisted finding, confirmed by automated checks. Upstream status: Fixed, by Jim Ferenczi (jimczi; author of PR #16571, merged it and cherry-picked it to branch_11x; the MultiSorter change in it is by Michael Marshall; an independent fix that does not cite this list) on 2026-11-12 (https://github.com/apache/lucene/pull/16571). Fixed on main by #16571 (jimczi, 'Let a merge write more than one segment'; approved by iverase; merged 2026-11-12; milestone 11.0.0) and on branch_11x (3774f34d1b9). The fix is a side effect. For merges that write several segments, the PR changed MultiSorter so that deleted documents stay out of its queue (a commit by michaeljmarshall dated 2026-09-30, before this bug was found). A reader now enters the queue only when it has a live document, so an empty reader no longer takes a merged doc id. The PR does not mention empty readers, does not cite this list and adds no test for this case. Not on branch_10_6 (head 890b9f70c23, 2026-11-11), so 10.6.x keeps the bug: the minimal repro still fails on 10.6.0 and on that head. This site files nothing upstream.
 
-Fixed upstream: [#16571](https://github.com/apache/lucene/pull/16571) (commit [354165bd7d91](https://github.com/apache/lucene/commit/354165bd7d91ede58555d9c5903279d89ae2a61e)), merged 2026-11-12; also on the 11.0 release branch ([3774f34d1b95](https://github.com/apache/lucene/commit/3774f34d1b95)).
+Fixed upstream: [#16571](https://github.com/apache/lucene/pull/16571) (commit [354165bd7d91](https://github.com/apache/lucene/commit/354165bd7d91ede58555d9c5903279d89ae2a61e)), merged 2026-11-12; also on branch_11x ([3774f34d1b95](https://github.com/apache/lucene/commit/3774f34d1b95)).
 
 ## What it shows
 
@@ -24,7 +24,7 @@ You sort an IndexWriter by a long field k and call addIndexes(CodecReader...) wi
 ## Run it
 
 - Tested on Lucene main 5adff78bb168 (a commit of 2026-11-02): reproduced.
-- This finding was re-run on Lucene main 11c8b6ea99ae on 2026-11-23: it no longer reproduces there.
+- This finding was re-run on Lucene main 82cf7465bb8f on 2026-11-26: it no longer reproduces there.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -45,7 +45,7 @@ java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=A
      execute --select-class org.apache.lucene.index.TestIndexSortAddIndexesEmptyReader
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

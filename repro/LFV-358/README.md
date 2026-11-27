@@ -2,7 +2,7 @@
 
 Finding LFV-358 · Area: facet / DrillSideways (sequential DrillSidewaysScorer, drill-down-advance strategy, two-phase drill-down dimensions) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Finding page: [../../bugs/LFV-358.html](../../bugs/LFV-358.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-358.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-358.html)
 
 AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by Eugene Rizhkov (reugn; open PR #16981) on 2026-11-04 (https://github.com/apache/lucene/pull/16981). Open PR #16981 (reugn, opened 2026-11-04, one commit of 2026-11-04, no milestone, no review as of 2026-11-14; javanna asked gsmiller and mikemccand to review it on 2026-11-06) fixes the precedence bug as a side part of DrillSideways timeout and intra-segment concurrency support; its description says that its new tests found it. On a build of the pull request at that commit our minimal repro passes with and without assertions; it fails on main 781025d6fe32. It also passes on the PR merged onto 781025d6fe32; the merge is clean. The PR does not cite this list. This finding was listed publicly on 2026-10-27, before the PR was opened. State read on 2026-11-21: the PR is open and has no review; the project's bot set the label Stale on it that day, and the project's workflow file .github/workflows/mark-stale-PRs.yml sets that label after 14 days without activity and closes nothing ('days-before-close: -1'). This site files nothing upstream.
 
@@ -22,7 +22,7 @@ Expected: drill-down hits [0] (only doc 0 has a:1 and the phrase "x y"). Actual:
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -48,7 +48,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Feedback
 

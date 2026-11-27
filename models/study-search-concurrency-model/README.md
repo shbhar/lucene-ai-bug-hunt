@@ -6,11 +6,11 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- IndexSearcher#count hangs forever when Weight#count throws, for example on a query timeout, on a segment split into intra-segment partitions (finding LFV-045; [repro](../../repro/LFV-045/), [finding page](../../bugs/LFV-045.html))
-- Reusing a TotalHitCountCollectorManager after a failed search silently returns count 0 or hangs (finding LFV-053; [repro](../../repro/LFV-053/), [finding page](../../bugs/LFV-053.html))
-- LRUQueryCache's 16 hard partitions can give a 0% hit rate with the class-javadoc configuration (main and branch_11x, both unreleased) (finding LFV-054; [repro](../../repro/LFV-054/), [finding page](../../bugs/LFV-054.html))
+- IndexSearcher#count hangs forever when Weight#count throws, for example on a query timeout, on a segment split into intra-segment partitions (finding LFV-045; [repro](../../repro/LFV-045/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-045.html))
+- Reusing a TotalHitCountCollectorManager after a failed search silently returns count 0 or hangs (finding LFV-053; [repro](../../repro/LFV-053/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-053.html))
+- LRUQueryCache's 16 hard partitions can give a 0% hit rate with the class-javadoc configuration (main and branch_11x, both unreleased) (finding LFV-054; [repro](../../repro/LFV-054/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-054.html))
 - A timed-out search reports its partial hit count as TotalHits.Relation.EQUAL_TO (finding LFV-077; [repro](../../repro/LFV-077/))
-- TaskExecutor#invokeAll returns while a task is still running if the caller is interrupted (finding LFV-056; [repro](../../repro/LFV-056/), [finding page](../../bugs/LFV-056.html))
+- TaskExecutor#invokeAll returns while a task is still running if the caller is interrupted (finding LFV-056; [repro](../../repro/LFV-056/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-056.html))
 
 ## Files
 

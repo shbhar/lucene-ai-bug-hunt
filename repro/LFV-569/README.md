@@ -20,7 +20,7 @@ You call Polygon.fromGeoJSON on valid GeoJSON in which one character of a key or
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
 - The javac line below compiles the two files under src/ together, and they are the same test for two ranges of Lucene versions: they differ in the package from which they import LuceneTestCase and in the class name. As printed, the line stops on a build of Lucene main or of branch_11x and with the jars of the 10.6.0 release (TestGeoJSONUnicodeEscapeOld.java does not compile there), and both runs then find no test. Name one file in the javac line, in place of $(find src -name '*.java'), and leave out the run of the other class. On a build of main or of branch_11x (there V=11.0.0-SNAPSHOT) and with the 10.6.0 jars (Maven Central, org.apache.lucene, in place of the three $LUCENE jars; V=10.6.0) that file is src/org/apache/lucene/geo/TestGeoJSONUnicodeEscape.java, the class of run 1: run on 2026-11-22 on a build of main b5a4546a5964, on a build of branch_11x 262e019500ec and with the 10.6.0 jars, with assertions on and off, run 1 reports 3 tests found and 2 failed, each with java.text.ParseException (testEscapedLetterInTypeValue: '... but got 800050olygon at character offset 9'; testEscapedLetterInKey: 'did not see type: Polygon or MultiPolygon at character offset 113'), and testControlNoEscape passes; with the jars of 9.12.3 and of 9.1.0 the same file gives the same result (run the same day with assertions on). TestGeoJSONUnicodeEscapeOld.java, the class of run 2, imports LuceneTestCase from org.apache.lucene.util, its package in the releases up to 9.0.0 (from 9.1.0 on it is org.apache.lucene.tests.util): named alone in the javac line, with the jars of 9.0.0 and of 8.11.4 (V=9.0.0, V=8.11.4), run 2 reports the same two failures of three tests (run the same day with assertions on).
 - How to read the outcome: a failing test is the finding reproducing: with the javac line as the note above says, run 1 reports 3 tests found and 2 tests failed, each of the 2 with a java.text.ParseException, and testControlNoEscape passes.
@@ -48,7 +48,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.geo.TestGeoJSONUnicodeEscapeOld
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Feedback
 

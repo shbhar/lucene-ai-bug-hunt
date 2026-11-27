@@ -2,7 +2,7 @@
 
 Finding LFV-893 · Area: queries / function queries (ValueSource to DoubleValuesSource/LongValuesSource bridge: asDoubleValuesSource, asLongValuesSource) · Priority: low · Impact: crash · Novelty: new
 
-Finding page: [../../bugs/LFV-893.html](../../bugs/LFV-893.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-893.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-893.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -25,7 +25,7 @@ Expected score 2 (the ttf of the one document "test test", as `FunctionQuery` gi
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - The test calls new MatchAllDocsQuery(). On Lucene main (since 24d9e7d1a0d) and on the 11.0 branch (branch_11x, since a6a26f9b251) that constructor is private (#16962, merged 2026-11-03), so on a build of either replace new MatchAllDocsQuery() with MatchAllDocsQuery.INSTANCE before you compile the test; the constant exists from Lucene 10.4.0 on, and with the jars of a release from 9.1.0 to 10.6.0 the test compiles as shipped (for such a release, put the four jars of that release, Maven Central, org.apache.lucene, in place of the four $LUCENE jars). Run on 2026-11-17, with assertions on and off: with the replacement the test fails 1 of 1 on a build of main 9965d34e3c77 (V=12.0.0-SNAPSHOT) and of the 11.0 branch (branch_11x 9d2b5a15427a, V=11.0.0-SNAPSHOT), and as shipped it fails 1 of 1 with the 10.6.0 jars, each time with the NullPointerException at ValueSource.java:210.
-- This finding was re-run on Lucene main 11c8b6ea99ae on 2026-11-23: still reproduces (the repro adapted to an API change on this commit); in the commands below, V=12.0.0-SNAPSHOT on a build of main 11c8b6ea99ae.
+- This finding was re-run on Lucene main 82cf7465bb8f on 2026-11-26: still reproduces (the repro adapted to an API change on this commit); in the commands below, V=12.0.0-SNAPSHOT on a build of main 82cf7465bb8f.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -47,7 +47,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.queries.function.TestValueSourceBridgeTotalTermFreq
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Feedback
 

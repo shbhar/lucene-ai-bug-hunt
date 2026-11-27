@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- LatLonShape.newSlowDocValuesBoxQuery rejects CONTAINS for every box except a dateline-crossing one, where it returns a points-index query that silently matches nothing on a doc-values-only field (since 9.4.0) (finding LFV-1474; [repro](../../repro/LFV-1474/), [finding page](../../bugs/LFV-1474.html))
+- LatLonShape.newSlowDocValuesBoxQuery rejects CONTAINS for every box except a dateline-crossing one, where it returns a points-index query that silently matches nothing on a doc-values-only field (since 9.4.0) (finding LFV-1474; [repro](../../repro/LFV-1474/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1474.html))
 
 ## Files
 

@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- SpanContainingQuery and SpanWithinQuery miss documents and spans when the little query's spans end out of order (for example a SpanOrQuery of a longer near clause and a shorter clause that can occur inside it): their single forward pass tests only the current little span (containing) or never goes back to a big span it skipped (within), so a later, shorter little span inside a big span is never tried (finding LFV-909; [repro](../../repro/LFV-909/), [finding page](../../bugs/LFV-909.html))
+- SpanContainingQuery and SpanWithinQuery miss documents and spans when the little query's spans end out of order (for example a SpanOrQuery of a longer near clause and a shorter clause that can occur inside it): their single forward pass tests only the current little span (containing) or never goes back to a big span it skipped (within), so a later, shorter little span inside a big span is never tried (finding LFV-909; [repro](../../repro/LFV-909/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-909.html))
 
 ## Files
 

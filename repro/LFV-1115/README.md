@@ -20,7 +20,7 @@ You register the query f:alpha OR f:beta in a persistent Monitor on 10.2.2, upgr
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main e1faeba08bde (a commit of 2026-11-02): reproduced.
 - Fixture (required): the test reads monitor-index-10.2.2.zip, a persistent Monitor query index with one registered query, written by Lucene 10.2.2, from its package on the class path. This site ships no binary index files, so the recipe first makes it with fixture-src/WriteMonitorIndex.java on the 10.2.2 release jars (Maven Central) and puts it in src/, which the run puts on the class path. The writer JVM's tests.seed fixes the order in which 10.2.2 stores the query's two disjuncts; CAFEBABE stores them reversed, the case that loses matches.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -53,7 +53,7 @@ java -da -dsa -Dtests.asserts=false -Xmx1g --add-modules jdk.incubator.vector --
      execute --select-class org.apache.lucene.monitor.TestMonitorIndexFromOlderRelease
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 1 other file(s) of the recorded repro are not exported.
 

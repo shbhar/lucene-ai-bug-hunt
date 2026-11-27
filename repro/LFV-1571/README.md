@@ -2,11 +2,11 @@
 
 Finding LFV-1571 · Area: analysis-common / synonyms (SynonymMap.Builder.build: the order in which the keys reach the FST; the release lines 3.4 to 10.x) · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1571.html](../../bugs/LFV-1571.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1571.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1571.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
-Fixed upstream: [#16834](https://github.com/apache/lucene/pull/16834) (commit [2eb462541b1c](https://github.com/apache/lucene/commit/2eb462541b1ccc14b78bee9323beccca608e834c)), merged 2026-10-13; also on the 11.0 release branch (the same commit). On released lines only (3.4.0 to 10.6.0): main no longer had the failing code when the finding was listed.
+Fixed upstream: [#16834](https://github.com/apache/lucene/pull/16834) (commit [2eb462541b1c](https://github.com/apache/lucene/commit/2eb462541b1ccc14b78bee9323beccca608e834c)), merged 2026-10-13; also on branch_11x (the same commit). On released lines only (3.4.0 to 10.6.0): main no longer had the failing code when the finding was listed.
 
 ## What it shows
 
@@ -27,7 +27,7 @@ You load five well-formed synonym rules (for 'a', the fullwidth letter U+FF21 an
 - Tested on Lucene branch_10_6 451a69c1d4a6 (a commit of 2026-11-20): reproduced as a Gradle test in a checkout of this commit, with assertions on and off (10.6.1-SNAPSHOT).
 - Tested on Lucene branch_11x 262e019500ec (a commit of 2026-11-22): the test passes, with assertions on and off (11.0.0-SNAPSHOT): branch_11x no longer has the comparator.
 - This finding is in the released lines only, so it is not new in 11.0: the test fails with the jars of a release from 10.5.0 to 10.6.0 (TruncateTokenFilter.truncateAfterChars, which it calls, came with 10.5.0; forms of the same rules for the older APIs were run on each release from 3.4.0 on) and passes on a build of branch_11x (262e019500ec) and on Lucene main, with and without assertions, because there SynonymMap.Builder.build() sorts its keys by code point (since #16834, https://github.com/apache/lucene/pull/16834). The trigger is a synonym-map key that holds an unpaired surrogate beside the key of a well-formed word; in this test the truncating filter makes such keys by cutting three emoji after one UTF-16 unit. The commands below run the test first on the 10.6.0 release jars, where it fails, and then, as the control, on a build of main or of branch_11x, where it passes. For the first run put lucene-core-10.6.0.jar, lucene-codecs-10.6.0.jar, lucene-test-framework-10.6.0.jar and lucene-analysis-common-10.6.0.jar (Maven Central, org.apache.lucene) into your copy of this folder, next to the four test jars that the commands name; for another release from 10.5.0 on set V. For a run without assertions put -da -dsa -Dtests.asserts=false in place of -ea -esa. What the test does: it loads five one-word synonym rules (for 'a', the fullwidth letter U+FF21 and three emoji) through SolrSynonymParser with an analyzer of WhitespaceTokenizer and TruncateTokenFilter.truncateAfterChars(1), and expects the text U+FF21, which is one UTF-16 unit long and is never cut, to analyze to its synonym 'y'. For the Gradle alternative at the end of this page the module is lucene/analysis/common (the test goes into its src/test/org/apache/lucene/analysis/synonym/ folder). A checkout of main or of branch_11x no longer has the code, and the test passes there; run that way in a checkout of branch_10_6 (451a69c1d4a6), with -Ptests.asserts=true and with -Ptests.asserts=false, it fails with the two messages named below.
-- This finding was re-run on Lucene main 11c8b6ea99ae on 2026-11-23: the test passed, as recorded before (a control run).
+- This finding was re-run on Lucene main 82cf7465bb8f on 2026-11-26: the test passed, as recorded before (a control run).
 - How to read the outcome: on the jars of a release from 10.5.0 to 10.6.0 a failing test is the finding reproducing: the run reports 1 test found and 1 test failed. With assertions on, as printed, the failure is java.lang.AssertionError: inputs are added out of order lastInput=[ff21] vs input=[d83c], the FST compiler's internal assertion, thrown when the synonym map is built; with assertions off it is org.junit.ComparisonFailure: 'term 0 expected:&lt;[y]&gt; but was:&lt;[Ａ]&gt;' (Ａ is the fullwidth letter U+FF21): the letter comes back without its synonym. On a build of main or of branch_11x the same test passes in both modes (1 test successful), which is what the finding states for the unreleased lines.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -61,7 +61,7 @@ java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=A
      execute --select-class org.apache.lucene.analysis.synonym.TestSynonymRuleBesideSplitSurrogateKeys
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

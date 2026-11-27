@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- Since #16857 (upstream main and branch_11x, unreleased), a segment that its index sort terminates early can still build an unused points-based competitive iterator when an earlier segment of the same field-sorted search crossed the hits threshold without early termination: NumericComparator keeps hitsThresholdReached on the comparator that all leaves share, so IndexSortedLeafFieldComparator's not forwarding setHitsThresholdReached() no longer stops the delegate's BKD work (512 point doc IDs read in the repro, up to about cost/7 per segment, where 10.6.0 reads 0; performance regression, results correct) (finding LFV-1088; [repro](../../repro/LFV-1088/), [finding page](../../bugs/LFV-1088.html))
+- Since #16857 (upstream main and branch_11x, unreleased), a segment that its index sort terminates early can still build an unused points-based competitive iterator when an earlier segment of the same field-sorted search crossed the hits threshold without early termination: NumericComparator keeps hitsThresholdReached on the comparator that all leaves share, so IndexSortedLeafFieldComparator's not forwarding setHitsThresholdReached() no longer stops the delegate's BKD work (512 point doc IDs read in the repro, up to about cost/7 per segment, where 10.6.0 reads 0; performance regression, results correct) (finding LFV-1088; [repro](../../repro/LFV-1088/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1088.html))
 
 ## Files
 

@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- With reader pooling off, a merge commit can close IndexWriter with a tragic NoSuchFileException: it releases its merged-away source segments one by one, a release writes that segment's still-pending doc-values update and checkpoints, and the next source's overlay fold then opens an update file that this checkpoint deleted (branch_11x and main with the default overlay limit, 10.6.0 with setMaxDocValuesOverlays set; known upstream, #17048 and #11750) (finding LFV-1563; [repro](../../repro/LFV-1563/))
+- With reader pooling off, a merge commit can close IndexWriter with a tragic NoSuchFileException: it releases its merged-away source segments one by one, a release writes that segment's still-pending doc-values update and checkpoints, and the next source's overlay fold then opens an update file that this checkpoint deleted (branch_11x and main with the default overlay limit until the fix #17053 of 2026-11-25, 10.6.0 with setMaxDocValuesOverlays set; known upstream, #17048 and #11750) (finding LFV-1563; [repro](../../repro/LFV-1563/))
 
 ## Files
 

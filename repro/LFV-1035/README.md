@@ -2,7 +2,7 @@
 
 Finding LFV-1035 · Area: luke / Search model paging session (SearchImpl.nextPage, SearchResults.of) behind the Luke Search tab · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1035.html](../../bugs/LFV-1035.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1035.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1035.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You open an index in Luke, run a search that matches more than 1,000 documents w
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces (the repro adapted to an API change on this commit). The change: #16962 made the no-argument MatchAllDocsQuery constructor private on main (24d9e7d1a0d) and on the 11.0 branch (branch_11x, a6a26f9b251), so replace new MatchAllDocsQuery() with MatchAllDocsQuery.INSTANCE before you compile the test there.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces (the repro adapted to an API change on this commit). The change: #16962 made the no-argument MatchAllDocsQuery constructor private on main (24d9e7d1a0d) and on branch_11x (a6a26f9b251), so replace new MatchAllDocsQuery() with MatchAllDocsQuery.INSTANCE before you compile the test there.
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - The class path below names six Lucene jars: Luke's search model loads classes of lucene-queryparser and lucene-analysis-common, so the test needs these two beside lucene-luke; it needs no third-party jar. The constant of the replacement named above exists from Lucene 10.4.0 on. With the jars of a release from 9.1.0 to 10.6.0 the test compiles as shipped: for such a release, put the six jars of that release (Maven Central, org.apache.lucene) in place of the six $LUCENE jars. Run on 2026-11-17, with assertions on and off: with the replacement the test fails 1 of 1 on a build of main 9965d34e3c77 and of the 11.0 branch (branch_11x 9d2b5a15427a; there V=11.0.0-SNAPSHOT), and as shipped it fails 1 of 1 with the 10.6.0 jars, each time with the message below.
 - How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with java.lang.AssertionError: got a page: size=0 offset=0; a NoClassDefFoundError means that a jar is missing from the class path and is not the finding.
@@ -47,7 +47,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.luke.models.search.TestNextPagePastLastPage
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- Monitor.register with the same query id twice in one call keeps both versions in the query index, so the query matches a mix of both versions, and after a reopen a persistent Monitor runs the older version while getQuery returns the newer one (finding LFV-332; [repro](../../repro/LFV-332/), [finding page](../../bugs/LFV-332.html))
+- Monitor.register with the same query id twice in one call keeps both versions in the query index, so the query matches a mix of both versions, and after a reopen a persistent Monitor runs the older version while getQuery returns the newer one (finding LFV-332; [repro](../../repro/LFV-332/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-332.html))
 
 ## Files
 

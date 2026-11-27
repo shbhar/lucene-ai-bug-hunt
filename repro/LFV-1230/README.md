@@ -2,7 +2,7 @@
 
 Finding LFV-1230 · Area: codecs / vectors (heap scorer of the legacy Lucene99 scalar-quantized vectors format, read through backward-codecs) · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1230.html](../../bugs/LFV-1230.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1230.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1230.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You open a field written with the legacy Lucene99 scalar-quantized HNSW format (
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 5adff78bb168 (a commit of 2026-11-02): reproduced.
 - Helpers: the test uses three unchanged classes of Lucene's own backward-codecs test sources that the release jars do not contain (Lucene99RWV1HnswScalarQuantizationVectorsFormat, Lucene99RWScalarQuantizedVectorsFormat and Lucene99ScalarQuantizedVectorsWriter), so the recipe first copies them from lucene/backward-codecs/src/test/org/apache/lucene/backward_codecs/lucene99/ of the checkout into src/ here, where they compile with the test.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -48,7 +48,7 @@ java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=A
      execute --select-class org.apache.lucene.backward_codecs.lucene99.TestLucene99SQQueryDimensionMessage
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

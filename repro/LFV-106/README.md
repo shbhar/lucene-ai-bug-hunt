@@ -2,13 +2,13 @@
 
 Finding LFV-106 · Area: search / vector similarity queries and the query cache · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Finding page: [../../bugs/LFV-106.html](../../bugs/LFV-106.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-106.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-106.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You search with a vector similarity (threshold) query, for example FloatVectorSimilarityQuery, in a non-scoring context such as IndexSearcher#count or ConstantScoreQuery, with a query cache that several readers or searchers share (the IndexSearcher default in 9.10.0-10.6.0; on main and the 11.0 branch only a cache the application installs). You expect every reader and every search to get the hits it gets without the cache. Instead, once the cache has stored the query's result for a segment (the default cache does that only from the query's 5th use and only on segments of at least 10,000 documents), it hands one reader's or one search's per-segment result to another. In 100-document probes with a cache set to store every query: an older point-in-time reader misses a document that only a newer reader has deleted (99 hits instead of 100), a search without a timeout gets the empty result of an earlier search whose timeout had already fired (0 instead of 100; 10.0.0 and later, approximate path only), and with a filter on an updated doc-values field a newer reader gets a document that no longer matches the filter (100 instead of 99). The published test shows the first case on two documents (1 instead of 2).
+You search with a vector similarity (threshold) query, for example FloatVectorSimilarityQuery, in a non-scoring context such as IndexSearcher#count or ConstantScoreQuery, with a query cache that several readers or searchers share (the IndexSearcher default in 9.10.0-10.6.0; on main and branch_11x only a cache the application installs). You expect every reader and every search to get the hits it gets without the cache. Instead, once the cache has stored the query's result for a segment (the default cache does that only from the query's 5th use and only on segments of at least 10,000 documents), it hands one reader's or one search's per-segment result to another. In 100-document probes with a cache set to store every query: an older point-in-time reader misses a document that only a newer reader has deleted (99 hits instead of 100), a search without a timeout gets the empty result of an earlier search whose timeout had already fired (0 instead of 100; 10.0.0 and later, approximate path only), and with a filter on an updated doc-values field a newer reader gets a document that no longer matches the filter (100 instead of 99). The published test shows the first case on two documents (1 instead of 2).
 
 The test shows that `FloatVectorSimilarityQuery` says its per-segment result is cacheable, but the result depends on live docs, so a shared query cache gives an older reader the result of a newer reader that deleted a document (same segment core).
 
@@ -22,7 +22,7 @@ Expected `count` 2 on the older reader, where doc 0 is still live; actual 1 (`ex
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -45,7 +45,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.search.TestVectorSimilarityQueryCache
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 Formal models and scripts this finding's part of the hunt used: [../../models/knn-query-layer/](../../models/knn-query-layer/)
 

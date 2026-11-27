@@ -2,7 +2,7 @@
 
 Finding LFV-1501 · Area: release notes (lucene/CHANGES.txt 11.0.0, lucene/MIGRATE.md 10.x -> 11.0) x search / RegexpQuery constructors (GITHUB#15939; the flag word is checked in util/automaton RegExp) · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1501.html](../../bugs/LFV-1501.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1501.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1501.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ Your Lucene 10.x code builds a regular-expression query with new RegexpQuery(ter
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: with the default codec it indexes three documents whose StringField f holds ab, AB and aB, and counts the hits of new RegexpQuery(new Term("f", "ab"), RegExp.NONE, 20_000), the call as Lucene 10.x code makes it, with 20,000 as the determinize work limit. It expects 1 hit. On 11.0 the constructor reads 20,000 as match flags, which switches on case-insensitive matching, so the query matches all three terms and the test fails with 'expected:&lt;1&gt; but was:&lt;3&gt;', the same with and without assertions. On the 10.6.0 release the same test passes. The test is a witness for the gap in the release and migration notes, not a regression test for RegexpQuery: the 11.0 javadoc names the third parameter matchFlags, and the constructor treats it as that. It uses no randomness.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -44,7 +44,7 @@ java -da -dsa -Dtests.asserts=false -Xmx2g --add-modules jdk.incubator.vector --
      execute --select-class org.apache.lucene.search.TestRegexpQueryThirdIntArgument
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

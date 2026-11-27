@@ -2,7 +2,7 @@
 
 Finding LFV-390 · Area: core vectorization + misc native C / opt-in native int8 dot product (NativeVectorUtilSupport, lucene/misc/src/c/dotProduct.c vdot8s_sve) · Priority: low · Impact: crash · Novelty: new
 
-Finding page: [../../bugs/LFV-390.html](../../bugs/LFV-390.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-390.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-390.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You enable Lucene's opt-in native dot product (-Dlucene.useNativeDotProduct=true
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
 - Not runnable from this site as is: it also needs the native library, which is not exported here; the command below builds it from lucene/misc/src/c/dotProduct.c of the checkout, on a Linux aarch64 CPU with SVE. The java line names the folder of the library with -Djava.library.path=lib. The commands run NativeSveDotProductOverflow.java (a main() class; the program the finding page shows; one all-zero array passed twice; expects 0). src/NativeDotProductNearMaxLength.java is a second main() class: two arrays, the length as an argument; expects 3; at the default length its two arrays of 2,147,483,645 bytes take about 4 GiB of heap (the recorded runs used -Xmx6g).
 - How to read the outcome: the finding reproducing is the JVM dying with SIGSEGV in vdot8s_sve (a fatal error report, exit status 134). An exception is not it: "Native library dotProduct missing!" means that the library was not found on java.library.path.

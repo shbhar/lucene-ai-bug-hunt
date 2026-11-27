@@ -2,11 +2,11 @@
 
 Finding LFV-1321 · Area: core / util (internal hppc object maps: ramBytesUsed()) · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1321.html](../../bugs/LFV-1321.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1321.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1321.html)
 
 AI-assisted finding, confirmed by automated checks. Upstream status: Fixed, by Chris Parrinello (chrisparrinello; PR #17000, approved and merged by Alan Woodward; an independent fix, later than our listing) on 2026-11-12 (https://github.com/apache/lucene/pull/17000). Chris Parrinello fixed it in PR #17000 (opened 2026-11-06): sizeOfValues() now sizes value.value instead of the cursor in IntObjectHashMap, LongObjectHashMap and CharObjectHashMap, and each map gets two new tests. On the PR they noted that the HPPC project the code was forked from does not have this bug. Alan Woodward approved the PR on 2026-11-11, merged it into main on 2026-11-12 (milestone 11.0.0) and cherry-picked it to branch_11x the same day. The PR does not cite this list. Not on branch_10_6 (head 890b9f70c23, read 2026-11-14), so 10.6.x keeps the bug. Our minimal repro passes on main 781025d6fe32 and fails on f794ff5a505c, with and without assertions; with the three pre-fix map files put back on 781025d6fe32 it fails again. This site files nothing upstream.
 
-Fixed upstream: [#17000](https://github.com/apache/lucene/pull/17000) (commit [2aec368e588f](https://github.com/apache/lucene/commit/2aec368e588f7908689edacd07631a568597385e)), merged 2026-11-12; also on the 11.0 release branch ([a3533d25f8ca](https://github.com/apache/lucene/commit/a3533d25f8ca)).
+Fixed upstream: [#17000](https://github.com/apache/lucene/pull/17000) (commit [2aec368e588f](https://github.com/apache/lucene/commit/2aec368e588f7908689edacd07631a568597385e)), merged 2026-11-12; also on branch_11x ([a3533d25f8ca](https://github.com/apache/lucene/commit/a3533d25f8ca)).
 
 ## What it shows
 
@@ -24,7 +24,7 @@ You put a value into an IntObjectHashMap (or a LongObjectHashMap or CharObjectHa
 ## Run it
 
 - Tested on Lucene main 5adff78bb168 (a commit of 2026-11-02): reproduced.
-- This finding was re-run on Lucene main 11c8b6ea99ae on 2026-11-23: it no longer reproduces there.
+- This finding was re-run on Lucene main 82cf7465bb8f on 2026-11-26: it no longer reproduces there.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -45,7 +45,7 @@ java -ea -esa -Xmx512m --add-modules jdk.incubator.vector --enable-native-access
      execute --select-class org.apache.lucene.internal.hppc.TestIntObjectHashMapRamBytesUsed
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

@@ -20,7 +20,7 @@ You set a timeout with IndexSearcher#setTimeout and run a kNN query (KnnFloatVec
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
 - This folder holds the registered repro, which shows the first form in the title, 0 hits with timedOut() == false: three tests, each on an index of 100 documents with a QueryTimeout that returns true at every check; the kNN test and the similarity test fail, and the term-query control passes. src/ and src2/ hold the same three tests: src/ is for 10.5.2 and later, and src2/ is for the releases before 10.5.2, where the similarity query is written new FloatVectorSimilarityQuery(...); on 9.11.1 and 9.12.3 only the kNN test of src2 fails, because the similarity queries are affected from 10.0.0 on; on main 781025d6fe32 the src2 copy does not compile (the class is abstract there) and its java command ends in a ClassNotFoundException, which is not the finding, so leave out the javac line and the java command of src2. The test of the second form in the title, a vector-similarity search on several segments that returns only the first segments' hits with timedOut() == false, is not shipped here: it has two segments of one matching document each, a FloatVectorSimilarityQuery and a QueryTimeout that returns true once the first hit has been collected, and it gets 1 of the 2 matching documents with timedOut() == false (the finding's Affected versions text, in the table of all findings, says where it was run).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -47,7 +47,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.search.TestVectorQueryTimeoutReporting
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Feedback
 

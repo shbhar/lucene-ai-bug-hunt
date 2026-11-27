@@ -6,8 +6,8 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- SortedSetDocValues facets size the child priority queue from topN instead of the number of labels, so getTopChildren, getAllDims and getTopDims(.., topNChildren) with topN = Integer.MAX_VALUE throw IllegalArgumentException where taxonomy facets return every label, and a large topN allocates topN + 1 queue slots even for a 3-label dim (finding LFV-994; [repro](../../repro/LFV-994/), [finding page](../../bugs/LFV-994.html))
-- SortedSetDocValues and taxonomy Facets#getTopDims size their dimension priority queue by the caller's topNDims without a cap, so getTopDims(Integer.MAX_VALUE, n) throws IllegalArgumentException where getAllDims(n) and the default Facets#getTopDims return every dim, and a large topNDims allocates topNDims + 1 queue slots even for 2 dims (finding LFV-983; [repro](../../repro/LFV-983/), [finding page](../../bugs/LFV-983.html))
+- SortedSetDocValues facets size the child priority queue from topN instead of the number of labels, so getTopChildren, getAllDims and getTopDims(.., topNChildren) with topN = Integer.MAX_VALUE throw IllegalArgumentException where taxonomy facets return every label, and a large topN allocates topN + 1 queue slots even for a 3-label dim (finding LFV-994; [repro](../../repro/LFV-994/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-994.html))
+- SortedSetDocValues and taxonomy Facets#getTopDims size their dimension priority queue by the caller's topNDims without a cap, so getTopDims(Integer.MAX_VALUE, n) throws IllegalArgumentException where getAllDims(n) and the default Facets#getTopDims return every dim, and a large topNDims allocates topNDims + 1 queue slots even for 2 dims (finding LFV-983; [repro](../../repro/LFV-983/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-983.html))
 
 ## Files
 

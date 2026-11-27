@@ -2,13 +2,13 @@
 
 Finding LFV-1070 · Area: misc / index: BpVectorReorderer (BP doc-id reordering over a vector field, through BPReorderingMergePolicy, computeDocMap and the command line) · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1070.html](../../bugs/LFV-1070.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1070.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1070.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You reorder a segment with BpVectorReorderer and pass an Executor, for example the same-thread intra-merge executor that IndexWriter hands to BPReorderingMergePolicy under SerialMergeScheduler, or the pool the command line builds for --thread-count, and expect the work to run on the calling thread or on that executor, as it does for the sibling BPIndexReorderer. Instead the executor is never called: the tasks are RecursiveActions forked with ForkJoinTask.invokeAll from a thread outside any ForkJoinPool, so any non-null executor only switches forking on and the forked work runs on ForkJoinPool.commonPool(). With a run-on-caller executor and 4,096 two-dimensional vectors, vectors are read on a common-pool worker as well as on the caller; the resulting order is still correct.
+You reorder a segment with BpVectorReorderer and pass an Executor, for example the same-thread intra-merge executor that IndexWriter hands to BPReorderingMergePolicy under SerialMergeScheduler, or the pool the command line builds for --thread-count, and expect the work to run on the calling thread or on that executor, as it does for the sibling BPIndexReorderer. Instead the executor is never called: the tasks are RecursiveActions forked with ForkJoinTask.invokeAll from a thread outside any ForkJoinPool, so any non-null executor only switches forking on and the forked work runs on ForkJoinPool.commonPool(). With a run-on-caller executor and 4,096 two-dimensional vectors, vectors are read on a common-pool worker as well as on the caller; at that size the order is the one computed without an executor (by reading the code of branch_11x 55ef56a69344 and main 8506598d7a98 on 2026-11-25: an executor can change the order only for inputs of 16,386 vectors or more, which is the neighbouring finding of 2026-11-24 and no part of this one).
 
 ## Expected vs actual
 
@@ -21,7 +21,7 @@ You reorder a segment with BpVectorReorderer and pass an Executor, for example t
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
@@ -44,7 +44,7 @@ java -da -dsa -Dtests.asserts=false -Xmx2g --add-modules jdk.incubator.vector --
      execute --select-class org.apache.lucene.misc.index.TestBpVectorReordererExecutor
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

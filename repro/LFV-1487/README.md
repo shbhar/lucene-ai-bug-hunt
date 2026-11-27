@@ -2,9 +2,9 @@
 
 Finding LFV-1487 · Area: join / JoinUtil global-ordinals join with scores or min/max: concurrent collection of one segment in partitions (GlobalOrdinalsWithScoreCollectorManager) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Finding page: [../../bugs/LFV-1487.html](../../bugs/LFV-1487.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1487.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1487.html)
 
-AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by uchiha-asha (open PR #17028) on 2026-11-15 (https://github.com/apache/lucene/pull/17028). Open PR #17028 (uchiha-asha, opened 2026-11-15; no milestone; as of 2026-11-16 CI green, 13 of 13 checks, and one approving review, by kkewwei on 2026-11-16; a further commit followed that day) changes GlobalOrdinalsWithScoreCollectorManager and JoinUtil: one collector serves the one-segment and the ordinal-map case, so the partitions of one segment update the shared match bits, scores and counts under the per-block lock; since the commit of 2026-11-16 the score is computed before the lock is taken. On a build of the pull request as of 2026-11-16 our minimal repro passes 20 of 20 iterations; on main 01deb8e63e0b it fails 20 of 20; each with and without assertions. The PR does not cite this list. This finding was recorded on 2026-11-14, a day before the PR was opened, and was not yet public then. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by uchiha-asha (open PR #17028) on 2026-11-15 (https://github.com/apache/lucene/pull/17028). Open PR #17028 (uchiha-asha, opened 2026-11-15; one approving review, by kkewwei on 2026-11-16, and a further commit that day; a Lucene committer, msokolov, reviewed it on 2026-11-24 and the author pushed a further commit that day; open when read on 2026-11-25, with CI green, 13 of 13 checks) changes GlobalOrdinalsWithScoreCollectorManager: one collector serves the one-segment and the ordinal-map case, so the partitions of one segment update the shared match bits, scores and counts under the per-block lock; since the commit of 2026-11-16 the score is computed before the lock is taken. On main 8506598d7a98 our minimal repro fails 20 of 20 iterations, with and without assertions (run on 2026-11-25). The PR does not cite this list. This site files nothing upstream.
 
 ## What it shows
 
@@ -21,7 +21,7 @@ You join parent documents to their children with JoinUtil.createJoinQuery(joinFi
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: it runs a ScoreMode.Total join over a one-segment index of one parent and two children that score 1 each, with a searcher that allows segment partitions; it asserts a parent score of 2.0 and gets 1.0. It forces the schedule that shows the finding: the score() of its child query waits, for at most 5 seconds, until both children are being scored at once, so two threads have each read the parent's stored score before either adds to it. Lost hits, infinite scores and the min/max filter named in the title are not part of this test.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -46,7 +46,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.search.join.TestGlobalOrdinalsJoinSegmentPartitions
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

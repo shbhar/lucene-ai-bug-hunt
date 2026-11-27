@@ -6,10 +6,10 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- The frozen-FieldType validation cache (#15886) keys a field on its first value's type, so for a field built from several field types a later document skips the per-field schema check (or is checked against stale state after a rejected addBatch), depending on value order, flushes and earlier operations (finding LFV-118; [repro](../../repro/LFV-118/), [finding page](../../bugs/LFV-118.html))
-- A rejected document leaves its doc-values skip index type in the field's per-document schema state, so later valid documents with that field are rejected until the in-memory segment is flushed (finding LFV-116; [repro](../../repro/LFV-116/), [finding page](../../bugs/LFV-116.html))
-- IndexWriter#addBatch marks the frozen FieldType of an earlier rejected document as validated, so later documents with that type skip the per-field schema check (a wrong-dimension vector is stored truncated) (finding LFV-127; [repro](../../repro/LFV-127/), [finding page](../../bugs/LFV-127.html))
-- A failed addIndexes(Directory...) leaves the incoming fields registered in the writer's field schema, so getFieldNames() lists them and later valid documents that use those names differently are rejected until the writer is reopened (finding LFV-124; [repro](../../repro/LFV-124/), [finding page](../../bugs/LFV-124.html))
+- The frozen-FieldType validation cache (#15886) keys a field on its first value's type, so for a field built from several field types a later document skips the per-field schema check (or is checked against stale state after a rejected addBatch), depending on value order, flushes and earlier operations (finding LFV-118; [repro](../../repro/LFV-118/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-118.html))
+- A rejected document leaves its doc-values skip index type in the field's per-document schema state, so later valid documents with that field are rejected until the in-memory segment is flushed (finding LFV-116; [repro](../../repro/LFV-116/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-116.html))
+- IndexWriter#addBatch marks the frozen FieldType of an earlier rejected document as validated, so later documents with that type skip the per-field schema check (a wrong-dimension vector is stored truncated) (finding LFV-127; [repro](../../repro/LFV-127/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-127.html))
+- A failed addIndexes(Directory...) leaves the incoming fields registered in the writer's field schema, so getFieldNames() lists them and later valid documents that use those names differently are rejected until the writer is reopened (finding LFV-124; [repro](../../repro/LFV-124/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-124.html))
 
 ## Files
 

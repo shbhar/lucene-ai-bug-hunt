@@ -2,7 +2,7 @@
 
 Finding LFV-1502 · Area: sandbox / codecs: FaissKnnVectorsFormat (the Faiss-based vector format: @lucene.experimental, needs the Faiss C library; added by #14178, 11.0.0 would be its first release): the merge path that builds the Faiss index (FaissLibraryNativeImpl.createIndex) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Finding page: [../../bugs/LFV-1502.html](../../bugs/LFV-1502.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1502.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1502.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You index vectors with FaissKnnVectorsFormat (a sandbox, experimental vector for
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene branch_11x daa54f2e0cd3 (a commit of 2026-11-13): reproduced.
 - What the test does: with FaissKnnVectorsFormat as the vector format it indexes three documents a, b and c with the EUCLIDEAN vectors (3, 0), (4, 0) and (5, 0), commits, deletes a and calls forceMerge(1). It then asks for the 2 nearest neighbours of (1, 0) and expects the two live documents with the scores of their own vectors, 'b=0.1000 c=0.0588'. The test fails with 'expected:&lt;b=0.[1000 c=0.0588] &gt; but was:&lt;b=0.[5000 b=0.1000] &gt;': b comes back twice, once with the score of an all-zero vector, the same with and without assertions. It uses no randomness. The test needs the Faiss C library that the format itself needs (libfaiss_c, version 1.11.0, with its dependencies; the package documentation of org.apache.lucene.sandbox.codecs.faiss says how to install it). Before the java command, put the directory that holds the library on the library path, with export LD_LIBRARY_PATH=/path/to/faiss/lib, or add -Djava.library.path=/path/to/faiss/lib to the java command. Without the library the test is skipped by the guard it shares with Lucene's own Faiss tests: the launcher then reports 1 test found, 1 skipped and 0 failed, and exits 0. A skip is not a pass and says nothing about the finding. With -Dtests.faiss.run=true added to the java command a missing library is an error (UnsatisfiedLinkError) instead of a skip.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -47,7 +47,7 @@ java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=A
      execute --select-class org.apache.lucene.sandbox.codecs.faiss.TestFaissMergeAfterDelete
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

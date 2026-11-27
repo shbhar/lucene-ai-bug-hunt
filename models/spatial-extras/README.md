@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- BBoxStrategy's overlap-ratio relevance (BBoxOverlapRatioValueSource) undercounts the overlap of two dateline-crossing boxes that intersect in two longitude pieces, so the score is too low (finding LFV-369; [repro](../../repro/LFV-369/), [finding page](../../bugs/LFV-369.html))
+- BBoxStrategy's overlap-ratio relevance (BBoxOverlapRatioValueSource) undercounts the overlap of two dateline-crossing boxes that intersect in two longitude pieces, so the score is too low (finding LFV-369; [repro](../../repro/LFV-369/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-369.html))
 
 ## Files
 

@@ -4,7 +4,7 @@ Finding LFV-1527 · Area: core / search: full-precision vector rescoring (FullPr
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
-Fixed upstream: [#16628](https://github.com/apache/lucene/pull/16628) (commit [55fd2e75fb2b](https://github.com/apache/lucene/commit/55fd2e75fb2be51ab46f16c3fd71dc00a8152523)), merged 2026-09-28; also on the 11.0 release branch (the same commit). On the released 10.x line only (10.3.0 to 10.6.0): main no longer had the failing call when the finding was listed.
+Fixed upstream: [#16628](https://github.com/apache/lucene/pull/16628) (commit [55fd2e75fb2b](https://github.com/apache/lucene/commit/55fd2e75fb2be51ab46f16c3fd71dc00a8152523)), merged 2026-09-28; also on branch_11x (the same commit). On the released 10.x line only (10.3.0 to 10.6.0): main no longer had the failing call when the finding was listed.
 
 ## What it shows
 
@@ -26,7 +26,7 @@ You build a rescoring query with RescoreTopNQuery.createFullPrecisionRescorerQue
 - Tested on Lucene main 9965d34e3c77 (a commit of 2026-11-16): the test passes, with assertions on and off: main does not have the failing call.
 - Tested on Lucene branch_11x 9d2b5a15427a (a commit of 2026-11-16): the test passes, with assertions on and off (11.0.0-SNAPSHOT): the 11.0 branch does not have the failing call.
 - This finding is in the released 10.x line only. The test fails with the jars of every release from 10.3.0 to 10.6.0 and passes on Lucene main and on the 11.0 release branch (branch_11x), which no longer have the failing call (since #16628): 11.0 is not affected. The commands below run the test first on the 10.6.0 release jars, where it fails, and then, as the control, on a build of main or of branch_11x, where it passes. For the first run put lucene-core-10.6.0.jar, lucene-codecs-10.6.0.jar and lucene-test-framework-10.6.0.jar (Maven Central, org.apache.lucene) into your copy of this folder, next to the four test jars that the commands name; for another release set V (10.3.0, the first affected release, was run the same way and fails the same way). For a run without assertions put -da -dsa -Dtests.asserts=false in place of -ea -esa: the outcomes are the same. What the test does: it builds a query with RescoreTopNQuery.createFullPrecisionRescorerQuery over a KnnFloatVectorQuery and asserts that query.toString() returns a text; it needs no index, and its input has no randomness. On 10.3.0 to 10.6.0 toString() throws java.lang.NullPointerException: Cannot invoke "org.apache.lucene.index.VectorSimilarityFunction.name()" because "this.vectorSimilarityFunction" is null. Not covered by this test and run separately: on 10.3.0 to 10.3.2 the same query prints once it has been used in a search (run on 10.3.0 and 10.3.2); on 10.4.0 to 10.6.0 it throws before and after a search, and there IndexSearcher.explain of a hit of a FunctionScoreQuery scored by a value source built the same way throws the same exception (run on 10.4.0 and 10.6.0). Known outside Lucene only: three projects that use the API described it in public (a neo4j commit message, the description of a Solr pull request and a code comment in nrtsearch); no Lucene issue, pull request or list thread was found that describes it. For the Gradle alternative at the end of this page the module is lucene/core and the checkout must be of a release tag from 10.3.0 to 10.6.0 (run on the tag releases/lucene/10.6.0); in a checkout of main or of branch_11x the test passes.
-- This finding was re-run on Lucene main 11c8b6ea99ae on 2026-11-23: the test passed, as recorded before (a control run).
+- This finding was re-run on Lucene main 82cf7465bb8f on 2026-11-26: the test passed, as recorded before (a control run).
 - How to read the outcome: on the jars of a release from 10.3.0 to 10.6.0 a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with java.lang.NullPointerException: Cannot invoke "org.apache.lucene.index.VectorSimilarityFunction.name()" because "this.vectorSimilarityFunction" is null, thrown from FullPrecisionFloatVectorSimilarityValuesSource.toString; on a build of main or of branch_11x the same test passes (1 test successful), which is what the finding states for the unreleased lines.
 
 ```bash
@@ -57,7 +57,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.search.TestFullPrecisionRescorerQueryToString
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Feedback
 

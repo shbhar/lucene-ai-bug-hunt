@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- IndexSearcher#count on a two-term disjunction over-counts, even above maxDoc, when the searcher timeout fires while the intersection is counted (finding LFV-465; [repro](../../repro/LFV-465/), [finding page](../../bugs/LFV-465.html))
+- IndexSearcher#count on a two-term disjunction over-counts, even above maxDoc, when the searcher timeout fires while the intersection is counted (finding LFV-465; [repro](../../repro/LFV-465/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-465.html))
 
 ## Files
 

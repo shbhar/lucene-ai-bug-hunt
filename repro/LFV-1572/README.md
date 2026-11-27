@@ -2,7 +2,7 @@
 
 Finding LFV-1572 · Area: analysis / lucene-analysis-common module descriptor (the word-list packages that are opened to org.apache.lucene.core for the resource loaders) · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1572.html](../../bugs/LFV-1572.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1572.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1572.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ You run Lucene as named modules (the jars on the module path) and build a Custom
 - Tested on Lucene main 7b8418faa2ff (a commit of 2026-11-20): reproduced with Lucene's jars on the module path (as named modules), with assertions on and off; on the class path the same test passes.
 - Tested on Lucene branch_11x 3221dd4cf3a1 (a commit of 2026-11-20): reproduced on the module path, with assertions on and off (set V=11.0.0-SNAPSHOT); passes on the class path.
 - This test fails only when Lucene's jars run as named modules, that is on the module path. The commands below compile the test and then start the compiled class with the jars on the module path and only the classes directory on the class path, with the java of JDK 25 (the runs used 25.0.3); for a run without assertions put -da -dsa -Dtests.asserts=false in place of -ea -esa. With the same jars on the class path the test passes. The six jars after hamcrest-3.0.jar are on Maven Central too; the module of the test framework cannot be resolved without them (the JVM then stops with a FindException). --add-modules ALL-MODULE-PATH is needed because the launch names no main module: without it the jars on the module path are not resolved and the JVM cannot find org.junit.runner.JUnitCore. The launch on the module path is the only JVM setup this repro needs, and the commands below carry it. A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there. What the test does: one statement, new ModuleResourceLoader(AlbanianAnalyzer.class.getModule()).openResource("org/apache/lucene/analysis/sq/stopwords.txt"), the loader call of the description above without the analyzer around it; a test of the whole chain (CustomAnalyzer.builder with that loader, a whitespace tokenizer and a stop filter over the same file) fails with the same exception on both builds. Control: with BulgarianAnalyzer and org/apache/lucene/analysis/bg/stopwords.txt in place of the Albanian class and file, the same commands report OK (1 test) on both builds. The outcome does not depend on the seed. For the Gradle alternative below the matching module is lucene/analysis.tests, whose tests Lucene's build runs as a named module: copy the test to lucene/analysis.tests/src/test/org/apache/lucene/analysis/tests/ and run ./gradlew -p lucene/analysis.tests test --tests TestAlbanianStopwordsOpenToCore -Ptests.seed=DEADBEEF -Ptests.asserts=true; it fails 1 of 1 with the same exception on main 7b8418faa2ff and on branch_11x 3221dd4cf3a1, and it does the same with -Ptests.asserts=false.
-- This finding was re-run on Lucene main 11c8b6ea99ae on 2026-11-23: still reproduces.
+- This finding was re-run on Lucene main 82cf7465bb8f on 2026-11-26: still reproduces.
 - How to read the outcome: a failing test is the finding reproducing: the run reports 1 test run and 1 failure, with java.io.IOException: Resource not found: org/apache/lucene/analysis/sq/stopwords.txt, thrown from ModuleResourceLoader.openResource.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -46,7 +46,7 @@ java -ea -esa --module-path "$MP" --add-modules ALL-MODULE-PATH -cp classes -Dte
      org.junit.runner.JUnitCore org.apache.lucene.analysis.tests.TestAlbanianStopwordsOpenToCore
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

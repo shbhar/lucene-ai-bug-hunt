@@ -2,13 +2,13 @@
 
 Finding LFV-961 · Area: grouping / package documentation (package-info.java inputs list vs the collector managers it names) · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-961.html](../../bugs/LFV-961.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-961.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-961.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You read the grouping package overview, which says topNGroups is 'how many top groups to keep' and that groupOffset 3 'means you'll get 7 groups back (assuming topNGroups is 10)', and which names FirstPassGroupingCollectorManager as the first pass and builds BlockGroupingCollectorManager(groupSort, groupOffset, topNGroups, ...), so you expect groupOffset 3 with topNGroups 10 to return 7 groups. Instead both managers, like GroupingSearch, treat topNGroups as the number of groups to return after the offset and return 10 groups (ranks 4 to 13). The '7 groups' sentence is right only for the plain FirstPassGroupingCollector and BlockGroupingCollector, which the page named until #16385 rewrote it for the managers, so paging code written from the sentence gets oversized, overlapping pages.
+You read the grouping package overview, which says topNGroups is 'how many top groups to keep' and that groupOffset 3 'means you'll get 7 groups back (assuming topNGroups is 10)', and which names FirstPassGroupingCollectorManager as the first pass and builds BlockGroupingCollectorManager(groupSort, groupOffset, topNGroups, ...), so you expect groupOffset 3 with topNGroups 10 to return 7 groups. Instead both managers, like GroupingSearch, treat topNGroups as the number of groups to return after the offset and return 10 groups (ranks 4 to 13). The '7 groups' sentence is right only for the plain FirstPassGroupingCollector and BlockGroupingCollector, which the page named until #16385 rewrote it for the managers, so paging code written from the sentence gets oversized, overlapping pages. #17066, a change of Javadoc only, removed the sentence from main on 2026-11-24 (1640b5c394de) and from branch_11x on 2026-11-25 (8a72db074350); the 10.6.0 release and branch_10_6 (451a69c1d4a6, read 2026-11-25) keep it.
 
 The test shows that the grouping package overview's example ("groupOffset 3 means you'll get 7 groups back, assuming topNGroups is 10") does not hold for FirstPassGroupingCollectorManager, the first-pass class the page names (documentation defect).
 
@@ -22,9 +22,10 @@ Expected 7 groups (the documented example), actual 10 (`expected:<7> but was:<10
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
+- Since #17066 (main 1640b5c394de, 2026-11-24; branch_11x 8a72db074350, 2026-11-25) the package overview of main and of branch_11x no longer has the sentence. The test asserts the sentence's 7 groups, and #17066 changed no code, so the test still fails on builds of both with the message of the line Expected vs actual above (run on 2026-11-25 on main 8506598d7a98 as printed and on branch_11x 55ef56a69344 with V=11.0.0-SNAPSHOT, with and without assertions): there it shows what the collector manager returns, not a sentence that the build's documentation still has. The 10.6.0 release has both the sentence and the behaviour: put lucene-core-10.6.0.jar, lucene-codecs-10.6.0.jar, lucene-test-framework-10.6.0.jar, lucene-grouping-10.6.0.jar and lucene-queries-10.6.0.jar (Maven Central, org.apache.lucene) in place of the five $LUCENE jars and set V=10.6.0; the test fails the same way.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -47,7 +48,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.search.grouping.TestGroupingPackageDocOffset
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Feedback
 

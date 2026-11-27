@@ -20,9 +20,9 @@ You index suggestions through a CompletionAnalyzer with an index-time synonym (b
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main a9779ef3c193 (a commit of 2026-10-26): reproduced.
-- For the 9.12.3 and 10.0.0 release jars, line 77 of TestNRTSuggesterDedupLastSlot.java needs new Completion912PostingsFormat() in place of new Completion104PostingsFormat(). On 9.12.3 the folder's other test file, TestTopNSearcherLastPathPartialReject.java, does not compile, so compile TestNRTSuggesterDedupLastSlot.java alone there. Run that way on 2026-11-23 on both, with assertions on and off, TestNRTSuggesterDedupLastSlot reports 2 tests found and 1 failed: testNum2SkipDuplicates with expected:&lt;[a b/10, a xc/3]&gt; but was:&lt;[a b/10]&gt;.
+- For the 9.12.3 and 10.0.0 release jars, line 77 of TestNRTSuggesterDedupLastSlot.java needs new Completion912PostingsFormat() in place of new Completion104PostingsFormat(). On 9.12.3 the folder's other test file, TestTopNSearcherLastPathPartialReject.java, does not compile, so compile TestNRTSuggesterDedupLastSlot.java alone there and leave out run 2, which runs that other test. Run that way on 2026-11-23 on both, with assertions on and off, TestNRTSuggesterDedupLastSlot reports 2 tests found and 1 failed: testNum2SkipDuplicates with expected:&lt;[a b/10, a xc/3]&gt; but was:&lt;[a b/10]&gt;.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -50,7 +50,7 @@ java -da -dsa -Dtests.asserts=false -Xmx2g --add-modules jdk.incubator.vector --
      execute --select-class org.apache.lucene.util.fst.TestTopNSearcherLastPathPartialReject
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 1 other file(s) of the recorded repro are not exported.
 

@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- ShapeField.encodeTriangle puts the wrong edge flag on the first edge when it flips a clockwise triangle, so LatLonShape and XYShape CONTAINS queries return wrong hits (finding LFV-204; [repro](../../repro/LFV-204/), [finding page](../../bugs/LFV-204.html))
+- ShapeField.encodeTriangle puts the wrong edge flag on the first edge when it flips a clockwise triangle, so LatLonShape and XYShape CONTAINS queries return wrong hits (finding LFV-204; [repro](../../repro/LFV-204/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-204.html))
 
 ## Files
 

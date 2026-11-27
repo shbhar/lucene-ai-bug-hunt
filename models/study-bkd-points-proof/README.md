@@ -6,9 +6,9 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- PointInSetQuery silently misses most matches on selectively indexed points (fewer index dimensions than data dimensions) (finding LFV-006; [repro](../../repro/LFV-006/), [finding page](../../bugs/LFV-006.html))
-- Flexible StandardQueryParser: an exclusive int/long point bound at MAX/MIN wraps around, so the query matches every document with the field instead of none (finding LFV-050; [repro](../../repro/LFV-050/), [finding page](../../bugs/LFV-050.html))
-- Flexible StandardQueryParser misses -0.0 documents for exclusive float/double bounds (finding LFV-059; [repro](../../repro/LFV-059/), [finding page](../../bugs/LFV-059.html))
+- PointInSetQuery silently misses most matches on selectively indexed points (fewer index dimensions than data dimensions) (finding LFV-006; [repro](../../repro/LFV-006/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-006.html))
+- Flexible StandardQueryParser: an exclusive int/long point bound at MAX/MIN wraps around, so the query matches every document with the field instead of none (finding LFV-050; [repro](../../repro/LFV-050/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-050.html))
+- Flexible StandardQueryParser misses -0.0 documents for exclusive float/double bounds (finding LFV-059; [repro](../../repro/LFV-059/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-059.html))
 
 ## Files
 

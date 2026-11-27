@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- BKDWriter does not cap its in-heap point buffer at the Java array limit, so with maxMBSortInHeap &gt;= 2048 MB a points merge of more than 2^31 bytes throws NegativeArraySizeException and closes the IndexWriter (finding LFV-613; [repro](../../repro/LFV-613/), [finding page](../../bugs/LFV-613.html))
+- BKDWriter does not cap its in-heap point buffer at the Java array limit, so with maxMBSortInHeap &gt;= 2048 MB a points merge of more than 2^31 bytes throws NegativeArraySizeException and closes the IndexWriter (finding LFV-613; [repro](../../repro/LFV-613/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-613.html))
 
 ## Files
 

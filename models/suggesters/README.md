@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- AnalyzingInfixSuggester.ensureOpen() publishes its new IndexWriter before the SearcherManager opened on it and does not undo that when the manager cannot be opened, so refresh() refreshes the manager over build()'s closed writer and throws AlreadyClosedException (finding LFV-263; [repro](../../repro/LFV-263/), [finding page](../../bugs/LFV-263.html))
+- AnalyzingInfixSuggester.ensureOpen() publishes its new IndexWriter before the SearcherManager opened on it and does not undo that when the manager cannot be opened, so refresh() refreshes the manager over build()'s closed writer and throws AlreadyClosedException (finding LFV-263; [repro](../../repro/LFV-263/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-263.html))
 
 ## Files
 

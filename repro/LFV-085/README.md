@@ -20,9 +20,9 @@ You drop the raw float vectors from a Lucene104 scalar-quantized field (the read
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.
-- The folder holds the same test twice. src/ is for Lucene 10.5.0 and later (10.5.x, 10.6.0, the 11.0 release branch, main); src2/ is for 10.4.0, where the enum ScalarEncoding is a nested class of Lucene104ScalarQuantizedVectorsFormat. Each compiles only on its own versions: on 10.5.0 and later leave out the two src2 lines (javac and java), on 10.4.0 the two src lines. On its own versions the test fails 1 of 3: testRescorerBulkMatchesScoreAfterDroppingRawVectors fails (expected 0.8403607 but was 8.920945E-16) and the two controls pass (run on 2026-11-17 with and without assertions: src/ on main 9965d34e3c77, branch_11x 9d2b5a15427a and 10.6.0, src2/ on 10.4.0). The test covers the wrong bulk scores; the exceptions named above have no test in this folder.
+- The folder holds the same test twice. src/ is for Lucene 10.5.0 and later (10.5.x, 10.6.0, branch_11x, main); src2/ is for 10.4.0, where the enum ScalarEncoding is a nested class of Lucene104ScalarQuantizedVectorsFormat. Each compiles only on its own versions: on 10.5.0 and later leave out the two src2 lines (javac and java), on 10.4.0 the two src lines. On its own versions the test fails 1 of 3: testRescorerBulkMatchesScoreAfterDroppingRawVectors fails (expected 0.8403607 but was 8.920945E-16) and the two controls pass (run on 2026-11-17 with and without assertions: src/ on main 9965d34e3c77, branch_11x 9d2b5a15427a and 10.6.0, src2/ on 10.4.0). The test covers the wrong bulk scores; the exceptions named above have no test in this folder.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -47,7 +47,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.codecs.lucene104.TestDroppedRawRescorerBulk
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Feedback
 

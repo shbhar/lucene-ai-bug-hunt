@@ -2,7 +2,7 @@
 
 Finding LFV-1490 · Area: search / query cache (LRUQueryCache partition routing: the partitioned cache of #15558 as changed by #16657; main and branch_11x only) · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1490.html](../../bugs/LFV-1490.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1490.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1490.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -13,7 +13,7 @@ On main or branch_11x you turn the query cache on the way MIGRATE.md shows (new 
 ## Expected vs actual
 
 - Expected: `cache.getHitCount()` is 100: the third use of each of the 100 filters is served from the cache, as on 10.6.0.
-- Actual: The hit count is 0 (`expected:<100> but was:<0>` at line 54) on main and on the 11.0 branch.
+- Actual: The hit count is 0 (`expected:<100> but was:<0>` at line 54) on main and on `branch_11x`.
 
 ## Files
 
@@ -21,7 +21,7 @@ On main or branch_11x you turn the query cache on the way MIGRATE.md shows (new 
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: it writes 10,000 documents into one segment, installs new LRUQueryCache(1_000, 50 MB) with UsageTrackingQueryCachingPolicy and searches 100 different IntPoint.newExactQuery filters, each wrapped in ConstantScoreQuery, three times each. It asserts that LRUQueryCache.getHitCount() is 100 and gets 0: the default policy caches a point query on its second use, so only the third use of each filter can be a hit. The expected 100 is what the same test counts on the 10.6.0 release, not a documented number. The test checks cache hits only; it compares no search result, and none is wrong. Ranges of one width, which the finding also covers, are not part of this test, nor is the earlier form with 20 filters over 10 segments that the table's record reports.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -44,7 +44,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.search.TestLRUQueryCacheExactPointFilters
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Monitor.register with the id of a registered query and a new query that QueryDecomposer splits into no part (run: a BooleanQuery with only MUST_NOT clauses and minimumNumberShouldMatch 0 or 1, a BooleanQuery without clauses, a BoostQuery or a single MUST clause around one, a DisjunctionMaxQuery without disjuncts) returns normally and leaves the old query registered: Monitor.match keeps reporting the id for the documents the old query matches, and a persistent Monitor&#x27;s getQuery returns the old query, also after a reopen (the test, which checks Monitor.match, fails on each release from 8.2.0 to 10.6.0 and on branch_11x and main) (LFV-1589)</title><style>
+:root{--fg:#1d2329;--dim:#5a6570;--line:#d8dee4;--bg:#fff;--soft:#f5f7f9;--link:#0b5cad}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
+font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+main{max-width:980px;margin:0 auto;padding:24px 18px 64px}a{color:var(--link)}
+h1{font-size:1.55rem;line-height:1.25;margin:.4em 0 .3em}h2{font-size:1.2rem;margin:1.6em 0 .5em}
+.dim{color:var(--dim)}.small{font-size:.9rem}.facts{display:flex;flex-wrap:wrap;gap:6px 16px;margin:.4em 0 1em}
+.note{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:10px 14px}
+pre{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:12px;overflow:auto;font-size:.85rem}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+table{border-collapse:collapse;width:100%;font-size:.92rem}th,td{border-bottom:1px solid var(--line);
+padding:6px 8px;text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:var(--soft)}
+h1,h2,p,li,dd{overflow-wrap:break-word}
+.facts>span{min-width:0;overflow-wrap:anywhere}
+th,td.nw{white-space:nowrap;overflow-wrap:normal}
+.scroll{overflow-x:auto}
+.narrow-only{display:none}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}
+.narrow-only{display:block;font-size:.85rem;color:var(--dim)}}
+nav.crumbs{font-size:.9rem;margin-bottom:8px}
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a> › <a href="../index.html">Repro tests</a> › LFV-1589</nav><h1>Monitor.register with the id of a registered query and a new query that QueryDecomposer splits into no part (run: a BooleanQuery with only MUST_NOT clauses and minimumNumberShouldMatch 0 or 1, a BooleanQuery without clauses, a BoostQuery or a single MUST clause around one, a DisjunctionMaxQuery without disjuncts) returns normally and leaves the old query registered: Monitor.match keeps reporting the id for the documents the old query matches, and a persistent Monitor&#x27;s getQuery returns the old query, also after a reopen (the test, which checks Monitor.match, fails on each release from 8.2.0 to 10.6.0 and on branch_11x and main)</h1>
+<p class="facts small"><span>Finding LFV-1589</span><span>Area: monitor / query index updates (WritableQueryIndex.commitWithoutNotify, reached through both Monitor.register overloads, with QueryDecomposer for the parts of the new query)</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-1589.html">Finding page for LFV-1589</a></p>
+<p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
+<h2>What it shows</h2>
+<p>You register a query under an id with Monitor.register and later call Monitor.register again with the same id and a new query, as the module&#x27;s own test testUpdatesOverwriteOldQueries does with two term queries. If the new query is one that the Monitor&#x27;s QueryDecomposer splits into no part, such as a BooleanQuery with only MUST_NOT clauses and minimumNumberShouldMatch 0 or 1 (-f:pear, which the classic QueryParser builds from &#x27;NOT pear&#x27;) or a BooleanQuery without clauses (which it builds from a string of stop words only when the analyzer removes them), you expect the id to answer for the new query, which matches no document, so that nothing is reported under it any more. Instead the call returns normally and the old query stays registered: Monitor.match keeps reporting the id for the documents the old query matches, and a Monitor that stores its queries keeps returning the old query from getQuery, also after it is closed and reopened, while the same call with MatchNoDocsQuery as the new query does replace the old one (the javadoc of register says only &#x27;Add new queries to the monitor&#x27;; the replacement is what the module&#x27;s code does for each id it adds documents for, and the module has a test named for it).</p>
+<h2>Expected vs actual</h2>
+<ul><li><b>Expected:</b> <code>Monitor.match</code> reports nothing for the document <code>f:&quot;apple&quot;</code>: <code>getMatchCount()</code> is 0, because <code>q1</code> was registered again with <code>-f:pear</code>, which matches no document.</li><li><b>Actual:</b> <code>getMatchCount()</code> is 1: <code>q1</code> is still reported for its old query <code>f:apple</code> (<code>expected:&lt;0&gt; but was:&lt;1&gt;</code> at line 29). No exception, with assertions on and off.</li></ul>
+<h2>Files</h2><ul>
+<li><a href="src/TestReRegisterWithQueryOfNoParts.java"><code>src/TestReRegisterWithQueryOfNoParts.java</code></a> <span class="dim">(JUnit test)</span></li>
+</ul><h2>Run it</h2><ul>
+<li>Tested on Lucene main 77d56fefb355 (a commit of 2026-11-25): reproduced on 2026-11-26, with assertions on and off (12.0.0-SNAPSHOT).</li>
+<li>Tested on Lucene branch_11x 4e8fd3dc3bc4 (a commit of 2026-11-25): reproduced on 2026-11-26, with assertions on and off (11.0.0-SNAPSHOT).</li>
+<li>Tested on Lucene main 8506598d7a98 (a commit of 2026-11-25): reproduced, with assertions on and off (12.0.0-SNAPSHOT).</li>
+<li>Tested on Lucene branch_11x 55ef56a69344 (a commit of 2026-11-25): reproduced, with assertions on and off (11.0.0-SNAPSHOT).</li>
+<li>Tested on Lucene main 894d24e9b0c7 (a commit of 2026-11-23): reproduced, with assertions on and off (12.0.0-SNAPSHOT).</li>
+<li>Tested on Lucene branch_11x 784a2d5d03d4 (a commit of 2026-11-23): reproduced, with assertions on and off (11.0.0-SNAPSHOT).</li>
+<li>Tested on Lucene 10.6.0 (4ae946e5a9b9) (a commit of 2026-10-26): reproduced, with assertions on and off, on the 10.6.0 release jars, which are built from this commit (the tag releases/lucene/10.6.0).</li>
+<li>Not new in 11.0: the test fails the same way with the 10.6.0 release jars, on builds of branch_11x (784a2d5d03d4, 55ef56a69344 and 4e8fd3dc3bc4) and of Lucene main (894d24e9b0c7, 8506598d7a98 and 77d56fefb355), with and without assertions. It needs a second Monitor.register call with the id of a query that is already registered (a first registration of such a query is not the finding) and a new query that the Monitor&#x27;s QueryDecomposer splits into no part; each such query that ran matches no document, so no match is lost. What the test does: it registers q1 = f:apple, registers q1 again with -f:pear (a BooleanQuery whose one clause is MUST_NOT) and expects Monitor.match to report nothing for the document f:&quot;apple&quot;; getMatchCount() is 1: java.lang.AssertionError: expected:&lt;0&gt; but was:&lt;1&gt;. The same failure against the 8.2.0 release jars, the first release with the monitor module (the second recipe with V=8.2.0 and A=lucene-analyzers-common). A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there. Run the commands in a copy of this folder that also holds the jars they name (Maven Central). Both recipes were run on 2026-11-25, with -ea as printed and with -da: the first in a checkout of main 8506598d7a98 and, with V=11.0.0-SNAPSHOT, of branch_11x 55ef56a69344, the second with the 10.6.0 release jars and, with V=8.2.0 and A=lucene-analyzers-common, with the 8.2.0 release jars; Tests run: 1, Failures: 1 in each of the eight runs. Through Lucene&#x27;s own build, run in both checkouts: with the file copied to lucene/monitor/src/test/ of the checkout, ./gradlew :lucene:monitor:test --tests TestReRegisterWithQueryOfNoParts -Ptests.seed=DEADBEEF -Ptests.asserts=true reports 1 test, 1 failure, and so does -Ptests.asserts=false. Monitor.deleteById(id) before the register call avoids it.</li>
+<li>This finding was re-run on Lucene main 82cf7465bb8f on 2026-11-26: still reproduces.</li>
+<li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).</li>
+</ul><pre><code># Two recipes. The first is for a checkout of main or of branch_11x, the second for a release.
+
+# JDK 25 on the PATH. $LUCENE: a checkout of apache/lucene (main, or branch_11x with V=11.0.0-SNAPSHOT below)
+# whose four jars were built there with
+#   ./gradlew :lucene:core:jar :lucene:analysis:common:jar :lucene:memory:jar :lucene:monitor:jar
+# $REPRO: a folder with TestReRegisterWithQueryOfNoParts.java and, from Maven Central,
+# junit-4.13.2.jar and hamcrest-core-1.3.jar
+cd $REPRO
+V=12.0.0-SNAPSHOT
+CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
+CP=$CP:$LUCENE/lucene/monitor/build/libs/lucene-monitor-$V.jar
+CP=$CP:$LUCENE/lucene/memory/build/libs/lucene-memory-$V.jar
+CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
+CP=$CP:junit-4.13.2.jar:hamcrest-core-1.3.jar
+javac -d classes -cp &quot;$CP&quot; TestReRegisterWithQueryOfNoParts.java
+java -ea -cp &quot;classes:$CP&quot; org.junit.runner.JUnitCore TestReRegisterWithQueryOfNoParts
+# without assertions: the same java line with -da in place of -ea (the same failure)
+
+# ---- for a release ----
+# JDK 25 on the PATH. $REPRO: a folder with TestReRegisterWithQueryOfNoParts.java and, from Maven Central,
+# junit-4.13.2.jar, hamcrest-core-1.3.jar and the four jars of the release: lucene-core, lucene-monitor,
+# lucene-memory and lucene-analysis-common (for 8.2.0 the fourth is lucene-analyzers-common: set A below)
+cd $REPRO
+V=10.6.0
+A=lucene-analysis-common
+CP=lucene-core-$V.jar:lucene-monitor-$V.jar:lucene-memory-$V.jar:$A-$V.jar
+CP=$CP:junit-4.13.2.jar:hamcrest-core-1.3.jar
+javac -d classes -cp &quot;$CP&quot; TestReRegisterWithQueryOfNoParts.java
+java -ea -cp &quot;classes:$CP&quot; org.junit.runner.JUnitCore TestReRegisterWithQueryOfNoParts
+# without assertions: the same java line with -da in place of -ea (the same failure)</code></pre>
+<h2>Files shown on the finding page</h2><ul><li><a href="TestReRegisterWithQueryOfNoParts.java"><code>TestReRegisterWithQueryOfNoParts.java</code></a></li></ul>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-27. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

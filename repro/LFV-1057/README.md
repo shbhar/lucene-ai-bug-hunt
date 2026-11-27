@@ -2,7 +2,7 @@
 
 Finding LFV-1057 · Area: search / field sorting: TopFieldCollector + NumericComparator points-based sort pruning (competitive iterator) · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1057.html](../../bugs/LFV-1057.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1057.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1057.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -24,7 +24,7 @@ You run searcher.search(new TermQuery(new Term("brand", "lux")), 10, new Sort(ne
 - Tested on Lucene main 716d6f216f52 (a commit of 2026-10-29): reproduced, with assertions on and off.
 - Tested on Lucene branch_11x 603af8703753 (a commit of 2026-10-29): reproduced, with assertions on and off (the core sources that differ from main 645d4fe14a20, taken from this commit and compiled over the 645d4fe14a20 jars).
 - Main 645d4fe14a20 passes: #16857 came after it. A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there.
-- This finding was re-run on Lucene main 11c8b6ea99ae on 2026-11-23: still reproduces.
+- This finding was re-run on Lucene main 82cf7465bb8f on 2026-11-26: still reproduces.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -45,7 +45,7 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
      execute --select-class org.apache.lucene.search.TestSortLaterSegmentPointsWork
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

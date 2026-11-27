@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- LMDirichletSimilarity accepts mu = 0, but then every document scores 0: log(1 + tf/(mu*P)) + log(mu/(dl+mu)) becomes +Infinity + -Infinity = NaN, and the 'score &gt; 0' clamp turns NaN into 0 (finding LFV-902; [repro](../../repro/LFV-902/), [finding page](../../bugs/LFV-902.html))
+- LMDirichletSimilarity accepts mu = 0, but then every document scores 0: log(1 + tf/(mu*P)) + log(mu/(dl+mu)) becomes +Infinity + -Infinity = NaN, and the 'score &gt; 0' clamp turns NaN into 0 (finding LFV-902; [repro](../../repro/LFV-902/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-902.html))
 
 ## Files
 

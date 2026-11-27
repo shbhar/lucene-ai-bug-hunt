@@ -15,10 +15,13 @@ h1,h2,p,li,dd{overflow-wrap:break-word}
 .facts>span{min-width:0;overflow-wrap:anywhere}
 th,td.nw{white-space:nowrap;overflow-wrap:normal}
 .scroll{overflow-x:auto}
-@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
+.narrow-only{display:none}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}
+.narrow-only{display:block;font-size:.85rem;color:var(--dim)}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
-</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>With SerialMergeScheduler, a rollback() whose wait for a running merge is cut short by an interrupt can close the writer under that merge (run with a merge inside another thread&#x27;s forceMerge(1) or flush() call): the merge then fails before it releases its segment readers, and the files they had open stay open after the writer is closed (known upstream: the interrupted wait is described on #6947)</h1>
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a> › <a href="../index.html">Repro tests</a> › LFV-1564</nav><h1>With SerialMergeScheduler, a rollback() whose wait for a running merge is cut short by an interrupt can close the writer under that merge (run with a merge inside another thread&#x27;s forceMerge(1) or flush() call): the merge then fails before it releases its segment readers, and the files they had open stay open after the writer is closed (known upstream: the interrupted wait is described on #6947)</h1>
 <p class="facts small"><span>Finding LFV-1564</span><span>Area: index / IndexWriter rollback() against a running merge (the interruptible wait of abortMerges, the failure branch of rollbackInternalNoCommit, closeMergeReaders; SerialMergeScheduler)</span><span>Priority: low</span><span>Impact: minor</span><span>Novelty: known upstream</span></p>
+<p><a href="../../index.html#bug-LFV-1564">This finding in the table</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You run an IndexWriter with SerialMergeScheduler, so a merge runs inside the call that started it (forceMerge(1) in the test), and while that merge has its segment readers open a second thread calls rollback(), whose wait for the merge to abort is cut short by an interrupt (in the test the calling thread&#x27;s interrupt status is set when it calls rollback(), so the wait ends at once; an earlier test interrupted the thread from outside once it waited, with the same outcome). You expect that, once both calls have ended, the writer and its merge hold no file of the index open (the test has no reader of its own), as after the same rollback() without the interrupt. Instead the test&#x27;s Directory.close() fails with &#x27;MockDirectoryWrapper: cannot close: there are still 2 open files: {_1.cfs=1, _0.cfs=1}&#x27;: rollback() closed the reader pool and the writer under the merge, and the merge&#x27;s clean-up then failed before it released its two segment readers (the test requires that rollback() throws ThreadInterruptedException and that forceMerge(1) throws AlreadyClosedException). Not new in 11: 10.6.0 does the same.</p>
@@ -27,7 +30,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/index/TestInterruptedRollbackLeavesMergeReadersOpen.java"><code>src/org/apache/lucene/index/TestInterruptedRollbackLeavesMergeReadersOpen.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.</li>
+<li>Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.</li>
 <li>Tested on Lucene branch_11x 75eea467ac52 (a commit of 2026-11-19): reproduced.</li>
 <li>A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there.</li>
 <li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).</li>
@@ -46,6 +49,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=C0FFEE907 \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.index.TestInterruptedRollbackLeavesMergeReadersOpen</code></pre>
-<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on the 11.0 branch the build takes the default from the seed).</p>
+<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on branch_11x the build takes the default from the seed).</p>
 <p>Formal models and scripts this finding's part of the hunt used: <a href="../../models/merge-readers-left-open-after-writer-close/index.html">merge-readers-left-open-after-writer-close</a></p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-23. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-27. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

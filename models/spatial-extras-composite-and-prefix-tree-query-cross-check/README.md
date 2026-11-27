@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- PackedQuadPrefixTree in a geo context indexes a point at longitude +180 under the -180 edge cell, but point queries look in the +180 edge cell, so RPT and CompositeSpatialStrategy Intersects/Contains with that same point miss the document (finding LFV-705; [repro](../../repro/LFV-705/), [finding page](../../bugs/LFV-705.html))
+- PackedQuadPrefixTree in a geo context indexes a point at longitude +180 under the -180 edge cell, but point queries look in the +180 edge cell, so RPT and CompositeSpatialStrategy Intersects/Contains with that same point miss the document (finding LFV-705; [repro](../../repro/LFV-705/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-705.html))
 
 ## Files
 

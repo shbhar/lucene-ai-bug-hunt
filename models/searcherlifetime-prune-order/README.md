@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- SearcherLifetimeManager.prune orders searchers by the time each was first recorded instead of newest to oldest, so when an older searcher is first recorded after the current one, PruneByAge drops the current searcher (even right after record() returned a token for it) and keeps the older one (finding LFV-1066; [repro](../../repro/LFV-1066/), [finding page](../../bugs/LFV-1066.html))
+- SearcherLifetimeManager.prune orders searchers by the time each was first recorded instead of newest to oldest, so when an older searcher is first recorded after the current one, PruneByAge drops the current searcher (even right after record() returned a token for it) and keeps the older one (finding LFV-1066; [repro](../../repro/LFV-1066/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1066.html))
 
 ## Files
 

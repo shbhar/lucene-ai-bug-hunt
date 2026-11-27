@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- IndexWriter.tryUpdateDocValue never checks the RAM buffer for the doc-values updates it adds, so they pile up on the heap without bound until the next refresh, flush() or commit (finding LFV-1075; [repro](../../repro/LFV-1075/), [finding page](../../bugs/LFV-1075.html))
+- IndexWriter.tryUpdateDocValue never checks the RAM buffer for the doc-values updates it adds, so they pile up on the heap without bound until the next refresh, flush() or commit (finding LFV-1075; [repro](../../repro/LFV-1075/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1075.html))
 
 ## Files
 

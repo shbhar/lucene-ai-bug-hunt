@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- FeatureField saturation and sigmoid queries and IntervalQuery scoring compute w*(1 - k/(S+k)) instead of the documented w*S/(S+k) (and the same rewrite for the sigmoid), so documents whose value is far below the pivot score exactly 0.0 or tie with documents that have different values (finding LFV-898; [repro](../../repro/LFV-898/), [finding page](../../bugs/LFV-898.html))
+- FeatureField saturation and sigmoid queries and IntervalQuery scoring compute w*(1 - k/(S+k)) instead of the documented w*S/(S+k) (and the same rewrite for the sigmoid), so documents whose value is far below the pivot score exactly 0.0 or tie with documents that have different values (finding LFV-898; [repro](../../repro/LFV-898/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-898.html))
 
 ## Files
 

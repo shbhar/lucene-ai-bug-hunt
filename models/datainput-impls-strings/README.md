@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- ByteBuffersDataOutput.copyBytes narrows its long length to a signed int, so a copy of 2 GiB or more (for example Directory.copyFrom into a ByteBuffersDirectory) silently copies nothing or only (int) numBytes bytes (finding LFV-107; [repro](../../repro/LFV-107/), [finding page](../../bugs/LFV-107.html))
+- ByteBuffersDataOutput.copyBytes narrows its long length to a signed int, so a copy of 2 GiB or more (for example Directory.copyFrom into a ByteBuffersDirectory) silently copies nothing or only (int) numBytes bytes (finding LFV-107; [repro](../../repro/LFV-107/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-107.html))
 
 ## Files
 

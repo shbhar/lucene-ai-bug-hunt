@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- HNSW merge computes a graph's deleted percentage in int, so a graph with more than 21,474,836 deleted vectors (41-100% deleted) passes the 40% DELETE_PCT_THRESHOLD and is reused as the merge base; in 10.4.0-10.6.0 and branch_10x the opt-in concurrent merger then throws ArrayIndexOutOfBoundsException for an all-deleted base (main since #16794, 11.0 only, rebuilds the graph instead) (finding LFV-160; [repro](../../repro/LFV-160/), [finding page](../../bugs/LFV-160.html))
+- HNSW merge computes a graph's deleted percentage in int, so a graph with more than 21,474,836 deleted vectors (41-100% deleted) passes the 40% DELETE_PCT_THRESHOLD and is reused as the merge base; in 10.4.0-10.6.0 and branch_10x the opt-in concurrent merger then throws ArrayIndexOutOfBoundsException for an all-deleted base (main since #16794, 11.0 only, rebuilds the graph instead) (finding LFV-160; [repro](../../repro/LFV-160/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-160.html))
 
 ## Files
 

@@ -2,7 +2,7 @@
 
 Finding LFV-069 · Area: util / heaps · Priority: low · Impact: crash · Novelty: new
 
-Finding page: [../../bugs/LFV-069.html](../../bugs/LFV-069.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-069.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-069.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You push more than 715,827,882 elements into a growable LongHeap or TernaryLongH
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main b83101cdd2 (a commit of 2026-10-23): reproduced.
 - What the tests do: testLongHeapPushAtBoundary and testTernaryLongHeapPushAtBoundary build a full heap of 715,827,882 values (a 5.73 GB array) and expect push to throw; they are the two tests that call Lucene's own push. To run them, leave out -Dtests.method=testGrowth* and give the JVM -Xmx8g in place of -Xmx2g: on Lucene main 9965d34e3c77 and on the 11.0 release branch (branch_11x 9d2b5a15427a) the whole class then reports 6 tests found and 6 tests successful, with and without assertions (run on 2026-11-17). With the fix recommended on the finding page compiled in front of the jars, these two tests fail, because push then really tries to grow the array and the 8 GB do not hold it. The one-test repro that fails while the defect is present is TestLongHeapGrowthOverflow.java, the file shown on the finding page; its command is on that page.
 - How to read the outcome: this class is a verification test whose tests expect the faulty behaviour, so a passing test is the finding reproducing; the two tests that the commands below select (testGrowth*) repeat the growth arithmetic inside the test and pass on any build (see the note above).
@@ -44,7 +44,7 @@ java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=A
      execute --select-class VerifyHeapPushGrowthOverflowTest
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

@@ -2,13 +2,13 @@
 
 Finding LFV-1358 · Area: codecs / bit vectors (FlatBitVectorsScorer.BitRandomVectorScorerSupplier, used by the concurrent HNSW merge of HnswBitVectorsFormat) · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1358.html](../../bugs/LFV-1358.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1358.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1358.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index bit vectors with HnswBitVectorsFormat set up for concurrent merges (numMergeWorkers &gt; 1 and an executor), and each merge worker gets scorerSupplier.copy(), which RandomVectorScorerSupplier documents as 'will copy the underlying vectorValues so the copy is safe to be used in other threads'. Instead, FlatBitVectorsScorer's supplier makes a copy of the values in its constructor (targetVectors) and never uses it: scorer() reads the original vectorValues and copy() wraps that same instance, so all workers read one shared, non-thread-safe OffHeapByteVectorValues and its IndexInput. The one-test repro shows it directly (a scorer from supplier.copy() makes 2 reads on the original values instead of 0, on main with -ea and -da and on 10.2.0 to 10.6.0, while 10.1.0 passes); in a concurrent merge the race gives occasionally wrong build-time scores.
+You index bit vectors with HnswBitVectorsFormat set up for concurrent merges (numMergeWorkers &gt; 1 and an executor), and each merge worker gets scorerSupplier.copy(), which RandomVectorScorerSupplier documents as 'will copy the underlying vectorValues so the copy is safe to be used in other threads'. Instead, FlatBitVectorsScorer's supplier makes a copy of the values in its constructor (targetVectors) and never uses it: scorer() reads the original vectorValues and copy() wraps that same instance, so all workers read one shared, non-thread-safe OffHeapByteVectorValues and its IndexInput. The one-test repro shows it directly (a scorer from supplier.copy() makes 2 reads on the original values instead of 0, on main with -ea and -da and on 10.2.0 to 10.6.0, while 10.1.0 passes); in a concurrent merge the race gives occasionally wrong build-time scores, and over NIOFSDirectory it can make the merge throw, after which the IndexWriter is closed (with four merge workers the forced merge threw in 168 of 168 launches of a program and a test on the 10.6.0 release jars, branch_11x 8a72db074350 and main 1640b5c394de, runs of 2026-11-25, and the program found the IndexWriter closed in each of its 78 launches; in further runs of that day with four merge workers the merge also failed on the ten releases from 10.2.0 to 10.5.2 (40 of 40 launches) and returned on 10.1.0, and failed under ConcurrentMergeScheduler and when the merge policy started it; it failed with the worker setting at 2, 3, 8 and 16 as well, and after a failure a new reader found only as many documents as had been committed).
 
 ## Expected vs actual
 
@@ -21,7 +21,7 @@ You index bit vectors with HnswBitVectorsFormat set up for concurrent merges (nu
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 5adff78bb168 (a commit of 2026-11-02): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
@@ -43,7 +43,7 @@ java -da -dsa -Dtests.asserts=false -Xmx512m --add-modules jdk.incubator.vector 
      execute --select-class org.apache.lucene.codecs.bitvectors.TestFlatBitVectorsScorerCopy
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

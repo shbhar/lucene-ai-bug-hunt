@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- Since #16857 (upstream main and branch_11x, unreleased), a numeric field-sorted search reads a later segment's whole competitive points range before the scorer is set: TopFieldLeafCollector's constructor calls setHitsThresholdReached() while NumericComparator's iteratorCost is still its -1 'no scorer yet' value, so the 8x selectivity check never rejects (1,001 point doc IDs read where releases read 0; performance regression, results correct) (finding LFV-1057; [repro](../../repro/LFV-1057/), [finding page](../../bugs/LFV-1057.html))
+- Since #16857 (upstream main and branch_11x, unreleased), a numeric field-sorted search reads a later segment's whole competitive points range before the scorer is set: TopFieldLeafCollector's constructor calls setHitsThresholdReached() while NumericComparator's iteratorCost is still its -1 'no scorer yet' value, so the 8x selectivity check never rejects (1,001 point doc IDs read where releases read 0; performance regression, results correct) (finding LFV-1057; [repro](../../repro/LFV-1057/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1057.html))
 
 ## Files
 

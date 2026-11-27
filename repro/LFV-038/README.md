@@ -1,4 +1,4 @@
-# Doc-values-rewritten multi-term queries report no leaf to a QueryVisitor, so the nested clause limit does not count them and, on main and the 11.0 branch, the query cache does not count the bytes of the wrapped query
+# Doc-values-rewritten multi-term queries report no leaf to a QueryVisitor, so the nested clause limit does not count them and, on main and branch_11x, the query cache does not count the bytes of the wrapped query
 
 Finding LFV-038 · Area: search / multi-term queries · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
@@ -6,12 +6,12 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-You run a query tree whose leaves are multi-term queries rewritten with MultiTermQuery.DOC_VALUES_REWRITE (or SortedSetDocValuesField/SortedDocValuesField.newSlowSetQuery) under IndexSearcher's maxClauseCount. You expect IndexSearcher.rewrite to count each such leaf toward the nested clause limit, and an LRUQueryCache to account for the terms a cached query holds. Instead MultiTermQueryDocValuesWrapper.visit calls visitor.getSubVisitor(FILTER, query) and throws the result away, so each leaf counts as 0: with maxClauseCount=8 a query with 10 such leaves raises no TooManyNestedClauses, and on main and the 11.0 branch, where LRUQueryCache sizes a cached query that is not Accountable through a QueryVisitor, a cache that holds one such 50,000-term TermInSetQuery (966,712 bytes by the query's own ramBytesUsed) reports 200 bytes in all (a second test, not in the repro folder; on 10.6.0, where the cache charges such a query a flat 1,024 bytes, it reports 1,184 bytes with or without this defect); search results stay correct.
+You run a query tree whose leaves are multi-term queries rewritten with MultiTermQuery.DOC_VALUES_REWRITE (or SortedSetDocValuesField/SortedDocValuesField.newSlowSetQuery) under IndexSearcher's maxClauseCount. You expect IndexSearcher.rewrite to count each such leaf toward the nested clause limit, and an LRUQueryCache to account for the terms a cached query holds. Instead MultiTermQueryDocValuesWrapper.visit calls visitor.getSubVisitor(FILTER, query) and throws the result away, so each leaf counts as 0: with maxClauseCount=8 a query with 10 such leaves raises no TooManyNestedClauses, and on main and branch_11x (run on main 77d56fefb355 and branch_11x 4e8fd3dc3bc4 on 2026-11-26), where LRUQueryCache sizes a cached query that is not Accountable through a QueryVisitor, a cache that holds one such 50,000-term TermInSetQuery (966,712 bytes by the query's own ramBytesUsed) reports 200 bytes in all (a second test, not in the repro folder; on 10.6.0, where the cache charges such a query a flat 1,024 bytes, it reports 1,184 bytes with or without this defect); search results stay correct.
 
 ## Expected vs actual
 
 - Expected: You expect IndexSearcher.rewrite to count each such leaf toward the nested clause limit, and an LRUQueryCache to account for the terms a cached query holds.
-- Actual: MultiTermQueryDocValuesWrapper.visit calls visitor.getSubVisitor(FILTER, query) and throws the result away, so each leaf counts as 0: with maxClauseCount=8 a query with 10 such leaves raises no TooManyNestedClauses, and on main and the 11.0 branch, where LRUQueryCache sizes a cached query that is not Accountable through a QueryVisitor, a cache that holds one such 50,000-term TermInSetQuery (966,712 bytes by the query's own ramBytesUsed) reports 200 bytes in all (a second test, not in the repro folder; on 10.6.0, where the cache charges such a query a flat 1,024 bytes, it reports 1,184 bytes with or without this defect); search results stay correct.
+- Actual: MultiTermQueryDocValuesWrapper.visit calls visitor.getSubVisitor(FILTER, query) and throws the result away, so each leaf counts as 0: with maxClauseCount=8 a query with 10 such leaves raises no TooManyNestedClauses, and on main and branch_11x (run on main 77d56fefb355 and branch_11x 4e8fd3dc3bc4 on 2026-11-26), where LRUQueryCache sizes a cached query that is not Accountable through a QueryVisitor, a cache that holds one such 50,000-term TermInSetQuery (966,712 bytes by the query's own ramBytesUsed) reports 200 bytes in all (a second test, not in the repro folder; on 10.6.0, where the cache charges such a query a flat 1,024 bytes, it reports 1,184 bytes with or without this defect); search results stay correct.
 
 ## Files
 
@@ -19,7 +19,7 @@ You run a query tree whose leaves are multi-term queries rewritten with MultiTer
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main b83101cdd2 (a commit of 2026-10-23): reproduced.
 - How to read the outcome: the finding reproduces when the four testBug* tests fail and the four testControl* tests pass (each failure message states expected against actual).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
@@ -41,7 +41,7 @@ java -ea -esa -Xmx2g --add-modules jdk.incubator.vector --enable-native-access=A
      execute --select-class sa1verify.TestVerifySA1
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Feedback
 

@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- Sandbox SortedNumericDocValuesMultiRangeQuery classifies each clause by the sign of 'lower - upper', which overflows, so a legal half-open clause such as [Long.MIN_VALUE, 10] or [-5, Long.MAX_VALUE] given together with another clause is silently dropped as if it were reversed (values 5 and 150 with the clauses [Long.MIN_VALUE, 10] and [100, 200] count 1, not 2); since 10.3.0 (finding LFV-1463; [repro](../../repro/LFV-1463/), [finding page](../../bugs/LFV-1463.html))
+- Sandbox SortedNumericDocValuesMultiRangeQuery classifies each clause by the sign of 'lower - upper', which overflows, so a legal half-open clause such as [Long.MIN_VALUE, 10] or [-5, Long.MAX_VALUE] given together with another clause is silently dropped as if it were reversed (values 5 and 150 with the clauses [Long.MIN_VALUE, 10] and [100, 200] count 1, not 2); since 10.3.0 (finding LFV-1463; [repro](../../repro/LFV-1463/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1463.html))
 
 ## Files
 

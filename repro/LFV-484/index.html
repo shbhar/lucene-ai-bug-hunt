@@ -15,10 +15,13 @@ h1,h2,p,li,dd{overflow-wrap:break-word}
 .facts>span{min-width:0;overflow-wrap:anywhere}
 th,td.nw{white-space:nowrap;overflow-wrap:normal}
 .scroll{overflow-x:auto}
-@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
+.narrow-only{display:none}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}
+.narrow-only{display:block;font-size:.85rem;color:var(--dim)}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
-</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>Cross-field BlendedTermQuery gives a sparse field&#x27;s term a docFreq above that field&#x27;s docCount, so matches can score negative (and since 10.3 can be dropped from top-k), a top-k search can fail to return (since 10.3), and a field with no indexed terms can make search throw NullPointerException</h1>
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a> › <a href="../index.html">Repro tests</a> › LFV-484</nav><h1>Cross-field BlendedTermQuery gives a sparse field&#x27;s term a docFreq above that field&#x27;s docCount, so matches can score negative (and since 10.3 can be dropped from top-k), a top-k search can fail to return (since 10.3), and a field with no indexed terms can make search throw NullPointerException</h1>
 <p class="facts small"><span>Finding LFV-484</span><span>Area: search / BlendedTermQuery cross-field statistics blending</span><span>Priority: medium</span><span>Impact: silent wrong results</span><span>Novelty: known upstream</span></p>
+<p><a href="../../index.html#bug-LFV-484">This finding in the table</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
 <h2>What it shows</h2>
 <p>You build a BlendedTermQuery for &quot;lucene&quot; on the fields title and keywords, as its javadoc suggests for cross-field search, over an index where two titles contain &quot;lucene&quot; and only one document has a keywords field at all. You expect every matching document back with a non-negative score, and a field that no document has yet to simply match nothing. Instead the query gives keywords:lucene the largest docFreq of all its terms (2) although only 1 document has the keywords field, so BM25&#x27;s idf turns negative and that document scores -0.10 and is ranked last, since 10.3 it is missing from search(q, 10) when it sits in a segment of its own (count(q) = 3, 2 hits returned), and when no document has the keywords field yet, search() throws NullPointerException.</p>
@@ -27,7 +30,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/search/TestBlendedTermQueryCrossFieldStats.java"><code>src/org/apache/lucene/search/TestBlendedTermQueryCrossFieldStats.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.</li>
+<li>Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.</li>
 <li>Tested on Lucene main ea57360912ed (a commit of 2026-10-24): reproduced.</li>
 <li>What this folder covers: the test class holds the negative score of a match through the sparse field on one segment, the same match missing from search(q, 10) on three segments, and the NullPointerException for a blended field with no indexed terms. The search that does not return, named in the title, has no test in this folder. Run on 2026-11-18 on Lucene main 1cfa86310f76, with and without assertions: 3 tests found, 3 tests failed (the document that matches only through the sparse field scores -0.10 with BOOLEAN_REWRITE and -0.001 with DISJUNCTION_MAX_REWRITE; on three segments search(q, 10) returns 2 of the 3 matching documents; NullPointerException).</li>
 <li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).</li>
@@ -46,5 +49,5 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.search.TestBlendedTermQueryCrossFieldStats</code></pre>
-<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on the 11.0 branch the build takes the default from the seed).</p>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-23. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on branch_11x the build takes the default from the seed).</p>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-27. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

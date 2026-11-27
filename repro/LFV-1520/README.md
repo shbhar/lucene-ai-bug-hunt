@@ -2,7 +2,7 @@
 
 Finding LFV-1520 · Area: analysis / CaseFoldingFilter and CharacterUtils.simpleCaseFold (core); the factory name caseFolding (analysis-common) · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1520.html](../../bugs/LFV-1520.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1520.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1520.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -26,7 +26,7 @@ You analyze text with CaseFoldingFilter behind a tokenizer that keeps the letter
 - Tested on Lucene branch_11x a40bef9a7870 (a commit of 2026-11-16): the test passes, with assertions on and off (V=11.0.0-SNAPSHOT): the branch_11x commit before that one, whose fold table has no entry for the letter.
 - Tested on Lucene 10.6.0 (4ae946e5a9b9) (a commit of 2026-10-26): the test passes, with assertions on and off, on the 10.6.0 release jars, which are built from this commit (the tag releases/lucene/10.6.0): its fold table has no entry for the letter.
 - What each build does: the test fails on Lucene main since 01deb8e63e0b and on the 11.0 release branch since 9d2b5a15427a (both unreleased; the change that regenerated the fold table from Unicode 18, #17010, on each of the two), with and without assertions; it passes on branch_11x before that commit and on the 10.6.0 release, the only release that has the filter. What the test does: a one-token stream whose text is the one letter U+1DF95 goes through CaseFoldingFilter, and the term must be UnicodeUtil.foldCase of the letter, taken from the build's own table. On a build with the Unicode 18 table that is ß (U+00DF), and the test fails with 'term 0 expected:&lt;ß[]&gt; but was:&lt;ß[?]&gt;': the term is ß followed by the letter's second UTF-16 unit, which the console prints as '?'. On a build whose table leaves the letter alone the test checks that the filter leaves it alone, and passes. The test shows the term only: the three queries that the title names (Ma?e, /ma.e/ and Mate~1 behind WhitespaceTokenizer) are not part of it; they were run with separate programs, and the finding page has their counts under Who is affected. The test's input has no randomness; the seed only names the run. On a checkout of the 11.0 branch set V=11.0.0-SNAPSHOT; for the release, put the three 10.6.0 jars from Maven Central (org.apache.lucene: lucene-core, lucene-codecs, lucene-test-framework) in place of the three $LUCENE jars. For the Gradle alternative at the end of this page the module is lucene/core and the test's place is lucene/core/src/test/org/apache/lucene/analysis/.
-- This finding was re-run on Lucene main 11c8b6ea99ae on 2026-11-23: still reproduces.
+- This finding was re-run on Lucene main 82cf7465bb8f on 2026-11-26: still reproduces.
 - How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with org.junit.ComparisonFailure: term 0 expected:&lt;ß[]&gt; but was:&lt;ß[?]&gt; (the left-over unit after ß); on a build without the Unicode 18 fold table the run reports 1 test successful.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -47,7 +47,7 @@ java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=A
      execute --select-class org.apache.lucene.analysis.TestCaseFoldingFilterSupplementaryFold
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

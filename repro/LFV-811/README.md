@@ -20,8 +20,8 @@ You build a vector index with HNSW maxConn 16 (the default), later open a writer
 ## Run it
 
 - Tested on Lucene 10.6.0 (4ae946e5a9b9) (a commit of 2026-10-26): reproduced (6 of the 7 tests fail, with and without assertions; the seventh keeps maxConn unchanged and passes).
-- Passes on Lucene main 1cfa86310f76 (2026-11-17) and on branch_11x 89e68e0f3a50 (2026-11-17): all 7 tests pass on both, with and without assertions. Main and the 11.0 branch do not have the defect, so these runs are controls.
-- This finding was re-run on Lucene main 11c8b6ea99ae on 2026-11-23: the test passed, as recorded before (a control run); in the commands below, V=12.0.0-SNAPSHOT on a build of main 11c8b6ea99ae.
+- Passes on Lucene main 1cfa86310f76 (2026-11-17) and on branch_11x 89e68e0f3a50 (2026-11-17): all 7 tests pass on both, with and without assertions. Main 1cfa86310f76 and branch_11x 89e68e0f3a50 do not have the defect, so these runs are controls. On branch_11x 4e8fd3dc3bc4 all 7 tests pass as well, with and without assertions (run on 2026-11-26).
+- This finding was re-run on Lucene main 82cf7465bb8f on 2026-11-26: the test passed, as recorded before (a control run); in the commands below, V=12.0.0-SNAPSHOT on a build of main 82cf7465bb8f.
 - How to read the outcome: on 10.5.1, 10.5.2 and 10.6.0 a failing test is the finding reproducing (the failure message states expected against actual). On 10.4.0 and 10.5.0 five of the seven tests, the control among them, fail with 'merge did not reuse a graph': that is the test's own probe, not the finding.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -42,7 +42,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.codecs.lucene99.TestHnswMergeReuseChangedMaxConn
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 Formal models and scripts this finding's part of the hunt used: [../../models/hnsw-10x-merge-reuse-maxconn-mismatch/](../../models/hnsw-10x-merge-reuse-maxconn-mismatch/)
 

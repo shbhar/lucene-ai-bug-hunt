@@ -6,9 +6,9 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- Lucene Monitor's ScoringMatch and ExplainingMatch score a registered DisjunctionMaxQuery with a tie-breaker below 1 as the sum of its matching disjuncts instead of max + tieBreaker * others (finding LFV-852; [repro](../../repro/LFV-852/), [finding page](../../bugs/LFV-852.html))
-- Monitor's QueryDecomposer turns a BooleanQuery whose only required clause is a single FILTER clause into that clause as a scoring query, so ScoringMatch and ExplainingMatch report a positive score for a query (or query part) that scores 0, and twice the true score when such a query is nested in a disjunction (finding LFV-853; [repro](../../repro/LFV-853/), [finding page](../../bugs/LFV-853.html))
-- Lucene Monitor's QueryDecomposer collects a query's parts in a Set, so a sub-query that occurs more than once in a registered query (a repeated SHOULD or MUST clause, or a term shared by two nested disjunctions) is scored once by ScoringMatch and ExplainingMatch instead of once per occurrence (finding LFV-856; [repro](../../repro/LFV-856/), [finding page](../../bugs/LFV-856.html))
+- Lucene Monitor's ScoringMatch and ExplainingMatch score a registered DisjunctionMaxQuery with a tie-breaker below 1 as the sum of its matching disjuncts instead of max + tieBreaker * others (finding LFV-852; [repro](../../repro/LFV-852/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-852.html))
+- Monitor's QueryDecomposer turns a BooleanQuery whose only required clause is a single FILTER clause into that clause as a scoring query, so ScoringMatch and ExplainingMatch report a positive score for a query (or query part) that scores 0, and twice the true score when such a query is nested in a disjunction (finding LFV-853; [repro](../../repro/LFV-853/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-853.html))
+- Lucene Monitor's QueryDecomposer collects a query's parts in a Set, so a sub-query that occurs more than once in a registered query (a repeated SHOULD or MUST clause, or a term shared by two nested disjunctions) is scored once by ScoringMatch and ExplainingMatch instead of once per occurrence (finding LFV-856; [repro](../../repro/LFV-856/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-856.html))
 
 ## Files
 

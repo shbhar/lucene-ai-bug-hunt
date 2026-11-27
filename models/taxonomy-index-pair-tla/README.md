@@ -6,8 +6,8 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- ReindexingEnrichedDirectoryTaxonomyWriter.reindexWithNewOrdinalData rebuilds only the last committed taxonomy, so categories added since that commit are dropped and their ordinals are later reused for other categories (finding LFV-481; [repro](../../repro/LFV-481/), [finding page](../../bugs/LFV-481.html))
-- SearcherTaxonomyManager's IndexWriter (near-real-time) constructors open the taxonomy reader before the index reader, so a manager created while another thread indexes can hand out a first pair whose searcher holds documents with categories the paired taxonomy reader does not know (facet counting throws ArrayIndexOutOfBoundsException until the index changes and the manager refreshes) (finding LFV-489; [repro](../../repro/LFV-489/), [finding page](../../bugs/LFV-489.html))
+- ReindexingEnrichedDirectoryTaxonomyWriter.reindexWithNewOrdinalData rebuilds only the last committed taxonomy, so categories added since that commit are dropped and their ordinals are later reused for other categories (finding LFV-481; [repro](../../repro/LFV-481/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-481.html))
+- SearcherTaxonomyManager's IndexWriter (near-real-time) constructors open the taxonomy reader before the index reader, so a manager created while another thread indexes can hand out a first pair whose searcher holds documents with categories the paired taxonomy reader does not know (facet counting throws ArrayIndexOutOfBoundsException until the index changes and the manager refreshes) (finding LFV-489; [repro](../../repro/LFV-489/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-489.html))
 
 ## Files
 

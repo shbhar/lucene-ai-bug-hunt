@@ -19,7 +19,7 @@ You read the vectors of a field through LeafReader.getFloatVectorValues (or getB
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: with the default codec it indexes two documents, the first with a float vector field and the second without it, so that the field is sparse. It takes the field's FloatVectorValues from the only leaf reader, advances a first values.iterator() to document 0, then takes a second values.iterator() from the same object and asserts that this one has not been advanced (docID() is -1). The test fails at that assertion (expected -1, was 0), the same with and without assertions; it uses no randomness. The assertion is the expectation this finding starts from (the javadoc's 'Create an iterator for this instance.' and what a field that every document has does), not a statement of what Lucene should do: on the issue apache/lucene#17049 the author of the API answered on 2026-11-21 that the sharing should be documented.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -42,7 +42,7 @@ java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=A
      execute --select-class org.apache.lucene.index.TestSparseVectorValuesSecondIterator
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Feedback
 

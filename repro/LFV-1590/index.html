@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ComplexPhraseQueryParser accepts a quoted phrase without a positive clause (run: the stop word &quot;the&quot; and &quot;to be or not to be&quot; with EnglishAnalyzer, the quoted negation &quot;-quick&quot;) and its query rewrites to a SpanNearQuery without clauses and without a field (for the quoted negation: a SpanNotQuery around one); a search with it over a MemoryIndex throws NullPointerException, while over an index in a directory it returns no hit on the builds run from 9.1.0 on (known upstream: the issue #9712, LUCENE-8666) (LFV-1590)</title><style>
+:root{--fg:#1d2329;--dim:#5a6570;--line:#d8dee4;--bg:#fff;--soft:#f5f7f9;--link:#0b5cad}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
+font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+main{max-width:980px;margin:0 auto;padding:24px 18px 64px}a{color:var(--link)}
+h1{font-size:1.55rem;line-height:1.25;margin:.4em 0 .3em}h2{font-size:1.2rem;margin:1.6em 0 .5em}
+.dim{color:var(--dim)}.small{font-size:.9rem}.facts{display:flex;flex-wrap:wrap;gap:6px 16px;margin:.4em 0 1em}
+.note{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:10px 14px}
+pre{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:12px;overflow:auto;font-size:.85rem}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+table{border-collapse:collapse;width:100%;font-size:.92rem}th,td{border-bottom:1px solid var(--line);
+padding:6px 8px;text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:var(--soft)}
+h1,h2,p,li,dd{overflow-wrap:break-word}
+.facts>span{min-width:0;overflow-wrap:anywhere}
+th,td.nw{white-space:nowrap;overflow-wrap:normal}
+.scroll{overflow-x:auto}
+.narrow-only{display:none}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}
+.narrow-only{display:block;font-size:.85rem;color:var(--dim)}}
+nav.crumbs{font-size:.9rem;margin-bottom:8px}
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a> › <a href="../index.html">Repro tests</a> › LFV-1590</nav><h1>ComplexPhraseQueryParser accepts a quoted phrase without a positive clause (run: the stop word &quot;the&quot; and &quot;to be or not to be&quot; with EnglishAnalyzer, the quoted negation &quot;-quick&quot;) and its query rewrites to a SpanNearQuery without clauses and without a field (for the quoted negation: a SpanNotQuery around one); a search with it over a MemoryIndex throws NullPointerException, while over an index in a directory it returns no hit on the builds run from 9.1.0 on (known upstream: the issue #9712, LUCENE-8666)</h1>
+<p class="facts small"><span>Finding LFV-1590</span><span>Area: queryparser / complexPhrase: ComplexPhraseQueryParser (ComplexPhraseQuery.rewrite building a SpanNearQuery from no clause); reached over a MemoryIndex (memory, monitor, unified highlighter)</span><span>Priority: low</span><span>Impact: crash</span><span>Novelty: known upstream</span></p>
+<p><a href="../../index.html#bug-LFV-1590">This finding in the table</a></p>
+<p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
+<h2>What it shows</h2>
+<p>You parse a quoted phrase whose only word the analyzer removes, for example &quot;the&quot; with EnglishAnalyzer, with ComplexPhraseQueryParser and search with the query over a MemoryIndex. You expect no hit: that is what the classic QueryParser&#x27;s query for the same string gives over the same MemoryIndex and what the same ComplexPhraseQueryParser query gives over an index in a directory (run on 10.6.0, branch_11x and main); no javadoc sentence about this parser states it, and the SpanNearQuery constructor asks its caller for &#x27;at least 2&#x27; clauses. Instead parse() returns normally and the search throws NullPointerException, because the phrase is left without a clause, the parser builds a SpanNearQuery from the empty clause list, that query has no field, and the MemoryIndex is asked for the terms of a null field name: the one test (the quoted &quot;the&quot;, EnglishAnalyzer, IndexSearcher.count) fails with and without assertions on the 10.6.0 release, on branch_11x and on main, both unreleased.</p>
+<h2>Expected vs actual</h2>
+<ul><li><b>Expected:</b> You expect no hit: that is what the classic QueryParser&#x27;s query for the same string gives over the same MemoryIndex and what the same ComplexPhraseQueryParser query gives over an index in a directory (run on 10.6.0, branch_11x and main); no javadoc sentence about this parser states it, and the SpanNearQuery constructor asks its caller for &#x27;at least 2&#x27; clauses.</li><li><b>Actual:</b> parse() returns normally and the search throws NullPointerException, because the phrase is left without a clause, the parser builds a SpanNearQuery from the empty clause list, that query has no field, and the MemoryIndex is asked for the terms of a null field name: the one test (the quoted &quot;the&quot;, EnglishAnalyzer, IndexSearcher.count) fails with and without assertions on the 10.6.0 release, on branch_11x and on main, both unreleased.</li></ul>
+<h2>Files</h2><ul>
+<li><a href="src/TestComplexPhraseQuotedStopWordOverMemoryIndex.java"><code>src/TestComplexPhraseQuotedStopWordOverMemoryIndex.java</code></a> <span class="dim">(JUnit test)</span></li>
+</ul><h2>Run it</h2><ul>
+<li>Tested on Lucene main 77d56fefb355 (a commit of 2026-11-25): reproduced on 2026-11-26, with assertions on and off.</li>
+<li>Tested on Lucene branch_11x 4e8fd3dc3bc4 (a commit of 2026-11-25): reproduced on 2026-11-26, with assertions on and off (11.0.0-SNAPSHOT).</li>
+<li>Tested on Lucene main 8506598d7a98 (a commit of 2026-11-25): reproduced, with assertions on and off.</li>
+<li>Tested on Lucene branch_11x 55ef56a69344 (a commit of 2026-11-25): reproduced, with assertions on and off (11.0.0-SNAPSHOT).</li>
+<li>Tested on Lucene 10.6.0 (4ae946e5a9b9) (a commit of 2026-10-26): reproduced, with assertions on and off, on the 10.6.0 release jars, which are built from this commit (the tag releases/lucene/10.6.0).</li>
+<li>Not new in 11.0: the test fails the same way with the 10.6.0 release jars, on builds of branch_11x (55ef56a69344 and 4e8fd3dc3bc4) and of Lucene main (8506598d7a98 and 77d56fefb355), with and without assertions. Known upstream: the construction is the subject of the Lucene issue #9712 (LUCENE-8666, opened in 2019, open when read on 2026-11-25). Over an index in a directory the same query returns no hit, with no error, on the builds that ran from 9.1.0 on (a separate program: no hit on the 23 releases it ran from 9.1.0 to 10.6.0, NullPointerException on the 13 it ran from 5.4.0 to 9.0.0); the exception needs a reader that throws for a null field name, in the runs a MemoryIndex. What the test does: it adds the text &#x27;the quick brown fox&#x27; to a MemoryIndex with EnglishAnalyzer, parses the quoted stop word &quot;the&quot; with ComplexPhraseQueryParser (default settings, the same analyzer) and expects IndexSearcher.count of the parsed query to be 0, because the analyzer removes the phrase&#x27;s only word. The count throws java.lang.NullPointerException under SpanNearQuery$SpanNearWeight.getSpans, from the MemoryIndex&#x27;s lookup of a null field name, so the test&#x27;s assertion is not reached. The test is plain JUnit 4 with no randomness; the seed in the command is not read. On the older releases a first form of the test ran, a LuceneTestCase with one more assertion (the classic QueryParser&#x27;s query for the same string counts 0 over the same MemoryIndex), unchanged from 9.1.0 on and as a copy adapted to the older API before that: 5.4.0 is the first release that throws and 5.3.2 passes. A branch_11x checkout builds 11.0.0-SNAPSHOT jars, so set V=11.0.0-SNAPSHOT there; for the release, set V=10.6.0 and use the nine 10.6.0 jars from Maven Central (org.apache.lucene: lucene-core, lucene-codecs, lucene-test-framework, lucene-analysis-common, lucene-facet, lucene-memory, lucene-queries, lucene-queryparser, lucene-sandbox) in place of the nine $LUCENE jars. The run needs no jar beyond those that the block names. For the Gradle alternative at the end of this page the module is lucene/monitor, whose tests have the parser, the analyzer and the MemoryIndex on their class path (in lucene/queryparser the test does not compile, because that module&#x27;s tests have neither the analyzer nor the MemoryIndex): with the test copied to lucene/monitor/src/test/ it reports 1 test completed, 1 failed, with java.lang.NullPointerException, on branch_11x 55ef56a69344 and on main 8506598d7a98, with -Ptests.asserts=true and with -Ptests.asserts=false.</li>
+<li>This finding was re-run on Lucene main 82cf7465bb8f on 2026-11-26: still reproduces.</li>
+<li>How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with java.lang.NullPointerException thrown under SpanNearQuery$SpanNearWeight.getSpans from the MemoryIndex&#x27;s field lookup, before the test&#x27;s assertion is reached.</li>
+<li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
+</ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
+LUCENE=/path/to/lucene; V=12.0.0-SNAPSHOT
+CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
+CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
+CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
+CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
+CP=$CP:$LUCENE/lucene/facet/build/libs/lucene-facet-$V.jar
+CP=$CP:$LUCENE/lucene/memory/build/libs/lucene-memory-$V.jar
+CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
+CP=$CP:$LUCENE/lucene/queryparser/build/libs/lucene-queryparser-$V.jar
+CP=$CP:$LUCENE/lucene/sandbox/build/libs/lucene-sandbox-$V.jar
+CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
+CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
+
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
+
+# run 1: assertions on, seed 78A972
+java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=78A972 \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class TestComplexPhraseQuotedStopWordOverMemoryIndex</code></pre>
+<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on branch_11x the build takes the default from the seed).</p>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-27. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

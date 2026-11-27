@@ -2,7 +2,7 @@
 
 Finding LFV-1494 · Area: codecs / SimpleText codec readers (stored fields, term vectors, doc values and norms: cleanup when opening a segment fails) · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1494.html](../../bugs/LFV-1494.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1494.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1494.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You open an index that was written with SimpleTextCodec (Lucene's plain-text cod
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: it writes one empty document with SimpleTextCodec (compound files off) into a MockDirectoryWrapper over a ByteBuffersDirectory and then replaces the stored-fields file _0.fld with an empty file. MockDirectoryWrapper is the test framework's wrapping Directory that keeps count of open files; it is part of the test and is what reports the open file. The test expects DirectoryReader.open to throw CorruptIndexException, which it does, and then closes the directory. It fails there with 'MockDirectoryWrapper: cannot close: there are still 1 open files: {_0.fld=1}', the same with and without assertions. The fault in this test is a damaged (emptied) file, not the read I/O error that the description above starts from; an earlier form of the test injected that read error through its own wrapping Directory and found the same file open. The term-vectors, doc-values and norms files are not part of this test. It needs the core, codecs and test-framework jars only and no extra heap.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -44,7 +44,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.codecs.simpletext.TestSimpleTextFailedOpenClosesInput
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- IndexWriter keeps a full-flush merge that registerMerge rejected: commit() does not throw the IllegalStateException that MergePolicy#findFullFlushMerges documents, the rejected merge's readers stay open after IndexWriter.close(), and commit/getReader wait the full maxFullFlushMergeWaitMillis for a merge that never runs (finding LFV-502; [repro](../../repro/LFV-502/), [finding page](../../bugs/LFV-502.html))
+- IndexWriter keeps a full-flush merge that registerMerge rejected: commit() does not throw the IllegalStateException that MergePolicy#findFullFlushMerges documents, the rejected merge's readers stay open after IndexWriter.close(), and commit/getReader wait the full maxFullFlushMergeWaitMillis for a merge that never runs (finding LFV-502; [repro](../../repro/LFV-502/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-502.html))
 
 ## Files
 

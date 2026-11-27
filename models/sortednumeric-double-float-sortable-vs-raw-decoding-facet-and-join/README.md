@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- JoinUtil's numeric join reads a DoubleField or FloatField from field as raw IEEE bits, so a join on a negative value silently misses its matches (finding LFV-1111; [repro](../../repro/LFV-1111/), [finding page](../../bugs/LFV-1111.html))
+- JoinUtil's numeric join reads a DoubleField or FloatField from field as raw IEEE bits, so a join on a negative value silently misses its matches (finding LFV-1111; [repro](../../repro/LFV-1111/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1111.html))
 
 ## Files
 

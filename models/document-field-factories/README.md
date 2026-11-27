@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- DoubleRange and FloatRange accept the bounds [0.0, -0.0] and store them inverted, so range queries silently miss such documents and contradict each other (WITHIN [0,0] but not INTERSECTS [0,0]) (finding LFV-140; [repro](../../repro/LFV-140/), [finding page](../../bugs/LFV-140.html))
+- DoubleRange and FloatRange accept the bounds [0.0, -0.0] and store them inverted, so range queries silently miss such documents and contradict each other (WITHIN [0,0] but not INTERSECTS [0,0]) (finding LFV-140; [repro](../../repro/LFV-140/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-140.html))
 
 ## Files
 

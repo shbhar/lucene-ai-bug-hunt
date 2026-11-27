@@ -6,8 +6,8 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- A Monitor.register call that IndexWriter rejects is not rolled back: the earlier versions of the queries in the call are deleted at the next commit or close(), and until then getQuery() and match() disagree (finding LFV-499; [repro](../../repro/LFV-499/), [finding page](../../bugs/LFV-499.html))
-- Monitor.deleteById and Monitor.clear issue their IndexWriter delete outside the commit lock, so a delete or clear that runs while register is indexing a decomposed query leaves that query partly indexed: it stays registered but silently stops matching what its deleted parts match, also after a reopen (finding LFV-501; [repro](../../repro/LFV-501/), [finding page](../../bugs/LFV-501.html))
+- A Monitor.register call that IndexWriter rejects is not rolled back: the earlier versions of the queries in the call are deleted at the next commit or close(), and until then getQuery() and match() disagree (finding LFV-499; [repro](../../repro/LFV-499/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-499.html))
+- Monitor.deleteById and Monitor.clear issue their IndexWriter delete outside the commit lock, so a delete or clear that runs while register is indexing a decomposed query leaves that query partly indexed: it stays registered but silently stops matching what its deleted parts match, also after a reopen (finding LFV-501; [repro](../../repro/LFV-501/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-501.html))
 
 ## Files
 

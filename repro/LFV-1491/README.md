@@ -2,7 +2,7 @@
 
 Finding LFV-1491 · Area: highlighter / UnifiedHighlighter (Matches-based offsets, HighlightFlag.WEIGHT_MATCHES, the default since 9.0.0) · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1491.html](../../bugs/LFV-1491.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1491.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1491.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You highlight the text 'the quick brown fox' with the default UnifiedHighlighter
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: it builds a BooleanQuery of two SHOULD clauses, PrefixQuery body:qu* and SpanTermQuery body:quick, and calls highlightWithoutSearcher on the text 'the quick brown fox' with a UnifiedHighlighter built with its default flags over a StandardAnalyzer. It asserts the snippet 'the &lt;b&gt;quick&lt;/b&gt; brown fox'. With assertions on, as in the recipe (-ea -esa), the highlight call throws java.lang.AssertionError, without a message, from Lucene's own assert statement in OffsetsEnum.OfMatchesIteratorWithSubs.nextWhenMatchesIterator (OffsetsEnum.java:216 on main) before the test's own check runs; 'miOE should follow cached entries' is the comment on that source line, not a message in the output. With assertions off (-da -dsa -Dtests.asserts=false) the test passes: the highlighter returns the expected snippet. For this finding a passing run without assertions is the expected outcome and does not mean that the finding is gone. The test uses no index and no fault injection; it needs the highlighter, memory and queries jars beside core, as the recipe lists them.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -47,7 +47,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.search.uhighlight.TestUnifiedHighlighterPrefixAndSpanOnSameToken
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

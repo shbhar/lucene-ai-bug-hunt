@@ -2,7 +2,7 @@
 
 Finding LFV-1341 · Area: spatial3d / geom value classes and Geo3DPoint queries (equals and hashCode contract) · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1341.html](../../bugs/LFV-1341.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1341.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1341.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You build Geo3DPoint.newDistanceQuery("g", PlanetModel.WGS84, 0.0, 10.0, 1000.0)
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 5adff78bb168 (a commit of 2026-11-02): reproduced.
 - The test under src/ checks the same pair with a single assertFalse, so run 1 fails with a bare java.lang.AssertionError, with assertions on and off alike. The expected and actual lines above are those of the finding page's copy at the top of this folder, TestSignedZeroEqualsHashCode.java, which prints the two hash codes, 209447998 and -1938035650; copy it over src/org/apache/lucene/spatial3d/TestSignedZeroEqualsHashCode.java to see them.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -45,7 +45,7 @@ java -ea -esa -Xmx512m --add-modules jdk.incubator.vector --enable-native-access
      execute --select-class org.apache.lucene.spatial3d.TestSignedZeroEqualsHashCode
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

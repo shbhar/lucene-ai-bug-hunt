@@ -2,7 +2,7 @@
 
 Finding LFV-1581 · Area: sandbox / facets: the facet utilities (experimental), PostCollectionFaceting (the replay loop of two-step faceting) · Priority: low · Impact: crash · Novelty: new
 
-Finding page: [../../bugs/LFV-1581.html](../../bugs/LFV-1581.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1581.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1581.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -25,7 +25,7 @@ You index two segments, of which only the first has a document with the numeric 
 - Tested on Lucene branch_11x 262e019500ec (a commit of 2026-11-22): reproduced, with assertions on and off (11.0.0-SNAPSHOT).
 - Tested on Lucene 10.6.0 (4ae946e5a9b9) (a commit of 2026-10-26): reproduced, with assertions on and off, on the 10.6.0 release jars, which are built from this commit (the tag releases/lucene/10.6.0).
 - Not new in 11.0: the test fails the same way with the 10.6.0 release jars, on a build of branch_11x (262e019500ec) and on Lucene main (b5a4546a5964), with and without assertions. What the test does: it writes two segments of one document each (NoMergePolicy keeps them apart), of which only the first document has the numeric doc-values field 'price' (value 5); it collects the hits of a match-all search into a FacetsCollector and replays them through PostCollectionFaceting into HistogramCollectorManager('price', 10); it expects the count 1 in bucket 0. The collect() call throws org.apache.lucene.search.CollectionTerminatedException, so the test's assertion is not reached; the exception carries no stack trace, and the run prints its name with the seed line and no frame of Lucene. The test in its first form (the same scenario with a second assertion, on the size of the histogram) fails the same way on each release from 10.4.0 to 10.6.0, on branch_11x and on main; the shipped form fails the same way on 10.6.0, on branch_11x 262e019500ec and on main b5a4546a5964 and, in later runs of 2026-11-22 and of 2026-11-23, with the release jars of 10.4.0, 10.5.0, 10.5.1 and 10.5.2, each with and without assertions. The same omission in CachingCollector#replay is the finding LFV-154 of this list. The test's input has no randomness; the test framework draws its environment from the seed. On a branch_11x checkout set V=11.0.0-SNAPSHOT; for a release, set V to its version (10.4.0, 10.5.0, 10.5.1, 10.5.2 or 10.6.0) and use the six jars of that release from Maven Central (org.apache.lucene: lucene-core, lucene-codecs, lucene-test-framework, lucene-facet, lucene-queries, lucene-sandbox) in place of the six $LUCENE jars. For the Gradle alternative at the end of this page the module is lucene/sandbox: with the test copied to lucene/sandbox/src/test/org/apache/lucene/sandbox/facet/utils/ it reports 1 test completed, 1 failed, with the same exception, on branch_11x 262e019500ec and on main b5a4546a5964, with -Ptests.asserts=true and with -Ptests.asserts=false.
-- This finding was re-run on Lucene main 11c8b6ea99ae on 2026-11-23: still reproduces.
+- This finding was re-run on Lucene main 82cf7465bb8f on 2026-11-26: still reproduces.
 - How to read the outcome: a failing test is the finding reproducing: the run reports 1 test found and 1 test failed, with org.apache.lucene.search.CollectionTerminatedException, thrown out of the test's PostCollectionFaceting#collect call (the exception carries no stack trace, so the run names no frame of Lucene).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -49,7 +49,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.sandbox.facet.utils.TestPostCollectionFacetingEndsLeafEarly
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

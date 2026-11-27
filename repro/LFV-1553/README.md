@@ -2,7 +2,7 @@
 
 Finding LFV-1553 · Area: test sources / core codec tests: the dictionary-reuse tests of the compressing stored-fields and term-vectors formats (LZ4 with a preset dictionary) · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1553.html](../../bugs/LFV-1553.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1553.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1553.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -27,7 +27,7 @@ You run Lucene's own tests on branch_11x (to become 11.0.0) or on main and expec
 - Tested on Lucene branch_11x 75eea467ac52 (a commit of 2026-11-19): reproduced, with assertions on and off (set V=11.0.0-SNAPSHOT).
 - Tested on Lucene main f6e694652c3d (a commit of 2026-11-19): reproduced, with assertions on and off.
 - What the test is: the writer set-up of Lucene's two testDictionaryReuse tests (newIndexWriterConfig() with NoMergePolicy, without their codec line) and their assertion, with seven empty documents. With the seed 7D797B773AD37D33 the seven documents are flushed into two segments on the builds named above, and the test fails with 'expected:&lt;1&gt; but was:&lt;2&gt;'. The seed is this test's own (Lucene's own two tests pass with it) and is bound to the order in which a build's test framework draws its random values, so this test does not show which builds have the two tests: with the same seed it also fails on main 2dcbaebd8fd6 and on branch_11x b98f116b3179, two commits from before #14397 reached each branch, and it passes with the 10.6.0 release jars (runs of 2026-11-19, with assertions on and off; for the release, the three 10.6.0 jars from Maven Central, org.apache.lucene: lucene-core, lucene-codecs and lucene-test-framework, stand in place of the three $LUCENE jars). Lucene's own two tests are run in a checkout of main or of branch_11x: ./gradlew :lucene:core:test --tests org.apache.lucene.codecs.lucene90.compressing.TestCompressingStoredFieldsFormat.testDictionaryReuse --tests org.apache.lucene.codecs.lucene90.compressing.TestCompressingTermVectorsFormat.testDictionaryReuse -Ptests.seed=8621B64601478ADE fails both, 'expected:&lt;1&gt; but was:&lt;3&gt;' for the stored-fields test and 'expected:&lt;1&gt; but was:&lt;2&gt;' for the term-vectors test (run on 2026-11-20 on main f2b061406c4b and on branch_11x 75eea467ac52, also with -Ptests.asserts=false). On a checkout of branch_11x set V=11.0.0-SNAPSHOT in the commands below.
-- This finding was re-run on Lucene main 11c8b6ea99ae on 2026-11-23: still reproduces.
+- This finding was re-run on Lucene main 82cf7465bb8f on 2026-11-26: still reproduces.
 - How to read the outcome: the test of this folder fails with java.lang.AssertionError: expected:&lt;1&gt; but was:&lt;2&gt; where the set-up of the two tests gives two segments; whether a build has the finding is read from Lucene's own two tests, as the note above says.
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
 
@@ -48,7 +48,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.codecs.lucene90.compressing.TestSevenDocumentsAreOneSegment
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

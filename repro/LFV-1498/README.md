@@ -2,7 +2,7 @@
 
 Finding LFV-1498 · Area: document / FieldType (javadoc of setDocValuesType and docValuesType(); the null refusal and the NONE default beside them) · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1498.html](../../bugs/LFV-1498.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1498.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1498.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You build your own FieldType and call setDocValuesType(null) to switch doc value
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: it makes the one call new FieldType().setDocValuesType(null), which the setter's javadoc offers for 'no DocValues should be stored'. The test fails because the call throws NullPointerException 'DocValuesType must not be null', the same with and without assertions; it uses no randomness. The finding is about the javadoc: refusing null is intended, and DocValuesType.NONE is the value to pass. The test does not exercise the getter's sentence ('The default is null'); the field's initial value in the source is DocValuesType.NONE.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -44,7 +44,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.document.TestFieldTypeSetDocValuesTypeNull
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

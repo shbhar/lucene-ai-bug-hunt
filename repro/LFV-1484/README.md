@@ -2,7 +2,7 @@
 
 Finding LFV-1484 · Area: monitor / presearcher term streams (TermsEnumTokenStream under TermFilteredPresearcher and MultipassTermFilteredPresearcher: binary, non-UTF-8 document and query terms) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Finding page: [../../bugs/LFV-1484.html](../../bugs/LFV-1484.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1484.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1484.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You register a TermQuery on a binary term (for example the one-byte id {C8}, bui
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does: it registers a TermQuery on the one-byte term {C8} in a Monitor with the default presearcher and matches one document that holds that term in a StringField plus a second field; it asserts 1 match and gets 0. The ArrayIndexOutOfBoundsException for terms that end in F1..F7 and the collation-key case of the summary (the Russian word день under ICUCollationKeyAnalyzer at PRIMARY strength) are not part of this test.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -47,7 +47,7 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
      execute --select-class org.apache.lucene.monitor.TestBinaryTermPresearcher
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

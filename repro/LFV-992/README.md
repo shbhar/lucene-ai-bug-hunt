@@ -2,7 +2,7 @@
 
 Finding LFV-992 · Area: analysis-icu / module overview documentation (overview.html 'Example Usages') · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-992.html](../../bugs/LFV-992.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-992.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-992.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ Expected: every example compiles. Actual: 16 error lines, overview.html:75, 121,
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - The expected and actual lines above are those of main 645d4fe14a20. On a build of main or of branch_11x since #16962 (merged 2026-11-03), which made the no-argument MatchAllDocsQuery constructor private, the test fails the same way and lists one more line, overview.html:159: 17 error lines (run on branch_11x 9d2b5a15427a and on main 9965d34e3c77 with -ea and -da). Lines 339-340, which the text above calls main only, are on the page of branch_11x too (the same page text at 9d2b5a15427a); no release has them.
@@ -54,7 +54,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 The module(s) analysis-icu, facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 Formal models and scripts this finding's part of the hunt used: [../../models/javadoc-package-and-overview-examples-call-removed-apis-siblings-of-16904/](../../models/javadoc-package-and-overview-examples-call-removed-apis-siblings-of-16904/)
 

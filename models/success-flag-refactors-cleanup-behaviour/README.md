@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- In no release (10.6.0 does not have it; 11.0.0 would be the first): on the 11.0 branch and main, with reader pooling off and no near-real-time reader opened from the writer, when IndexWriter fails to resolve buffered deletes and the clean-up after it fails too, only the clean-up failure is thrown and recorded as the tragic exception; the first failure is reported nowhere (10.6.0 throws the first failure with the clean-up failure as suppressed) (finding LFV-1506; [repro](../../repro/LFV-1506/), [finding page](../../bugs/LFV-1506.html))
+- In no release when read on 2026-11-26 (10.6.0 does not have it): on branch_11x and main, with reader pooling off and no near-real-time reader opened from the writer, when IndexWriter fails to resolve buffered deletes and the clean-up after it fails too, only the clean-up failure is thrown and recorded as the tragic exception; the first failure is reported nowhere (10.6.0 throws the first failure with the clean-up failure as suppressed) (finding LFV-1506; [repro](../../repro/LFV-1506/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1506.html))
 
 ## Files
 

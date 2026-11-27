@@ -2,7 +2,7 @@
 
 Finding LFV-1080 · Area: misc / index tools (IndexRearranger.execute: lifecycle of the method-local executor on the failure path) · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1080.html](../../bugs/LFV-1080.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1080.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1080.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You run IndexRearranger.execute() and it fails after it has started its work, fo
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main e1faeba08bde (a commit of 2026-11-02): reproduced.
 - Recorded outcome of run 1 on Lucene main e1faeba08bde: 1 test(s) run, 1 failed (testFailedExecuteStopsWorker).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -45,7 +45,7 @@ java -ea -esa -Xmx1g --add-modules jdk.incubator.vector --enable-native-access=A
      execute --select-class org.apache.lucene.misc.index.TestIndexRearrangerFailureShutsDownPool
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

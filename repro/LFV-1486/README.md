@@ -2,7 +2,7 @@
 
 Finding LFV-1486 · Area: index / sorted views of BINARY doc values (BinaryDocValuesWriter.BinaryDVs, built by SortingCodecReader for merges that renumber documents: BPReorderingMergePolicy in misc and the addIndexes re-sort recipe) · Priority: low · Impact: crash · Novelty: new
 
-Finding page: [../../bugs/LFV-1486.html](../../bugs/LFV-1486.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1486.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1486.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ You index documents with a BinaryDocValuesField and merge them with a merge poli
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 781025d6fe32 (a commit of 2026-11-13): reproduced.
 - What the test does and needs: it writes 262,144 binary doc values of 8,192 bytes (2 GiB in one field) to a temporary directory and calls forceMerge(1) under BPReorderingMergePolicy with the serial merge scheduler; the merge fails with ArithmeticException: integer overflow. The recipe sets a 4 GB heap through JAVA_TOOL_OPTIONS, as in the recorded runs; with a 2 GB heap the test ends in OutOfMemoryError instead, which is not the finding. It also needs about 2.5 GB of temporary disk space under java.io.tmpdir (the failing runs peaked at 2.15 to 2.54 GB) and ran for about 10 seconds on a fast local disk. A failing run keeps its index: the test framework keeps the files of a failed test (it prints 'NOTE: leaving temporary files on disk at: ...'), so each run leaves about 2.1 GB in that folder; delete it after the run, or point java.io.tmpdir at a disk with room (add -Djava.io.tmpdir=/path/with/room to JAVA_TOOL_OPTIONS). The Gradle alternative at the end of this page needs -Ptests.heapsize=4g as well: with Gradle's default test heap the test ends in OutOfMemoryError, which is not the finding either. The re-sort recipe with addIndexes is not part of this test.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -47,7 +47,7 @@ java -ea -esa -Xmx4g --add-modules jdk.incubator.vector --enable-native-access=A
      execute --select-class org.apache.lucene.misc.index.TestBPReorderingMergeBinaryDocValues2GiB
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

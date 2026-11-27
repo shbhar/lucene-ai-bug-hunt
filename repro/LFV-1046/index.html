@@ -15,9 +15,11 @@ h1,h2,p,li,dd{overflow-wrap:break-word}
 .facts>span{min-width:0;overflow-wrap:anywhere}
 th,td.nw{white-space:nowrap;overflow-wrap:normal}
 .scroll{overflow-x:auto}
-@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
+.narrow-only{display:none}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}
+.narrow-only{display:block;font-size:.85rem;color:var(--dim)}}
 nav.crumbs{font-size:.9rem;margin-bottom:8px}
-</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>A term over 32,766 bytes passed to deleteDocuments(Term...), or to an updateDocument(s) call whose documents are indexed without error, is rejected but stays in IndexWriter&#x27;s shared delete queue, so later deletes, some later adds and the next commit, NRT reopen or close() fail, and with assertions off a later commit can return without the documents that were buffered when the term was rejected (regression in 9.9.0; up to 9.8.0 such a delete was a no-op)</h1>
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a> › <a href="../index.html">Repro tests</a> › LFV-1046</nav><h1>A term over 32,766 bytes passed to deleteDocuments(Term...), or to an updateDocument(s) call whose documents are indexed without error, is rejected but stays in IndexWriter&#x27;s shared delete queue, so later deletes, some later adds and the next commit, NRT reopen or close() fail, and with assertions off a later commit can return without the documents that were buffered when the term was rejected (regression in 9.9.0; up to 9.8.0 such a delete was a no-op)</h1>
 <p class="facts small"><span>Finding LFV-1046</span><span>Area: index / IndexWriter buffered delete terms (DocumentsWriterDeleteQueue.DeleteSlice.apply, BufferedUpdates.DeletedTerms)</span><span>Priority: medium</span><span>Impact: crash</span><span>Novelty: new</span></p>
 <p><a href="../../bugs/LFV-1046.html">Finding page for LFV-1046</a></p>
 <p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
@@ -28,7 +30,7 @@ nav.crumbs{font-size:.9rem;margin-bottom:8px}
 <h2>Files</h2><ul>
 <li><a href="src/org/apache/lucene/index/TestOverlongDeleteTermKeepsWriterUsable.java"><code>src/org/apache/lucene/index/TestOverlongDeleteTermKeepsWriterUsable.java</code></a> <span class="dim">(JUnit test)</span></li>
 </ul><h2>Run it</h2><ul>
-<li>Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.</li>
+<li>Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.</li>
 <li>Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.</li>
 <li>What this folder covers: the test adds one document, lets deleteDocuments with a 32,767-byte term throw, and calls commit(): the failed commit is the finding reproducing. The other clauses of the title (an updateDocument call with such a term, the later deletes and adds, an NRT reopen or close(), and the later commit that returns without the buffered document) have no test in this folder; the finding page gives their runs. Run on 2026-11-18 on Lucene main 1cfa86310f76, with and without assertions: 1 test found, 1 test failed (AssertionError &#x27;pendingNumDocs 1 != 0 totalMaxDoc&#x27; with assertions on; IllegalStateException &#x27;Can&#x27;t close queue unless all changes are applied&#x27; with assertions off).</li>
 <li>How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).</li>
@@ -47,6 +49,6 @@ javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
 java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
      -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
      execute --select-class org.apache.lucene.index.TestOverlongDeleteTermKeepsWriterUsable</code></pre>
-<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on the 11.0 branch the build takes the default from the seed).</p>
+<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=true</code> for a run with assertions and <code>-Ptests.asserts=false</code> for one without: on main and on branch_11x the build takes the default from the seed).</p>
 <h2>Files shown on the finding page</h2><ul><li><a href="TestOverlongDeleteTermKeepsWriterUsable.java"><code>TestOverlongDeleteTermKeepsWriterUsable.java</code></a></li></ul>
-<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-23. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-11-27. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

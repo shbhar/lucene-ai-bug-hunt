@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- HNSW merge with graph reuse throws BufferAllocationException when the reused graph has more than 805,306,368 vectors (finding LFV-458; [repro](../../repro/LFV-458/), [finding page](../../bugs/LFV-458.html))
+- HNSW merge with graph reuse throws BufferAllocationException when the reused graph has more than 805,306,368 vectors (finding LFV-458; [repro](../../repro/LFV-458/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-458.html))
 
 ## Files
 

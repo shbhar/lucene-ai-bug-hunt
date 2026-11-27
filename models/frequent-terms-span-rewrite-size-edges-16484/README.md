@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- SpanMultiTermQueryWrapper.FrequentTermsSpanBooleanQueryRewrite (new in 10.6.0) sizes its priority queue from maxSize before collecting any term, so maxSize &gt;= 2147483631 (for example Integer.MAX_VALUE as 'no limit') makes every rewrite throw IllegalArgumentException, and a large maxSize allocates a (maxSize + 1)-slot array on every rewrite (finding LFV-944; [repro](../../repro/LFV-944/), [finding page](../../bugs/LFV-944.html))
+- SpanMultiTermQueryWrapper.FrequentTermsSpanBooleanQueryRewrite (new in 10.6.0) sizes its priority queue from maxSize before collecting any term, so maxSize &gt;= 2147483631 (for example Integer.MAX_VALUE as 'no limit') makes every rewrite throw IllegalArgumentException, and a large maxSize allocates a (maxSize + 1)-slot array on every rewrite (finding LFV-944; [repro](../../repro/LFV-944/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-944.html))
 
 ## Files
 

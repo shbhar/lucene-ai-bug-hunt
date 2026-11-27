@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- updateDocument racing commit() can leave two live documents for one key (a lost delete) and operations above the sequence number commit() returned in the commit point, because DocumentsWriterFlushControl.nextPendingFlush flushes a DWPT of the new delete queue during the running full flush (finding LFV-1045; [repro](../../repro/LFV-1045/), [finding page](../../bugs/LFV-1045.html))
+- updateDocument racing commit() can leave two live documents for one key (a lost delete) and operations above the sequence number commit() returned in the commit point, because DocumentsWriterFlushControl.nextPendingFlush flushes a DWPT of the new delete queue during the running full flush (finding LFV-1045; [repro](../../repro/LFV-1045/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1045.html))
 
 ## Files
 

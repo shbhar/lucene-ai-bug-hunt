@@ -2,7 +2,7 @@
 
 Finding LFV-012 · Area: index / IndexWriter NRT · Priority: low · Impact: silent wrong results · Novelty: new
 
-Finding page: [../../bugs/LFV-012.html](../../bugs/LFV-012.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-012.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-012.html)
 
 AI-assisted finding, confirmed by automated checks. Upstream status: Fix in progress, by diwu-sf (author of open PR #16923; not a Lucene committer) on 2026-11-10 (https://github.com/apache/lucene/pull/16923). Open PR #16923 (diwu-sf, opened 2026-10-27; head fc6dd6e306ea of 2026-11-10; no milestone; as of 2026-11-14 no committer review, and the one approving review, of 2026-11-06, is six commits older) fixes the isCurrent() symptom and names this finding in its description. Once the writer is closed, StandardDirectoryReader#isCurrent also requires an NRT reader to be on the latest commit generation; the new TestRollback#testNRTReaderOfRolledBackWriterAfterNextWriterCommits fails without the PR's source changes. On a build of the head our minimal repro and the rollback and close-without-commit tests pass, with and without assertions; they fail on main 781025d6fe32. Novelty stays new: the PR names this finding, so it follows this list and is not an earlier report. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ Expected `isCurrent()` to be false (reader maxDoc 4, latest commit maxDoc 3); ac
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - Recorded outcome of run 1 on Lucene main 645d4fe14a20: 1 test(s) run, 1 failed.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -45,7 +45,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.index.TestOrphanedNrtReaderIsCurrent
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Feedback
 

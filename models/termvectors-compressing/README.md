@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- addIndexes(CodecReader) from a reader whose term vectors list a field with zero terms writes a term-vector chunk that the default codec cannot read back, and every later merge that re-encodes the segment closes the IndexWriter (finding LFV-244; [repro](../../repro/LFV-244/), [finding page](../../bugs/LFV-244.html))
+- addIndexes(CodecReader) from a reader whose term vectors list a field with zero terms writes a term-vector chunk that the default codec cannot read back, and every later merge that re-encodes the segment closes the IndexWriter (finding LFV-244; [repro](../../repro/LFV-244/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-244.html))
 
 ## Files
 

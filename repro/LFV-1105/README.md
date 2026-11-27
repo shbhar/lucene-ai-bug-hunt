@@ -1,4 +1,4 @@
-# The packed int4 Lucene99 scalar-quantized supplier scorer overwrites the score correction cached for its scoring ordinal on a cache miss, so score(i) depends on earlier score() calls; on the released 10.2.x/10.3.x a forceMerge of such a field builds a different HNSW graph, and on main and 10.4+ only internal callers reach it (known: open PR #16830)
+# The packed int4 Lucene99 scalar-quantized supplier scorer overwrites the score correction cached for its scoring ordinal on a cache miss, so score(i) depends on earlier score() calls; on the released 10.2.x/10.3.x a forceMerge of such a field can build a different HNSW graph, and on main and 10.4+ only internal callers reach it (known: open PR #16830)
 
 Finding LFV-1105 · Area: codecs / backward-codecs Lucene99 scalar-quantized vectors (OffHeapQuantizedByteVectorValues) · Priority: low · Impact: minor · Novelty: known upstream
 
@@ -6,7 +6,7 @@ AI-assisted finding, confirmed by automated checks, not yet triaged by a human L
 
 ## What it shows
 
-With the packed int4 Lucene99 supplier scorer and scoring ordinal 1, score(1) should be the same before and after score(0); it is 0.99679184 before and 0.91709924 after, because getScoreCorrectionConstant(0) on a cache miss overwrites the correction cached for lastOrd. In 10.2.x/10.3.x graph building goes through this scorer, so a forceMerge of a compress=true 4-bit field builds a different graph; searches are not affected.
+With the packed int4 Lucene99 supplier scorer and scoring ordinal 1, score(1) should be the same before and after score(0); it is 0.99679184 before and 0.91709924 after, because getScoreCorrectionConstant(0) on a cache miss overwrites the correction cached for lastOrd. In 10.2.x/10.3.x graph building goes through this scorer, so a forceMerge of a compress=true 4-bit field can build a different graph; scoring at search time is not affected.
 
 ## Expected vs actual
 
@@ -19,7 +19,7 @@ With the packed int4 Lucene99 supplier scorer and scoring ordinal 1, score(1) sh
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 645d4fe14a20 (a commit of 2026-10-28): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
@@ -42,7 +42,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class org.apache.lucene.backward_codecs.lucene99.TestPackedInt4SupplierStaleCorrection
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Feedback
 

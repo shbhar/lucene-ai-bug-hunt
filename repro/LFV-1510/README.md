@@ -19,7 +19,7 @@ Lucene's back-compat tests read small indexes that past releases wrote (checked-
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene branch_11x daa54f2e0cd3 (a commit of 2026-11-13): reproduced.
 - Not new in 11.0: the 10.6.0 release has it too (with the 10.6.0 release jars and the copy of the file in the 10.6.0 tag the test fails the same way), and so do Lucene main and the 11.0 release branch (branch_11x daa54f2e0cd3). It concerns Lucene's own test sources and test fixtures only: no released jar is affected and no test of Lucene's suite fails. Known upstream: #14456 (gf2121, April 2025) states the defect at its first occurrence, which was repaired then; this test shows the state that returned with #15160. What the test does: it unzips int7_hnsw.10.4.0.zip, the back-compat index that was written for the 10.4.0 release and is checked in with Lucene's test sources, reads its commit and asserts that the codec name recorded for its first segment begins with 'Lucene'. It fails with 'java.lang.AssertionError: Asserting': the message is the recorded codec name, the codec of Lucene's test framework. The outcome is the same with and without assertions, and the test uses no randomness. For the Gradle alternative at the end of this page the module is lucene/backward-codecs: the test has no package, so the file goes directly into lucene/backward-codecs/src/test/ (run in a checkout of branch_11x daa54f2e0cd3, with and without assertions: the same failure).
 - Fixture: the test reads int7_hnsw.10.4.0.zip, a test resource of Lucene's backward-codecs module (lucene/backward-codecs/src/test/org/apache/lucene/backward_index/ in the checkout), so the run puts $LUCENE/lucene/backward-codecs/src/test on the class path; without it the test fails for another reason.
@@ -44,7 +44,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
      execute --select-class TestInt7FixtureCodecName
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Feedback
 

@@ -2,7 +2,7 @@
 
 Finding LFV-1303 · Area: index / postings merge (MappedMultiFields / MappingMultiPostingsEnum handed to FieldsConsumer.write) · Priority: low · Impact: minor · Novelty: new
 
-Finding page: [../../bugs/LFV-1303.html](../../bugs/LFV-1303.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1303.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1303.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -21,7 +21,7 @@ A custom postings format that keeps the default merge receives, in FieldsConsume
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main 5adff78bb168 (a commit of 2026-11-02): reproduced.
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
 - Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
@@ -43,7 +43,7 @@ java -da -dsa -Dtests.asserts=false -Xmx1g --add-modules jdk.incubator.vector --
      execute --select-class org.apache.lucene.index.TestMergePostingsDocIdAfterExhaustion
 ```
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 

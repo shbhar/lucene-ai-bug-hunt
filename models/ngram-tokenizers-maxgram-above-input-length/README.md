@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Findings
 
-- NGramTokenizer and EdgeNGramTokenizer accept maxGram = Integer.MAX_VALUE, but their int buffer sizing wraps to a 1022-char read buffer and leaves the 16-char default term buffer, so the first text of 17 or more chars throws (ArrayIndexOutOfBoundsException up to 1021 chars, an unrelated IllegalArgumentException from 1022) (finding LFV-1007; [repro](../../repro/LFV-1007/), [finding page](../../bugs/LFV-1007.html))
+- NGramTokenizer and EdgeNGramTokenizer accept maxGram = Integer.MAX_VALUE, but their int buffer sizing wraps to a 1022-char read buffer and leaves the 16-char default term buffer, so the first text of 17 or more chars throws (ArrayIndexOutOfBoundsException up to 1021 chars, an unrelated IllegalArgumentException from 1022) (finding LFV-1007; [repro](../../repro/LFV-1007/), [finding page](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-1007.html))
 
 ## Files
 

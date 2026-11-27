@@ -2,7 +2,7 @@
 
 Finding LFV-789 · Area: facet / DrillSideways (sequential query-first scoring: score mode of the base weight and the scorable handed to the hit collector) · Priority: medium · Impact: silent wrong results · Novelty: new
 
-Finding page: [../../bugs/LFV-789.html](../../bugs/LFV-789.html)
+Finding page: [https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-789.html](https://shbhar.github.io/lucene-ai-bug-hunt/bugs/LFV-789.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -22,7 +22,7 @@ You run a sequential DrillSideways search (no executor) with a filter-style base
 
 ## Run it
 
-- Tested on Lucene main 11c8b6ea99ae (a commit of 2026-11-23): still reproduces.
+- Tested on Lucene main 82cf7465bb8f (a commit of 2026-11-26): still reproduces.
 - Tested on Lucene main a9779ef3c193 (a commit of 2026-10-26): reproduced.
 - Runs 1 and 2 use the two test classes under src/. Run as printed on 2026-11-22 on a build of main b5a4546a5964, with assertions on and off: run 1 (TestDrillSidewaysTopScoresCollector) reports 2 tests found and 2 failed, with java.lang.AssertionError: sequential, TOP_SCORES hit collector expected:&lt;100&gt; but was:&lt;22&gt; and the same message ending but was:&lt;11&gt;; run 2 (TestDrillSidewaysTopScoresTwoArgSearch) reports 2 tests found and 1 failed, with java.lang.AssertionError: expected:&lt;100&gt; but was:&lt;11&gt;. The expected and actual lines above are those of the finding page's one-test copy at the top of this folder, TestDrillSidewaysTopScoresHitCollector.java; copy it into src/org/apache/lucene/facet/ and select org.apache.lucene.facet.TestDrillSidewaysTopScoresHitCollector in run 1 to run it: it then fails 1 of 1 with org.junit.ComparisonFailure: sideways color counts red/blue expected:&lt;[75/75]&gt; but was:&lt;[11/10]&gt; (run the same day on the same build, with assertions on and off).
 - How to read the outcome: a failing test is the finding reproducing (the failure message states expected against actual, or names the exception that was thrown).
@@ -53,7 +53,7 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
-Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on the 11.0 branch the build takes the default from the seed).
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=true` for a run with assertions and `-Ptests.asserts=false` for one without: on main and on branch_11x the build takes the default from the seed).
 
 ## Files shown on the finding page
 
